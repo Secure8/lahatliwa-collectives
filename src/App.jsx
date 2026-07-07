@@ -13,6 +13,10 @@ import Dashboard from './pages/admin/Dashboard';
 import AdminProjects from './pages/admin/AdminProjects';
 import NewProject from './pages/admin/NewProject';
 import EditProject from './pages/admin/EditProject';
+import SiteSettings from './pages/admin/SiteSettings';
+import ContentIndex from './pages/admin/ContentIndex';
+import ContentEditor from './pages/admin/ContentEditor';
+import IconsMedia from './pages/admin/IconsMedia';
 
 function PublicLayout({ children }) {
   return (
@@ -39,6 +43,10 @@ export default function App() {
         <Route path="/admin/projects" element={<AdminProjects />} />
         <Route path="/admin/projects/new" element={<NewProject />} />
         <Route path="/admin/projects/:id/edit" element={<EditProject />} />
+        <Route path="/admin/settings" element={<SiteSettings />} />
+        <Route path="/admin/content" element={<ContentIndex />} />
+        <Route path="/admin/content/:pageKey" element={<ContentEditor />} />
+        <Route path="/admin/media/icons" element={<IconsMedia />} />
       </Route>
     </Routes>
   );

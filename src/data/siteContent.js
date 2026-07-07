@@ -1,8 +1,20 @@
-const defaultSiteContent = {
+export const defaultSiteContent = {
   legalName: 'Jevin Coching',
   displayName: 'Hevv Ching',
   initials: 'HC',
   email: 'hello@example.com',
+  tagline: 'Creative student, digital creator, and aspiring web developer.',
+  logoUrl: '',
+  logoAlt: 'Hevv Ching logo',
+  heroImageUrl: '',
+  heroImageAlt: 'Jevin Coching portrait',
+  footerText: 'A calm creative portfolio for visual work, digital builds, and practical project experiments.',
+  primaryTextColor: '#f5f5f4',
+  secondaryTextColor: '#d4d4d8',
+  mutedTextColor: '#a1a1aa',
+  accentColor: '#f6d58b',
+  defaultBackgroundImageUrl: '',
+  defaultBackgroundOverlayOpacity: 0.55,
   hero: {
     eyebrow: 'Creative portfolio',
     title: 'Visual work, digital builds, and calm ideas shaped into something real.',
@@ -61,6 +73,60 @@ const defaultSiteContent = {
   placeholders: {
     projectCover: '/images/project-cover-placeholder.jpg',
     projectGallery: '/images/project-gallery-placeholder.jpg',
+  },
+};
+
+export const defaultPageContent = {
+  home: {
+    heroTitle: defaultSiteContent.hero.title,
+    heroDescription: defaultSiteContent.hero.description,
+    primaryCta: defaultSiteContent.hero.primaryCta,
+    secondaryCta: defaultSiteContent.hero.secondaryCta,
+    featuredHeading: 'Selected Projects',
+    servicesHeading: 'Creative and digital support',
+    servicesIntro: defaultSiteContent.servicesIntro,
+    heroTitleColor: '',
+    heroDescriptionColor: '',
+    sectionHeadingColor: '',
+    accentTextColor: '',
+    heroBackgroundImageUrl: '',
+    heroBackgroundOverlayOpacity: 0.55,
+    heroBackgroundBlur: 0,
+    heroBackgroundPosition: 'center',
+    heroBackgroundStyle: 'none',
+  },
+  about: {
+    title: defaultSiteContent.about.title,
+    intro: defaultSiteContent.about.intro,
+    journey: defaultSiteContent.about.journey,
+    skills: defaultSiteContent.skills,
+    tools: defaultSiteContent.tools,
+    headingColor: '',
+    bodyTextColor: '',
+    accentColor: '',
+  },
+  services: {
+    title: 'Creative, digital, and technical support.',
+    intro: defaultSiteContent.servicesIntro,
+    headingColor: '',
+    bodyTextColor: '',
+    serviceTitleColor: '',
+    iconColor: '',
+    groups: defaultSiteContent.services.map((service, index) => ({
+      ...service,
+      iconName: ['Camera', 'Sparkles', 'Code2', 'Wrench'][index] || 'Circle',
+      iconUrl: '',
+      customIconUrl: '',
+    })),
+  },
+  contact: {
+    heading: 'Let us build the next project.',
+    description: 'For creative work, digital support, websites, apps, and project collaboration, reach out through email or social links.',
+    ctaText: 'Email Hevv',
+    notes: 'Use email for project inquiries, collaborations, and service requests.',
+    headingColor: '',
+    bodyTextColor: '',
+    accentColor: '',
   },
 };
 

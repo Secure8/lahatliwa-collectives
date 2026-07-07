@@ -31,10 +31,12 @@ export default function ProjectDetails() {
   return (
     <article className="page-shell py-20">
       <Link to="/projects" className="fine-link text-sm text-zinc-400 hover:text-amber-200">Back to projects</Link>
-      <div className="mt-10 grid gap-10 lg:grid-cols-[0.92fr_1.08fr]">
-        <div className="overflow-hidden rounded-[1.5rem] border border-white/[0.08] bg-zinc-900">
-          {cover ? <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} /> : <div className="editorial-image aspect-[4/3] w-full" aria-hidden="true" />}
-        </div>
+      <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[0.92fr_1.08fr]' : 'lg:grid-cols-1'}`}>
+        {cover && (
+          <div className="overflow-hidden rounded-[1.5rem] bg-zinc-900">
+            <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} />
+          </div>
+        )}
         <div>
           <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
             <span>{project.category}</span>

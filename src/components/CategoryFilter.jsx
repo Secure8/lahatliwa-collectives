@@ -4,7 +4,7 @@ import { categories } from '../lib/helpers';
 export default function CategoryFilter({ value, onChange }) {
   const options = ['All', ...categories];
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2">
+    <div className="flex max-w-full flex-wrap gap-x-4 gap-y-1 pb-2">
       {options.map((category) => (
         <button
           key={category}

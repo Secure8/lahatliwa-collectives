@@ -1,4 +1,4 @@
-import { FolderKanban, LayoutDashboard, LogOut, Plus } from 'lucide-react';
+import { FileText, FolderKanban, Images, LayoutDashboard, LogOut, Settings } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { supabase } from '../../lib/supabaseClient';
@@ -6,7 +6,9 @@ import { supabase } from '../../lib/supabaseClient';
 const links = [
   ['Dashboard', '/admin/dashboard', LayoutDashboard],
   ['Projects', '/admin/projects', FolderKanban],
-  ['New Project', '/admin/projects/new', Plus],
+  ['Site Settings', '/admin/settings', Settings],
+  ['Page Content', '/admin/content', FileText],
+  ['Icons / Media', '/admin/media/icons', Images],
 ];
 
 export default function AdminLayout({ children }) {
@@ -23,7 +25,7 @@ export default function AdminLayout({ children }) {
         <div className="flex h-16 items-center justify-between px-5 lg:h-auto lg:flex-col lg:items-stretch lg:gap-8 lg:py-6">
           <div>
             <p className="text-sm text-zinc-500">Admin</p>
-            <h1 className="text-lg font-semibold">Jevin Coching</h1>
+            <h1 className="text-lg font-semibold">Hevv Portfolio</h1>
           </div>
           <nav className="hidden gap-2 lg:grid">
             {links.map(([label, href, Icon]) => (

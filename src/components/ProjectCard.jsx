@@ -8,13 +8,11 @@ export default function ProjectCard({ project }) {
 
   return (
     <article className="group">
-      <Link to={`/projects/${project.slug}`} className="block overflow-hidden bg-zinc-900">
-        {image ? (
+      {image && (
+        <Link to={`/projects/${project.slug}`} className="block overflow-hidden bg-zinc-900">
           <img className="aspect-[4/3] h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-[1.035] group-hover:opacity-100" src={image} alt={project.title} />
-        ) : (
-          <div className="editorial-image aspect-[4/3] w-full" aria-hidden="true" />
-        )}
-      </Link>
+        </Link>
+      )}
       <div className="border-b border-white/[0.07] py-5">
         <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.16em] text-zinc-500">
           <span>{project.category}</span>

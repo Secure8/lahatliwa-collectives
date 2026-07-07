@@ -2,7 +2,7 @@ import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import clsx from 'clsx';
-import { siteContent } from '../data/siteContent';
+import { usePublicContent } from '../lib/contentApi';
 
 const links = [
   ['Home', '/'],
@@ -14,13 +14,18 @@ const links = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { content } = usePublicContent([]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-zinc-950/75 backdrop-blur-xl">
       <nav className="page-shell flex min-h-16 items-center justify-between">
         <Link to="/" className="group flex items-center gap-3 font-medium tracking-wide">
-          <span className="grid h-8 w-8 place-items-center border border-amber-200/50 text-xs font-semibold text-amber-100 transition group-hover:border-amber-100">{siteContent.initials}</span>
-          <span>{siteContent.displayName}</span>
+          {content.logoUrl ? (
+            <img src={content.logoUrl} alt={content.logoAlt} className="h-8 w-8 object-contain" />
+          ) : (
+            <span className="grid h-8 w-8 place-items-center border border-amber-200/40 text-xs font-semibold text-amber-100 transition group-hover:border-amber-100">{content.initials}</span>
+          )}
+          <span>{content.displayName}</span>
         </Link>
         <div className="hidden items-center gap-1 md:flex">
           {links.map(([label, href]) => (

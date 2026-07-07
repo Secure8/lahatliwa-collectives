@@ -17,7 +17,7 @@ export function getPublicImageUrl(path) {
 export async function uploadCoverImage(file) {
   if (!file) return '';
   // Create the project-media bucket in Supabase Storage before using uploads.
-  const path = filePath('covers', file);
+  const path = filePath('projects/covers', file);
   const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
   if (error) throw error;
   return path;
@@ -26,7 +26,7 @@ export async function uploadCoverImage(file) {
 export async function uploadGalleryImages(files) {
   if (!files || files.length === 0) return [];
   const uploads = Array.from(files).map(async (file) => {
-    const path = filePath('gallery', file);
+    const path = filePath('projects/gallery', file);
     const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
     if (error) throw error;
     return path;

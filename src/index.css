@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #09090b;
+  color: #fafafa;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: linear-gradient(180deg, #0a0a0b 0%, #111113 48%, #09090b 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.page-shell {
+  width: min(1120px, calc(100% - 24px));
+  margin: 0 auto;
+}
+
+.fine-link {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0 1px;
+  transition: color 180ms ease, background-size 180ms ease;
+}
+
+.fine-link:hover {
+  background-size: 100% 1px;
+}
+
+.editorial-image {
+  background:
+    linear-gradient(145deg, rgba(245, 158, 11, 0.22), transparent 36%),
+    linear-gradient(320deg, rgba(255, 255, 255, 0.1), transparent 26%),
+    linear-gradient(180deg, #232328, #09090b);
+}

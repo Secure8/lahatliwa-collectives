@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Save, Trash2 } from 'lucide-react';
 import { categories, parseList, slugify } from '../../lib/helpers';
 import { supabase } from '../../lib/supabaseClient';
-import { deleteImages, getPublicImageUrl, isPdfFile, uploadCoverImage, uploadGalleryImages } from '../../lib/storage';
+import { deleteImages, getPublicImageUrl, isPdfFile, uploadCoverImage, uploadGalleryImages, validateGalleryUploadFile } from '../../lib/storage';
 import ImageUploader from './ImageUploader';
 
 const emptyProject = {
@@ -33,11 +33,20 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [saving, setSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [removedGalleryPaths, setRemovedGalleryPaths] = useState([]);
+  const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
   const [error, setError] = useState('');
+  const pendingGalleryFilesRef = useRef([]);
 
   useEffect(() => {
     setDraftReady(false);
     setDirty(false);
+    setRemovedGalleryPaths([]);
+    setPendingGalleryFiles((current) => {
+      current.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      return [];
+    });
     const baseForm = initialProject
       ? {
           ...emptyProject,
@@ -84,6 +93,16 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     }
   }, [initialProject]);
 
+  useEffect(() => {
+    pendingGalleryFilesRef.current = pendingGalleryFiles;
+  }, [pendingGalleryFiles]);
+
+  useEffect(() => () => {
+    pendingGalleryFilesRef.current.forEach((item) => {
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    });
+  }, []);
+
   function update(name, value) {
     setDirty(true);
     setForm((current) => ({ ...current, [name]: value }));
@@ -118,19 +137,34 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     }
   }
 
-  async function uploadGallery(files) {
+  function selectGalleryFiles(files) {
     if (!files?.length) return;
-    setUploadingImages(true);
     setError('');
     try {
-      const paths = await uploadGalleryImages(files);
-      setForm((current) => ({ ...current, gallery_images: [...(current.gallery_images || []), ...paths] }));
+      const selectedFiles = Array.from(files);
+      selectedFiles.forEach(validateGalleryUploadFile);
+      setPendingGalleryFiles((current) => [
+        ...current,
+        ...selectedFiles.map((file) => ({
+          id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
+          file,
+          isPdf: file.type === 'application/pdf',
+          previewUrl: file.type === 'application/pdf' ? '' : URL.createObjectURL(file),
+        })),
+      ]);
       setDirty(true);
     } catch (uploadError) {
-      setError(uploadError.message || 'Gallery image upload failed.');
-    } finally {
-      setUploadingImages(false);
+      setError(uploadError.message || 'Gallery file selection failed.');
     }
+  }
+
+  function removePendingGalleryFile(id) {
+    setPendingGalleryFiles((current) => {
+      const removed = current.find((item) => item.id === id);
+      if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl);
+      return current.filter((item) => item.id !== id);
+    });
+    setDirty(true);
   }
 
   function removeGalleryFile(path) {
@@ -153,8 +187,13 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     event.preventDefault();
     setSaving(true);
     setError('');
+    let uploadedGalleryPaths = [];
 
     try {
+      uploadedGalleryPaths = pendingGalleryFiles.length
+        ? await uploadGalleryImages(pendingGalleryFiles.map((item) => item.file))
+        : [];
+      const updatedGalleryImages = [...(form.gallery_images || []), ...uploadedGalleryPaths];
       const payload = {
         title: form.title,
         slug: form.slug || slugify(form.title),
@@ -162,7 +201,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         description: form.description,
         tools: parseList(form.tools),
         cover_image: form.cover_image,
-        gallery_images: form.gallery_images || [],
+        gallery_images: updatedGalleryImages,
         video_url: form.video_url || null,
         social_post_url: form.social_post_url || null,
         live_url: form.live_url || null,
@@ -179,10 +218,20 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       const { error: saveError } = await query;
       if (saveError) throw saveError;
       if (removedGalleryPaths.length) await deleteImages(removedGalleryPaths);
+      pendingGalleryFiles.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      setPendingGalleryFiles([]);
       clearDraft();
       setDirty(false);
       navigate('/admin/projects');
     } catch (saveError) {
+      if (uploadedGalleryPaths.length) {
+        try {
+          await deleteImages(uploadedGalleryPaths);
+        } catch {
+        }
+      }
       setError(saveError.message || 'Something went wrong while saving this project.');
     } finally {
       setSaving(false);
@@ -220,9 +269,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <ImageUploader label={uploadingImages ? 'Uploading image...' : form.cover_image ? 'Replace cover image' : 'Upload cover image'} onChange={uploadCover} />
-        <ImageUploader label={uploadingImages ? 'Uploading files...' : form.gallery_images?.length ? `${form.gallery_images.length} gallery file(s) uploaded` : 'Upload gallery images or PDFs'} accept="image/*,application/pdf" multiple onChange={uploadGallery} />
+        <ImageUploader label={pendingGalleryFiles.length ? `${pendingGalleryFiles.length} new file(s) ready to add` : 'Add more gallery images or PDFs'} accept="image/*,application/pdf" multiple onChange={selectGalleryFiles} />
       </div>
-      {(form.cover_image || form.gallery_images?.length > 0) && (
+      {(form.cover_image || form.gallery_images?.length > 0 || pendingGalleryFiles.length > 0) && (
         <div className="grid gap-4 rounded-md border border-white/10 bg-zinc-950 p-4">
           {form.cover_image && (
             <div>
@@ -232,7 +281,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           )}
           {form.gallery_images?.length > 0 && (
             <div>
-              <p className="mb-2 text-xs text-zinc-500">Gallery files</p>
+              <p className="mb-2 text-xs text-zinc-500">Saved gallery files</p>
               <div className="flex flex-wrap gap-2">
                 {form.gallery_images.map((file) => (
                   <div key={file} className="relative">
@@ -244,6 +293,28 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                       onClick={() => removeGalleryFile(file)}
                       className="absolute right-1 top-1 grid h-6 w-6 place-items-center bg-zinc-950/85 text-zinc-300 transition hover:text-red-200"
                       aria-label="Remove gallery file"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {pendingGalleryFiles.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-zinc-500">New gallery files to add</p>
+              <div className="flex flex-wrap gap-2">
+                {pendingGalleryFiles.map((item) => (
+                  <div key={item.id} className="relative">
+                    {item.isPdf
+                      ? <div className="grid h-16 w-20 place-items-center border border-white/10 pr-7 text-xs text-zinc-300">PDF</div>
+                      : <img src={item.previewUrl} alt="" className="h-16 w-20 object-cover" />}
+                    <button
+                      type="button"
+                      onClick={() => removePendingGalleryFile(item.id)}
+                      className="absolute right-1 top-1 grid h-6 w-6 place-items-center bg-zinc-950/85 text-zinc-300 transition hover:text-red-200"
+                      aria-label="Remove selected gallery file"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -269,7 +340,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
       <div className="flex flex-wrap gap-3">
         <button disabled={saving || uploadingImages} className="inline-flex items-center gap-2 rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">
-          <Save size={17} /> {saving ? 'Saving...' : uploadingImages ? 'Uploading...' : 'Save project'}
+          <Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Saving...' : uploadingImages ? 'Uploading...' : 'Save project'}
         </button>
         <button type="button" onClick={() => navigate('/admin/projects')} className="rounded-md border border-white/10 px-5 py-3 text-sm text-zinc-200 hover:bg-white/5">
           Cancel

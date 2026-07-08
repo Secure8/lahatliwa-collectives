@@ -17,6 +17,10 @@ function validateGalleryFile(file) {
   }
 }
 
+export function validateGalleryUploadFile(file) {
+  validateGalleryFile(file);
+}
+
 function filePath(prefix, file) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
   return `${prefix}/${crypto.randomUUID()}-${safeName}`;

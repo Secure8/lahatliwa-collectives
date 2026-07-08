@@ -64,15 +64,15 @@ export default function ProjectDetails() {
       {gallery.length > 0 && (
         <section className="major-border-top mt-16 pt-10">
           <h2 className="text-2xl font-medium" style={{ color: content.primaryTextColor }}>Gallery</h2>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 columns-1 gap-5 sm:columns-2 lg:columns-3">
             {gallery.map((item) => (
               isPdfFile(item.path)
                 ? (
-                  <a key={item.path} href={item.url} target="_blank" rel="noreferrer" className="flex aspect-[4/3] items-center justify-center gap-3 border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
+                  <a key={item.path} href={item.url} target="_blank" rel="noreferrer" className="mb-5 flex min-h-40 break-inside-avoid items-center justify-center gap-3 rounded-lg border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
                     <FileText size={22} /> Open PDF
                   </a>
                 )
-                : <img key={item.path} className="aspect-[4/3] object-cover" src={item.url} alt={`${project.title} gallery`} />
+                : <img key={item.path} className="mb-5 h-auto w-full break-inside-avoid rounded-lg bg-zinc-900" src={item.url} alt={`${project.title} gallery`} />
             ))}
           </div>
         </section>

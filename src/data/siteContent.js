@@ -2,17 +2,19 @@ export const defaultSiteContent = {
   legalName: 'Jevin Coching',
   displayName: 'Hevv Ching',
   initials: 'HC',
-  email: 'hello@example.com',
+  email: '',
   tagline: 'Creative student, digital creator, and aspiring web developer.',
   logoUrl: '',
   logoAlt: 'Hevv Ching logo',
   heroImageUrl: '',
   heroImageAlt: 'Jevin Coching portrait',
+  showHeroPortrait: false,
   footerText: 'A calm creative portfolio for visual work, digital builds, and practical project experiments.',
   primaryTextColor: '#f5f5f4',
   secondaryTextColor: '#d4d4d8',
   mutedTextColor: '#a1a1aa',
   accentColor: '#f6d58b',
+  dividerLineColor: '#f6d58b',
   defaultBackgroundImageUrl: '',
   defaultBackgroundOverlayOpacity: 0.55,
   hero: {
@@ -65,15 +67,7 @@ export const defaultSiteContent = {
       items: ['IT Technician Services', 'Computer Support', 'Software / System Assistance', 'Device Setup'],
     },
   ],
-  socialLinks: [
-    { label: 'Instagram', href: '#' },
-    { label: 'GitHub', href: '#' },
-    { label: 'Facebook', href: '#' },
-  ],
-  placeholders: {
-    projectCover: '/images/project-cover-placeholder.jpg',
-    projectGallery: '/images/project-gallery-placeholder.jpg',
-  },
+  socialLinks: [],
 };
 
 export const defaultPageContent = {
@@ -117,6 +111,7 @@ export const defaultPageContent = {
       iconName: ['Camera', 'Sparkles', 'Code2', 'Wrench'][index] || 'Circle',
       iconUrl: '',
       customIconUrl: '',
+      serviceLogoUrl: '',
     })),
   },
   contact: {
@@ -137,7 +132,6 @@ function mergeSiteContent(overrides = {}) {
     hero: { ...defaultSiteContent.hero, ...(overrides.hero || {}) },
     about: { ...defaultSiteContent.about, ...(overrides.about || {}) },
     socialLinks: overrides.socialLinks || defaultSiteContent.socialLinks,
-    placeholders: { ...defaultSiteContent.placeholders, ...(overrides.placeholders || {}) },
   };
 }
 

@@ -1,16 +1,18 @@
-import { ArrowUpRight, Calendar, Github, Play, Share2 } from 'lucide-react';
+import { ArrowUpRight, Calendar, FileText, Github, Play, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
 import { formatDate } from '../lib/helpers';
+import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
-import { getPublicImageUrl } from '../lib/storage';
+import { getPublicImageUrl, isPdfFile } from '../lib/storage';
 
 export default function ProjectDetails() {
   const { slug } = useParams();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { content } = usePublicContent([]);
 
   useEffect(() => {
     async function loadProject() {
@@ -23,14 +25,14 @@ export default function ProjectDetails() {
   }, [slug]);
 
   if (loading) return <div className="page-shell py-20"><LoadingState label="Loading project" /></div>;
-  if (error) return <div className="page-shell py-20"><p className="border-y border-white/[0.07] py-8 text-zinc-300">{error}</p></div>;
+  if (error) return <div className="page-shell py-20"><p className="major-border-y py-8 text-zinc-300">{error}</p></div>;
 
   const cover = getPublicImageUrl(project.cover_image);
-  const gallery = (project.gallery_images || []).map(getPublicImageUrl).filter(Boolean);
+  const gallery = (project.gallery_images || []).map((path) => ({ path, url: getPublicImageUrl(path) })).filter((item) => item.url);
 
   return (
     <article className="page-shell py-20">
-      <Link to="/projects" className="fine-link text-sm text-zinc-400 hover:text-amber-200">Back to projects</Link>
+      <Link to="/projects" className="fine-link site-hover-accent text-sm text-zinc-400">Back to projects</Link>
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[0.92fr_1.08fr]' : 'lg:grid-cols-1'}`}>
         {cover && (
           <div className="overflow-hidden rounded-[1.5rem] bg-zinc-900">
@@ -40,30 +42,38 @@ export default function ProjectDetails() {
         <div>
           <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
             <span>{project.category}</span>
-            {project.featured && <span className="text-amber-200/80">Selected</span>}
+            {project.featured && <span style={{ color: content.accentColor }}>Selected</span>}
           </div>
-          <h1 className="mt-5 text-4xl font-semibold leading-tight text-white sm:text-5xl">{project.title}</h1>
-          <p className="mt-5 text-lg leading-8 text-zinc-300">{project.description}</p>
-          <p className="mt-5 inline-flex items-center gap-2 text-sm text-zinc-400"><Calendar size={16} /> {formatDate(project.project_date)}</p>
+          <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.primaryTextColor }}>{project.title}</h1>
+          <p className="mt-5 text-lg leading-8" style={{ color: content.secondaryTextColor }}>{project.description}</p>
+          <p className="mt-5 inline-flex items-center gap-2 text-sm" style={{ color: content.mutedTextColor }}><Calendar size={16} /> {formatDate(project.project_date)}</p>
           {project.tools?.length > 0 && (
-            <div className="mt-7 flex flex-wrap gap-x-4 gap-y-2 border-y border-white/[0.07] py-5">
-              {project.tools.map((tool) => <span key={tool} className="text-sm text-zinc-300">{tool}</span>)}
+            <div className="major-border-y mt-7 flex flex-wrap gap-x-4 gap-y-2 py-5">
+              {project.tools.map((tool) => <span key={tool} className="text-sm" style={{ color: content.secondaryTextColor }}>{tool}</span>)}
             </div>
           )}
           <div className="mt-8 flex flex-wrap gap-3">
-            <Action href={project.video_url} icon={Play} label="Watch Video" />
-            <Action href={project.social_post_url} icon={Share2} label="View Post" />
-            <Action href={project.live_url} icon={ArrowUpRight} label="Live Project" />
-            <Action href={project.github_url} icon={Github} label="GitHub" />
+            <Action href={project.video_url} icon={Play} label="Watch Video" accentColor={content.accentColor} />
+            <Action href={project.social_post_url} icon={Share2} label="View Post" accentColor={content.accentColor} />
+            <Action href={project.live_url} icon={ArrowUpRight} label="Live Project" accentColor={content.accentColor} />
+            <Action href={project.github_url} icon={Github} label="GitHub" accentColor={content.accentColor} />
           </div>
         </div>
       </div>
 
       {gallery.length > 0 && (
-        <section className="mt-16 border-t border-white/[0.07] pt-10">
-          <h2 className="text-2xl font-medium">Gallery</h2>
+        <section className="major-border-top mt-16 pt-10">
+          <h2 className="text-2xl font-medium" style={{ color: content.primaryTextColor }}>Gallery</h2>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {gallery.map((image) => <img key={image} className="aspect-[4/3] object-cover" src={image} alt={`${project.title} gallery`} />)}
+            {gallery.map((item) => (
+              isPdfFile(item.path)
+                ? (
+                  <a key={item.path} href={item.url} target="_blank" rel="noreferrer" className="flex aspect-[4/3] items-center justify-center gap-3 border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
+                    <FileText size={22} /> Open PDF
+                  </a>
+                )
+                : <img key={item.path} className="aspect-[4/3] object-cover" src={item.url} alt={`${project.title} gallery`} />
+            ))}
           </div>
         </section>
       )}
@@ -71,10 +81,10 @@ export default function ProjectDetails() {
   );
 }
 
-function Action({ href, icon: Icon, label }) {
+function Action({ href, icon: Icon, label, accentColor }) {
   if (!href) return null;
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-white/10 px-4 py-3 text-sm text-zinc-200 transition hover:border-amber-300/60 hover:text-amber-200">
+    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border px-4 py-3 text-sm text-zinc-200 transition hover:opacity-80" style={{ borderColor: `${accentColor}55`, color: accentColor }}>
       <Icon size={17} /> {label}
     </a>
   );

@@ -1,11 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
 import { defaultPageContent, defaultSiteContent } from '../data/siteContent';
+import { compressImageForUpload } from './imageCompression';
 import { supabase } from './supabaseClient';
 
 const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
 const MEDIA_TABLE = 'media_assets';
 const BUCKET = 'project-media';
+const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache';
+const ALL_PAGE_KEYS = ['home', 'about', 'services', 'contact'];
+const PublicContentContext = createContext(null);
+const OPTIONAL_SETTINGS_COLUMNS = new Set(['divider_line_color', 'show_hero_portrait']);
+
+function validateFile(file, { allowedTypes, label }) {
+  if (!file) return;
+  if (allowedTypes?.length && !allowedTypes.includes(file.type)) {
+    throw new Error(`${label} file type is not supported.`);
+  }
+}
 
 function mapSettingsRow(row) {
   if (!row) return {};
@@ -18,12 +30,14 @@ function mapSettingsRow(row) {
     logoAlt: row.logo_alt || defaultSiteContent.logoAlt,
     heroImageUrl: row.hero_image_url || '',
     heroImageAlt: row.hero_image_alt || defaultSiteContent.heroImageAlt,
+    showHeroPortrait: row.show_hero_portrait ?? defaultSiteContent.showHeroPortrait,
     email: row.contact_email || defaultSiteContent.email,
     footerText: row.footer_text || defaultSiteContent.footerText,
     primaryTextColor: row.primary_text_color || defaultSiteContent.primaryTextColor,
     secondaryTextColor: row.secondary_text_color || defaultSiteContent.secondaryTextColor,
     mutedTextColor: row.muted_text_color || defaultSiteContent.mutedTextColor,
     accentColor: row.accent_color || defaultSiteContent.accentColor,
+    dividerLineColor: row.divider_line_color || defaultSiteContent.dividerLineColor,
     defaultBackgroundImageUrl: row.default_background_image_url || '',
     defaultBackgroundOverlayOpacity: row.default_background_overlay_opacity ?? defaultSiteContent.defaultBackgroundOverlayOpacity,
     socialLinks: [
@@ -46,6 +60,7 @@ export function mapSettingsToPayload(settings) {
     logo_alt: settings.logoAlt || null,
     hero_image_url: settings.heroImageUrl || null,
     hero_image_alt: settings.heroImageAlt || null,
+    show_hero_portrait: settings.showHeroPortrait === true,
     contact_email: settings.email || null,
     github_url: settings.githubUrl || '',
     facebook_url: settings.facebookUrl || '',
@@ -58,6 +73,7 @@ export function mapSettingsToPayload(settings) {
     secondary_text_color: settings.secondaryTextColor || null,
     muted_text_color: settings.mutedTextColor || null,
     accent_color: settings.accentColor || null,
+    divider_line_color: settings.dividerLineColor || null,
     default_background_image_url: settings.defaultBackgroundImageUrl || null,
     default_background_overlay_opacity: Number(settings.defaultBackgroundOverlayOpacity ?? defaultSiteContent.defaultBackgroundOverlayOpacity),
     updated_at: new Date().toISOString(),
@@ -75,6 +91,7 @@ export function settingsFromSiteContent(content) {
     logoAlt: content.logoAlt,
     heroImageUrl: content.heroImageUrl,
     heroImageAlt: content.heroImageAlt,
+    showHeroPortrait: content.showHeroPortrait === true,
     email: content.email,
     githubUrl: social.github || '',
     facebookUrl: social.facebook || '',
@@ -87,6 +104,7 @@ export function settingsFromSiteContent(content) {
     secondaryTextColor: content.secondaryTextColor,
     mutedTextColor: content.mutedTextColor,
     accentColor: content.accentColor,
+    dividerLineColor: content.dividerLineColor,
     defaultBackgroundImageUrl: content.defaultBackgroundImageUrl,
     defaultBackgroundOverlayOpacity: content.defaultBackgroundOverlayOpacity,
   };
@@ -98,16 +116,39 @@ export async function fetchSiteSettings() {
   return mapSettingsRow(data);
 }
 
+function missingSchemaColumn(error) {
+  const match = error?.message?.match(/Could not find the '([^']+)' column/);
+  return match?.[1] || '';
+}
+
+async function saveSettingsPayload(settings, payload) {
+  const skippedColumns = [];
+  let nextPayload = { ...payload };
+
+  for (let attempt = 0; attempt < OPTIONAL_SETTINGS_COLUMNS.size + 1; attempt += 1) {
+    const query = settings.settingsId
+      ? supabase.from(SETTINGS_TABLE).update(nextPayload).eq('id', settings.settingsId).select('id').single()
+      : supabase.from(SETTINGS_TABLE).insert(nextPayload).select('id').single();
+
+    const { data, error } = await query;
+    if (!error) return { id: data?.id || settings.settingsId, skippedColumns };
+
+    const column = missingSchemaColumn(error);
+    if (!OPTIONAL_SETTINGS_COLUMNS.has(column) || !(column in nextPayload)) throw error;
+
+    skippedColumns.push(column);
+    const { [column]: _removed, ...payloadWithoutColumn } = nextPayload;
+    nextPayload = payloadWithoutColumn;
+  }
+
+  return { id: settings.settingsId, skippedColumns };
+}
+
 export async function updateSiteSettings(settings) {
   const payload = mapSettingsToPayload(settings);
-  if (settings.settingsId) {
-    const { error } = await supabase.from(SETTINGS_TABLE).update(payload).eq('id', settings.settingsId);
-    if (error) throw error;
-    return settings.settingsId;
-  }
-  const { data, error } = await supabase.from(SETTINGS_TABLE).insert(payload).select('id').single();
-  if (error) throw error;
-  return data.id;
+  const data = await saveSettingsPayload(settings, payload);
+  clearCachedPublicContent();
+  return data;
 }
 
 export async function fetchPageContent(pageKey) {
@@ -125,13 +166,19 @@ export async function updatePageContent(pageKey, content) {
     : supabase.from(CONTENT_TABLE).insert(payload);
   const { error } = await query;
   if (error) throw error;
+  clearCachedPublicContent();
 }
 
 export async function uploadSiteAsset(file, folder = 'site') {
   if (!file) return '';
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
+  validateFile(file, {
+    allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
+    label: 'Image',
+  });
+  const uploadFile = await compressImageForUpload(file, { label: 'Image' });
+  const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
   const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, { upsert: false });
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
@@ -168,9 +215,14 @@ export async function deleteMediaAsset(asset) {
 
 export async function uploadMediaAssetFile(file, folder = 'icons') {
   if (!file) return { url: '', path: '' };
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
+  validateFile(file, {
+    allowedTypes: ['image/svg+xml', 'image/png', 'image/webp'],
+    label: 'Icon',
+  });
+  const uploadFile = await compressImageForUpload(file, { label: 'Icon' });
+  const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
   const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, { upsert: false });
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return { url: data.publicUrl, path };
@@ -187,7 +239,88 @@ export function mergePublicContent(settings = {}, pages = {}) {
   };
 }
 
+function readCachedPublicContent() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(PUBLIC_CONTENT_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedPublicContent(content) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PUBLIC_CONTENT_CACHE_KEY, JSON.stringify(content));
+  } catch {
+  }
+}
+
+function clearCachedPublicContent() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(PUBLIC_CONTENT_CACHE_KEY);
+  } catch {
+  }
+}
+
+function themeStyle(content) {
+  return {
+    '--site-accent': content.accentColor || defaultSiteContent.accentColor,
+    '--site-primary-text': content.primaryTextColor || defaultSiteContent.primaryTextColor,
+    '--site-secondary-text': content.secondaryTextColor || defaultSiteContent.secondaryTextColor,
+    '--site-muted-text': content.mutedTextColor || defaultSiteContent.mutedTextColor,
+    '--site-divider': content.dividerLineColor || content.accentColor || defaultSiteContent.dividerLineColor,
+  };
+}
+
+export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
+  const cached = useMemo(() => readCachedPublicContent(), []);
+  const [content, setContent] = useState(cached);
+  const [loading, setLoading] = useState(!cached);
+
+  useEffect(() => {
+    let active = true;
+    async function loadContent() {
+      try {
+        const [settings, pageEntries] = await Promise.all([
+          fetchSiteSettings().catch(() => ({})),
+          Promise.all(pageKeys.map(async (key) => [key, await fetchPageContent(key).catch(() => null)])),
+        ]);
+        const nextContent = mergePublicContent(settings, Object.fromEntries(pageEntries));
+        if (!active) return;
+        setContent(nextContent);
+        writeCachedPublicContent(nextContent);
+      } catch {
+        if (active && !cached) setContent(mergePublicContent());
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    loadContent();
+    return () => {
+      active = false;
+    };
+  }, [cached, pageKeys]);
+
+  if (!content && loading) {
+    return createElement('div', { className: 'grid min-h-screen place-items-center bg-zinc-950 text-sm text-zinc-400' }, 'Loading portfolio...');
+  }
+
+  const value = { content: content || mergePublicContent(), loading };
+
+  return createElement(
+    PublicContentContext.Provider,
+    { value },
+    createElement('div', { style: themeStyle(value.content) }, children),
+  );
+}
+
 export function usePublicContent(pageKeys = []) {
+  const context = useContext(PublicContentContext);
+  if (context) return context;
+
   const keys = useMemo(() => pageKeys, [pageKeys.join('|')]);
   const [content, setContent] = useState(() => mergePublicContent());
   const [loading, setLoading] = useState(true);

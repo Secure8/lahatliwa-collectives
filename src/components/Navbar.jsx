@@ -23,7 +23,7 @@ export default function Navbar() {
           {content.logoUrl ? (
             <img src={content.logoUrl} alt={content.logoAlt} className="h-8 w-8 object-contain" />
           ) : (
-            <span className="grid h-8 w-8 place-items-center border border-amber-200/40 text-xs font-semibold text-amber-100 transition group-hover:border-amber-100">{content.initials}</span>
+            <span className="site-accent site-border grid h-8 w-8 place-items-center border text-xs font-semibold transition">{content.initials}</span>
           )}
           <span>{content.displayName}</span>
         </Link>
@@ -34,8 +34,8 @@ export default function Navbar() {
               to={href}
               className={({ isActive }) =>
                 clsx(
-                  'fine-link px-3 py-2 text-sm text-zinc-400 transition hover:text-white',
-                  isActive && 'text-white',
+                  'fine-link site-hover-accent px-3 py-2 text-sm transition',
+                  isActive ? 'site-primary' : 'site-muted',
                 )
               }
             >

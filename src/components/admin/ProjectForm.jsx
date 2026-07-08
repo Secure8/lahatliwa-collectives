@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
 import { categories, parseList, slugify } from '../../lib/helpers';
 import { supabase } from '../../lib/supabaseClient';
-import { uploadCoverImage, uploadGalleryImages } from '../../lib/storage';
+import { deleteImages, getPublicImageUrl, isPdfFile, uploadCoverImage, uploadGalleryImages } from '../../lib/storage';
 import ImageUploader from './ImageUploader';
 
 const emptyProject = {
@@ -25,25 +25,67 @@ const emptyProject = {
 
 export default function ProjectForm({ initialProject, mode = 'new' }) {
   const navigate = useNavigate();
+  const draftKey = useMemo(() => `hevv-project-form-draft-v2:${mode}:${initialProject?.id || 'new'}`, [mode, initialProject?.id]);
   const [form, setForm] = useState(emptyProject);
-  const [coverFile, setCoverFile] = useState(null);
-  const [galleryFiles, setGalleryFiles] = useState([]);
   const [slugTouched, setSlugTouched] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [removedGalleryPaths, setRemovedGalleryPaths] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setDraftReady(false);
+    setDirty(false);
+    const baseForm = initialProject
+      ? {
+          ...emptyProject,
+          ...initialProject,
+          tools: Array.isArray(initialProject.tools) ? initialProject.tools.join(', ') : initialProject.tools || '',
+          gallery_images: initialProject.gallery_images || [],
+        }
+      : emptyProject;
+
+    let savedDraft = {};
+    try {
+      savedDraft = JSON.parse(window.localStorage.getItem(draftKey) || '{}');
+    } catch {
+      savedDraft = {};
+    }
+
+    const hasDraft = Object.keys(savedDraft).length > 0;
+    setForm({ ...baseForm, ...savedDraft });
+    setDirty(hasDraft);
+    setDraftReady(true);
+  }, [initialProject, draftKey]);
+
+  useEffect(() => {
+    if (!draftReady || !dirty) return;
+    try {
+      window.localStorage.setItem(draftKey, JSON.stringify(form));
+    } catch {
+    }
+  }, [dirty, draftKey, draftReady, form]);
+
+  useEffect(() => {
+    if (!draftReady || !dirty) return undefined;
+    const warnBeforeLeaving = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeLeaving);
+    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
+  }, [dirty, draftReady]);
+
+  useEffect(() => {
     if (initialProject) {
-      setForm({
-        ...emptyProject,
-        ...initialProject,
-        tools: Array.isArray(initialProject.tools) ? initialProject.tools.join(', ') : initialProject.tools || '',
-        gallery_images: initialProject.gallery_images || [],
-      });
+      setSlugTouched(true);
     }
   }, [initialProject]);
 
   function update(name, value) {
+    setDirty(true);
     setForm((current) => ({ ...current, [name]: value }));
   }
 
@@ -53,11 +95,58 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       title: value,
       slug: slugTouched || mode === 'edit' ? current.slug : slugify(value),
     }));
+    setDirty(true);
   }
 
   function updateSlug(value) {
     setSlugTouched(true);
     update('slug', slugify(value));
+  }
+
+  async function uploadCover(files) {
+    const file = files?.[0];
+    if (!file) return;
+    setUploadingImages(true);
+    setError('');
+    try {
+      const path = await uploadCoverImage(file);
+      update('cover_image', path);
+    } catch (uploadError) {
+      setError(uploadError.message || 'Cover image upload failed.');
+    } finally {
+      setUploadingImages(false);
+    }
+  }
+
+  async function uploadGallery(files) {
+    if (!files?.length) return;
+    setUploadingImages(true);
+    setError('');
+    try {
+      const paths = await uploadGalleryImages(files);
+      setForm((current) => ({ ...current, gallery_images: [...(current.gallery_images || []), ...paths] }));
+      setDirty(true);
+    } catch (uploadError) {
+      setError(uploadError.message || 'Gallery image upload failed.');
+    } finally {
+      setUploadingImages(false);
+    }
+  }
+
+  function removeGalleryFile(path) {
+    setForm((current) => ({
+      ...current,
+      gallery_images: (current.gallery_images || []).filter((image) => image !== path),
+    }));
+    setDirty(true);
+    setRemovedGalleryPaths((current) => current.includes(path) ? current : [...current, path]);
+  }
+
+  function clearDraft() {
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+    }
   }
 
   async function handleSubmit(event) {
@@ -66,16 +155,14 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     setError('');
 
     try {
-      const coverPath = coverFile ? await uploadCoverImage(coverFile) : form.cover_image;
-      const galleryUploads = galleryFiles.length ? await uploadGalleryImages(galleryFiles) : [];
       const payload = {
         title: form.title,
         slug: form.slug || slugify(form.title),
         category: form.category,
         description: form.description,
         tools: parseList(form.tools),
-        cover_image: coverPath,
-        gallery_images: [...(form.gallery_images || []), ...galleryUploads],
+        cover_image: form.cover_image,
+        gallery_images: form.gallery_images || [],
         video_url: form.video_url || null,
         social_post_url: form.social_post_url || null,
         live_url: form.live_url || null,
@@ -91,6 +178,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         : supabase.from('projects').insert(payload);
       const { error: saveError } = await query;
       if (saveError) throw saveError;
+      if (removedGalleryPaths.length) await deleteImages(removedGalleryPaths);
+      clearDraft();
+      setDirty(false);
       navigate('/admin/projects');
     } catch (saveError) {
       setError(saveError.message || 'Something went wrong while saving this project.');
@@ -129,9 +219,41 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       <Field label="Tools used, separated by commas" value={form.tools} onChange={(value) => update('tools', value)} />
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <ImageUploader label={coverFile ? coverFile.name : 'Upload cover image'} onChange={(files) => setCoverFile(files?.[0] || null)} />
-        <ImageUploader label={galleryFiles.length ? `${galleryFiles.length} gallery image(s) selected` : 'Upload gallery images'} multiple onChange={(files) => setGalleryFiles(Array.from(files || []))} />
+        <ImageUploader label={uploadingImages ? 'Uploading image...' : form.cover_image ? 'Replace cover image' : 'Upload cover image'} onChange={uploadCover} />
+        <ImageUploader label={uploadingImages ? 'Uploading files...' : form.gallery_images?.length ? `${form.gallery_images.length} gallery file(s) uploaded` : 'Upload gallery images or PDFs'} accept="image/*,application/pdf" multiple onChange={uploadGallery} />
       </div>
+      {(form.cover_image || form.gallery_images?.length > 0) && (
+        <div className="grid gap-4 rounded-md border border-white/10 bg-zinc-950 p-4">
+          {form.cover_image && (
+            <div>
+              <p className="mb-2 text-xs text-zinc-500">Cover image</p>
+              <img src={getPublicImageUrl(form.cover_image)} alt="" className="h-24 max-w-full object-cover" />
+            </div>
+          )}
+          {form.gallery_images?.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-zinc-500">Gallery files</p>
+              <div className="flex flex-wrap gap-2">
+                {form.gallery_images.map((file) => (
+                  <div key={file} className="relative">
+                    {isPdfFile(file)
+                      ? <a href={getPublicImageUrl(file)} target="_blank" rel="noreferrer" className="grid h-16 w-20 place-items-center border border-white/10 pr-7 text-xs text-zinc-300">PDF</a>
+                      : <img src={getPublicImageUrl(file)} alt="" className="h-16 w-20 object-cover" />}
+                    <button
+                      type="button"
+                      onClick={() => removeGalleryFile(file)}
+                      className="absolute right-1 top-1 grid h-6 w-6 place-items-center bg-zinc-950/85 text-zinc-300 transition hover:text-red-200"
+                      aria-label="Remove gallery file"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Field label="Video URL" value={form.video_url || ''} onChange={(value) => update('video_url', value)} />
@@ -146,8 +268,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">
-          <Save size={17} /> {saving ? 'Saving...' : 'Save project'}
+        <button disabled={saving || uploadingImages} className="inline-flex items-center gap-2 rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">
+          <Save size={17} /> {saving ? 'Saving...' : uploadingImages ? 'Uploading...' : 'Save project'}
         </button>
         <button type="button" onClick={() => navigate('/admin/projects')} className="rounded-md border border-white/10 px-5 py-3 text-sm text-zinc-200 hover:bg-white/5">
           Cancel

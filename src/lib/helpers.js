@@ -1,14 +1,8 @@
 export const categories = [
-  'Photography',
-  'Photo Editing',
-  'Video Editing',
-  'Digital & Visual Design',
-  'Digital Products',
-  'Websites',
-  'Applications',
-  'Social Media Posts',
-  'School / OJT Projects',
-  'Lahat Liwa Collectives',
+  'Liwa Digital',
+  'Liwa Studio',
+  'Liwa Tech',
+  'Liwa Social',
 ];
 
 export function slugify(value) {

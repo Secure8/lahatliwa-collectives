@@ -111,3 +111,5 @@ create trigger page_content_set_updated_at
 before update on public.page_content
 for each row
 execute function public.set_updated_at();
+
+notify pgrst, 'reload schema';

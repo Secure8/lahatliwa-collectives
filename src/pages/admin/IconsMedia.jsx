@@ -84,7 +84,7 @@ export default function IconsMedia() {
       <div className="mb-8">
         <p className="text-sm text-amber-200">Website CMS</p>
         <h1 className="mt-2 text-3xl font-bold">Icons / Media</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Upload custom SVG, PNG, or WebP icons under 500 KB. Use copied URLs in Services page content as customIconUrl.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Upload custom SVG, PNG, or WebP icons. Raster images over 5 MB are compressed automatically. Use copied URLs in Services page content as customIconUrl.</p>
       </div>
 
       <form onSubmit={upload} className="mb-8 grid gap-4 rounded-lg border border-white/10 bg-zinc-900/70 p-5 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">

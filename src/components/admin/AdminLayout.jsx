@@ -1,5 +1,5 @@
-import { FileText, FolderKanban, Images, LayoutDashboard, LogOut, Settings } from 'lucide-react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { ExternalLink, FileText, FolderKanban, Images, LayoutDashboard, LogOut, Settings } from 'lucide-react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -40,11 +40,19 @@ export default function AdminLayout({ children }) {
               </NavLink>
             ))}
           </nav>
-          <button onClick={logout} className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-amber-300/60 hover:text-amber-200">
-            <LogOut size={16} /> Logout
-          </button>
+          <div className="flex items-center gap-2 lg:grid">
+            <Link to="/" className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-amber-300/60 hover:text-amber-200">
+              <ExternalLink size={16} /> View site
+            </Link>
+            <button onClick={logout} className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:border-amber-300/60 hover:text-amber-200">
+              <LogOut size={16} /> Logout
+            </button>
+          </div>
         </div>
         <nav className="flex gap-2 overflow-x-auto px-4 pb-3 lg:hidden">
+          <Link to="/" className="inline-flex shrink-0 items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300">
+            <ExternalLink size={16} /> View site
+          </Link>
           {links.map(([label, href, Icon]) => (
             <NavLink key={href} to={href} className="inline-flex shrink-0 items-center gap-2 rounded-md bg-white/5 px-3 py-2 text-sm text-zinc-300">
               <Icon size={16} /> {label}

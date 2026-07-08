@@ -1,5 +1,5 @@
 import Editor from '@monaco-editor/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import LoadingState from '../../components/LoadingState';
@@ -16,24 +16,45 @@ const titles = {
 export default function ContentEditor() {
   const { pageKey } = useParams();
   const fallback = useMemo(() => defaultPageContent[pageKey] || {}, [pageKey]);
+  const draftKey = useMemo(() => `hevv-content-editor-draft-v2:${pageKey}`, [pageKey]);
   const [content, setContent] = useState(fallback);
   const [jsonText, setJsonText] = useState(JSON.stringify(fallback, null, 2));
   const [loading, setLoading] = useState(true);
+  const [draftReady, setDraftReady] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const skipNextDraftSave = useRef(false);
 
   useEffect(() => {
     let active = true;
     async function loadContent() {
       setLoading(true);
+      setDraftReady(false);
+      setDirty(false);
       setError('');
       try {
         const remoteContent = await fetchPageContent(pageKey).catch(() => null);
-        const nextContent = { ...fallback, ...(remoteContent || {}) };
+        let draft = null;
+        try {
+          draft = JSON.parse(window.localStorage.getItem(draftKey) || 'null');
+        } catch {
+          draft = null;
+        }
+        const hasDraft = Boolean(draft);
+        const mergedContent = { ...fallback, ...(remoteContent || {}) };
+        const nextJsonText = draft?.jsonText || JSON.stringify(draft?.content || mergedContent, null, 2);
+        let nextContent = draft?.content || mergedContent;
+        try {
+          nextContent = JSON.parse(nextJsonText);
+        } catch {
+        }
         if (!active) return;
         setContent(nextContent);
-        setJsonText(JSON.stringify(nextContent, null, 2));
+        setJsonText(nextJsonText);
+        setDraftReady(true);
+        setDirty(hasDraft);
       } finally {
         if (active) setLoading(false);
       }
@@ -42,19 +63,54 @@ export default function ContentEditor() {
     return () => {
       active = false;
     };
-  }, [pageKey, fallback]);
+  }, [pageKey, fallback, draftKey]);
+
+  useEffect(() => {
+    if (!draftReady || !dirty) return;
+    if (skipNextDraftSave.current) {
+      skipNextDraftSave.current = false;
+      return;
+    }
+    try {
+      window.localStorage.setItem(draftKey, JSON.stringify({ content, jsonText }));
+    } catch {
+    }
+  }, [content, dirty, draftKey, draftReady, jsonText]);
+
+  useEffect(() => {
+    if (!draftReady || !dirty) return undefined;
+    const warnBeforeLeaving = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeLeaving);
+    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
+  }, [dirty, draftReady]);
 
   function patch(updates) {
     setContent((current) => {
       const next = { ...current, ...updates };
       setJsonText(JSON.stringify(next, null, 2));
       setMessage('');
+      setDirty(true);
       return next;
     });
   }
 
   function updateList(key, value) {
     patch({ [key]: value.split(',').map((item) => item.trim()).filter(Boolean) });
+  }
+
+  function patchServiceGroup(index, updates) {
+    setContent((current) => {
+      const groups = [...(current.groups || [])];
+      groups[index] = { ...(groups[index] || {}), ...updates };
+      const next = { ...current, groups };
+      setJsonText(JSON.stringify(next, null, 2));
+      setMessage('');
+      setDirty(true);
+      return next;
+    });
   }
 
   async function uploadHomeBackground(file) {
@@ -71,6 +127,20 @@ export default function ContentEditor() {
     }
   }
 
+  async function uploadServiceLogo(index, file) {
+    if (!file) return;
+    setSaving(true);
+    setError('');
+    try {
+      const url = await uploadSiteAsset(file, 'service-logos');
+      patchServiceGroup(index, { serviceLogoUrl: url });
+    } catch (uploadError) {
+      setError(uploadError.message || 'Service logo upload failed.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function save(event) {
     event.preventDefault();
     setSaving(true);
@@ -79,8 +149,14 @@ export default function ContentEditor() {
     try {
       const parsed = JSON.parse(jsonText);
       await updatePageContent(pageKey, parsed);
+      skipNextDraftSave.current = true;
       setContent(parsed);
       setJsonText(JSON.stringify(parsed, null, 2));
+      setDirty(false);
+      try {
+        window.localStorage.removeItem(draftKey);
+      } catch {
+      }
       setMessage('Page content saved.');
     } catch (saveError) {
       setError(saveError.message || 'Unable to save page content. Check that the JSON is valid.');
@@ -108,7 +184,7 @@ export default function ContentEditor() {
 
           <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
             <section className="grid gap-5 rounded-lg border border-white/10 bg-zinc-900/70 p-5">
-              <StructuredFields pageKey={pageKey} content={content} patch={patch} updateList={updateList} uploadHomeBackground={uploadHomeBackground} />
+              <StructuredFields pageKey={pageKey} content={content} patch={patch} updateList={updateList} uploadHomeBackground={uploadHomeBackground} patchServiceGroup={patchServiceGroup} uploadServiceLogo={uploadServiceLogo} />
             </section>
 
             <section className="hidden min-w-0 rounded-lg border border-white/10 bg-zinc-950 p-3 xl:block">
@@ -121,6 +197,7 @@ export default function ContentEditor() {
                       const parsed = JSON.parse(jsonText);
                       setContent(parsed);
                       setJsonText(JSON.stringify(parsed, null, 2));
+                      setDirty(true);
                       setError('');
                     } catch (parseError) {
                       setError(parseError.message);
@@ -136,7 +213,11 @@ export default function ContentEditor() {
                 defaultLanguage="json"
                 theme="vs-dark"
                 value={jsonText}
-                onChange={(value) => setJsonText(value || '')}
+                onChange={(value) => {
+                  setJsonText(value || '');
+                  setMessage('');
+                  setDirty(true);
+                }}
                 options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: 'on', tabSize: 2, formatOnPaste: true, scrollBeyondLastLine: false }}
               />
             </section>
@@ -151,7 +232,7 @@ export default function ContentEditor() {
   );
 }
 
-function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackground }) {
+function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackground, patchServiceGroup, uploadServiceLogo }) {
   if (pageKey === 'home') {
     return (
       <>
@@ -199,6 +280,7 @@ function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackg
   }
 
   if (pageKey === 'services') {
+    const groups = content.groups || [];
     return (
       <>
         <Field label="Page title" value={content.title || ''} onChange={(value) => patch({ title: value })} />
@@ -209,14 +291,51 @@ function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackg
           <ColorField label="Service title color" value={content.serviceTitleColor || '#f5f5f4'} onChange={(value) => patch({ serviceTitleColor: value })} />
           <ColorField label="Icon color" value={content.iconColor || '#f6d58b'} onChange={(value) => patch({ iconColor: value })} />
         </div>
-        <Textarea label="Service groups JSON" value={JSON.stringify(content.groups || [], null, 2)} onChange={(value) => {
-          try {
-            patch({ groups: JSON.parse(value) });
-          } catch {
-            // Leave invalid group JSON in the advanced editor instead of breaking the form.
-          }
-        }} rows={14} />
-        <p className="text-xs leading-5 text-zinc-500">Each group can include iconName or customIconUrl. Uploaded icon URLs can be copied from Icons / Media.</p>
+        <div className="grid gap-4">
+          {groups.map((group, index) => (
+            <div key={`${group.name || 'service'}-${index}`} className="grid gap-4 rounded-md border border-white/10 bg-zinc-950/80 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-medium text-zinc-200">Service {index + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => patch({ groups: groups.filter((_, groupIndex) => groupIndex !== index) })}
+                  className="text-xs text-zinc-500 hover:text-red-200"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Service name" value={group.name || ''} onChange={(value) => patchServiceGroup(index, { name: value })} />
+                <Field label="Lucide icon name" value={group.iconName || ''} onChange={(value) => patchServiceGroup(index, { iconName: value })} />
+              </div>
+              <Textarea label="Description" value={group.description || ''} onChange={(value) => patchServiceGroup(index, { description: value })} />
+              <Textarea
+                label="Items, comma-separated"
+                value={group.itemsText ?? (group.items || []).join(', ')}
+                onChange={(value) => patchServiceGroup(index, { itemsText: value })}
+                onBlur={() => patchServiceGroup(index, {
+                  items: (group.itemsText ?? '').split(',').map((item) => item.trim()).filter(Boolean),
+                  itemsText: undefined,
+                })}
+              />
+              <UploadRow
+                label="Service logo"
+                value={group.serviceLogoUrl || ''}
+                onFile={(file) => uploadServiceLogo(index, file)}
+                onClear={() => patchServiceGroup(index, { serviceLogoUrl: '' })}
+              />
+              <Field label="Icon image URL" value={group.customIconUrl || group.iconUrl || ''} onChange={(value) => patchServiceGroup(index, { customIconUrl: value, iconUrl: '' })} />
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => patch({ groups: [...groups, { name: 'New Service', description: '', items: [], iconName: 'Circle', iconUrl: '', customIconUrl: '', serviceLogoUrl: '' }] })}
+          className="w-fit rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60"
+        >
+          Add service
+        </button>
+        <p className="text-xs leading-5 text-zinc-500">The service logo appears on the left side of the icon on the public Services page. Icon image URLs can still be copied from Icons / Media.</p>
       </>
     );
   }
@@ -245,11 +364,11 @@ function Field({ label, value, onChange, type = 'text', min, max, step }) {
   );
 }
 
-function Textarea({ label, value, onChange, rows = 4 }) {
+function Textarea({ label, value, onChange, onBlur, rows = 4 }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
+      <textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
     </label>
   );
 }
@@ -281,7 +400,7 @@ function UploadRow({ label, value, onFile, onClear }) {
   return (
     <div className="rounded-md border border-white/10 bg-zinc-950 p-4">
       <p className="text-sm text-zinc-300">{label}</p>
-      <p className="mt-1 text-xs text-zinc-500">Recommended under 2 MB. Videos should stay as external links.</p>
+      <p className="mt-1 text-xs text-zinc-500">Images over 5 MB are compressed automatically. Videos should stay as external links.</p>
       {value && <img src={value} alt="" className="mt-3 max-h-28 max-w-full object-cover" />}
       <div className="mt-4 flex flex-wrap gap-3">
         <label className="cursor-pointer rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60">

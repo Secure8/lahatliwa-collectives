@@ -107,3 +107,5 @@ on storage.objects
 for delete
 to authenticated
 using (bucket_id = 'project-media');
+
+notify pgrst, 'reload schema';

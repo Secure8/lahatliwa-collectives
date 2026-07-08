@@ -17,12 +17,15 @@ export default function Services() {
         {content.servicesPage.groups.map((group) => {
           const Icon = iconMap[group.iconName] || Circle;
           return (
-          <section key={group.name} className="border-t border-white/[0.08] pt-6">
-            {(group.customIconUrl || group.iconUrl) ? <img src={group.customIconUrl || group.iconUrl} alt="" className="mb-5 h-6 w-6 object-contain" /> : (group.iconName && <Icon className="mb-5" style={{ color: content.servicesPage.iconColor || content.accentColor }} size={24} />)}
+          <section key={group.name} className="major-border-top pt-6">
+            <div className="mb-5 flex min-h-8 items-center gap-0.5">
+              {group.serviceLogoUrl && <img src={group.serviceLogoUrl} alt={`${group.name} logo`} className="h-8 max-w-24 object-contain" />}
+              {(group.customIconUrl || group.iconUrl) ? <img src={group.customIconUrl || group.iconUrl} alt="" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />)}
+            </div>
             <h2 className="text-2xl font-medium" style={{ color: content.servicesPage.serviceTitleColor || content.primaryTextColor }}>{group.name}</h2>
             <p className="mt-3 max-w-md leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{group.description}</p>
             <div className="mt-6 grid gap-3">
-              {group.items.map((item) => <div key={item} className="border-b border-white/[0.06] pb-3 text-zinc-300">{item}</div>)}
+              {(group.items || []).map((item) => <div key={item} className="border-b border-white/[0.06] pb-3 text-zinc-300">{item}</div>)}
             </div>
           </section>
         );})}

@@ -1,22 +1,59 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import LoadingState from '../../components/LoadingState';
 import { mergePublicContent, settingsFromSiteContent, updateSiteSettings, uploadSiteAsset, usePublicContent } from '../../lib/contentApi';
 
 export default function SiteSettings() {
   const { content } = usePublicContent([]);
+  const draftKey = 'hevv-site-settings-draft-v2';
   const [form, setForm] = useState(() => settingsFromSiteContent(mergePublicContent()));
   const [loading, setLoading] = useState(true);
+  const [draftReady, setDraftReady] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const skipNextDraftSave = useRef(false);
 
   useEffect(() => {
-    setForm(settingsFromSiteContent(content));
+    if (dirty) return;
+    let draft = null;
+    try {
+      draft = JSON.parse(window.localStorage.getItem(draftKey) || 'null');
+    } catch {
+      draft = null;
+    }
+    const hasDraft = Boolean(draft);
+    setForm({ ...settingsFromSiteContent(content), ...(draft || {}) });
+    setDirty(hasDraft);
+    setDraftReady(true);
     setLoading(false);
   }, [content]);
 
+  useEffect(() => {
+    if (!draftReady || !dirty) return;
+    if (skipNextDraftSave.current) {
+      skipNextDraftSave.current = false;
+      return;
+    }
+    try {
+      window.localStorage.setItem(draftKey, JSON.stringify(form));
+    } catch {
+    }
+  }, [dirty, draftReady, form]);
+
+  useEffect(() => {
+    if (!draftReady || !dirty) return undefined;
+    const warnBeforeLeaving = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeLeaving);
+    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
+  }, [dirty, draftReady]);
+
   function update(name, value) {
+    setDirty(true);
     setForm((current) => ({ ...current, [name]: value }));
   }
 
@@ -40,9 +77,18 @@ export default function SiteSettings() {
     setError('');
     setMessage('');
     try {
-      const id = await updateSiteSettings(form);
+      const { id, skippedColumns = [] } = await updateSiteSettings(form);
+      skipNextDraftSave.current = true;
       update('settingsId', id);
-      setMessage('Site settings saved.');
+      setDirty(false);
+      const migrationNote = skippedColumns.length
+        ? ` Some newer visual settings were skipped because your Supabase table is missing: ${skippedColumns.join(', ')}. Run supabase/visual_cms_update.sql to enable them.`
+        : '';
+      try {
+        window.localStorage.removeItem(draftKey);
+      } catch {
+      }
+      setMessage(`Site settings saved.${migrationNote}`);
     } catch (saveError) {
       setError(saveError.message || 'Unable to save site settings.');
     } finally {
@@ -57,7 +103,7 @@ export default function SiteSettings() {
       <div className="mb-8">
         <p className="text-sm text-amber-200">Website CMS</p>
         <h1 className="mt-2 text-3xl font-bold">Site Settings</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Edit the logo, hero image, social links, and global website text. Images upload to the existing project-media bucket.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Edit the logo, portrait, home background, social links, and global website text. Images upload to the existing project-media bucket.</p>
       </div>
 
       <form onSubmit={save} className="grid gap-5 rounded-lg border border-white/10 bg-zinc-900/70 p-5">
@@ -70,24 +116,31 @@ export default function SiteSettings() {
           <Field label="Tagline" value={form.tagline || ''} onChange={(value) => update('tagline', value)} />
           <Field label="Contact email" type="email" value={form.email || ''} onChange={(value) => update('email', value)} />
           <Field label="Logo alt text" value={form.logoAlt || ''} onChange={(value) => update('logoAlt', value)} />
-          <Field label="Hero image alt text" value={form.heroImageAlt || ''} onChange={(value) => update('heroImageAlt', value)} />
+          <Field label="Portrait image alt text" value={form.heroImageAlt || ''} onChange={(value) => update('heroImageAlt', value)} />
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <UploadField label="Upload logo" hint="Recommended under 1 MB. SVG, PNG, or WebP." value={form.logoUrl} onFile={(file) => uploadImage('logoUrl', file, 'logos')} onClear={() => update('logoUrl', '')} />
-          <UploadField label="Upload hero/profile image" hint="Recommended under 2 MB." value={form.heroImageUrl} onFile={(file) => uploadImage('heroImageUrl', file, 'heroes')} onClear={() => update('heroImageUrl', '')} />
-          <UploadField label="Default background image" hint="Optional site-wide background. Recommended under 2 MB." value={form.defaultBackgroundImageUrl} onFile={(file) => uploadImage('defaultBackgroundImageUrl', file, 'backgrounds')} onClear={() => update('defaultBackgroundImageUrl', '')} />
+          <UploadField label="Upload logo" hint="SVG, PNG, WebP, or JPG. Raster images over 5 MB are compressed automatically." value={form.logoUrl} onFile={(file) => uploadImage('logoUrl', file, 'logos')} onClear={() => update('logoUrl', '')} />
+          <div className="rounded-md border border-white/10 bg-zinc-950 p-4">
+            <UploadField compact label="Portrait / Profile Photo" hint="Raster images over 5 MB are compressed automatically." value={form.heroImageUrl} onFile={(file) => uploadImage('heroImageUrl', file, 'heroes')} onClear={() => update('heroImageUrl', '')} />
+            <label className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4 text-sm text-zinc-300">
+              <input type="checkbox" checked={form.showHeroPortrait === true} onChange={(event) => update('showHeroPortrait', event.target.checked)} />
+              Show portrait on homepage
+            </label>
+          </div>
+          <UploadField label="Home Background Image" hint="Optional home background. Raster images over 5 MB are compressed automatically." value={form.defaultBackgroundImageUrl} onFile={(file) => uploadImage('defaultBackgroundImageUrl', file, 'backgrounds')} onClear={() => update('defaultBackgroundImageUrl', '')} />
           <label className="grid gap-2 text-sm text-zinc-300">
             Default background overlay opacity
             <input type="number" min="0" max="1" step="0.05" value={form.defaultBackgroundOverlayOpacity ?? 0.55} onChange={(event) => update('defaultBackgroundOverlayOpacity', event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
           </label>
         </div>
 
-        <section className="grid gap-4 border-y border-white/10 py-5 md:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 border-y border-white/10 py-5 md:grid-cols-2 lg:grid-cols-5">
           <ColorField label="Primary text" value={form.primaryTextColor || '#f5f5f4'} onChange={(value) => update('primaryTextColor', value)} />
           <ColorField label="Secondary text" value={form.secondaryTextColor || '#d4d4d8'} onChange={(value) => update('secondaryTextColor', value)} />
           <ColorField label="Muted text" value={form.mutedTextColor || '#a1a1aa'} onChange={(value) => update('mutedTextColor', value)} />
           <ColorField label="Accent" value={form.accentColor || '#f6d58b'} onChange={(value) => update('accentColor', value)} />
+          <ColorField label="Divider lines" value={form.dividerLineColor || '#f6d58b'} onChange={(value) => update('dividerLineColor', value)} />
         </section>
 
         <div className="grid gap-5 md:grid-cols-2">
@@ -133,9 +186,9 @@ function ColorField({ label, value, onChange }) {
   );
 }
 
-function UploadField({ label, hint, value, onFile, onClear }) {
+function UploadField({ label, hint, value, onFile, onClear, compact = false }) {
   return (
-    <div className="rounded-md border border-white/10 bg-zinc-950 p-4">
+    <div className={compact ? '' : 'rounded-md border border-white/10 bg-zinc-950 p-4'}>
       <p className="text-sm text-zinc-300">{label}</p>
       {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
       {value && <img src={value} alt="" className="mt-3 h-20 max-w-full object-contain" />}

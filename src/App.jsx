@@ -17,14 +17,15 @@ import SiteSettings from './pages/admin/SiteSettings';
 import ContentIndex from './pages/admin/ContentIndex';
 import ContentEditor from './pages/admin/ContentEditor';
 import IconsMedia from './pages/admin/IconsMedia';
+import { PublicContentProvider } from './lib/contentApi';
 
 function PublicLayout({ children }) {
   return (
-    <>
+    <PublicContentProvider>
       <Navbar />
       <main className="overflow-x-hidden">{children}</main>
       <Footer />
-    </>
+    </PublicContentProvider>
   );
 }
 

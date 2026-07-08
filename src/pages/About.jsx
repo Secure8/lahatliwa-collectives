@@ -11,7 +11,7 @@ export default function About() {
         <p className="mt-6 text-lg leading-8" style={{ color: content.about.bodyTextColor || content.secondaryTextColor }}>{content.about.intro}</p>
       </section>
 
-      <section className="mt-16 grid gap-12 border-y border-white/[0.07] py-12 md:grid-cols-2">
+      <section className="major-border-y mt-16 grid gap-12 py-12 md:grid-cols-2">
         <div>
           <h2 className="text-2xl font-medium">Skills</h2>
           <div className="mt-6 grid gap-3">

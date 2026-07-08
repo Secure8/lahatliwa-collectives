@@ -88,13 +88,14 @@ This adds:
 
 If you later want private media, update `src/lib/storage.js` to use signed URLs.
 
-## Create the First Admin User
+## Create the First Auth User
 
 1. In Supabase, open Authentication.
 2. Create a user with email and password.
-3. Use that email and password at `/admin/login`.
+3. After running the production security SQL, add this user's ID to `public.admin_users`.
+4. Use that email and password at `/admin/login`.
 
-The included RLS policies allow any authenticated Supabase user to manage projects. For production, add an admin role or profile check.
+The production RLS policies use an explicit admin allowlist. A signed-in user cannot access the admin dashboard unless their Supabase Auth user ID exists in `public.admin_users`.
 
 ## Test Admin Login
 
@@ -129,7 +130,60 @@ Run this additional SQL file after the base schema and CMS update:
 supabase/visual_cms_update.sql
 ```
 
-This adds controlled text color fields, default background image settings, and a `media_assets` table for reusable uploaded icons.
+This adds controlled text color fields, changeable major divider line color, default background image settings, and a `media_assets` table for reusable uploaded icons.
+
+If Supabase shows this error:
+
+```text
+Could not find the 'show_hero_portrait' column of 'site_settings' in the schema cache
+```
+
+or:
+
+```text
+Could not find the 'divider_line_color' column of 'site_settings' in the schema cache
+```
+
+Run the latest `supabase/visual_cms_update.sql` and make sure it includes:
+
+```sql
+alter table public.site_settings
+add column if not exists divider_line_color text;
+
+alter table public.site_settings
+add column if not exists show_hero_portrait boolean not null default false;
+
+notify pgrst, 'reload schema';
+```
+
+## Production Security Hardening
+
+For production, run these after `schema.sql`, `cms_update.sql`, and `visual_cms_update.sql`:
+
+```text
+supabase/security_hardening.sql
+supabase/security_advisor_fixes.sql
+```
+
+This changes write access from "any authenticated user" to an explicit admin allowlist, moves policy helper checks into a private schema, fixes the `set_updated_at` search path warning, and removes broad public Storage object listing.
+
+After running the security files, add your first admin owner in the Supabase SQL editor:
+
+```sql
+insert into public.admin_users (user_id, role)
+values ('YOUR_SUPABASE_AUTH_USER_ID', 'owner')
+on conflict (user_id) do update set role = excluded.role;
+
+notify pgrst, 'reload schema';
+```
+
+Find `YOUR_SUPABASE_AUTH_USER_ID` in Supabase Authentication after creating your admin user. Without this allowlist row, the admin dashboard will block the account even if login succeeds.
+
+The frontend only uses the anon key. Never add a service role key to `.env.local`, Vercel, or frontend code.
+
+## Supabase Auth Security
+
+In Supabase Dashboard, open `Authentication -> Providers -> Email` and enable leaked password protection. Supabase uses HaveIBeenPwned/Pwned Passwords to help block compromised passwords.
 
 ## Advanced Content Editor
 
@@ -173,12 +227,13 @@ Global colors are edited in `/admin/settings`.
 
 Page-specific colors are edited in the page content editor. Colors are saved as safe hex values such as `#f5f5f4` and applied only to controlled text areas with inline styles. Do not paste arbitrary CSS.
 
-## Recommended Image Sizes
+## Upload Formats
 
-- Icons: under 500 KB
-- Logos: under 1 MB
-- Background images: under 2 MB
-- Project images: under 1 MB each
+- Icons: SVG, PNG, or WebP
+- Logos and site images: JPEG, PNG, WebP, or SVG
+- Project images: JPEG, PNG, or WebP
+
+Raster images larger than 5 MB are automatically compressed into a web-optimized WebP file before upload. The app keeps images visually high quality, but very large originals may still need some resizing to stay fast on the public website. Large SVG files cannot be compressed automatically in the browser.
 
 ## Add Future Projects
 
@@ -201,7 +256,7 @@ Before publishing, test:
 
 - Home, About, Services, Contact, Projects, and Project Details on a narrow mobile viewport
 - `/admin/settings` and `/admin/content/*` forms on mobile
-- Project search and category filters without horizontal scrolling
+- Project search without horizontal scrolling
 - Public pages with and without uploaded logo, hero image, and project images
 
 ## Deploy to Vercel
@@ -211,7 +266,10 @@ Before publishing, test:
 3. Add these environment variables in Vercel:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-4. Deploy.
+4. Keep `.env.local` local only. It is already ignored by Git.
+5. Deploy.
+
+The included `vercel.json` adds security headers and SPA rewrites for React Router.
 
 ## Main Routes
 

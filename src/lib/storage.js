@@ -60,6 +60,17 @@ export async function uploadGalleryImages(files) {
   return Promise.all(uploads);
 }
 
+export async function uploadExternalThumbnail(file, projectSlug = 'project') {
+  if (!file) return '';
+  validateProjectImage(file);
+  const uploadFile = await compressImageForUpload(file, { label: 'External thumbnail' });
+  const safeSlug = (projectSlug || 'project').replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
+  const path = filePath(`projects/${safeSlug}/external-thumbnails`, uploadFile);
+  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, { upsert: false });
+  if (error) throw error;
+  return path;
+}
+
 export async function deleteImages(paths) {
   const removable = (Array.isArray(paths) ? paths : [paths]).filter((path) => path && !path.startsWith('http'));
   if (removable.length === 0) return;

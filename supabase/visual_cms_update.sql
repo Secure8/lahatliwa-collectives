@@ -13,8 +13,39 @@ add column if not exists show_hero_portrait boolean not null default false;
 alter table public.projects
 add column if not exists display_order integer;
 
+alter table public.projects
+add column if not exists gallery_items jsonb not null default '[]'::jsonb;
+
 create index if not exists projects_featured_display_order_idx
 on public.projects(featured, display_order);
+
+create index if not exists projects_gallery_items_idx
+on public.projects using gin(gallery_items);
+
+update public.projects
+set gallery_items = (
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'id', gen_random_uuid()::text,
+        'type', case when lower(path_value) like '%.pdf' then 'pdf' else 'image' end,
+        'title', '',
+        'url', path_value,
+        'description', '',
+        'thumbnail_url', '',
+        'thumbnail_storage_path', '',
+        'platform', case when lower(path_value) like '%.pdf' then 'PDF' else 'Image' end,
+        'order', (position_index - 1) * 100,
+        'created_at', now()
+      )
+      order by position_index
+    ),
+    '[]'::jsonb
+  )
+  from jsonb_array_elements_text(gallery_images) with ordinality as legacy(path_value, position_index)
+)
+where jsonb_array_length(gallery_items) = 0
+  and jsonb_array_length(gallery_images) > 0;
 
 create table if not exists public.media_assets (
   id uuid primary key default gen_random_uuid(),

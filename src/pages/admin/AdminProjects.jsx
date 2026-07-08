@@ -95,7 +95,10 @@ export default function AdminProjects() {
       return;
     }
 
-    await deleteImages([project.cover_image, ...(project.gallery_images || [])]);
+    const thumbnailPaths = (project.gallery_items || [])
+      .map((item) => item.thumbnail_storage_path)
+      .filter(Boolean);
+    await deleteImages([project.cover_image, ...(project.gallery_images || []), ...thumbnailPaths]);
     setProjects((current) => current.filter((item) => item.id !== project.id));
   }
 

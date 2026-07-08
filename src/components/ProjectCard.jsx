@@ -1,16 +1,23 @@
 import { ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getGalleryItemMediaUrl, getGalleryItemThumbnailUrl, normalizeProjectGallery } from '../lib/galleryItems';
 import { excerpt } from '../lib/helpers';
 import { getPublicImageUrl } from '../lib/storage';
 
 export default function ProjectCard({ project }) {
-  const image = getPublicImageUrl(project.cover_image);
+  const galleryPreview = normalizeProjectGallery(project).find((item) => item.type === 'image' || getGalleryItemThumbnailUrl(item));
+  const image = getPublicImageUrl(project.cover_image)
+    || (galleryPreview?.type === 'image' ? getGalleryItemMediaUrl(galleryPreview) : getGalleryItemThumbnailUrl(galleryPreview));
 
   return (
     <article className="group">
-      {image && (
+      {image ? (
         <Link to={`/projects/${project.slug}`} className="block overflow-hidden bg-zinc-900">
           <img className="aspect-[4/3] h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-[1.035] group-hover:opacity-100" src={image} alt={project.title} />
+        </Link>
+      ) : (
+        <Link to={`/projects/${project.slug}`} className="grid aspect-[4/3] place-items-center bg-zinc-900 px-6 text-center text-sm text-zinc-500 transition group-hover:text-[var(--site-accent)]">
+          Open project
         </Link>
       )}
       <div className="border-b border-white/[0.07] py-5">

@@ -9,6 +9,7 @@ create table if not exists public.projects (
   tools jsonb not null default '[]'::jsonb,
   cover_image text,
   gallery_images jsonb not null default '[]'::jsonb,
+  gallery_items jsonb not null default '[]'::jsonb,
   video_url text,
   social_post_url text,
   live_url text,
@@ -24,6 +25,7 @@ create table if not exists public.projects (
 create index if not exists projects_status_idx on public.projects(status);
 create index if not exists projects_featured_idx on public.projects(featured);
 create index if not exists projects_featured_display_order_idx on public.projects(featured, display_order);
+create index if not exists projects_gallery_items_idx on public.projects using gin(gallery_items);
 create index if not exists projects_slug_idx on public.projects(slug);
 
 alter table public.projects enable row level security;

@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ExternalLink, Plus, Save, Trash2, Upload } from 'lucide-react';
+import {
+  createExternalGalleryItem,
+  createImageGalleryItem,
+  detectGalleryPlatform,
+  galleryItemTypes,
+  normalizeGalleryItem,
+  platformLabel,
+} from '../../lib/galleryItems';
 import { categories, parseList, slugify } from '../../lib/helpers';
 import { supabase } from '../../lib/supabaseClient';
-import { deleteImages, getPublicImageUrl, isPdfFile, uploadCoverImage, uploadGalleryImages, validateGalleryUploadFile } from '../../lib/storage';
+import { deleteImages, getPublicImageUrl, isPdfFile, uploadCoverImage, uploadExternalThumbnail, uploadGalleryImages, validateGalleryUploadFile } from '../../lib/storage';
 import ImageUploader from './ImageUploader';
 
 const emptyProject = {
@@ -14,6 +22,7 @@ const emptyProject = {
   tools: '',
   cover_image: '',
   gallery_images: [],
+  gallery_items: [],
   video_url: '',
   social_post_url: '',
   live_url: '',
@@ -34,6 +43,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [removedGalleryPaths, setRemovedGalleryPaths] = useState([]);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
+  const [externalUrl, setExternalUrl] = useState('');
+  const [bulkExternalUrls, setBulkExternalUrls] = useState('');
   const [error, setError] = useState('');
   const pendingGalleryFilesRef = useRef([]);
 
@@ -53,6 +64,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           ...initialProject,
           tools: Array.isArray(initialProject.tools) ? initialProject.tools.join(', ') : initialProject.tools || '',
           gallery_images: initialProject.gallery_images || [],
+          gallery_items: Array.isArray(initialProject.gallery_items)
+            ? initialProject.gallery_items.map(normalizeGalleryItem)
+            : [],
         }
       : emptyProject;
 
@@ -171,9 +185,118 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     setForm((current) => ({
       ...current,
       gallery_images: (current.gallery_images || []).filter((image) => image !== path),
+      gallery_items: (current.gallery_items || []).filter((item) => item.url !== path),
     }));
     setDirty(true);
     setRemovedGalleryPaths((current) => current.includes(path) ? current : [...current, path]);
+  }
+
+  function externalGalleryItems() {
+    return (form.gallery_items || []).filter((item) => !['image', 'pdf'].includes(item.type));
+  }
+
+  function addExternalUrls(urls) {
+    const cleanUrls = urls.map((url) => url.trim()).filter(Boolean);
+    if (!cleanUrls.length) return;
+    setForm((current) => {
+      const existing = current.gallery_items || [];
+      const nextOrder = existing.length * 100;
+      const newItems = cleanUrls.map((url, index) => createExternalGalleryItem(url, nextOrder + index * 100));
+      return { ...current, gallery_items: [...existing, ...newItems] };
+    });
+    setDirty(true);
+  }
+
+  function addSingleExternalUrl() {
+    addExternalUrls([externalUrl]);
+    setExternalUrl('');
+  }
+
+  function addBulkExternalUrls() {
+    addExternalUrls(bulkExternalUrls.split(/\r?\n/));
+    setBulkExternalUrls('');
+  }
+
+  function updateExternalItem(id, patch) {
+    let removedThumbnailPath = '';
+    setForm((current) => ({
+      ...current,
+      gallery_items: (current.gallery_items || []).map((item) => {
+        if (item.id !== id) return item;
+        if (
+          Object.prototype.hasOwnProperty.call(patch, 'thumbnail_url')
+          && patch.thumbnail_storage_path === ''
+          && item.thumbnail_storage_path
+        ) {
+          removedThumbnailPath = item.thumbnail_storage_path;
+        }
+        const nextItem = { ...item, ...patch };
+        if (Object.prototype.hasOwnProperty.call(patch, 'url')) {
+          const detected = detectGalleryPlatform(patch.url);
+          nextItem.type = detected.type;
+          nextItem.platform = detected.platform;
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'type')) {
+          nextItem.platform = platformLabel(patch.type);
+        }
+        return nextItem;
+      }),
+    }));
+    if (removedThumbnailPath) {
+      setRemovedGalleryPaths((current) => current.includes(removedThumbnailPath) ? current : [...current, removedThumbnailPath]);
+    }
+    setDirty(true);
+  }
+
+  async function uploadExternalItemThumbnail(item, file) {
+    if (!file) return;
+    setUploadingImages(true);
+    setError('');
+    try {
+      const path = await uploadExternalThumbnail(file, form.slug || slugify(form.title));
+      const oldPath = item.thumbnail_storage_path;
+      updateExternalItem(item.id, {
+        thumbnail_url: getPublicImageUrl(path),
+        thumbnail_storage_path: path,
+      });
+      if (oldPath) {
+        setRemovedGalleryPaths((current) => current.includes(oldPath) ? current : [...current, oldPath]);
+      }
+    } catch (uploadError) {
+      setError(uploadError.message || 'Thumbnail upload failed.');
+    } finally {
+      setUploadingImages(false);
+    }
+  }
+
+  function removeExternalItem(id) {
+    const item = (form.gallery_items || []).find((galleryItem) => galleryItem.id === id);
+    setForm((current) => ({
+      ...current,
+      gallery_items: (current.gallery_items || []).filter((galleryItem) => galleryItem.id !== id),
+    }));
+    if (item?.thumbnail_storage_path) {
+      setRemovedGalleryPaths((current) => current.includes(item.thumbnail_storage_path) ? current : [...current, item.thumbnail_storage_path]);
+    }
+    setDirty(true);
+  }
+
+  function moveExternalItem(id, direction) {
+    const externalItems = externalGalleryItems();
+    const currentIndex = externalItems.findIndex((item) => item.id === id);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= externalItems.length) return;
+
+    const reordered = [...externalItems];
+    const [moved] = reordered.splice(currentIndex, 1);
+    reordered.splice(nextIndex, 0, moved);
+    const reorderedMap = new Map(reordered.map((item, index) => [item.id, { ...item, order: 1000 + index * 100 }]));
+
+    setForm((current) => ({
+      ...current,
+      gallery_items: (current.gallery_items || []).map((item) => reorderedMap.get(item.id) || item),
+    }));
+    setDirty(true);
   }
 
   function clearDraft() {
@@ -194,6 +317,16 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         ? await uploadGalleryImages(pendingGalleryFiles.map((item) => item.file))
         : [];
       const updatedGalleryImages = [...(form.gallery_images || []), ...uploadedGalleryPaths];
+      const currentItems = form.gallery_items || [];
+      const existingItemByUrl = new Map(currentItems.map((item) => [item.url, normalizeGalleryItem(item)]));
+      const imageItems = updatedGalleryImages.map((path, index) => (
+        existingItemByUrl.get(path) || createImageGalleryItem(path, index * 100)
+      ));
+      const externalItems = currentItems
+        .filter((item) => !['image', 'pdf'].includes(item.type))
+        .map(normalizeGalleryItem)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((item, index) => normalizeGalleryItem({ ...item, order: 1000 + index * 100 }, index));
       const payload = {
         title: form.title,
         slug: form.slug || slugify(form.title),
@@ -202,6 +335,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         tools: parseList(form.tools),
         cover_image: form.cover_image,
         gallery_images: updatedGalleryImages,
+        gallery_items: [...imageItems, ...externalItems],
         video_url: form.video_url || null,
         social_post_url: form.social_post_url || null,
         live_url: form.live_url || null,
@@ -237,6 +371,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       setSaving(false);
     }
   }
+
+  const externalItems = externalGalleryItems().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5">
@@ -326,6 +462,46 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </div>
       )}
 
+      <section className="grid gap-4 rounded-lg border border-white/10 bg-zinc-900/70 p-5">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Gallery Content</h2>
+          <p className="mt-1 text-sm leading-6 text-zinc-500">Add social posts, videos, or website links without uploading the full media set to Supabase.</p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+          <Field label="Add external gallery link" value={externalUrl} onChange={setExternalUrl} />
+          <button type="button" onClick={addSingleExternalUrl} className="inline-flex h-fit items-center justify-center gap-2 self-end rounded-md border border-white/10 px-4 py-3 text-sm text-zinc-200 hover:border-amber-300/60 hover:text-amber-200">
+            <Plus size={16} /> Add link
+          </button>
+        </div>
+
+        <label className="grid gap-2 text-sm text-zinc-300">
+          Bulk paste external links, one per line
+          <textarea className="min-h-24 rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" value={bulkExternalUrls} onChange={(event) => setBulkExternalUrls(event.target.value)} />
+        </label>
+        <button type="button" onClick={addBulkExternalUrls} className="w-fit rounded-md border border-white/10 px-4 py-2 text-sm text-zinc-200 hover:border-amber-300/60 hover:text-amber-200">
+          Add pasted links
+        </button>
+
+        {externalItems.length > 0 && (
+          <div className="grid gap-4 border-t border-white/10 pt-4">
+            {externalItems.map((item, index) => (
+              <ExternalGalleryItemEditor
+                key={item.id}
+                item={item}
+                index={index}
+                total={externalItems.length}
+                saving={saving || uploadingImages}
+                onChange={(patch) => updateExternalItem(item.id, patch)}
+                onUploadThumbnail={(file) => uploadExternalItemThumbnail(item, file)}
+                onMove={moveExternalItem}
+                onRemove={removeExternalItem}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
       <div className="grid gap-5 lg:grid-cols-2">
         <Field label="Video URL" value={form.video_url || ''} onChange={(value) => update('video_url', value)} />
         <Field label="Social media post URL" value={form.social_post_url || ''} onChange={(value) => update('social_post_url', value)} />
@@ -347,6 +523,66 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </button>
       </div>
     </form>
+  );
+}
+
+function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUploadThumbnail, onMove, onRemove }) {
+  return (
+    <div className="grid gap-4 rounded-md border border-white/10 bg-zinc-950 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 text-sm text-zinc-300">
+          <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-zinc-400">#{index + 1}</span>
+          <span>{item.platform || platformLabel(item.type)}</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={index === 0 || saving} onClick={() => onMove(item.id, -1)} className="grid h-9 w-9 place-items-center rounded-md border border-white/10 text-zinc-300 disabled:opacity-40 hover:border-amber-300/60 hover:text-amber-200" aria-label="Move link up">
+            <ArrowUp size={15} />
+          </button>
+          <button type="button" disabled={index === total - 1 || saving} onClick={() => onMove(item.id, 1)} className="grid h-9 w-9 place-items-center rounded-md border border-white/10 text-zinc-300 disabled:opacity-40 hover:border-amber-300/60 hover:text-amber-200" aria-label="Move link down">
+            <ArrowDown size={15} />
+          </button>
+          <button type="button" disabled={saving} onClick={() => onRemove(item.id)} className="inline-flex items-center gap-2 rounded-md border border-red-400/20 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10">
+            <Trash2 size={15} /> Remove
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Field label="URL" value={item.url || ''} onChange={(value) => onChange({ url: value })} />
+        <label className="grid gap-2 text-sm text-zinc-300">
+          Platform
+          <select className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" value={item.type || 'external_link'} onChange={(event) => onChange({ type: event.target.value })}>
+            {galleryItemTypes.map((type) => <option key={type} value={type}>{platformLabel(type)}</option>)}
+          </select>
+        </label>
+        <Field label="Optional title" value={item.title || ''} onChange={(value) => onChange({ title: value })} />
+        <Field label="Thumbnail URL" value={item.thumbnail_url || ''} onChange={(value) => onChange({ thumbnail_url: value, thumbnail_storage_path: '' })} />
+      </div>
+
+      <label className="grid gap-2 text-sm text-zinc-300">
+        Optional description
+        <textarea className="min-h-20 rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" value={item.description || ''} onChange={(event) => onChange({ description: event.target.value })} />
+      </label>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60">
+          <Upload size={15} /> Upload thumbnail
+          <input className="sr-only" type="file" accept="image/*" onChange={(event) => {
+            onUploadThumbnail(event.target.files?.[0]);
+            event.target.value = '';
+          }} />
+        </label>
+        {item.url && (
+          <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-200">
+            <ExternalLink size={15} /> Open source
+          </a>
+        )}
+      </div>
+
+      {item.thumbnail_url && (
+        <img src={item.thumbnail_url} alt="" className="h-24 max-w-48 rounded-md object-cover" />
+      )}
+    </div>
   );
 }
 

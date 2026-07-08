@@ -65,7 +65,10 @@ export default function AdminProjects() {
       if (failedUpdate?.error) throw failedUpdate.error;
 
       const orderMap = new Map(orderedWithPositions.map((project) => [project.id, project]));
-      setProjects((current) => current.map((project) => orderMap.get(project.id) || project));
+      setProjects((current) => [
+        ...orderedWithPositions,
+        ...current.filter((project) => !orderMap.has(project.id)),
+      ]);
     } catch (orderError) {
       setError(orderError.message || 'Could not save the featured project order.');
     } finally {

@@ -2,7 +2,7 @@ create extension if not exists "pgcrypto";
 
 create table if not exists public.site_settings (
   id uuid primary key default gen_random_uuid(),
-  brand_name text not null default 'Hevv Ching',
+  brand_name text not null default 'Lahat Liwa',
   personal_name text not null default 'Jevin Coching',
   tagline text,
   logo_url text,
@@ -20,6 +20,10 @@ create table if not exists public.site_settings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+update public.site_settings
+set brand_name = 'Lahat Liwa'
+where brand_name in ('Hevv Ching', 'Jevin Coching', 'Jevin Coching Portfolio');
 
 create table if not exists public.page_content (
   id uuid primary key default gen_random_uuid(),

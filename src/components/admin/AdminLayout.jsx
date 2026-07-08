@@ -25,7 +25,7 @@ export default function AdminLayout({ children }) {
         <div className="flex h-16 items-center justify-between px-5 lg:h-auto lg:flex-col lg:items-stretch lg:gap-8 lg:py-6">
           <div>
             <p className="text-sm text-zinc-500">Admin</p>
-            <h1 className="text-lg font-semibold">Hevv Portfolio</h1>
+            <h1 className="text-lg font-semibold">Lahat Liwa</h1>
           </div>
           <nav className="hidden gap-2 lg:grid">
             {links.map(([label, href, Icon]) => (

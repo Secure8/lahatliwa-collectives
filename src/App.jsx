@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -17,11 +18,22 @@ import SiteSettings from './pages/admin/SiteSettings';
 import ContentIndex from './pages/admin/ContentIndex';
 import ContentEditor from './pages/admin/ContentEditor';
 import IconsMedia from './pages/admin/IconsMedia';
-import { PublicContentProvider } from './lib/contentApi';
+import { PublicContentProvider, usePublicContent } from './lib/contentApi';
+
+function SiteDocumentTitle() {
+  const { content } = usePublicContent([]);
+
+  useEffect(() => {
+    document.title = content.displayName || 'Lahat Liwa';
+  }, [content.displayName]);
+
+  return null;
+}
 
 function PublicLayout({ children }) {
   return (
     <PublicContentProvider>
+      <SiteDocumentTitle />
       <Navbar />
       <main className="overflow-x-hidden">{children}</main>
       <Footer />

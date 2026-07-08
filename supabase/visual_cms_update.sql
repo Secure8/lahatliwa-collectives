@@ -10,6 +10,12 @@ add column if not exists default_background_overlay_opacity numeric default 0.55
 alter table public.site_settings
 add column if not exists show_hero_portrait boolean not null default false;
 
+alter table public.projects
+add column if not exists display_order integer;
+
+create index if not exists projects_featured_display_order_idx
+on public.projects(featured, display_order);
+
 create table if not exists public.media_assets (
   id uuid primary key default gen_random_uuid(),
   name text not null,

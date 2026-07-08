@@ -16,12 +16,14 @@ create table if not exists public.projects (
   project_date date,
   status text not null default 'draft' check (status in ('draft', 'published')),
   featured boolean not null default false,
+  display_order integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists projects_status_idx on public.projects(status);
 create index if not exists projects_featured_idx on public.projects(featured);
+create index if not exists projects_featured_display_order_idx on public.projects(featured, display_order);
 create index if not exists projects_slug_idx on public.projects(slug);
 
 alter table public.projects enable row level security;

@@ -21,6 +21,7 @@ export default function Projects() {
         .select('*')
         .eq('status', 'published')
         .order('featured', { ascending: false })
+        .order('display_order', { ascending: true, nullsFirst: false })
         .order('project_date', { ascending: false, nullsFirst: false });
 
       if (projectError) setError(projectError.message);

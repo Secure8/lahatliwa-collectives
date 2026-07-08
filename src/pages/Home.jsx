@@ -27,6 +27,7 @@ export default function Home() {
         .select('*')
         .eq('status', 'published')
         .eq('featured', true)
+        .order('display_order', { ascending: true, nullsFirst: false })
         .order('project_date', { ascending: false, nullsFirst: false })
         .limit(3);
 

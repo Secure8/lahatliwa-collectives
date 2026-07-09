@@ -233,7 +233,7 @@ values
   ('Lahat Liwa Studio', 'lahat-liwa-studio', 'Photography, photo editing, and video coverage for events, campaigns, and visual stories.', '["Photography", "Photo editing", "Video shoot/editing", "Event highlights"]'::jsonb, 100, true, 'Start a studio project', '/start-a-project'),
   ('Lahat Liwa Social', 'lahat-liwa-social', 'Social media management, content planning, page rebuilding, and digital marketing support.', '["Social media management", "Content planning", "Page rebuilding", "Digital marketing support"]'::jsonb, 200, true, 'Plan social content', '/start-a-project'),
   ('Lahat Liwa Web', 'lahat-liwa-web', 'Portfolio websites, business websites, CMS systems, and landing pages for growing teams.', '["Portfolio websites", "Business websites", "CMS systems", "Landing pages"]'::jsonb, 300, true, 'Build a website', '/start-a-project'),
-  ('Lahat Liwa Creative', 'lahat-liwa-creative', 'Branding support, visual direction, creative campaigns, and practical digital production.', '["Branding support", "Visual direction", "Creative campaigns", "Digital production"]'::jsonb, 400, true, 'Shape a campaign', '/start-a-project')
+  ('Lahat Liwa Tech', 'lahat-liwa-tech', 'Simple technical help for devices, software setup, and everyday computer support.', '["IT Technician Services", "Computer Support", "Software / System Assistance", "Device Setup"]'::jsonb, 400, true, 'Get tech support', '/start-a-project')
 on conflict (slug) do nothing;
 
 notify pgrst, 'reload schema';

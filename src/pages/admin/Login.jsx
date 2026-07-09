@@ -93,7 +93,10 @@ export default function Login() {
 
     const { blockedReason, error: claimError } = await claimSignedInTeamRecord(loginData.user);
     if (claimError) throw claimError;
-    if (blockedReason) throw new Error(blockedReason);
+    if (blockedReason) {
+      await supabase.auth.signOut();
+      throw new Error(blockedReason);
+    }
 
     navigate('/admin/dashboard');
   }
@@ -159,7 +162,10 @@ export default function Login() {
     const { data: sessionData } = await supabase.auth.getSession();
     const { blockedReason, error: claimError } = await claimSignedInTeamRecord(sessionData.session?.user);
     if (claimError) throw claimError;
-    if (blockedReason) throw new Error(blockedReason);
+    if (blockedReason) {
+      await supabase.auth.signOut();
+      throw new Error(blockedReason);
+    }
     navigate('/admin/dashboard');
   }
 

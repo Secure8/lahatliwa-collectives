@@ -4,7 +4,7 @@ import { supabase } from './supabaseClient';
 const teamRecordSelect = 'id, user_id, email, display_name, avatar_url, role, status, creative_member_id';
 
 export const notInvitedMessage = 'This email has not been invited to the Lahat Liwa team.';
-export const disabledTeamMessage = 'This team access has been disabled.';
+export const disabledTeamMessage = 'Your team access has been disabled.';
 
 export async function claimSignedInTeamRecord(user) {
   const userEmail = user?.email?.trim();

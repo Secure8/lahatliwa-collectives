@@ -52,7 +52,7 @@ export default function ProjectDetails() {
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[0.92fr_1.08fr]' : 'lg:grid-cols-1'}`}>
         {cover && (
           <div className="overflow-hidden rounded-[1.5rem] bg-zinc-900">
-            <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} decoding="async" fetchPriority="high" width="1200" height="900" />
+            <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} decoding="async" fetchpriority="high" width="1200" height="900" />
           </div>
         )}
         <div>

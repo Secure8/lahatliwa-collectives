@@ -55,7 +55,7 @@ export default function CreativeDetails() {
       <div className="mt-10 grid gap-10 lg:grid-cols-[0.72fr_1fr]">
         <div>
           {creative.profile_image_url ? (
-            <img src={creative.profile_image_url} alt={creative.name} decoding="async" fetchPriority="high" width="800" height="1000" className="aspect-[4/5] w-full rounded-lg bg-zinc-900 object-cover" />
+            <img src={creative.profile_image_url} alt={creative.name} decoding="async" fetchpriority="high" width="800" height="1000" className="aspect-[4/5] w-full rounded-lg bg-zinc-900 object-cover" />
           ) : (
             <div className="grid aspect-[4/5] place-items-center rounded-lg bg-zinc-900 text-5xl font-semibold text-zinc-600">{creative.name?.slice(0, 1)}</div>
           )}

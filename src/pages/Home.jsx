@@ -84,7 +84,7 @@ export default function Home() {
         </div>
         {hasPortrait && (
           <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-[1.25rem] bg-zinc-900/70 shadow-[0_24px_60px_rgba(0,0,0,0.2)] lg:ml-auto">
-            <img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchPriority="high" width="800" height="1000" className="aspect-[4/5] w-full object-cover" />
+            <img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchpriority="high" width="800" height="1000" className="aspect-[4/5] w-full object-cover" />
           </div>
         )}
       </div>

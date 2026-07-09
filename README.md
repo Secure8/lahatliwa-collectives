@@ -253,9 +253,12 @@ After running `supabase/team_rbac_upgrade.sql`, run:
 ```text
 supabase/team_invite_setup.sql
 supabase/fix_team_invite_security_warnings.sql
+supabase/team_access_removal.sql
 ```
 
 Team members added in `/admin/team` can then open `/admin/login` and choose `Set up team account`. Account setup is invite-only: the email must already exist in `admin_users` with `invited` or `active` status. Roles are never chosen during signup; they always come from the existing team record.
+
+Team removal is intentionally a soft removal. `Remove Access` changes the record status to `disabled`; it does not delete the team row or the Supabase Auth account. Retaining the row preserves project ownership, contributor credits, history, and security audit context. Run `supabase/team_access_removal.sql` after the invite/security migrations to enforce this behavior and protect the last active Super Admin at the database layer.
 
 ## Video Notes
 

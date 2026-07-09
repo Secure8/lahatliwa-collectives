@@ -12,20 +12,57 @@ alter table public.admin_users
 add constraint admin_users_role_check
 check (role in ('owner', 'admin', 'editor', 'creative'));
 
-create or replace function public.is_admin(check_user_id uuid default auth.uid())
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.admin_users
-    where user_id = check_user_id
-    and role in ('owner', 'admin')
-  );
+create schema if not exists private;
+
+revoke all on schema private from public;
+grant usage on schema private to authenticated;
+
+do $$
+begin
+  if to_regprocedure('private.is_admin(uuid)') is null then
+    execute $fn$
+      create function private.is_admin(check_user_id uuid)
+      returns boolean
+      language sql
+      stable
+      security definer
+      set search_path = public, private, pg_temp
+      as $body$
+        select exists (
+          select 1
+          from public.admin_users
+          where user_id = check_user_id
+          and role in ('owner', 'admin')
+        );
+      $body$;
+    $fn$;
+  end if;
+
+  if to_regprocedure('private.is_owner(uuid)') is null then
+    execute $fn$
+      create function private.is_owner(check_user_id uuid)
+      returns boolean
+      language sql
+      stable
+      security definer
+      set search_path = public, private, pg_temp
+      as $body$
+        select exists (
+          select 1
+          from public.admin_users
+          where user_id = check_user_id
+          and role = 'owner'
+        );
+      $body$;
+    $fn$;
+  end if;
+end;
 $$;
+
+revoke all on function private.is_admin(uuid) from public;
+revoke all on function private.is_owner(uuid) from public;
+grant execute on function private.is_admin(uuid) to authenticated;
+grant execute on function private.is_owner(uuid) to authenticated;
 
 create table if not exists public.creative_members (
   id uuid primary key default gen_random_uuid(),
@@ -108,8 +145,8 @@ create policy "Admins can manage creative members"
 on public.creative_members
 for all
 to authenticated
-using (public.is_admin(auth.uid()))
-with check (public.is_admin(auth.uid()));
+using (private.is_admin(auth.uid()))
+with check (private.is_admin(auth.uid()));
 
 drop policy if exists "Public can read published service branches" on public.service_branches;
 create policy "Public can read published service branches"
@@ -123,8 +160,8 @@ create policy "Admins can manage service branches"
 on public.service_branches
 for all
 to authenticated
-using (public.is_admin(auth.uid()))
-with check (public.is_admin(auth.uid()));
+using (private.is_admin(auth.uid()))
+with check (private.is_admin(auth.uid()));
 
 drop policy if exists "Public can create project inquiries" on public.project_inquiries;
 create policy "Public can create project inquiries"
@@ -138,8 +175,8 @@ create policy "Admins can manage project inquiries"
 on public.project_inquiries
 for all
 to authenticated
-using (public.is_admin(auth.uid()))
-with check (public.is_admin(auth.uid()));
+using (private.is_admin(auth.uid()))
+with check (private.is_admin(auth.uid()));
 
 drop policy if exists "Public can read project creative links" on public.project_creatives;
 create policy "Public can read project creative links"
@@ -160,8 +197,8 @@ create policy "Admins can manage project creative links"
 on public.project_creatives
 for all
 to authenticated
-using (public.is_admin(auth.uid()))
-with check (public.is_admin(auth.uid()));
+using (private.is_admin(auth.uid()))
+with check (private.is_admin(auth.uid()));
 
 create or replace function public.set_updated_at()
 returns trigger

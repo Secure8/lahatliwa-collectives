@@ -24,10 +24,15 @@ export default function ProjectDetails() {
         setProject(data);
         const { data: contributorRows } = await supabase
           .from('project_creatives')
-          .select('creative_members(id, name, slug, role, profile_image_url)')
+          .select('role, contribution_role, is_primary, display_order, creative_members!project_creatives_creative_member_id_fkey(id, name, slug, role, profile_image_url)')
           .eq('project_id', data.id)
+          .order('is_primary', { ascending: false })
           .order('display_order', { ascending: true, nullsFirst: false });
-        setContributors((contributorRows || []).map((row) => row.creative_members).filter(Boolean));
+        setContributors((contributorRows || []).map((row) => row.creative_members ? {
+          ...row.creative_members,
+          creditRole: row.role || row.contribution_role || row.creative_members.role,
+          isPrimary: row.is_primary === true,
+        } : null).filter(Boolean));
       }
       setLoading(false);
     }
@@ -39,6 +44,7 @@ export default function ProjectDetails() {
 
   const cover = getPublicImageUrl(project.cover_image);
   const gallery = normalizeProjectGallery(project);
+  const primaryContributor = contributors.find((creative) => creative.isPrimary) || contributors[0];
 
   return (
     <article className="page-shell py-20">
@@ -56,6 +62,12 @@ export default function ProjectDetails() {
           </div>
           <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.primaryTextColor }}>{project.title}</h1>
           <p className="mt-5 text-lg leading-8" style={{ color: content.secondaryTextColor }}>{project.description}</p>
+          <div className="mt-6 grid gap-2 text-sm" style={{ color: content.mutedTextColor }}>
+            {primaryContributor && (
+              <p>Work by <Link to={`/creatives/${primaryContributor.slug}`} className="site-hover-accent text-zinc-200">{primaryContributor.name}</Link></p>
+            )}
+            <p>Published under <span className="text-zinc-200">Lahat Liwa Collectives</span></p>
+          </div>
           <p className="mt-5 inline-flex items-center gap-2 text-sm" style={{ color: content.mutedTextColor }}><Calendar size={16} /> {formatDate(project.project_date)}</p>
           {project.tools?.length > 0 && (
             <div className="major-border-y mt-7 flex flex-wrap gap-x-4 gap-y-2 py-5">
@@ -70,13 +82,13 @@ export default function ProjectDetails() {
           </div>
           {contributors.length > 0 && (
             <div className="major-border-top mt-8 pt-6">
-              <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Project Contributors</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Creative Credits</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 {contributors.map((creative) => (
                   <Link key={creative.id} to={`/creatives/${creative.slug}`} className="flex items-center gap-3 rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
                     {creative.profile_image_url && <img src={creative.profile_image_url} alt="" className="h-8 w-8 rounded-full object-cover" />}
                     <span>{creative.name}</span>
-                    <span className="text-zinc-500">{creative.role}</span>
+                    <span className="text-zinc-500">{creative.creditRole}</span>
                   </Link>
                 ))}
               </div>

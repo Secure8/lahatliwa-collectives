@@ -1,6 +1,7 @@
 import { Copy, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { createMediaAsset, deleteMediaAsset, fetchMediaAssets, uploadMediaAssetFile } from '../../lib/contentApi';
 
@@ -81,36 +82,32 @@ export default function IconsMedia() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <p className="text-sm text-amber-200">Website CMS</p>
-        <h1 className="mt-2 text-3xl font-bold">Icons / Media</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Upload custom SVG, PNG, or WebP icons. Raster images over 5 MB are compressed automatically. Use copied URLs in Services page content as customIconUrl.</p>
-      </div>
+      <AdminPageHeader eyebrow="Website CMS" title="Icons / Media" description="Upload custom SVG, PNG, or WebP icons. Raster images over 5 MB are compressed automatically. Use copied URLs in Services page content as customIconUrl." />
 
-      <form onSubmit={upload} className="mb-8 grid gap-4 rounded-lg border border-white/10 bg-zinc-900/70 p-5 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
-        {message && <div className="rounded-md border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100 lg:col-span-4">{message}</div>}
-        {error && <div className="rounded-md border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100 lg:col-span-4">{error}</div>}
+      <AdminSurface as="form" onSubmit={upload} className="mb-8 grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+        {message && <AdminNotice tone="success" className="lg:col-span-4">{message}</AdminNotice>}
+        {error && <AdminNotice className="lg:col-span-4">{error}</AdminNotice>}
         <Field label="Icon name" value={form.name} onChange={(value) => update('name', value)} />
         <Field label="Category" value={form.category} onChange={(value) => update('category', value)} />
         <Field label="Alt text" value={form.altText} onChange={(value) => update('altText', value)} />
         <label className="grid gap-2 text-sm text-zinc-300">
           Icon file
-          <span className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-white/10 px-3 py-3 text-zinc-200 hover:border-amber-300/60">
+          <span className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-zinc-950/55 px-3 py-3 text-zinc-200 ring-1 ring-white/[0.08] hover:ring-amber-200/30">
             <Upload size={16} /> {file ? file.name : 'Choose file'}
             <input className="sr-only" type="file" accept=".svg,image/svg+xml,image/png,image/webp" onChange={(event) => setFile(event.target.files?.[0] || null)} />
           </span>
         </label>
-        <button disabled={saving} className="rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 lg:col-span-4 lg:w-fit">
+        <AdminButton disabled={saving} type="submit" variant="primary" className="lg:col-span-4 lg:w-fit">
           {saving ? 'Uploading...' : 'Upload icon'}
-        </button>
-      </form>
+        </AdminButton>
+      </AdminSurface>
 
       {loading ? <LoadingState label="Loading icons" /> : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        assets.length ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {assets.map((asset) => (
-            <article key={asset.id} className="rounded-lg border border-white/10 bg-zinc-900/70 p-4">
+            <AdminSurface key={asset.id} as="article">
               <div className="flex items-start gap-4">
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-zinc-950">
+                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-zinc-950/55 ring-1 ring-white/[0.07]">
                   <img src={asset.url} alt={asset.alt_text || asset.name} className="max-h-10 max-w-10 object-contain" />
                 </div>
                 <div className="min-w-0">
@@ -120,16 +117,16 @@ export default function IconsMedia() {
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <button onClick={() => copyUrl(asset.url)} className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:text-white" type="button">
+                <button onClick={() => copyUrl(asset.url)} className="inline-flex items-center gap-2 rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-300 ring-1 ring-white/[0.08] hover:text-white" type="button">
                   <Copy size={15} /> Copy URL
                 </button>
-                <button onClick={() => remove(asset)} className="inline-flex items-center gap-2 rounded-md border border-red-400/20 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10" type="button">
+                <button onClick={() => remove(asset)} className="inline-flex items-center gap-2 rounded-full bg-red-400/10 px-3 py-2 text-sm text-red-200 ring-1 ring-red-300/20 hover:bg-red-500/10" type="button">
                   <Trash2 size={15} /> Delete
                 </button>
               </div>
-            </article>
+            </AdminSurface>
           ))}
-        </div>
+        </div> : <AdminEmptyState title="No media assets yet" message="Uploaded icons and media assets will appear here." />
       )}
     </AdminLayout>
   );
@@ -139,7 +136,7 @@ function Field({ label, value, onChange }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <input value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
+      <input value={value} onChange={(event) => onChange(event.target.value)} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
     </label>
   );
 }

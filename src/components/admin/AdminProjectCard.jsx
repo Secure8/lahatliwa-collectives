@@ -1,6 +1,8 @@
-import { Edit, GripVertical, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Calendar, Edit, GripVertical, Images, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
+import { canDeleteProject, canEditProject, useAdminAccess } from '../../lib/adminAccess';
+import { formatDate } from '../../lib/helpers';
+import { AdminButton, AdminIconButton, AdminStatusBadge } from './AdminUI';
 
 export default function AdminProjectCard({
   project,
@@ -13,6 +15,11 @@ export default function AdminProjectCard({
   onDrop,
   orderLabel,
 }) {
+  const mediaCount = (project.gallery_images || []).length + (project.gallery_items || []).length;
+  const { role, user } = useAdminAccess();
+  const canEdit = canEditProject(role, project, user?.id);
+  const canDelete = canDeleteProject(role, project);
+
   return (
     <article
       draggable={draggable}
@@ -21,37 +28,41 @@ export default function AdminProjectCard({
       onDragOver={onDragOver}
       onDrop={onDrop}
       className={clsx(
-        'grid gap-4 rounded-lg border border-white/10 bg-zinc-900/70 p-4 transition md:grid-cols-[1fr_auto] md:items-center',
+        'group grid gap-4 rounded-2xl bg-white/[0.045] p-4 shadow-[0_10px_28px_rgba(0,0,0,0.14)] ring-1 ring-white/[0.06] transition-colors duration-150 md:grid-cols-[1fr_auto] md:items-center',
         draggable && 'cursor-grab active:cursor-grabbing',
-        isDragging && 'border-amber-300/50 bg-zinc-900 opacity-70'
+        isDragging && 'bg-amber-200/[0.08] opacity-75 ring-amber-200/30'
       )}
     >
       <div className="flex items-start gap-3">
         {draggable && (
-          <span className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/10 text-zinc-500" aria-hidden="true">
+          <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/[0.055] text-zinc-500 ring-1 ring-white/[0.07] transition group-hover:text-amber-100" aria-hidden="true">
             <GripVertical size={16} />
           </span>
         )}
-        <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold text-white">{project.title}</h3>
-          {orderLabel && <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-zinc-300">{orderLabel}</span>}
-          <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-zinc-300">{project.category}</span>
-          <span className={clsx('rounded-md px-2 py-1 text-xs', project.status === 'published' ? 'bg-emerald-400/15 text-emerald-200' : 'bg-zinc-700 text-zinc-200')}>
-            {project.status}
-          </span>
-          {project.featured && <span className="rounded-md bg-amber-400/15 px-2 py-1 text-xs text-amber-200">Featured</span>}
-        </div>
-        <p className="mt-2 text-sm text-zinc-500">/{project.slug}</p>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold text-white">{project.title}</h3>
+            {orderLabel && <AdminStatusBadge status="featured">{orderLabel}</AdminStatusBadge>}
+            <AdminStatusBadge status={project.status} />
+            {project.review_status && <AdminStatusBadge status={project.review_status}>{project.review_status.replace('_', ' ')}</AdminStatusBadge>}
+            {project.featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-zinc-500">
+            <span>{project.category}</span>
+            <span className="inline-flex items-center gap-1.5"><Calendar size={14} /> {formatDate(project.project_date || project.created_at)}</span>
+            <span className="inline-flex items-center gap-1.5"><Images size={14} /> {mediaCount} media</span>
+            {project.display_order != null && <span>Order {project.display_order}</span>}
+          </div>
+          <p className="mt-2 truncate text-sm text-zinc-600">/{project.slug}</p>
         </div>
       </div>
-      <div className="flex gap-2">
-        <Link to={`/admin/projects/${project.id}/edit`} className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60 hover:text-amber-200">
+      <div className="flex gap-2 md:justify-end">
+        {canEdit && <AdminButton to={`/admin/projects/${project.id}/edit`} variant="secondary">
           <Edit size={16} /> Edit
-        </Link>
-        <button onClick={() => onDelete(project)} className="inline-flex items-center gap-2 rounded-md border border-red-400/20 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10">
-          <Trash2 size={16} /> Delete
-        </button>
+        </AdminButton>}
+        {canDelete && <AdminIconButton label={`Delete ${project.title}`} onClick={() => onDelete(project)} variant="danger">
+          <Trash2 size={16} />
+        </AdminIconButton>}
       </div>
     </article>
   );

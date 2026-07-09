@@ -7,7 +7,8 @@ const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
 const MEDIA_TABLE = 'media_assets';
 const BUCKET = 'project-media';
-const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache';
+const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache-v2';
+const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache'];
 const ALL_PAGE_KEYS = ['home', 'about', 'services', 'contact'];
 const PublicContentContext = createContext(null);
 const OPTIONAL_SETTINGS_COLUMNS = new Set(['divider_line_color', 'show_hero_portrait']);
@@ -26,6 +27,14 @@ function normalizeExternalUrl(url = '') {
   return `https://${trimmed}`;
 }
 
+export function resolvePublicAssetUrl(url = '') {
+  const trimmed = String(url || '').trim();
+  if (!trimmed) return '';
+  if (/^(https?:)?\/\//i.test(trimmed) || /^(data|blob):/i.test(trimmed) || trimmed.startsWith('/')) return trimmed;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(trimmed);
+  return data?.publicUrl || trimmed;
+}
+
 function mapSettingsRow(row) {
   if (!row) return {};
   return {
@@ -33,9 +42,9 @@ function mapSettingsRow(row) {
     displayName: row.brand_name || defaultSiteContent.displayName,
     legalName: row.personal_name || defaultSiteContent.legalName,
     tagline: row.tagline || defaultSiteContent.tagline,
-    logoUrl: row.logo_url || '',
+    logoUrl: resolvePublicAssetUrl(row.logo_url),
     logoAlt: row.logo_alt || defaultSiteContent.logoAlt,
-    heroImageUrl: row.hero_image_url || '',
+    heroImageUrl: resolvePublicAssetUrl(row.hero_image_url),
     heroImageAlt: row.hero_image_alt || defaultSiteContent.heroImageAlt,
     showHeroPortrait: row.show_hero_portrait ?? defaultSiteContent.showHeroPortrait,
     email: row.contact_email || defaultSiteContent.email,
@@ -45,7 +54,7 @@ function mapSettingsRow(row) {
     mutedTextColor: row.muted_text_color || defaultSiteContent.mutedTextColor,
     accentColor: row.accent_color || defaultSiteContent.accentColor,
     dividerLineColor: row.divider_line_color || defaultSiteContent.dividerLineColor,
-    defaultBackgroundImageUrl: row.default_background_image_url || '',
+    defaultBackgroundImageUrl: resolvePublicAssetUrl(row.default_background_image_url),
     defaultBackgroundOverlayOpacity: row.default_background_overlay_opacity ?? defaultSiteContent.defaultBackgroundOverlayOpacity,
     socialLinks: [
       { label: 'GitHub', href: normalizeExternalUrl(row.github_url || '') },
@@ -268,6 +277,7 @@ function clearCachedPublicContent() {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(PUBLIC_CONTENT_CACHE_KEY);
+    LEGACY_PUBLIC_CONTENT_CACHE_KEYS.forEach((key) => window.localStorage.removeItem(key));
   } catch {
   }
 }

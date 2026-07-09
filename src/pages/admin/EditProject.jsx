@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
 import ProjectForm from '../../components/admin/ProjectForm';
 import LoadingState from '../../components/LoadingState';
 import { supabase } from '../../lib/supabaseClient';
@@ -23,17 +24,10 @@ export default function EditProject() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <p className="text-sm text-amber-200">Edit</p>
-        <h1 className="mt-2 text-3xl font-bold">Edit Project</h1>
-      </div>
+      <AdminPageHeader eyebrow="Edit" title="Edit Project" description="Refine project details, gallery content, contributor assignments, and publishing settings." />
       {loading && <LoadingState label="Loading project" />}
-      {error && <div className="rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
-      {project && (
-        <div className="rounded-lg border border-white/10 bg-zinc-900/70 p-5">
-          <ProjectForm initialProject={project} mode="edit" />
-        </div>
-      )}
+      {error && <AdminNotice>{error}</AdminNotice>}
+      {project && <ProjectForm initialProject={project} mode="edit" />}
     </AdminLayout>
   );
 }

@@ -1,7 +1,17 @@
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import EmptyState from '../../components/EmptyState';
+import {
+  AdminButton,
+  AdminCheckbox,
+  AdminEmptyState,
+  AdminInput,
+  AdminNotice,
+  AdminPageHeader,
+  AdminStatusBadge,
+  AdminSurface,
+  AdminTextarea,
+} from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { parseList, slugify } from '../../lib/helpers';
 import { supabase } from '../../lib/supabaseClient';
@@ -98,59 +108,72 @@ export default function AdminServiceBranches() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <p className="text-sm text-amber-200">Collective services</p>
-        <h1 className="mt-2 text-3xl font-bold">Service Branches</h1>
-      </div>
-      {error && <div className="mb-5 rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
-      <form onSubmit={save} className="mb-8 grid gap-5 rounded-lg border border-white/10 bg-zinc-900/70 p-5">
+      <AdminPageHeader
+        eyebrow="Collective services"
+        title="Service Branches"
+        description="Shape the service modules that appear across the public Services page."
+        action={<AdminButton onClick={resetForm} variant="primary"><Plus size={17} /> Add branch</AdminButton>}
+      />
+      {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
+
+      <AdminSurface as="form" onSubmit={save} className="mb-8 grid gap-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">{editingId ? 'Edit branch' : 'Add branch'}</h2>
-          {editingId && <button type="button" onClick={resetForm} className="text-sm text-zinc-400 hover:text-white">Cancel edit</button>}
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Service module</p>
+            <h2 className="mt-2 text-xl font-semibold">{editingId ? 'Edit branch' : 'Add branch'}</h2>
+          </div>
+          {editingId && <AdminButton type="button" variant="ghost" onClick={resetForm}>Cancel edit</AdminButton>}
         </div>
+
         <div className="grid gap-5 md:grid-cols-2">
-          <Field label="Branch name" required value={form.name} onChange={(value) => update('name', value)} />
-          <Field label="Slug" required value={form.slug} onChange={(value) => update('slug', slugify(value))} />
-          <Field label="Icon/image URL" value={form.icon_url || ''} onChange={(value) => update('icon_url', value)} />
-          <Field label="Display order" type="number" value={form.display_order ?? ''} onChange={(value) => update('display_order', value)} />
-          <Field label="CTA label" value={form.cta_label || ''} onChange={(value) => update('cta_label', value)} />
-          <Field label="CTA URL" value={form.cta_url || ''} onChange={(value) => update('cta_url', value)} />
+          <AdminInput label="Branch name" required value={form.name} onChange={(value) => update('name', value)} />
+          <AdminInput label="Slug" required value={form.slug} onChange={(value) => update('slug', slugify(value))} />
+          <AdminInput label="Icon/image URL" value={form.icon_url || ''} onChange={(value) => update('icon_url', value)} />
+          <AdminInput label="Display order" type="number" value={form.display_order ?? ''} onChange={(value) => update('display_order', value)} />
+          <AdminInput label="CTA label" value={form.cta_label || ''} onChange={(value) => update('cta_label', value)} />
+          <AdminInput label="CTA URL" value={form.cta_url || ''} onChange={(value) => update('cta_url', value)} />
         </div>
-        <label className="grid gap-2 text-sm text-zinc-300">
-          Description
-          <textarea className="min-h-24 rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" value={form.description || ''} onChange={(event) => update('description', event.target.value)} />
-        </label>
-        <Field label="Included services, comma-separated" value={form.included_services || ''} onChange={(value) => update('included_services', value)} />
-        <label className="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" checked={form.is_published} onChange={(event) => update('is_published', event.target.checked)} /> Published</label>
-        <button disabled={saving} className="inline-flex w-fit items-center gap-2 rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60"><Plus size={17} /> {saving ? 'Saving...' : 'Save branch'}</button>
-      </form>
+        <AdminTextarea label="Description" value={form.description || ''} onChange={(value) => update('description', value)} />
+        <AdminInput label="Included services, comma-separated" value={form.included_services || ''} onChange={(value) => update('included_services', value)} />
+        <AdminCheckbox label="Published" checked={form.is_published} onChange={(value) => update('is_published', value)} />
+        <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
+          <Plus size={17} /> {saving ? 'Saving...' : 'Save branch'}
+        </AdminButton>
+      </AdminSurface>
 
       {loading && <LoadingState label="Loading service branches" />}
       {!loading && (branches.length ? (
-        <div className="grid gap-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {branches.map((branch) => (
-            <article key={branch.id} className="grid gap-4 rounded-lg border border-white/10 bg-zinc-900/70 p-4 md:grid-cols-[1fr_auto] md:items-center">
+            <AdminSurface key={branch.id} as="article" className="grid gap-5">
               <div>
-                <h3 className="font-semibold text-white">{branch.name}</h3>
-                <p className="mt-2 text-sm text-zinc-500">/{branch.slug} · {branch.is_published ? 'Published' : 'Draft'}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold text-white">{branch.name}</h3>
+                  <AdminStatusBadge status={branch.is_published ? 'published' : 'draft'}>{branch.is_published ? 'Published' : 'Draft'}</AdminStatusBadge>
+                  {branch.display_order != null && <AdminStatusBadge>Order {branch.display_order}</AdminStatusBadge>}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">{branch.description}</p>
+                <p className="mt-2 text-xs text-zinc-600">/{branch.slug}</p>
+                {Array.isArray(branch.included_services) && branch.included_services.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {branch.included_services.map((service) => <span key={service} className="rounded-full bg-white/[0.055] px-2.5 py-1 text-xs text-zinc-400">{service}</span>)}
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => editBranch(branch)} className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60 hover:text-amber-200"><Edit size={16} /> Edit</button>
-                <button onClick={() => deleteBranch(branch)} className="inline-flex items-center gap-2 rounded-md border border-red-400/20 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10"><Trash2 size={16} /> Delete</button>
+              <div className="flex flex-wrap gap-2">
+                <AdminButton onClick={() => editBranch(branch)} variant="secondary"><Edit size={16} /> Edit</AdminButton>
+                <AdminButton onClick={() => deleteBranch(branch)} variant="danger"><Trash2 size={16} /> Delete</AdminButton>
               </div>
-            </article>
+            </AdminSurface>
           ))}
         </div>
-      ) : <EmptyState title="No service branches yet" message="Add branches like Studio, Social, Web, and Creative." />)}
+      ) : (
+        <AdminEmptyState
+          title="No service branches yet"
+          message="Add branches like Studio, Social, Web, and Creative."
+          action={<AdminButton onClick={resetForm} variant="primary"><Plus size={17} /> Add branch</AdminButton>}
+        />
+      ))}
     </AdminLayout>
-  );
-}
-
-function Field({ label, value, onChange, type = 'text', required = false }) {
-  return (
-    <label className="grid gap-2 text-sm text-zinc-300">
-      {label}
-      <input type={type} required={required} value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
-    </label>
   );
 }

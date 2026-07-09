@@ -24,6 +24,8 @@ import IconsMedia from './pages/admin/IconsMedia';
 import AdminCreatives from './pages/admin/AdminCreatives';
 import AdminInquiries from './pages/admin/AdminInquiries';
 import AdminServiceBranches from './pages/admin/AdminServiceBranches';
+import AdminTeam from './pages/admin/AdminTeam';
+import AdminRouteGuard from './components/admin/AdminRouteGuard';
 import { PublicContentProvider, usePublicContent } from './lib/contentApi';
 
 function SiteDocumentTitle() {
@@ -68,6 +70,7 @@ export default function App() {
         <Route path="/admin/creatives" element={<AdminCreatives />} />
         <Route path="/admin/service-branches" element={<AdminServiceBranches />} />
         <Route path="/admin/inquiries" element={<AdminInquiries />} />
+        <Route path="/admin/team" element={<AdminRouteGuard allow={['super_admin', 'admin']}><AdminTeam /></AdminRouteGuard>} />
         <Route path="/admin/settings" element={<SiteSettings />} />
         <Route path="/admin/content" element={<ContentIndex />} />
         <Route path="/admin/content/:pageKey" element={<ContentEditor />} />

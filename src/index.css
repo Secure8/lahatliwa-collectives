@@ -26,6 +26,10 @@ html {
   scroll-behavior: smooth;
 }
 
+html.admin-mode {
+  scroll-behavior: auto;
+}
+
 body {
   width: 100%;
   margin: 0;
@@ -119,4 +123,29 @@ select {
     linear-gradient(145deg, rgba(245, 158, 11, 0.22), transparent 36%),
     linear-gradient(320deg, rgba(255, 255, 255, 0.1), transparent 26%),
     linear-gradient(180deg, #232328, #09090b);
+}
+
+.admin-shell {
+  text-rendering: optimizeLegibility;
+}
+
+.admin-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(246, 213, 139, 0.28) transparent;
+  scroll-behavior: auto;
+  scrollbar-gutter: stable;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(246, 213, 139, 0.22);
+  border-radius: 999px;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }

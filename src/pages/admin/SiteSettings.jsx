@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { AdminButton, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { mergePublicContent, settingsFromSiteContent, updateSiteSettings, uploadSiteAsset, usePublicContent } from '../../lib/contentApi';
 
@@ -100,15 +101,11 @@ export default function SiteSettings() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <p className="text-sm text-amber-200">Website CMS</p>
-        <h1 className="mt-2 text-3xl font-bold">Site Settings</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Edit the logo, portrait, home background, social links, and global website text. Images upload to the existing project-media bucket.</p>
-      </div>
+      <AdminPageHeader eyebrow="Website CMS" title="Site Settings" description="Edit the logo, portrait, home background, social links, and global website text. Images upload to the existing project-media bucket." />
 
-      <form onSubmit={save} className="grid gap-5 rounded-lg border border-white/10 bg-zinc-900/70 p-5">
-        {message && <div className="rounded-md border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{message}</div>}
-        {error && <div className="rounded-md border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</div>}
+      <AdminSurface as="form" onSubmit={save} className="grid gap-5">
+        {message && <AdminNotice tone="success">{message}</AdminNotice>}
+        {error && <AdminNotice>{error}</AdminNotice>}
 
         <div className="grid gap-5 md:grid-cols-2">
           <Field label="Brand name" value={form.displayName} onChange={(value) => update('displayName', value)} />
@@ -121,10 +118,10 @@ export default function SiteSettings() {
 
         <div className="grid gap-5 md:grid-cols-2">
           <UploadField label="Upload logo" hint="SVG, PNG, WebP, or JPG. Raster images over 5 MB are compressed automatically." value={form.logoUrl} onFile={(file) => uploadImage('logoUrl', file, 'logos')} onClear={() => update('logoUrl', '')} />
-          <div className="rounded-md border border-white/10 bg-zinc-950 p-4">
+          <div className="rounded-2xl bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
             <UploadField compact label="Portrait / Profile Photo" hint="Raster images over 5 MB are compressed automatically." value={form.heroImageUrl} onFile={(file) => uploadImage('heroImageUrl', file, 'heroes')} onClear={() => update('heroImageUrl', '')} />
-            <label className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4 text-sm text-zinc-300">
-              <input type="checkbox" checked={form.showHeroPortrait === true} onChange={(event) => update('showHeroPortrait', event.target.checked)} />
+            <label className="mt-4 flex items-center gap-3 pt-4 text-sm text-zinc-300">
+              <input type="checkbox" checked={form.showHeroPortrait === true} onChange={(event) => update('showHeroPortrait', event.target.checked)} className="accent-amber-300" />
               Show portrait on homepage
             </label>
           </div>
@@ -135,7 +132,7 @@ export default function SiteSettings() {
           </label>
         </div>
 
-        <section className="grid gap-4 border-y border-white/10 py-5 md:grid-cols-2 lg:grid-cols-5">
+        <section className="grid gap-4 py-5 md:grid-cols-2 lg:grid-cols-5">
           <ColorField label="Primary text" value={form.primaryTextColor || '#f5f5f4'} onChange={(value) => update('primaryTextColor', value)} />
           <ColorField label="Secondary text" value={form.secondaryTextColor || '#d4d4d8'} onChange={(value) => update('secondaryTextColor', value)} />
           <ColorField label="Muted text" value={form.mutedTextColor || '#a1a1aa'} onChange={(value) => update('mutedTextColor', value)} />
@@ -157,10 +154,10 @@ export default function SiteSettings() {
           <textarea className="min-h-28 rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" value={form.footerText || ''} onChange={(event) => update('footerText', event.target.value)} />
         </label>
 
-        <button disabled={saving} className="w-fit rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">
+        <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
           {saving ? 'Saving...' : 'Save settings'}
-        </button>
-      </form>
+        </AdminButton>
+      </AdminSurface>
     </AdminLayout>
   );
 }
@@ -169,7 +166,7 @@ function Field({ label, value, onChange, type = 'text' }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
     </label>
   );
 }
@@ -178,7 +175,7 @@ function ColorField({ label, value, onChange }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <div className="flex items-center gap-3 rounded-md border border-white/10 bg-zinc-950 px-3 py-2">
+      <div className="flex items-center gap-3 rounded-xl bg-zinc-950/55 px-3 py-2 ring-1 ring-white/[0.08]">
         <input type="color" value={value} onChange={(event) => onChange(event.target.value)} className="h-9 w-12 bg-transparent" />
         <span className="font-mono text-xs text-zinc-400">{value}</span>
       </div>
@@ -188,16 +185,16 @@ function ColorField({ label, value, onChange }) {
 
 function UploadField({ label, hint, value, onFile, onClear, compact = false }) {
   return (
-    <div className={compact ? '' : 'rounded-md border border-white/10 bg-zinc-950 p-4'}>
+    <div className={compact ? '' : 'rounded-2xl bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]'}>
       <p className="text-sm text-zinc-300">{label}</p>
       {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
       {value && <img src={value} alt="" className="mt-3 h-20 max-w-full object-contain" />}
       <div className="mt-4 flex flex-wrap gap-3">
-        <label className="cursor-pointer rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60">
+        <label className="cursor-pointer rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
           Choose image
           <input className="sr-only" type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0])} />
         </label>
-        {value && <button type="button" onClick={onClear} className="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-400 hover:text-white">Remove</button>}
+        {value && <button type="button" onClick={onClear} className="rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-400 ring-1 ring-white/[0.08] hover:text-white">Remove</button>}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import EmptyState from '../../components/EmptyState';
+import { AdminButton, AdminCheckbox, AdminEmptyState, AdminInput, AdminNotice, AdminPageHeader, AdminSoftPanel, AdminStatusBadge, AdminSurface, AdminTextarea } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { parseList, slugify } from '../../lib/helpers';
 import { supabase } from '../../lib/supabaseClient';
@@ -133,84 +133,82 @@ export default function AdminCreatives() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <p className="text-sm text-amber-200">Collective</p>
-        <h1 className="mt-2 text-3xl font-bold">Creatives</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Manage published creative member profiles for the public Creatives page.</p>
-      </div>
+      <AdminPageHeader
+        eyebrow="Collective"
+        title="Creatives"
+        description="Manage the people, roles, profiles, and featured members behind Lahat Liwa Collectives."
+        action={<AdminButton variant="primary" onClick={resetForm}><Plus size={17} /> Add Creative</AdminButton>}
+      />
 
-      {error && <div className="mb-5 rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
+      {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
 
-      <form onSubmit={save} className="mb-8 grid gap-5 rounded-lg border border-white/10 bg-zinc-900/70 p-5">
+      <AdminSurface as="form" onSubmit={save} className="mb-8 grid gap-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">{editingId ? 'Edit creative' : 'Add creative'}</h2>
-          {editingId && <button type="button" onClick={resetForm} className="text-sm text-zinc-400 hover:text-white">Cancel edit</button>}
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Profile editor</p>
+            <h2 className="mt-2 text-xl font-semibold">{editingId ? 'Edit creative' : 'Add creative'}</h2>
+          </div>
+          {editingId && <AdminButton type="button" variant="ghost" onClick={resetForm}>Cancel edit</AdminButton>}
         </div>
         <div className="grid gap-5 md:grid-cols-2">
-          <Field label="Name" required value={form.name} onChange={(value) => update('name', value)} />
-          <Field label="Slug" required value={form.slug} onChange={(value) => update('slug', slugify(value))} />
-          <Field label="Role / title" required value={form.role} onChange={(value) => update('role', value)} />
-          <Field label="Availability status" value={form.availability_status || ''} onChange={(value) => update('availability_status', value)} />
-          <Field label="Skills, comma-separated" value={form.skills || ''} onChange={(value) => update('skills', value)} />
-          <Field label="Display order" type="number" value={form.display_order ?? ''} onChange={(value) => update('display_order', value)} />
+          <AdminInput label="Name" required value={form.name} onChange={(value) => update('name', value)} />
+          <AdminInput label="Slug" required value={form.slug} onChange={(value) => update('slug', slugify(value))} />
+          <AdminInput label="Role / title" required value={form.role} onChange={(value) => update('role', value)} />
+          <AdminInput label="Availability status" value={form.availability_status || ''} onChange={(value) => update('availability_status', value)} />
+          <AdminInput label="Skills, comma-separated" value={form.skills || ''} onChange={(value) => update('skills', value)} />
+          <AdminInput label="Display order" type="number" value={form.display_order ?? ''} onChange={(value) => update('display_order', value)} />
         </div>
-        <label className="grid gap-2 text-sm text-zinc-300">
-          Short bio
-          <textarea className="min-h-20 rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" value={form.short_bio || ''} onChange={(event) => update('short_bio', event.target.value)} />
-        </label>
-        <label className="grid gap-2 text-sm text-zinc-300">
-          Full bio
-          <textarea className="min-h-28 rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" value={form.full_bio || ''} onChange={(event) => update('full_bio', event.target.value)} />
-        </label>
-        <label className="grid gap-2 text-sm text-zinc-300">
-          Social links, one per line as Label: URL
-          <textarea className="min-h-24 rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" value={form.social_links || ''} onChange={(event) => update('social_links', event.target.value)} />
-        </label>
+        <AdminTextarea label="Short bio" value={form.short_bio || ''} onChange={(value) => update('short_bio', value)} />
+        <AdminTextarea label="Full bio" rows={5} value={form.full_bio || ''} onChange={(value) => update('full_bio', value)} />
+        <AdminTextarea label="Social links, one per line as Label: URL" value={form.social_links || ''} onChange={(value) => update('social_links', value)} />
         <div className="flex flex-wrap items-center gap-3">
-          <label className="cursor-pointer rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60">
+          <label className="cursor-pointer rounded-full bg-white/[0.055] px-4 py-2.5 text-sm text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085]">
             Upload profile photo
             <input className="sr-only" type="file" accept="image/*" onChange={(event) => uploadProfile(event.target.files?.[0])} />
           </label>
-          {form.profile_image_url && <img src={form.profile_image_url} alt="" className="h-14 w-14 rounded-md object-cover" />}
-          <label className="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" checked={form.is_featured} onChange={(event) => update('is_featured', event.target.checked)} /> Featured</label>
-          <label className="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" checked={form.is_published} onChange={(event) => update('is_published', event.target.checked)} /> Published</label>
+          {form.profile_image_url && <img src={form.profile_image_url} alt="" className="h-14 w-14 rounded-2xl object-cover" />}
+          <AdminCheckbox label="Featured" checked={form.is_featured} onChange={(value) => update('is_featured', value)} />
+          <AdminCheckbox label="Published" checked={form.is_published} onChange={(value) => update('is_published', value)} />
         </div>
-        <button disabled={saving} className="inline-flex w-fit items-center gap-2 rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">
+        <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
           <Plus size={17} /> {saving ? 'Saving...' : editingId ? 'Save creative' : 'Add creative'}
-        </button>
-      </form>
+        </AdminButton>
+      </AdminSurface>
 
       {loading && <LoadingState label="Loading creatives" />}
       {!loading && (creatives.length ? (
-        <div className="grid gap-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {creatives.map((creative) => (
-            <article key={creative.id} className="grid gap-4 rounded-lg border border-white/10 bg-zinc-900/70 p-4 md:grid-cols-[1fr_auto] md:items-center">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
+            <AdminSurface key={creative.id} as="article" className="flex flex-col gap-5">
+              <div className="flex items-start gap-4">
+                {creative.profile_image_url ? (
+                  <img src={creative.profile_image_url} alt="" className="h-16 w-16 rounded-2xl object-cover" />
+                ) : (
+                  <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white/[0.055] text-xl font-semibold text-zinc-500">{creative.name?.slice(0, 1) || 'L'}</div>
+                )}
+                <div className="min-w-0">
                   <h3 className="font-semibold text-white">{creative.name}</h3>
-                  <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-zinc-300">{creative.role}</span>
-                  {creative.is_featured && <span className="rounded-md bg-amber-400/15 px-2 py-1 text-xs text-amber-200">Featured</span>}
-                  <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-zinc-300">{creative.is_published ? 'Published' : 'Draft'}</span>
+                  <p className="mt-1 text-sm text-zinc-400">{creative.role}</p>
+                  <p className="mt-1 truncate text-xs text-zinc-600">/{creative.slug}</p>
                 </div>
-                <p className="mt-2 text-sm text-zinc-500">/{creative.slug}</p>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => editCreative(creative)} className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60 hover:text-amber-200"><Edit size={16} /> Edit</button>
-                <button onClick={() => deleteCreative(creative)} className="inline-flex items-center gap-2 rounded-md border border-red-400/20 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10"><Trash2 size={16} /> Delete</button>
+              {Array.isArray(creative.skills) && creative.skills.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {creative.skills.slice(0, 4).map((skill) => <span key={skill} className="rounded-full bg-white/[0.055] px-2.5 py-1 text-xs text-zinc-400">{skill}</span>)}
+                </div>
+              )}
+              <div className="mt-auto flex flex-wrap items-center gap-2">
+                {creative.is_featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}
+                <AdminStatusBadge status={creative.is_published ? 'published' : 'draft'}>{creative.is_published ? 'Published' : 'Draft'}</AdminStatusBadge>
               </div>
-            </article>
+              <AdminSoftPanel className="flex gap-2">
+                <AdminButton onClick={() => editCreative(creative)} variant="secondary"><Edit size={16} /> Edit</AdminButton>
+                <AdminButton onClick={() => deleteCreative(creative)} variant="danger"><Trash2 size={16} /> Delete</AdminButton>
+              </AdminSoftPanel>
+            </AdminSurface>
           ))}
         </div>
-      ) : <EmptyState title="No creatives yet" message="Add the first creative member profile above." />)}
+      ) : <AdminEmptyState title="No creatives yet." message="Add your first creative member." action={<AdminButton variant="primary" onClick={resetForm}><Plus size={17} /> Add Creative</AdminButton>} />)}
     </AdminLayout>
-  );
-}
-
-function Field({ label, value, onChange, type = 'text', required = false }) {
-  return (
-    <label className="grid gap-2 text-sm text-zinc-300">
-      {label}
-      <input type={type} required={required} value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
-    </label>
   );
 }

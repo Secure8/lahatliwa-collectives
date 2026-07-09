@@ -5,7 +5,7 @@ import CreativeCard from '../components/CreativeCard';
 import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
 import ProjectGrid from '../components/ProjectGrid';
-import { usePublicContent } from '../lib/contentApi';
+import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
@@ -125,11 +125,13 @@ export default function Home() {
         <div className="grid gap-8 md:grid-cols-3">
           {servicePreview.map((group) => {
             const Icon = iconMap[group.iconName] || Circle;
+            const serviceLogoUrl = resolvePublicAssetUrl(group.serviceLogoUrl);
+            const iconUrl = resolvePublicAssetUrl(group.customIconUrl || group.iconUrl);
             return (
             <div key={group.name} className="major-border-top pt-5">
               <div className="flex min-h-10 items-center gap-0.5">
-                {group.serviceLogoUrl && <img src={group.serviceLogoUrl} alt={`${group.name} logo`} className="h-7 max-w-20 object-contain" />}
-                {(group.customIconUrl || group.iconUrl) ? <img src={group.customIconUrl || group.iconUrl} alt="" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />)}
+                {serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} className="h-7 max-w-20 object-contain" />}
+                {iconUrl ? <img src={iconUrl} alt="" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />)}
               </div>
               <h3 className="mt-5 text-lg font-medium" style={{ color: content.primaryTextColor }}>{group.name}</h3>
               <p className="mt-2 text-sm leading-6" style={{ color: content.secondaryTextColor }}>{group.description || 'Clean, useful work for school, brands, creators, events, and small teams.'}</p>

@@ -2,6 +2,7 @@ import Editor from '@monaco-editor/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { AdminButton, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { defaultPageContent } from '../../data/siteContent';
 import { fetchPageContent, updatePageContent, uploadSiteAsset } from '../../lib/contentApi';
@@ -166,28 +167,24 @@ export default function ContentEditor() {
   }
 
   if (!defaultPageContent[pageKey]) {
-    return <AdminLayout><div className="rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-red-100">Unknown page content key.</div></AdminLayout>;
+    return <AdminLayout><AdminNotice>Unknown page content key.</AdminNotice></AdminLayout>;
   }
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <p className="text-sm text-amber-200">Website CMS</p>
-        <h1 className="mt-2 text-3xl font-bold">{titles[pageKey]}</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Use the form for normal edits. The JSON editor is available on desktop for advanced structure changes.</p>
-      </div>
+      <AdminPageHeader eyebrow="Website CMS" title={titles[pageKey]} description="Use the form for normal edits. The JSON editor is available on desktop for advanced structure changes." />
 
       {loading ? <LoadingState label="Loading content" /> : (
         <form onSubmit={save} className="grid gap-5">
-          {message && <div className="rounded-md border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{message}</div>}
-          {error && <div className="rounded-md border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</div>}
+          {message && <AdminNotice tone="success">{message}</AdminNotice>}
+          {error && <AdminNotice>{error}</AdminNotice>}
 
           <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-            <section className="grid gap-5 rounded-lg border border-white/10 bg-zinc-900/70 p-5">
+            <AdminSurface className="grid gap-5">
               <StructuredFields pageKey={pageKey} content={content} patch={patch} updateList={updateList} uploadHomeBackground={uploadHomeBackground} patchServiceGroup={patchServiceGroup} uploadServiceLogo={uploadServiceLogo} />
-            </section>
+            </AdminSurface>
 
-            <section className="hidden min-w-0 rounded-lg border border-white/10 bg-zinc-950 p-3 xl:block">
+            <AdminSurface className="hidden min-w-0 p-3 xl:block">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-sm text-zinc-300">Advanced JSON editor</p>
                 <button
@@ -203,7 +200,7 @@ export default function ContentEditor() {
                       setError(parseError.message);
                     }
                   }}
-                  className="rounded-md border border-white/10 px-3 py-2 text-xs text-zinc-300 hover:text-white"
+                  className="rounded-full bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
                 >
                   Apply JSON to form
                 </button>
@@ -220,12 +217,12 @@ export default function ContentEditor() {
                 }}
                 options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: 'on', tabSize: 2, formatOnPaste: true, scrollBeyondLastLine: false }}
               />
-            </section>
+            </AdminSurface>
           </div>
 
-          <button disabled={saving} className="w-fit rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">
+          <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
             {saving ? 'Saving...' : 'Save page content'}
-          </button>
+          </AdminButton>
         </form>
       )}
     </AdminLayout>
@@ -293,7 +290,7 @@ function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackg
         </div>
         <div className="grid gap-4">
           {groups.map((group, index) => (
-            <div key={`${group.name || 'service'}-${index}`} className="grid gap-4 rounded-md border border-white/10 bg-zinc-950/80 p-4">
+            <div key={`${group.name || 'service'}-${index}`} className="grid gap-4 rounded-2xl bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-medium text-zinc-200">Service {index + 1}</p>
                 <button
@@ -331,7 +328,7 @@ function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackg
         <button
           type="button"
           onClick={() => patch({ groups: [...groups, { name: 'New Service', description: '', items: [], iconName: 'Circle', iconUrl: '', customIconUrl: '', serviceLogoUrl: '' }] })}
-          className="w-fit rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60"
+          className="w-fit rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]"
         >
           Add service
         </button>
@@ -359,7 +356,7 @@ function Field({ label, value, onChange, type = 'text', min, max, step }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <input type={type} value={value} min={min} max={max} step={step} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
+      <input type={type} value={value} min={min} max={max} step={step} onChange={(event) => onChange(event.target.value)} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
     </label>
   );
 }
@@ -368,7 +365,7 @@ function Textarea({ label, value, onChange, onBlur, rows = 4 }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />
+      <textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
     </label>
   );
 }
@@ -377,7 +374,7 @@ function Select({ label, value, options, onChange }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70">
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45">
         {options.map((option) => <option key={option} value={option}>{option}</option>)}
       </select>
     </label>
@@ -388,7 +385,7 @@ function ColorField({ label, value, onChange }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <div className="flex items-center gap-3 rounded-md border border-white/10 bg-zinc-950 px-3 py-2">
+      <div className="flex items-center gap-3 rounded-xl bg-zinc-950/55 px-3 py-2 ring-1 ring-white/[0.08]">
         <input type="color" value={value} onChange={(event) => onChange(event.target.value)} className="h-9 w-12 bg-transparent" />
         <span className="font-mono text-xs text-zinc-400">{value}</span>
       </div>
@@ -398,16 +395,16 @@ function ColorField({ label, value, onChange }) {
 
 function UploadRow({ label, value, onFile, onClear }) {
   return (
-    <div className="rounded-md border border-white/10 bg-zinc-950 p-4">
+    <div className="rounded-2xl bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
       <p className="text-sm text-zinc-300">{label}</p>
       <p className="mt-1 text-xs text-zinc-500">Images over 5 MB are compressed automatically. Videos should stay as external links.</p>
       {value && <img src={value} alt="" className="mt-3 max-h-28 max-w-full object-cover" />}
       <div className="mt-4 flex flex-wrap gap-3">
-        <label className="cursor-pointer rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-200 hover:border-amber-300/60">
+        <label className="cursor-pointer rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
           Choose image
           <input className="sr-only" type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0])} />
         </label>
-        {value && <button type="button" onClick={onClear} className="rounded-md border border-white/10 px-3 py-2 text-sm text-zinc-400 hover:text-white">Remove</button>}
+        {value && <button type="button" onClick={onClear} className="rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-400 ring-1 ring-white/[0.08] hover:text-white">Remove</button>}
       </div>
     </div>
   );

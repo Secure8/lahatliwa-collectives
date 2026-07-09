@@ -4,6 +4,8 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminActionButton, AdminActionGroup, AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { createMediaAsset, deleteMediaAsset, fetchMediaAssets, uploadMediaAssetFile } from '../../lib/contentApi';
+import { uploadStatusText } from '../../lib/imageCompression';
+import { validateUploadFile } from '../../lib/uploadLimits';
 
 export default function IconsMedia() {
   const [assets, setAssets] = useState([]);
@@ -11,6 +13,7 @@ export default function IconsMedia() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -33,6 +36,21 @@ export default function IconsMedia() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  function selectFile(nextFile) {
+    setError('');
+    if (!nextFile) {
+      setFile(null);
+      return;
+    }
+    try {
+      validateUploadFile(nextFile, 'mediaIcon');
+      setFile(nextFile);
+    } catch (selectionError) {
+      setFile(null);
+      setError(selectionError.message);
+    }
+  }
+
   async function upload(event) {
     event.preventDefault();
     if (!file) {
@@ -42,8 +60,15 @@ export default function IconsMedia() {
     setSaving(true);
     setError('');
     setMessage('');
+    setUploadStatus('');
+    let optimizedMessage = '';
     try {
-      const { url, path } = await uploadMediaAssetFile(file, 'icons');
+      const { url, path } = await uploadMediaAssetFile(file, 'icons', {
+        onStatus(status) {
+          setUploadStatus(uploadStatusText(status));
+          if (status?.message) optimizedMessage = status.message;
+        },
+      });
       const asset = await createMediaAsset({
         name: form.name || file.name,
         type: 'icon',
@@ -55,11 +80,12 @@ export default function IconsMedia() {
       setAssets((current) => [asset, ...current]);
       setForm({ name: '', category: '', altText: '' });
       setFile(null);
-      setMessage('Icon uploaded. Copy its URL into a service group customIconUrl field.');
+      setMessage(`${optimizedMessage ? `${optimizedMessage}. ` : ''}Icon uploaded. Copy its URL into a service group customIconUrl field.`);
     } catch (uploadError) {
       setError(uploadError.message || 'Icon upload failed.');
     } finally {
       setSaving(false);
+      setUploadStatus('');
     }
   }
 
@@ -82,10 +108,11 @@ export default function IconsMedia() {
 
   return (
     <AdminLayout>
-      <AdminPageHeader eyebrow="Website CMS" title="Icons / Media" description="Upload custom SVG, PNG, or WebP icons. Raster images over 5 MB are compressed automatically. Use copied URLs in Services page content as customIconUrl." />
+      <AdminPageHeader eyebrow="Website CMS" title="Icons / Media" description="Large PNG and WebP icons are optimized automatically to a 300 KB target. SVG files keep a 300 KB hard limit." />
 
       <AdminSurface as="form" onSubmit={upload} className="mb-8 grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
         {message && <AdminNotice tone="success" className="lg:col-span-4">{message}</AdminNotice>}
+        {uploadStatus && <AdminNotice tone="success" className="lg:col-span-4">{uploadStatus}</AdminNotice>}
         {error && <AdminNotice className="lg:col-span-4">{error}</AdminNotice>}
         <Field label="Icon name" value={form.name} onChange={(value) => update('name', value)} />
         <Field label="Category" value={form.category} onChange={(value) => update('category', value)} />
@@ -94,7 +121,7 @@ export default function IconsMedia() {
           Icon file
           <span className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-950/55 px-3 py-3 text-zinc-200 ring-1 ring-white/[0.08] hover:ring-amber-200/30">
             <Upload size={16} /> {file ? file.name : 'Choose file'}
-            <input className="sr-only" type="file" accept=".svg,image/svg+xml,image/png,image/webp" onChange={(event) => setFile(event.target.files?.[0] || null)} />
+            <input className="sr-only" type="file" accept=".svg,image/svg+xml,image/png,image/webp" onChange={(event) => selectFile(event.target.files?.[0] || null)} />
           </span>
         </label>
         <AdminButton disabled={saving} type="submit" variant="primary" className="lg:col-span-4 lg:w-fit">
@@ -108,7 +135,7 @@ export default function IconsMedia() {
             <AdminSurface key={asset.id} as="article">
               <div className="flex items-start gap-4">
                 <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-zinc-950/55 ring-1 ring-white/[0.07]">
-                  <img src={asset.url} alt={asset.alt_text || asset.name} className="max-h-10 max-w-10 object-contain" />
+                  <img src={asset.url} alt={asset.alt_text || asset.name} loading="lazy" decoding="async" className="max-h-10 max-w-10 object-contain" />
                 </div>
                 <div className="min-w-0">
                   <h2 className="truncate font-semibold text-white">{asset.name}</h2>

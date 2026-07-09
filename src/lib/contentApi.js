@@ -1,17 +1,23 @@
 import { createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
 import { defaultPageContent, defaultSiteContent } from '../data/siteContent';
-import { compressImageForUpload } from './imageCompression';
+import { optimizeImageForUpload } from './imageCompression';
 import { supabase } from './supabaseClient';
+import { validateUploadFile } from './uploadLimits';
 
 const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
 const MEDIA_TABLE = 'media_assets';
 const BUCKET = 'project-media';
+const UPLOAD_OPTIONS = { upsert: false, cacheControl: '31536000' };
 const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache-v2';
 const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache'];
 const ALL_PAGE_KEYS = ['home', 'about', 'services', 'contact'];
+const PUBLIC_CONTENT_MEMORY_TTL = 60 * 1000;
 const PublicContentContext = createContext(null);
 const OPTIONAL_SETTINGS_COLUMNS = new Set(['divider_line_color', 'show_hero_portrait']);
+let memoryPublicContent = null;
+let memoryPublicContentUpdatedAt = 0;
+let publicContentRequest = null;
 
 function validateFile(file, { allowedTypes, label }) {
   if (!file) return;
@@ -185,16 +191,19 @@ export async function updatePageContent(pageKey, content) {
   clearCachedPublicContent();
 }
 
-export async function uploadSiteAsset(file, folder = 'site') {
+export async function uploadSiteAsset(file, folder = 'site', limitKey = 'siteImage', { onStatus } = {}) {
   if (!file) return '';
   validateFile(file, {
     allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
     label: 'Image',
   });
-  const uploadFile = await compressImageForUpload(file, { label: 'Image' });
+  validateUploadFile(file, limitKey);
+  const prepared = await optimizeImageForUpload(file, limitKey, { label: 'Image', onStatus });
+  onStatus?.({ phase: 'uploading', ...prepared });
+  const uploadFile = prepared.file;
   const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
   const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, { upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, UPLOAD_OPTIONS);
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
@@ -229,16 +238,19 @@ export async function deleteMediaAsset(asset) {
   }
 }
 
-export async function uploadMediaAssetFile(file, folder = 'icons') {
+export async function uploadMediaAssetFile(file, folder = 'icons', { onStatus } = {}) {
   if (!file) return { url: '', path: '' };
   validateFile(file, {
     allowedTypes: ['image/svg+xml', 'image/png', 'image/webp'],
     label: 'Icon',
   });
-  const uploadFile = await compressImageForUpload(file, { label: 'Icon' });
+  validateUploadFile(file, 'mediaIcon');
+  const prepared = await optimizeImageForUpload(file, 'mediaIcon', { label: 'Icon', onStatus });
+  onStatus?.({ phase: 'uploading', ...prepared });
+  const uploadFile = prepared.file;
   const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
   const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, { upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, UPLOAD_OPTIONS);
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return { url: data.publicUrl, path };
@@ -257,15 +269,19 @@ export function mergePublicContent(settings = {}, pages = {}) {
 
 function readCachedPublicContent() {
   if (typeof window === 'undefined') return null;
+  if (memoryPublicContent) return memoryPublicContent;
   try {
     const raw = window.localStorage.getItem(PUBLIC_CONTENT_CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    memoryPublicContent = raw ? JSON.parse(raw) : null;
+    return memoryPublicContent;
   } catch {
     return null;
   }
 }
 
 function writeCachedPublicContent(content) {
+  memoryPublicContent = content;
+  memoryPublicContentUpdatedAt = Date.now();
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(PUBLIC_CONTENT_CACHE_KEY, JSON.stringify(content));
@@ -274,11 +290,44 @@ function writeCachedPublicContent(content) {
 }
 
 function clearCachedPublicContent() {
+  memoryPublicContent = null;
+  memoryPublicContentUpdatedAt = 0;
+  publicContentRequest = null;
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(PUBLIC_CONTENT_CACHE_KEY);
     LEGACY_PUBLIC_CONTENT_CACHE_KEYS.forEach((key) => window.localStorage.removeItem(key));
   } catch {
+  }
+}
+
+function usesCompletePublicBundle(pageKeys) {
+  return pageKeys.length === ALL_PAGE_KEYS.length && ALL_PAGE_KEYS.every((key) => pageKeys.includes(key));
+}
+
+async function fetchPublicContentBundle(pageKeys) {
+  const [settings, pageEntries] = await Promise.all([
+    fetchSiteSettings().catch(() => ({})),
+    Promise.all(pageKeys.map(async (key) => [key, await fetchPageContent(key).catch(() => null)])),
+  ]);
+  return mergePublicContent(settings, Object.fromEntries(pageEntries));
+}
+
+async function loadPublicContentBundle(pageKeys) {
+  const sharedBundle = usesCompletePublicBundle(pageKeys);
+  const memoryIsFresh = memoryPublicContent
+    && memoryPublicContentUpdatedAt
+    && Date.now() - memoryPublicContentUpdatedAt < PUBLIC_CONTENT_MEMORY_TTL;
+
+  if (sharedBundle && memoryIsFresh) return memoryPublicContent;
+  if (!sharedBundle) return fetchPublicContentBundle(pageKeys);
+  if (publicContentRequest) return publicContentRequest;
+
+  publicContentRequest = fetchPublicContentBundle(pageKeys);
+  try {
+    return await publicContentRequest;
+  } finally {
+    publicContentRequest = null;
   }
 }
 
@@ -294,18 +343,14 @@ function themeStyle(content) {
 
 export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
   const cached = useMemo(() => readCachedPublicContent(), []);
-  const [content, setContent] = useState(cached);
+  const [content, setContent] = useState(() => cached || mergePublicContent());
   const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     let active = true;
     async function loadContent() {
       try {
-        const [settings, pageEntries] = await Promise.all([
-          fetchSiteSettings().catch(() => ({})),
-          Promise.all(pageKeys.map(async (key) => [key, await fetchPageContent(key).catch(() => null)])),
-        ]);
-        const nextContent = mergePublicContent(settings, Object.fromEntries(pageEntries));
+        const nextContent = await loadPublicContentBundle(pageKeys);
         if (!active) return;
         setContent(nextContent);
         writeCachedPublicContent(nextContent);
@@ -321,11 +366,7 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
     };
   }, [cached, pageKeys]);
 
-  if (!content && loading) {
-    return createElement('div', { className: 'grid min-h-screen place-items-center bg-zinc-950 text-sm text-zinc-400' }, 'Loading Lahat Liwa...');
-  }
-
-  const value = { content: content || mergePublicContent(), loading };
+  const value = { content, loading };
 
   return createElement(
     PublicContentContext.Provider,

@@ -15,7 +15,7 @@ export default function Creatives() {
     async function loadCreatives() {
       const { data, error: creativeError } = await supabase
         .from('creative_members')
-        .select('*')
+        .select('id, name, slug, role, short_bio, profile_image_url, skills, is_featured, display_order, created_at')
         .eq('is_published', true)
         .order('is_featured', { ascending: false })
         .order('display_order', { ascending: true, nullsFirst: false })

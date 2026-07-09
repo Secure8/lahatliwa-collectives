@@ -11,8 +11,19 @@ import {
 } from '../../lib/galleryItems';
 import { canApproveProjects, canEditProject, useAdminAccess } from '../../lib/adminAccess';
 import { categories, parseList, slugify } from '../../lib/helpers';
+import { uploadStatusText } from '../../lib/imageCompression';
 import { supabase } from '../../lib/supabaseClient';
-import { deleteImages, getPublicImageUrl, isPdfFile, uploadCoverImage, uploadExternalThumbnail, uploadGalleryImages, validateGalleryUploadFile } from '../../lib/storage';
+import {
+  deleteImages,
+  getPublicImageUrl,
+  isPdfFile,
+  uploadCoverImage,
+  uploadExternalThumbnail,
+  uploadGalleryImages,
+  validateCoverUploadFile,
+  validateExternalThumbnailUploadFile,
+  validateGalleryUploadFile,
+} from '../../lib/storage';
 import { AdminCheckbox, AdminSoftPanel, AdminSurface } from './AdminUI';
 import ImageUploader from './ImageUploader';
 
@@ -62,6 +73,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [optimizationMessage, setOptimizationMessage] = useState('');
   const [removedGalleryPaths, setRemovedGalleryPaths] = useState([]);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
   const [creativeMembers, setCreativeMembers] = useState([]);
@@ -182,6 +195,12 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  function trackImageUpload(status) {
+    const statusText = uploadStatusText(status);
+    if (statusText) setUploadStatus(statusText);
+    if (status?.message) setOptimizationMessage(status.message);
+  }
+
   function updateTitle(value) {
     setForm((current) => ({
       ...current,
@@ -199,15 +218,18 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   async function uploadCover(files) {
     const file = files?.[0];
     if (!file) return;
-    setUploadingImages(true);
     setError('');
+    setOptimizationMessage('');
     try {
-      const path = await uploadCoverImage(file);
+      validateCoverUploadFile(file);
+      setUploadingImages(true);
+      const path = await uploadCoverImage(file, { onStatus: trackImageUpload });
       update('cover_image', path);
     } catch (uploadError) {
       setError(uploadError.message || 'Cover image upload failed.');
     } finally {
       setUploadingImages(false);
+      setUploadStatus('');
     }
   }
 
@@ -335,10 +357,12 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
   async function uploadExternalItemThumbnail(item, file) {
     if (!file) return;
-    setUploadingImages(true);
     setError('');
+    setOptimizationMessage('');
     try {
-      const path = await uploadExternalThumbnail(file, form.slug || slugify(form.title));
+      validateExternalThumbnailUploadFile(file);
+      setUploadingImages(true);
+      const path = await uploadExternalThumbnail(file, form.slug || slugify(form.title), { onStatus: trackImageUpload });
       const oldPath = item.thumbnail_storage_path;
       updateExternalItem(item.id, {
         thumbnail_url: getPublicImageUrl(path),
@@ -351,6 +375,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       setError(uploadError.message || 'Thumbnail upload failed.');
     } finally {
       setUploadingImages(false);
+      setUploadStatus('');
     }
   }
 
@@ -411,8 +436,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     }
 
     try {
+      setOptimizationMessage('');
       uploadedGalleryPaths = pendingGalleryFiles.length
-        ? await uploadGalleryImages(pendingGalleryFiles.map((item) => item.file))
+        ? await uploadGalleryImages(pendingGalleryFiles.map((item) => item.file), { onStatus: trackImageUpload })
         : [];
       const updatedGalleryImages = [...(form.gallery_images || []), ...uploadedGalleryPaths];
       const currentItems = form.gallery_items || [];
@@ -513,6 +539,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       setError(saveError.message || 'Something went wrong while saving this project.');
     } finally {
       setSaving(false);
+      setUploadStatus('');
     }
   }
 
@@ -521,6 +548,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   return (
     <form onSubmit={handleSubmit} className="grid gap-6">
       {error && <div className="rounded-md bg-red-300/10 p-4 text-sm text-red-100 ring-1 ring-red-300/20">{error}</div>}
+      {uploadStatus && <div role="status" className="rounded-md bg-white/[0.045] p-3 text-sm text-zinc-300 ring-1 ring-white/[0.07]">{uploadStatus}</div>}
+      {optimizationMessage && <div className="rounded-md bg-emerald-300/[0.07] p-3 text-sm text-emerald-100 ring-1 ring-emerald-300/15">{optimizationMessage}</div>}
 
       <FormSection eyebrow="Basic project info" title="Core details" description="Set the public title, URL slug, category, and description.">
       <div className="grid gap-5 lg:grid-cols-2">
@@ -551,8 +580,18 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
       <FormSection eyebrow="Cover and gallery" title="Media uploads" description="Upload the project cover, gallery images, PDFs, and review pending files before saving.">
       <div className="grid gap-5 lg:grid-cols-2">
-        <ImageUploader label={uploadingImages ? 'Uploading image...' : form.cover_image ? 'Replace cover image' : 'Upload cover image'} onChange={uploadCover} />
-        <ImageUploader label={pendingGalleryFiles.length ? `${pendingGalleryFiles.length} new file(s) ready to add` : 'Add more gallery images or PDFs'} accept="image/*,application/pdf" multiple onChange={selectGalleryFiles} />
+        <ImageUploader
+          label={uploadingImages ? 'Uploading image...' : form.cover_image ? 'Replace cover image' : 'Upload cover image'}
+          hint="Large JPEG, PNG, or WebP files are resized to 1600px and optimized to 1 MB."
+          onChange={uploadCover}
+        />
+        <ImageUploader
+          label={pendingGalleryFiles.length ? `${pendingGalleryFiles.length} new file(s) ready to add` : 'Add more gallery images or PDFs'}
+          hint="Images are optimized to 1 MB each. PDFs keep a 2 MB hard limit."
+          accept="image/*,application/pdf"
+          multiple
+          onChange={selectGalleryFiles}
+        />
       </div>
       {(form.cover_image || form.gallery_images?.length > 0 || pendingGalleryFiles.length > 0) && (
         <AdminSoftPanel className="grid gap-4">
@@ -786,6 +825,7 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
             event.target.value = '';
           }} />
         </label>
+        <span className="text-xs text-zinc-500">Large thumbnails are resized to 800px and optimized to 300 KB.</span>
         {item.url && (
           <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-200">
             <ExternalLink size={15} /> Open source

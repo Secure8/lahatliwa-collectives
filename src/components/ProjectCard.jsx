@@ -13,7 +13,7 @@ export default function ProjectCard({ project }) {
     <article className="group">
       {image ? (
         <Link to={`/projects/${project.slug}`} className="block overflow-hidden bg-zinc-900">
-          <img className="aspect-[4/3] h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-[1.035] group-hover:opacity-100" src={image} alt={project.title} />
+          <img className="aspect-[4/3] h-full w-full object-cover opacity-90 transition duration-700 group-hover:scale-[1.035] group-hover:opacity-100" src={image} alt={project.title} loading="lazy" decoding="async" width="800" height="600" />
         </Link>
       ) : (
         <Link to={`/projects/${project.slug}`} className="grid aspect-[4/3] place-items-center bg-zinc-900 px-6 text-center text-sm text-zinc-500 transition group-hover:text-[var(--site-accent)]">

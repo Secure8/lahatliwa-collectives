@@ -21,7 +21,7 @@ export default function Projects() {
       setLoading(true);
       const { data, error: projectError } = await supabase
         .from('projects')
-        .select('*')
+        .select('id, title, slug, category, description, cover_image, gallery_images, gallery_items, featured, display_order, project_date')
         .eq('status', 'published')
         .order('featured', { ascending: false })
         .order('display_order', { ascending: true, nullsFirst: false })
@@ -37,7 +37,7 @@ export default function Projects() {
   const visible = useMemo(() => {
     const term = search.toLowerCase();
     return projects.filter((project) => {
-      const matchesSearch = !term || project.title.toLowerCase().includes(term) || project.description.toLowerCase().includes(term);
+      const matchesSearch = !term || project.title.toLowerCase().includes(term) || (project.description || '').toLowerCase().includes(term);
       return matchesSearch && (!featuredOnly || project.featured);
     });
   }, [featuredOnly, projects, search]);

@@ -8,7 +8,7 @@ export default function CreativeCard({ creative }) {
     <article className="group major-border-top pt-5">
       <Link to={`/creatives/${creative.slug}`} className="block">
         {creative.profile_image_url ? (
-          <img src={creative.profile_image_url} alt={creative.name} className="aspect-[4/5] w-full rounded-lg bg-zinc-900 object-cover opacity-90 transition duration-700 group-hover:scale-[1.01] group-hover:opacity-100" />
+          <img src={creative.profile_image_url} alt={creative.name} loading="lazy" decoding="async" width="800" height="1000" className="aspect-[4/5] w-full rounded-lg bg-zinc-900 object-cover opacity-90 transition duration-700 group-hover:scale-[1.01] group-hover:opacity-100" />
         ) : (
           <div className="grid aspect-[4/5] place-items-center rounded-lg bg-zinc-900 text-3xl font-semibold text-zinc-600">
             {creative.name?.slice(0, 1) || 'L'}

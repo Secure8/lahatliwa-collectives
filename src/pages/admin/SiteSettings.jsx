@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminButton, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
-import LoadingState from '../../components/LoadingState';
 import { mergePublicContent, settingsFromSiteContent, updateSiteSettings, uploadSiteAsset, usePublicContent } from '../../lib/contentApi';
+import { uploadStatusText } from '../../lib/imageCompression';
 
 export default function SiteSettings() {
   const { content } = usePublicContent([]);
   const draftKey = 'hevv-site-settings-draft-v2';
   const [form, setForm] = useState(() => settingsFromSiteContent(mergePublicContent()));
-  const [loading, setLoading] = useState(true);
   const [draftReady, setDraftReady] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const skipNextDraftSave = useRef(false);
@@ -28,7 +28,6 @@ export default function SiteSettings() {
     setForm({ ...settingsFromSiteContent(content), ...(draft || {}) });
     setDirty(hasDraft);
     setDraftReady(true);
-    setLoading(false);
   }, [content]);
 
   useEffect(() => {
@@ -58,13 +57,21 @@ export default function SiteSettings() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  async function uploadImage(field, file, folder = 'site') {
+  async function uploadImage(field, file, folder = 'site', limitKey = 'siteImage') {
     if (!file) return;
     setSaving(true);
     setError('');
+    setUploadStatus('');
+    let optimizedMessage = '';
     try {
-      const url = await uploadSiteAsset(file, folder);
+      const url = await uploadSiteAsset(file, folder, limitKey, {
+        onStatus(status) {
+          setUploadStatus(uploadStatusText(status));
+          if (status?.message) optimizedMessage = status.message;
+        },
+      });
       update(field, url);
+      setUploadStatus(optimizedMessage || 'Image uploaded.');
     } catch (uploadError) {
       setError(uploadError.message || 'Image upload failed.');
     } finally {
@@ -97,14 +104,13 @@ export default function SiteSettings() {
     }
   }
 
-  if (loading) return <AdminLayout><LoadingState label="Loading settings" /></AdminLayout>;
-
   return (
     <AdminLayout>
       <AdminPageHeader eyebrow="Website CMS" title="Site Settings" description="Edit the logo, portrait, home background, social links, and global website text. Images upload to the existing project-media bucket." />
 
       <AdminSurface as="form" onSubmit={save} className="grid gap-5">
         {message && <AdminNotice tone="success">{message}</AdminNotice>}
+        {uploadStatus && <AdminNotice tone="success">{uploadStatus}</AdminNotice>}
         {error && <AdminNotice>{error}</AdminNotice>}
 
         <div className="grid gap-5 md:grid-cols-2">
@@ -117,15 +123,15 @@ export default function SiteSettings() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <UploadField label="Upload logo" hint="SVG, PNG, WebP, or JPG. Raster images over 5 MB are compressed automatically." value={form.logoUrl} onFile={(file) => uploadImage('logoUrl', file, 'logos')} onClear={() => update('logoUrl', '')} />
+          <UploadField label="Upload logo" hint="Large raster logos are optimized to 300 KB. SVG files keep a 300 KB hard limit." value={form.logoUrl} onFile={(file) => uploadImage('logoUrl', file, 'logos', 'siteLogo')} onClear={() => update('logoUrl', '')} />
           <div className="rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
-            <UploadField compact label="Portrait / Profile Photo" hint="Raster images over 5 MB are compressed automatically." value={form.heroImageUrl} onFile={(file) => uploadImage('heroImageUrl', file, 'heroes')} onClear={() => update('heroImageUrl', '')} />
+            <UploadField compact label="Portrait / Profile Photo" hint="Large photos are resized and optimized to 300 KB automatically." value={form.heroImageUrl} onFile={(file) => uploadImage('heroImageUrl', file, 'heroes', 'creativeProfile')} onClear={() => update('heroImageUrl', '')} />
             <label className="mt-4 flex items-center gap-3 pt-4 text-sm text-zinc-300">
               <input type="checkbox" checked={form.showHeroPortrait === true} onChange={(event) => update('showHeroPortrait', event.target.checked)} className="accent-amber-300" />
               Show portrait on homepage
             </label>
           </div>
-          <UploadField label="Home Background Image" hint="Optional home background. Raster images over 5 MB are compressed automatically." value={form.defaultBackgroundImageUrl} onFile={(file) => uploadImage('defaultBackgroundImageUrl', file, 'backgrounds')} onClear={() => update('defaultBackgroundImageUrl', '')} />
+          <UploadField label="Home Background Image" hint="Large backgrounds are resized and optimized to 1 MB automatically." value={form.defaultBackgroundImageUrl} onFile={(file) => uploadImage('defaultBackgroundImageUrl', file, 'backgrounds', 'siteImage')} onClear={() => update('defaultBackgroundImageUrl', '')} />
           <label className="grid gap-2 text-sm text-zinc-300">
             Default background overlay opacity
             <input type="number" min="0" max="1" step="0.05" value={form.defaultBackgroundOverlayOpacity ?? 0.55} onChange={(event) => update('defaultBackgroundOverlayOpacity', event.target.value)} className="rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-white outline-none focus:border-amber-300/70" />

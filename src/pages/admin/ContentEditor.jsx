@@ -5,6 +5,7 @@ import { AdminButton, AdminNotice, AdminPageHeader, AdminSurface } from '../../c
 import LoadingState from '../../components/LoadingState';
 import { defaultPageContent } from '../../data/siteContent';
 import { fetchPageContent, updatePageContent, uploadSiteAsset } from '../../lib/contentApi';
+import { uploadStatusText } from '../../lib/imageCompression';
 
 const titles = {
   home: 'Home Content',
@@ -24,6 +25,7 @@ export default function ContentEditor() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const skipNextDraftSave = useRef(false);
@@ -118,9 +120,17 @@ export default function ContentEditor() {
     if (!file) return;
     setSaving(true);
     setError('');
+    setUploadStatus('');
+    let optimizedMessage = '';
     try {
-      const url = await uploadSiteAsset(file, 'backgrounds');
+      const url = await uploadSiteAsset(file, 'backgrounds', 'siteImage', {
+        onStatus(status) {
+          setUploadStatus(uploadStatusText(status));
+          if (status?.message) optimizedMessage = status.message;
+        },
+      });
       patch({ heroBackgroundImageUrl: url });
+      setUploadStatus(optimizedMessage || 'Background image uploaded.');
     } catch (uploadError) {
       setError(uploadError.message || 'Background upload failed.');
     } finally {
@@ -132,9 +142,17 @@ export default function ContentEditor() {
     if (!file) return;
     setSaving(true);
     setError('');
+    setUploadStatus('');
+    let optimizedMessage = '';
     try {
-      const url = await uploadSiteAsset(file, 'service-logos');
+      const url = await uploadSiteAsset(file, 'service-logos', 'serviceMedia', {
+        onStatus(status) {
+          setUploadStatus(uploadStatusText(status));
+          if (status?.message) optimizedMessage = status.message;
+        },
+      });
       patchServiceGroup(index, { serviceLogoUrl: url });
+      setUploadStatus(optimizedMessage || 'Service logo uploaded.');
     } catch (uploadError) {
       setError(uploadError.message || 'Service logo upload failed.');
     } finally {
@@ -177,6 +195,7 @@ export default function ContentEditor() {
       {loading ? <LoadingState label="Loading content" /> : (
         <form onSubmit={save} className="grid gap-5">
           {message && <AdminNotice tone="success">{message}</AdminNotice>}
+          {uploadStatus && <AdminNotice tone="success">{uploadStatus}</AdminNotice>}
           {error && <AdminNotice>{error}</AdminNotice>}
 
           <div className={`grid gap-5 ${advancedOpen ? 'xl:grid-cols-[0.9fr_1.1fr]' : ''}`}>
@@ -526,7 +545,7 @@ function UploadRow({ label, value, onFile, onClear }) {
   return (
     <div className="rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
       <p className="text-sm text-zinc-300">{label}</p>
-      <p className="mt-1 text-xs text-zinc-500">Images over 5 MB are compressed automatically. Videos should stay as external links.</p>
+      <p className="mt-1 text-xs text-zinc-500">Large raster images are resized and optimized automatically. Hero images target 1 MB; service logos target 300 KB.</p>
       {value && <img src={value} alt="" className="mt-3 max-h-28 max-w-full object-cover" />}
       <div className="mt-4 flex flex-wrap gap-3">
         <label className="cursor-pointer rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">

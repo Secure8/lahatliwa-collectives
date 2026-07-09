@@ -30,7 +30,7 @@ export default function Services() {
     async function loadBranches() {
       const { data } = await supabase
         .from('service_branches')
-        .select('*')
+        .select('id, name, slug, description, included_services, icon_url, image_url, cta_label, cta_url, display_order')
         .eq('is_published', true)
         .order('display_order', { ascending: true, nullsFirst: false });
       setBranches(data || []);
@@ -69,8 +69,8 @@ export default function Services() {
           return (
           <section key={group.name} className="major-border-top pt-6">
             <div className="mb-5 flex min-h-8 items-center gap-0.5">
-              {serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} className="h-8 max-w-24 object-contain" />}
-              {iconUrl ? <img src={iconUrl} alt="" className="h-10 w-10 object-contain" /> : <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />}
+              {serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} loading="lazy" decoding="async" width="96" height="32" className="h-8 max-w-24 object-contain" />}
+              {iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />}
             </div>
             <h2 className="text-2xl font-medium" style={{ color: content.servicesPage.serviceTitleColor || content.primaryTextColor }}>{group.name}</h2>
             <p className="mt-3 max-w-md leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{group.description}</p>

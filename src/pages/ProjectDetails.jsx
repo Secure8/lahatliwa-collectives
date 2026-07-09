@@ -52,7 +52,7 @@ export default function ProjectDetails() {
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[0.92fr_1.08fr]' : 'lg:grid-cols-1'}`}>
         {cover && (
           <div className="overflow-hidden rounded-[1.5rem] bg-zinc-900">
-            <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} />
+            <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} decoding="async" fetchPriority="high" width="1200" height="900" />
           </div>
         )}
         <div>
@@ -86,7 +86,7 @@ export default function ProjectDetails() {
               <div className="mt-4 flex flex-wrap gap-3">
                 {contributors.map((creative) => (
                   <Link key={creative.id} to={`/creatives/${creative.slug}`} className="flex items-center gap-3 rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
-                    {creative.profile_image_url && <img src={creative.profile_image_url} alt="" className="h-8 w-8 rounded-full object-cover" />}
+                    {creative.profile_image_url && <img src={creative.profile_image_url} alt="" loading="lazy" decoding="async" width="32" height="32" className="h-8 w-8 rounded-full object-cover" />}
                     <span>{creative.name}</span>
                     <span className="text-zinc-500">{creative.creditRole}</span>
                   </Link>
@@ -117,7 +117,7 @@ function GalleryItem({ item, projectTitle }) {
   const youtubeId = item.type === 'youtube' ? getYouTubeVideoId(item.url) : '';
 
   if (item.type === 'image') {
-    return <img className="mb-5 h-auto w-full break-inside-avoid rounded-lg bg-zinc-900" src={mediaUrl} alt={item.title || `${projectTitle} gallery`} />;
+    return <img className="mb-5 h-auto w-full break-inside-avoid rounded-lg bg-zinc-900" src={mediaUrl} alt={item.title || `${projectTitle} gallery`} loading="lazy" decoding="async" />;
   }
 
   if (item.type === 'pdf') {
@@ -129,29 +129,13 @@ function GalleryItem({ item, projectTitle }) {
   }
 
   if (youtubeId) {
-    return (
-      <div className="mb-5 break-inside-avoid overflow-hidden rounded-lg border border-white/10 bg-zinc-900/70">
-        <iframe
-          className="aspect-video w-full"
-          src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
-          title={item.title || 'YouTube video'}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-        />
-        <ExternalGalleryCardContent item={item} compact />
-        <div className="px-4 pb-4">
-          <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-[var(--site-accent)]">
-            Open on YouTube <ExternalLink size={15} />
-          </a>
-        </div>
-      </div>
-    );
+    return <YouTubeGalleryItem item={item} youtubeId={youtubeId} thumbnailUrl={thumbnailUrl} />;
   }
 
   return (
     <a href={item.url} target="_blank" rel="noopener noreferrer" className="mb-5 block break-inside-avoid overflow-hidden rounded-lg border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)]">
       {thumbnailUrl ? (
-        <img src={thumbnailUrl} alt={item.title || item.platform} className="aspect-[4/3] w-full object-cover" />
+        <img src={thumbnailUrl} alt={item.title || item.platform} loading="lazy" decoding="async" width="800" height="600" className="aspect-[4/3] w-full object-cover" />
       ) : (
         <div className="grid min-h-44 place-items-center bg-zinc-950 px-6 text-center">
           <div>
@@ -162,6 +146,42 @@ function GalleryItem({ item, projectTitle }) {
       )}
       <ExternalGalleryCardContent item={item} />
     </a>
+  );
+}
+
+function YouTubeGalleryItem({ item, youtubeId, thumbnailUrl }) {
+  const [playerOpen, setPlayerOpen] = useState(false);
+  const previewUrl = thumbnailUrl || `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
+
+  return (
+    <div className="mb-5 break-inside-avoid overflow-hidden rounded-lg border border-white/10 bg-zinc-900/70">
+      {playerOpen ? (
+        <iframe
+          className="aspect-video w-full"
+          src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`}
+          title={item.title || 'YouTube video'}
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      ) : (
+        <button type="button" onClick={() => setPlayerOpen(true)} className="group relative block aspect-video w-full overflow-hidden bg-zinc-950" aria-label={`Play ${item.title || 'YouTube video'}`}>
+          <img src={previewUrl} alt="" loading="lazy" decoding="async" width="800" height="450" className="h-full w-full object-cover opacity-80 transition duration-300 group-hover:opacity-95" />
+          <span className="absolute inset-0 grid place-items-center bg-black/15">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-zinc-950/85 text-white ring-1 ring-white/20 transition group-hover:scale-105 group-hover:text-[var(--site-accent)]">
+              <Play size={20} fill="currentColor" />
+            </span>
+          </span>
+        </button>
+      )}
+      <ExternalGalleryCardContent item={item} compact />
+      <div className="px-4 pb-4">
+        <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-[var(--site-accent)]">
+          Open on YouTube <ExternalLink size={15} />
+        </a>
+      </div>
+    </div>
   );
 }
 

@@ -29,6 +29,10 @@ const emptyForm = {
   creative_member_id: '',
 };
 
+function sortTeam(rows) {
+  return [...rows].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+}
+
 export default function AdminTeam() {
   const { role, adminUser } = useAdminAccess();
   const [team, setTeam] = useState([]);
@@ -120,12 +124,14 @@ export default function AdminTeam() {
       };
 
       const query = editingId
-        ? supabase.from('admin_users').update(payload).eq('id', editingId)
-        : supabase.from('admin_users').insert(payload);
-      const { error: saveError } = await query;
+        ? supabase.from('admin_users').update(payload).eq('id', editingId).select('id, user_id, email, display_name, avatar_url, role, status, creative_member_id, created_at, updated_at').single()
+        : supabase.from('admin_users').insert(payload).select('id, user_id, email, display_name, avatar_url, role, status, creative_member_id, created_at, updated_at').single();
+      const { data: savedMember, error: saveError } = await query;
       if (saveError) throw saveError;
+      setTeam((current) => sortTeam(editingId
+        ? current.map((member) => member.id === editingId ? savedMember : member)
+        : [savedMember, ...current]));
       resetForm();
-      await loadTeam();
     } catch (saveError) {
       setError(saveError.message || 'Could not save this team member.');
     } finally {

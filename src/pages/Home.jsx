@@ -27,7 +27,7 @@ export default function Home() {
       const [{ data, error }, { data: creativeRows }] = await Promise.all([
         supabase
         .from('projects')
-        .select('*')
+        .select('id, title, slug, category, description, cover_image, gallery_images, gallery_items, featured')
         .eq('status', 'published')
         .eq('featured', true)
         .order('display_order', { ascending: true, nullsFirst: false })
@@ -35,7 +35,7 @@ export default function Home() {
         .limit(3),
         supabase
           .from('creative_members')
-          .select('*')
+          .select('id, name, slug, role, short_bio, profile_image_url, skills, is_featured')
           .eq('is_published', true)
           .eq('is_featured', true)
           .order('display_order', { ascending: true, nullsFirst: false })
@@ -84,7 +84,7 @@ export default function Home() {
         </div>
         {hasPortrait && (
           <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-[1.25rem] bg-zinc-900/70 shadow-[0_24px_60px_rgba(0,0,0,0.2)] lg:ml-auto">
-            <img src={content.heroImageUrl} alt={content.heroImageAlt} className="aspect-[4/5] w-full object-cover" />
+            <img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchPriority="high" width="800" height="1000" className="aspect-[4/5] w-full object-cover" />
           </div>
         )}
       </div>
@@ -130,8 +130,8 @@ export default function Home() {
             return (
             <div key={group.name} className="major-border-top pt-5">
               <div className="flex min-h-10 items-center gap-0.5">
-                {serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} className="h-7 max-w-20 object-contain" />}
-                {iconUrl ? <img src={iconUrl} alt="" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />)}
+                {serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} loading="lazy" decoding="async" width="80" height="28" className="h-7 max-w-20 object-contain" />}
+                {iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />)}
               </div>
               <h3 className="mt-5 text-lg font-medium" style={{ color: content.primaryTextColor }}>{group.name}</h3>
               <p className="mt-2 text-sm leading-6" style={{ color: content.secondaryTextColor }}>{group.description || 'Clean, useful work for school, brands, creators, events, and small teams.'}</p>

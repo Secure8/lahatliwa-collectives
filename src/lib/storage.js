@@ -1,13 +1,16 @@
 import { supabase } from './supabaseClient';
-import { compressImageForUpload } from './imageCompression';
+import { optimizeImageForUpload } from './imageCompression';
+import { validateUploadFile } from './uploadLimits';
 
 const BUCKET = 'project-media';
+const UPLOAD_OPTIONS = { upsert: false, cacheControl: '31536000' };
 
-function validateProjectImage(file) {
+function validateProjectImage(file, limitKey = 'projectCover') {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (!allowedTypes.includes(file.type)) {
     throw new Error('Project images must be JPEG, PNG, or WebP.');
   }
+  validateUploadFile(file, limitKey);
 }
 
 function validateGalleryFile(file) {
@@ -15,10 +18,19 @@ function validateGalleryFile(file) {
   if (!allowedTypes.includes(file.type)) {
     throw new Error('Gallery files must be JPEG, PNG, WebP, or PDF.');
   }
+  validateUploadFile(file, file.type === 'application/pdf' ? 'galleryDocument' : 'galleryImage');
 }
 
 export function validateGalleryUploadFile(file) {
   validateGalleryFile(file);
+}
+
+export function validateCoverUploadFile(file) {
+  validateProjectImage(file, 'projectCover');
+}
+
+export function validateExternalThumbnailUploadFile(file) {
+  validateProjectImage(file, 'externalThumbnail');
 }
 
 function filePath(prefix, file) {
@@ -37,36 +49,45 @@ export function getPublicImageUrl(path) {
   return data.publicUrl;
 }
 
-export async function uploadCoverImage(file) {
+export async function uploadCoverImage(file, { onStatus } = {}) {
   if (!file) return '';
-  validateProjectImage(file);
-  const uploadFile = await compressImageForUpload(file, { label: 'Project image' });
-  const path = filePath('projects/covers', uploadFile);
-  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, { upsert: false });
+  validateCoverUploadFile(file);
+  const prepared = await optimizeImageForUpload(file, 'projectCover', { label: 'Project cover', onStatus });
+  onStatus?.({ phase: 'uploading', ...prepared });
+  const path = filePath('projects/covers', prepared.file);
+  const { error } = await supabase.storage.from(BUCKET).upload(path, prepared.file, UPLOAD_OPTIONS);
   if (error) throw error;
   return path;
 }
 
-export async function uploadGalleryImages(files) {
+export async function uploadGalleryImages(files, { onStatus } = {}) {
   if (!files || files.length === 0) return [];
-  const uploads = Array.from(files).map(async (file) => {
+  const selectedFiles = Array.from(files);
+  const uploadedPaths = [];
+
+  for (const [index, file] of selectedFiles.entries()) {
     validateGalleryFile(file);
-    const uploadFile = file.type === 'application/pdf' ? file : await compressImageForUpload(file, { label: 'Gallery image' });
-    const path = filePath('projects/gallery', uploadFile);
-    const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, { upsert: false });
+    const prepared = file.type === 'application/pdf'
+      ? { file, optimized: false, originalBytes: file.size, finalBytes: file.size, message: '' }
+      : await optimizeImageForUpload(file, 'galleryImage', { label: 'Gallery image', onStatus });
+    onStatus?.({ phase: 'uploading', index, total: selectedFiles.length, ...prepared });
+    const path = filePath('projects/gallery', prepared.file);
+    const { error } = await supabase.storage.from(BUCKET).upload(path, prepared.file, UPLOAD_OPTIONS);
     if (error) throw error;
-    return path;
-  });
-  return Promise.all(uploads);
+    uploadedPaths.push(path);
+  }
+
+  return uploadedPaths;
 }
 
-export async function uploadExternalThumbnail(file, projectSlug = 'project') {
+export async function uploadExternalThumbnail(file, projectSlug = 'project', { onStatus } = {}) {
   if (!file) return '';
-  validateProjectImage(file);
-  const uploadFile = await compressImageForUpload(file, { label: 'External thumbnail' });
+  validateExternalThumbnailUploadFile(file);
+  const prepared = await optimizeImageForUpload(file, 'externalThumbnail', { label: 'Thumbnail', onStatus });
+  onStatus?.({ phase: 'uploading', ...prepared });
   const safeSlug = (projectSlug || 'project').replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
-  const path = filePath(`projects/${safeSlug}/external-thumbnails`, uploadFile);
-  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, { upsert: false });
+  const path = filePath(`projects/${safeSlug}/external-thumbnails`, prepared.file);
+  const { error } = await supabase.storage.from(BUCKET).upload(path, prepared.file, UPLOAD_OPTIONS);
   if (error) throw error;
   return path;
 }

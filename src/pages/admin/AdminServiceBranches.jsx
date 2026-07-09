@@ -1,4 +1,4 @@
-import { Edit, Plus, Trash2 } from 'lucide-react';
+import { Edit, Plus, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
@@ -15,7 +15,9 @@ import {
   AdminTextarea,
 } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
+import { resolvePublicAssetUrl, uploadSiteAsset } from '../../lib/contentApi';
 import { parseList, slugify } from '../../lib/helpers';
+import { uploadStatusText } from '../../lib/imageCompression';
 import { supabase } from '../../lib/supabaseClient';
 
 const emptyBranch = {
@@ -30,12 +32,23 @@ const emptyBranch = {
   is_published: true,
 };
 
+function sortBranches(rows) {
+  return [...rows].sort((a, b) => {
+    const orderA = a.display_order ?? Number.MAX_SAFE_INTEGER;
+    const orderB = b.display_order ?? Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  });
+}
+
 export default function AdminServiceBranches() {
   const [branches, setBranches] = useState([]);
   const [form, setForm] = useState(emptyBranch);
   const [editingId, setEditingId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [error, setError] = useState('');
 
   async function loadBranches() {
@@ -73,6 +86,29 @@ export default function AdminServiceBranches() {
     setForm(emptyBranch);
   }
 
+  async function uploadBranchIcon(file) {
+    if (!file) return;
+    setUploadingIcon(true);
+    setError('');
+    setUploadStatus('');
+    let optimizedMessage = '';
+    try {
+      const url = await uploadSiteAsset(file, 'service-branches', 'serviceMedia', {
+        onStatus(status) {
+          setUploadStatus(uploadStatusText(status));
+          if (status?.message) optimizedMessage = status.message;
+        },
+      });
+      update('icon_url', url);
+      setUploadStatus(optimizedMessage || 'Service icon uploaded.');
+    } catch (uploadError) {
+      setError(uploadError.message || 'Service icon upload failed.');
+      setUploadStatus('');
+    } finally {
+      setUploadingIcon(false);
+    }
+  }
+
   async function save(event) {
     event.preventDefault();
     setSaving(true);
@@ -90,13 +126,15 @@ export default function AdminServiceBranches() {
       updated_at: new Date().toISOString(),
     };
     const query = editingId
-      ? supabase.from('service_branches').update(payload).eq('id', editingId)
-      : supabase.from('service_branches').insert(payload);
-    const { error: saveError } = await query;
+      ? supabase.from('service_branches').update(payload).eq('id', editingId).select('*').single()
+      : supabase.from('service_branches').insert(payload).select('*').single();
+    const { data: savedBranch, error: saveError } = await query;
     if (saveError) setError(saveError.message);
     else {
+      setBranches((current) => sortBranches(editingId
+        ? current.map((branch) => branch.id === editingId ? savedBranch : branch)
+        : [savedBranch, ...current]));
       resetForm();
-      await loadBranches();
     }
     setSaving(false);
   }
@@ -137,9 +175,21 @@ export default function AdminServiceBranches() {
         </div>
         <AdminTextarea label="Description" value={form.description || ''} onChange={(value) => update('description', value)} />
         <AdminInput label="Included services, comma-separated" value={form.included_services || ''} onChange={(value) => update('included_services', value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-white/[0.055] px-4 py-2.5 text-sm text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085]">
+            <Upload size={16} /> {uploadingIcon ? 'Optimizing icon...' : 'Upload icon or image'}
+            <input className="sr-only" type="file" accept="image/*" onChange={(event) => {
+              uploadBranchIcon(event.target.files?.[0]);
+              event.target.value = '';
+            }} />
+          </label>
+          <span className="text-xs text-zinc-500">Raster images are resized to 600px and optimized to 300 KB. SVG files keep a 300 KB hard limit.</span>
+          {form.icon_url && <img src={resolvePublicAssetUrl(form.icon_url)} alt="" className="h-12 w-12 object-contain" />}
+        </div>
+        {uploadStatus && <AdminNotice tone="success">{uploadStatus}</AdminNotice>}
         <AdminCheckbox label="Published" checked={form.is_published} onChange={(value) => update('is_published', value)} />
-        <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
-          <Plus size={17} /> {saving ? 'Saving...' : 'Save branch'}
+        <AdminButton disabled={saving || uploadingIcon} type="submit" variant="primary" className="w-fit">
+          <Plus size={17} /> {saving ? 'Saving...' : uploadingIcon ? 'Uploading icon...' : 'Save branch'}
         </AdminButton>
       </AdminSurface>
 
@@ -149,6 +199,7 @@ export default function AdminServiceBranches() {
           {branches.map((branch) => (
             <AdminSurface key={branch.id} as="article" className="grid gap-5">
               <div>
+                {branch.icon_url && <img src={resolvePublicAssetUrl(branch.icon_url)} alt="" loading="lazy" decoding="async" width="48" height="48" className="mb-4 h-12 w-12 object-contain" />}
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-semibold text-white">{branch.name}</h3>
                   <AdminStatusBadge status={branch.is_published ? 'published' : 'draft'}>{branch.is_published ? 'Published' : 'Draft'}</AdminStatusBadge>

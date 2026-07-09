@@ -18,26 +18,25 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function loadStats() {
-      const projectQuery = canSeeAll
-        ? supabase.from('projects').select('id, title, slug, status, featured, category, created_at, review_status')
-        : supabase.from('projects').select('id, title, slug, status, featured, category, created_at, review_status, owner_user_id, created_by').or(`owner_user_id.eq.${user?.id},created_by.eq.${user?.id}`);
-      const recentProjectQuery = canSeeAll
-        ? supabase.from('projects').select('id, title, slug, status, featured, category, created_at, review_status').order('created_at', { ascending: false }).limit(5)
-        : supabase.from('projects').select('id, title, slug, status, featured, category, created_at, review_status, owner_user_id, created_by').or(`owner_user_id.eq.${user?.id},created_by.eq.${user?.id}`).order('created_at', { ascending: false }).limit(5);
+      let projectQuery = supabase
+        .from('projects')
+        .select('id, title, slug, status, featured, category, created_at, review_status, owner_user_id, created_by')
+        .order('created_at', { ascending: false });
+      if (!canSeeAll) {
+        projectQuery = projectQuery.or(`owner_user_id.eq.${user?.id},created_by.eq.${user?.id}`);
+      }
       const [
         { data: projectRows },
         { data: creativeRows },
         { data: inquiryRows },
         { data: branchRows },
-        { data: recentRows },
-        { data: latestInquiryRows },
       ] = await Promise.all([
         projectQuery,
         supabase.from('creative_members').select('id, is_published'),
-        canSeeAll ? supabase.from('project_inquiries').select('id, status') : Promise.resolve({ data: [] }),
+        canSeeAll
+          ? supabase.from('project_inquiries').select('id, name, project_type, message, status, created_at').order('created_at', { ascending: false })
+          : Promise.resolve({ data: [] }),
         supabase.from('service_branches').select('id, is_published'),
-        recentProjectQuery,
-        canSeeAll ? supabase.from('project_inquiries').select('*').order('created_at', { ascending: false }).limit(4) : Promise.resolve({ data: [] }),
       ]);
       const rows = projectRows || [];
       const inquiries = inquiryRows || [];
@@ -50,8 +49,8 @@ export default function Dashboard() {
         newInquiries: inquiries.filter((inquiry) => inquiry.status === 'new').length,
         serviceBranches: (branchRows || []).length,
       });
-      setRecentProjects(recentRows || []);
-      setLatestInquiries(latestInquiryRows || []);
+      setRecentProjects(rows.slice(0, 5));
+      setLatestInquiries(inquiries.slice(0, 4));
       setLoading(false);
     }
     if (canSeeAll || user?.id) loadStats();

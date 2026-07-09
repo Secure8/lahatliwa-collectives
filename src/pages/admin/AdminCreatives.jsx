@@ -4,6 +4,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminActionButton, AdminActionGroup, AdminButton, AdminCheckbox, AdminEmptyState, AdminInput, AdminNotice, AdminPageHeader, AdminSoftPanel, AdminStatusBadge, AdminSurface, AdminTextarea } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { parseList, slugify } from '../../lib/helpers';
+import { uploadStatusText } from '../../lib/imageCompression';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadSiteAsset } from '../../lib/contentApi';
 
@@ -22,12 +23,22 @@ const emptyCreative = {
   display_order: '',
 };
 
+function sortCreatives(rows) {
+  return [...rows].sort((a, b) => {
+    const orderA = a.display_order ?? Number.MAX_SAFE_INTEGER;
+    const orderB = b.display_order ?? Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  });
+}
+
 export default function AdminCreatives() {
   const [creatives, setCreatives] = useState([]);
   const [form, setForm] = useState(emptyCreative);
   const [editingId, setEditingId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [error, setError] = useState('');
 
   async function loadCreatives() {
@@ -70,9 +81,17 @@ export default function AdminCreatives() {
     if (!file) return;
     setSaving(true);
     setError('');
+    setUploadStatus('');
+    let optimizedMessage = '';
     try {
-      const url = await uploadSiteAsset(file, 'creatives');
+      const url = await uploadSiteAsset(file, 'creatives', 'creativeProfile', {
+        onStatus(status) {
+          setUploadStatus(uploadStatusText(status));
+          if (status?.message) optimizedMessage = status.message;
+        },
+      });
       update('profile_image_url', url);
+      setUploadStatus(optimizedMessage || 'Profile photo uploaded.');
     } catch (uploadError) {
       setError(uploadError.message || 'Profile upload failed.');
     } finally {
@@ -113,13 +132,15 @@ export default function AdminCreatives() {
     };
 
     const query = editingId
-      ? supabase.from('creative_members').update(payload).eq('id', editingId)
-      : supabase.from('creative_members').insert(payload);
-    const { error: saveError } = await query;
+      ? supabase.from('creative_members').update(payload).eq('id', editingId).select('*').single()
+      : supabase.from('creative_members').insert(payload).select('*').single();
+    const { data: savedCreative, error: saveError } = await query;
     if (saveError) setError(saveError.message);
     else {
+      setCreatives((current) => sortCreatives(editingId
+        ? current.map((creative) => creative.id === editingId ? savedCreative : creative)
+        : [savedCreative, ...current]));
       resetForm();
-      await loadCreatives();
     }
     setSaving(false);
   }
@@ -166,10 +187,12 @@ export default function AdminCreatives() {
             Upload profile photo
             <input className="sr-only" type="file" accept="image/*" onChange={(event) => uploadProfile(event.target.files?.[0])} />
           </label>
+          <span className="text-xs text-zinc-500">Large raster photos are optimized to 300 KB or smaller. SVG files keep a 300 KB hard limit.</span>
           {form.profile_image_url && <img src={form.profile_image_url} alt="" className="h-14 w-14 rounded-lg object-cover" />}
           <AdminCheckbox label="Featured" checked={form.is_featured} onChange={(value) => update('is_featured', value)} />
           <AdminCheckbox label="Published" checked={form.is_published} onChange={(value) => update('is_published', value)} />
         </div>
+        {uploadStatus && <AdminNotice tone="success">{uploadStatus}</AdminNotice>}
         <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
           <Plus size={17} /> {saving ? 'Saving...' : editingId ? 'Save creative' : 'Add creative'}
         </AdminButton>
@@ -182,7 +205,7 @@ export default function AdminCreatives() {
             <AdminSurface key={creative.id} as="article" className="flex flex-col gap-5">
               <div className="flex items-start gap-4">
                 {creative.profile_image_url ? (
-                  <img src={creative.profile_image_url} alt="" className="h-16 w-16 rounded-lg object-cover" />
+                  <img src={creative.profile_image_url} alt="" loading="lazy" decoding="async" width="64" height="64" className="h-16 w-16 rounded-lg object-cover" />
                 ) : (
                   <div className="grid h-16 w-16 place-items-center rounded-lg bg-white/[0.055] text-xl font-semibold text-zinc-500">{creative.name?.slice(0, 1) || 'L'}</div>
                 )}

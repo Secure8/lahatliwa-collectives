@@ -22,7 +22,7 @@ export default function Navbar() {
       <nav className="page-shell flex min-h-16 items-center justify-between">
         <Link to="/" className="group flex items-center gap-3 font-medium tracking-wide">
           {content.logoUrl ? (
-            <img src={content.logoUrl} alt={content.logoAlt} className="h-8 w-8 object-contain" />
+            <img src={content.logoUrl} alt={content.logoAlt} decoding="async" width="32" height="32" className="h-8 w-8 object-contain" />
           ) : (
             <span className="site-accent site-border grid h-8 w-8 place-items-center border text-xs font-semibold transition">{content.initials}</span>
           )}

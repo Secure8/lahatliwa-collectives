@@ -81,7 +81,7 @@ export default function AdminLayout({ children }) {
               )}
             >
               {content.logoUrl ? (
-                <img src={content.logoUrl} alt={content.logoAlt || 'Lahat Liwa logo'} className="h-9 w-9 object-contain" />
+                <img src={content.logoUrl} alt={content.logoAlt || 'Lahat Liwa logo'} decoding="async" width="36" height="36" className="h-9 w-9 object-contain" />
               ) : (
                 content.initials || 'LL'
               )}

@@ -193,7 +193,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
   function updateSlug(value) {
     setSlugTouched(true);
-    update('slug', slugify(value));
+    update('slug', value);
   }
 
   async function uploadCover(files) {
@@ -446,7 +446,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
             : 'draft';
       const payload = {
         title: form.title,
-        slug: form.slug || slugify(form.title),
+        slug: slugify(form.slug || form.title),
         category: form.category,
         description: form.description,
         tools: parseList(form.tools),
@@ -525,7 +525,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       <FormSection eyebrow="Basic project info" title="Core details" description="Set the public title, URL slug, category, and description.">
       <div className="grid gap-5 lg:grid-cols-2">
         <Field label="Title" required value={form.title} onChange={(value) => updateTitle(value)} />
-        <Field label="Slug" required value={form.slug} onChange={updateSlug} />
+        <Field label="Slug" required value={form.slug} onChange={updateSlug} onBlur={() => update('slug', slugify(form.slug))} />
         <label className="grid gap-2 text-sm text-zinc-300">
           Category
           <select className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={form.category} onChange={(event) => update('category', event.target.value)} required>
@@ -800,7 +800,7 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
   );
 }
 
-function Field({ label, value, onChange, type = 'text', required = false }) {
+function Field({ label, value, onChange, type = 'text', required = false, onBlur }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
@@ -809,6 +809,7 @@ function Field({ label, value, onChange, type = 'text', required = false }) {
         required={required}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45"
       />
     </label>

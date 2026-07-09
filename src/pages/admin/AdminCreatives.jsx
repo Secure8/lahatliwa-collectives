@@ -98,7 +98,7 @@ export default function AdminCreatives() {
     setError('');
     const payload = {
       name: form.name,
-      slug: form.slug || slugify(form.name),
+      slug: slugify(form.slug || form.name),
       role: form.role,
       short_bio: form.short_bio || null,
       full_bio: form.full_bio || null,
@@ -152,7 +152,7 @@ export default function AdminCreatives() {
         </div>
         <div className="grid gap-5 md:grid-cols-2">
           <AdminInput label="Name" required value={form.name} onChange={(value) => update('name', value)} />
-          <AdminInput label="Slug" required value={form.slug} onChange={(value) => update('slug', slugify(value))} />
+          <AdminInput label="Slug" required value={form.slug} onChange={(value) => update('slug', value)} onBlur={() => update('slug', slugify(form.slug))} />
           <AdminInput label="Role / title" required value={form.role} onChange={(value) => update('role', value)} />
           <AdminInput label="Availability status" value={form.availability_status || ''} onChange={(value) => update('availability_status', value)} />
           <AdminInput label="Skills, comma-separated" value={form.skills || ''} onChange={(value) => update('skills', value)} />

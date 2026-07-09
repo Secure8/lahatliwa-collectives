@@ -77,7 +77,7 @@ export default function AdminServiceBranches() {
     setError('');
     const payload = {
       name: form.name,
-      slug: form.slug || slugify(form.name),
+      slug: slugify(form.slug || form.name),
       description: form.description || null,
       included_services: parseList(form.included_services),
       icon_url: form.icon_url || null,
@@ -127,7 +127,7 @@ export default function AdminServiceBranches() {
 
         <div className="grid gap-5 md:grid-cols-2">
           <AdminInput label="Branch name" required value={form.name} onChange={(value) => update('name', value)} />
-          <AdminInput label="Slug" required value={form.slug} onChange={(value) => update('slug', slugify(value))} />
+          <AdminInput label="Slug" required value={form.slug} onChange={(value) => update('slug', value)} onBlur={() => update('slug', slugify(form.slug))} />
           <AdminInput label="Icon/image URL" value={form.icon_url || ''} onChange={(value) => update('icon_url', value)} />
           <AdminInput label="Display order" type="number" value={form.display_order ?? ''} onChange={(value) => update('display_order', value)} />
           <AdminInput label="CTA label" value={form.cta_label || ''} onChange={(value) => update('cta_label', value)} />
@@ -170,7 +170,7 @@ export default function AdminServiceBranches() {
       ) : (
         <AdminEmptyState
           title="No service branches yet"
-          message="Add branches like Studio, Social, Web, and Creative."
+          message="Add branches like Studio, Social, Web, and Tech."
           action={<AdminButton onClick={resetForm} variant="primary"><Plus size={17} /> Add branch</AdminButton>}
         />
       ))}

@@ -136,11 +136,11 @@ export function AdminNotice({ children, tone = 'error', className = '' }) {
 
 const inputClasses = 'w-full rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition placeholder:text-zinc-600 focus:ring-amber-200/45';
 
-export function AdminInput({ label, value, onChange, type = 'text', required = false, min, max, step, className = '' }) {
+export function AdminInput({ label, value, onChange, type = 'text', required = false, min, max, step, className = '', onBlur }) {
   return (
     <label className={clsx('grid gap-2 text-sm text-zinc-300', className)}>
       <span>{label}</span>
-      <input required={required} type={type} value={value} min={min} max={max} step={step} onChange={(event) => onChange(event.target.value)} className={inputClasses} />
+      <input required={required} type={type} value={value} min={min} max={max} step={step} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} className={inputClasses} />
     </label>
   );
 }

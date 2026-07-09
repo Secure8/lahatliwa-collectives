@@ -1,14 +1,22 @@
-import { Github, Instagram, Lock, Mail } from 'lucide-react';
+import { Facebook, Github, Globe, Instagram, Linkedin, Lock, Mail, Music2, Youtube } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 
+const socialIconMap = {
+  Facebook,
+  GitHub: Github,
+  Instagram,
+  LinkedIn: Linkedin,
+  TikTok: Music2,
+  YouTube: Youtube,
+};
+
 export default function Footer() {
   const { content } = usePublicContent([]);
   const [hasSession, setHasSession] = useState(false);
-  const github = content.socialLinks?.find((link) => link.label === 'GitHub');
-  const instagram = content.socialLinks?.find((link) => link.label === 'Instagram');
+  const socialLinks = content.socialLinks || [];
 
   useEffect(() => {
     let active = true;
@@ -37,12 +45,14 @@ export default function Footer() {
           {content.email && <a className="site-hover-accent border border-white/10 p-2 text-zinc-300 transition" href={`mailto:${content.email}`} aria-label="Email">
             <Mail size={18} />
           </a>}
-          {instagram?.href && <a className="site-hover-accent border border-white/10 p-2 text-zinc-300 transition" href={instagram.href} aria-label="Instagram">
-            <Instagram size={18} />
-          </a>}
-          {github?.href && <a className="site-hover-accent border border-white/10 p-2 text-zinc-300 transition" href={github.href} aria-label="GitHub">
-            <Github size={18} />
-          </a>}
+          {socialLinks.map((link) => {
+            const Icon = socialIconMap[link.label] || Globe;
+            return (
+              <a key={`${link.label}-${link.href}`} className="site-hover-accent border border-white/10 p-2 text-zinc-300 transition" href={link.href} target="_blank" rel="noopener noreferrer" aria-label={link.label}>
+                <Icon size={18} />
+              </a>
+            );
+          })}
           {hasSession && <Link className="border border-white/10 p-2 text-zinc-500 transition hover:border-white/20 hover:text-zinc-300" to="/admin/dashboard" aria-label="Admin dashboard">
             <Lock size={18} />
           </Link>}

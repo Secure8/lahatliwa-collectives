@@ -19,6 +19,13 @@ function validateFile(file, { allowedTypes, label }) {
   }
 }
 
+function normalizeExternalUrl(url = '') {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('mailto:')) return trimmed;
+  return `https://${trimmed}`;
+}
+
 function mapSettingsRow(row) {
   if (!row) return {};
   return {
@@ -41,12 +48,12 @@ function mapSettingsRow(row) {
     defaultBackgroundImageUrl: row.default_background_image_url || '',
     defaultBackgroundOverlayOpacity: row.default_background_overlay_opacity ?? defaultSiteContent.defaultBackgroundOverlayOpacity,
     socialLinks: [
-      { label: 'GitHub', href: row.github_url || '' },
-      { label: 'Facebook', href: row.facebook_url || '' },
-      { label: 'Instagram', href: row.instagram_url || '' },
-      { label: 'LinkedIn', href: row.linkedin_url || '' },
-      { label: 'YouTube', href: row.youtube_url || '' },
-      { label: 'TikTok', href: row.tiktok_url || '' },
+      { label: 'GitHub', href: normalizeExternalUrl(row.github_url || '') },
+      { label: 'Facebook', href: normalizeExternalUrl(row.facebook_url || '') },
+      { label: 'Instagram', href: normalizeExternalUrl(row.instagram_url || '') },
+      { label: 'LinkedIn', href: normalizeExternalUrl(row.linkedin_url || '') },
+      { label: 'YouTube', href: normalizeExternalUrl(row.youtube_url || '') },
+      { label: 'TikTok', href: normalizeExternalUrl(row.tiktok_url || '') },
     ].filter((link) => link.href),
   };
 }
@@ -62,12 +69,12 @@ export function mapSettingsToPayload(settings) {
     hero_image_alt: settings.heroImageAlt || null,
     show_hero_portrait: settings.showHeroPortrait === true,
     contact_email: settings.email || null,
-    github_url: settings.githubUrl || '',
-    facebook_url: settings.facebookUrl || '',
-    instagram_url: settings.instagramUrl || '',
-    linkedin_url: settings.linkedinUrl || '',
-    youtube_url: settings.youtubeUrl || '',
-    tiktok_url: settings.tiktokUrl || '',
+    github_url: normalizeExternalUrl(settings.githubUrl || ''),
+    facebook_url: normalizeExternalUrl(settings.facebookUrl || ''),
+    instagram_url: normalizeExternalUrl(settings.instagramUrl || ''),
+    linkedin_url: normalizeExternalUrl(settings.linkedinUrl || ''),
+    youtube_url: normalizeExternalUrl(settings.youtubeUrl || ''),
+    tiktok_url: normalizeExternalUrl(settings.tiktokUrl || ''),
     footer_text: settings.footerText || null,
     primary_text_color: settings.primaryTextColor || null,
     secondary_text_color: settings.secondaryTextColor || null,

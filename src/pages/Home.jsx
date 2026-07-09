@@ -84,7 +84,7 @@ export default function Home() {
             <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Featured work</p>
             <h2 className="mt-3 text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>{content.home.featuredHeading}</h2>
           </div>
-          <Link to="/projects" className="fine-link site-hover-accent hidden text-sm text-zinc-300 sm:inline">View all</Link>
+          <Link to="/projects?featured=1" className="fine-link site-hover-accent text-sm text-zinc-300">View all selected</Link>
         </div>
         {loading ? <LoadingState label="Loading featured projects" /> : projects.length ? <ProjectGrid projects={projects} /> : <EmptyState title="No featured projects yet" message="Publish and feature projects from the admin dashboard." />}
       </section>

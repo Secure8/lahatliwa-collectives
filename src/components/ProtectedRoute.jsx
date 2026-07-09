@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import LoadingState from './LoadingState';
 import { AdminAccessProvider, isPrivilegedRole, normalizeRole } from '../lib/adminAccess';
@@ -6,6 +6,8 @@ import { PublicContentProvider } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 
 export default function ProtectedRoute() {
+  const sessionRef = useRef(null);
+  const adminUserRef = useRef(null);
   const [session, setSession] = useState(null);
   const [adminUser, setAdminUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -13,13 +15,24 @@ export default function ProtectedRoute() {
   const [blockedReason, setBlockedReason] = useState('');
 
   useEffect(() => {
-    async function checkAccess(currentSession) {
+    function updateSession(currentSession) {
+      sessionRef.current = currentSession;
       setSession(currentSession);
+    }
+
+    function updateAdminUser(nextAdminUser) {
+      adminUserRef.current = nextAdminUser;
+      setAdminUser(nextAdminUser);
+    }
+
+    async function checkAccess(currentSession, { showLoading = false } = {}) {
+      if (showLoading) setLoading(true);
+      updateSession(currentSession);
       setError('');
       setBlockedReason('');
 
       if (!currentSession) {
-        setAdminUser(null);
+        updateAdminUser(null);
         setLoading(false);
         return;
       }
@@ -56,27 +69,42 @@ export default function ProtectedRoute() {
       }
 
       if (adminError) {
-        setAdminUser(null);
+        updateAdminUser(null);
         setError('Admin allowlist is not configured yet. Run the Supabase security migrations and add your user to admin_users.');
       } else if (!data) {
-        setAdminUser(null);
+        updateAdminUser(null);
         setBlockedReason('This account is signed in but is not on the team allowlist.');
       } else if (data.status === 'disabled') {
-        setAdminUser(data);
+        updateAdminUser(data);
         setBlockedReason('Access disabled. Ask a Super Admin to reactivate this account.');
       } else {
-        setAdminUser({ ...data, role: normalizeRole(data.role) });
+        updateAdminUser({ ...data, role: normalizeRole(data.role) });
       }
       setLoading(false);
     }
 
     supabase.auth.getSession().then(({ data }) => {
-      checkAccess(data.session);
+      checkAccess(data.session, { showLoading: true });
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setLoading(true);
-      checkAccess(currentSession);
+    const { data: listener } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      const currentUserId = sessionRef.current?.user?.id;
+      const nextUserId = currentSession?.user?.id;
+      const sameSignedInUser = currentUserId && nextUserId && currentUserId === nextUserId && adminUserRef.current;
+
+      if (['TOKEN_REFRESHED', 'USER_UPDATED'].includes(event) && currentSession) {
+        updateSession(currentSession);
+        setLoading(false);
+        return;
+      }
+
+      if (event === 'SIGNED_IN' && sameSignedInUser) {
+        updateSession(currentSession);
+        setLoading(false);
+        return;
+      }
+
+      checkAccess(currentSession, { showLoading: event === 'SIGNED_OUT' || !adminUserRef.current });
     });
 
     return () => listener.subscription.unsubscribe();

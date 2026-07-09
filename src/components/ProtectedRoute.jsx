@@ -22,7 +22,7 @@ export default function ProtectedRoute() {
 
       const { data, error: adminError } = await supabase
         .from('admin_users')
-        .select('user_id')
+        .select('user_id, role')
         .eq('user_id', currentSession.user.id)
         .maybeSingle();
 
@@ -30,7 +30,7 @@ export default function ProtectedRoute() {
         setIsAdmin(false);
         setError('Admin allowlist is not configured yet. Run the Supabase security migrations and add your user to admin_users.');
       } else {
-        setIsAdmin(Boolean(data));
+        setIsAdmin(Boolean(data) && ['owner', 'admin'].includes(data.role || 'admin'));
       }
       setLoading(false);
     }

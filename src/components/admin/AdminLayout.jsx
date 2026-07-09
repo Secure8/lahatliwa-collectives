@@ -1,4 +1,4 @@
-import { ExternalLink, FileText, FolderKanban, Images, LayoutDashboard, LogOut, Settings } from 'lucide-react';
+import { ExternalLink, FileText, FolderKanban, Images, Inbox, LayoutDashboard, LogOut, Settings, Users, Workflow } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { supabase } from '../../lib/supabaseClient';
@@ -6,6 +6,9 @@ import { supabase } from '../../lib/supabaseClient';
 const links = [
   ['Dashboard', '/admin/dashboard', LayoutDashboard],
   ['Projects', '/admin/projects', FolderKanban],
+  ['Creatives', '/admin/creatives', Users],
+  ['Service Branches', '/admin/service-branches', Workflow],
+  ['Inquiries', '/admin/inquiries', Inbox],
   ['Site Settings', '/admin/settings', Settings],
   ['Page Content', '/admin/content', FileText],
   ['Icons / Media', '/admin/media/icons', Images],

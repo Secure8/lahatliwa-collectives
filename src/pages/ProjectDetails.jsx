@@ -11,6 +11,7 @@ import { getPublicImageUrl } from '../lib/storage';
 export default function ProjectDetails() {
   const { slug } = useParams();
   const [project, setProject] = useState(null);
+  const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { content } = usePublicContent([]);
@@ -19,7 +20,15 @@ export default function ProjectDetails() {
     async function loadProject() {
       const { data, error: projectError } = await supabase.from('projects').select('*').eq('slug', slug).eq('status', 'published').single();
       if (projectError) setError('Project not found or not published yet.');
-      else setProject(data);
+      else {
+        setProject(data);
+        const { data: contributorRows } = await supabase
+          .from('project_creatives')
+          .select('creative_members(id, name, slug, role, profile_image_url)')
+          .eq('project_id', data.id)
+          .order('display_order', { ascending: true, nullsFirst: false });
+        setContributors((contributorRows || []).map((row) => row.creative_members).filter(Boolean));
+      }
       setLoading(false);
     }
     loadProject();
@@ -59,6 +68,20 @@ export default function ProjectDetails() {
             <Action href={project.live_url} icon={ArrowUpRight} label="Live Project" accentColor={content.accentColor} />
             <Action href={project.github_url} icon={Github} label="GitHub" accentColor={content.accentColor} />
           </div>
+          {contributors.length > 0 && (
+            <div className="major-border-top mt-8 pt-6">
+              <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Project Contributors</p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {contributors.map((creative) => (
+                  <Link key={creative.id} to={`/creatives/${creative.slug}`} className="flex items-center gap-3 rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
+                    {creative.profile_image_url && <img src={creative.profile_image_url} alt="" className="h-8 w-8 rounded-full object-cover" />}
+                    <span>{creative.name}</span>
+                    <span className="text-zinc-500">{creative.role}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

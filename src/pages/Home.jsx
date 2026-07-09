@@ -1,6 +1,7 @@
 import { ArrowRight, Camera, Circle, Code2, Sparkles, Wrench } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import CreativeCard from '../components/CreativeCard';
 import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
 import ProjectGrid from '../components/ProjectGrid';
@@ -11,6 +12,7 @@ const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
 export default function Home() {
   const [projects, setProjects] = useState([]);
+  const [creatives, setCreatives] = useState([]);
   const [loading, setLoading] = useState(true);
   const { content } = usePublicContent(['home', 'services']);
   const homeBg = content.home.heroBackgroundImageUrl || content.defaultBackgroundImageUrl;
@@ -22,16 +24,26 @@ export default function Home() {
 
   useEffect(() => {
     async function loadFeatured() {
-      const { data, error } = await supabase
+      const [{ data, error }, { data: creativeRows }] = await Promise.all([
+        supabase
         .from('projects')
         .select('*')
         .eq('status', 'published')
         .eq('featured', true)
         .order('display_order', { ascending: true, nullsFirst: false })
         .order('project_date', { ascending: false, nullsFirst: false })
-        .limit(3);
+        .limit(3),
+        supabase
+          .from('creative_members')
+          .select('*')
+          .eq('is_published', true)
+          .eq('is_featured', true)
+          .order('display_order', { ascending: true, nullsFirst: false })
+          .limit(3),
+      ]);
 
       if (!error) setProjects(data || []);
+      setCreatives(creativeRows || []);
       setLoading(false);
     }
     loadFeatured();
@@ -59,13 +71,13 @@ export default function Home() {
         <div className="max-w-2xl">
           <p className="text-xs font-medium uppercase tracking-[0.28em]" style={{ color: content.home.accentTextColor || content.accentColor }}>{content.hero.eyebrow}</p>
           <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{content.home.heroTitle}</h1>
-          <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription}</p>
+          <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'A creative digital collective building visuals, stories, and digital experiences across photography, editing, social media, content, and web projects.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/projects" className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
-              {content.home.primaryCta} <ArrowRight size={18} />
+            <Link to="/start-a-project" className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
+              Start a Project <ArrowRight size={18} />
             </Link>
-            <Link to="/contact" className="fine-link rounded-full px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
-              {content.home.secondaryCta}
+            <Link to="/projects" className="fine-link rounded-full px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
+              Explore Works
             </Link>
           </div>
           <p className="mt-8 max-w-xl text-sm leading-6" style={{ color: content.mutedTextColor }}>{content.tagline}</p>
@@ -90,6 +102,21 @@ export default function Home() {
       </section>
 
       <section className="page-shell major-border-top py-16">
+        <div className="mb-10 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Featured creatives</p>
+            <h2 className="mt-3 text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Meet the people behind the work.</h2>
+          </div>
+          <Link to="/creatives" className="fine-link site-hover-accent text-sm text-zinc-300">View creatives</Link>
+        </div>
+        {loading ? <LoadingState label="Loading creatives" /> : creatives.length ? (
+          <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+            {creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} />)}
+          </div>
+        ) : <EmptyState title="No featured creatives yet" message="Publish and feature creative members from the admin dashboard." />}
+      </section>
+
+      <section className="page-shell major-border-top py-16">
         <div className="mb-10 max-w-2xl">
           <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Services preview</p>
           <h2 className="mt-3 text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>{content.home.servicesHeading}</h2>
@@ -108,6 +135,19 @@ export default function Home() {
               <p className="mt-2 text-sm leading-6" style={{ color: content.secondaryTextColor }}>{group.description || 'Clean, useful work for school, brands, creators, events, and small teams.'}</p>
             </div>
           );})}
+        </div>
+      </section>
+
+      <section className="page-shell major-border-top py-16">
+        <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Start a project</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Need visuals, content, a website, or digital support?</h2>
+            <p className="mt-4 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>Tell the collective what you are planning and we will review the best next step.</p>
+          </div>
+          <Link to="/start-a-project" className="inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
+            Send inquiry <ArrowRight size={18} />
+          </Link>
         </div>
       </section>
     </div>

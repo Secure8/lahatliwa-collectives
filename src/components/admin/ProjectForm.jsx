@@ -43,6 +43,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [removedGalleryPaths, setRemovedGalleryPaths] = useState([]);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
+  const [creativeMembers, setCreativeMembers] = useState([]);
+  const [selectedCreativeIds, setSelectedCreativeIds] = useState([]);
   const [externalUrl, setExternalUrl] = useState('');
   const [bulkExternalUrls, setBulkExternalUrls] = useState('');
   const [error, setError] = useState('');
@@ -106,6 +108,28 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       setSlugTouched(true);
     }
   }, [initialProject]);
+
+  useEffect(() => {
+    async function loadCreativeOptions() {
+      const { data } = await supabase
+        .from('creative_members')
+        .select('id, name, role')
+        .order('display_order', { ascending: true, nullsFirst: false })
+        .order('name', { ascending: true });
+      setCreativeMembers(data || []);
+
+      if (initialProject?.id) {
+        const { data: links } = await supabase
+          .from('project_creatives')
+          .select('creative_id')
+          .eq('project_id', initialProject.id);
+        setSelectedCreativeIds((links || []).map((link) => link.creative_id));
+      } else {
+        setSelectedCreativeIds([]);
+      }
+    }
+    loadCreativeOptions();
+  }, [initialProject?.id]);
 
   useEffect(() => {
     pendingGalleryFilesRef.current = pendingGalleryFiles;
@@ -189,6 +213,13 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     }));
     setDirty(true);
     setRemovedGalleryPaths((current) => current.includes(path) ? current : [...current, path]);
+  }
+
+  function toggleCreative(id) {
+    setSelectedCreativeIds((current) => (
+      current.includes(id) ? current.filter((creativeId) => creativeId !== id) : [...current, id]
+    ));
+    setDirty(true);
   }
 
   function externalGalleryItems() {
@@ -347,10 +378,23 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       };
 
       const query = mode === 'edit'
-        ? supabase.from('projects').update(payload).eq('id', initialProject.id)
-        : supabase.from('projects').insert(payload);
-      const { error: saveError } = await query;
+        ? supabase.from('projects').update(payload).eq('id', initialProject.id).select('id').single()
+        : supabase.from('projects').insert(payload).select('id').single();
+      const { data: savedProject, error: saveError } = await query;
       if (saveError) throw saveError;
+      const projectId = initialProject?.id || savedProject?.id;
+      if (projectId) {
+        await supabase.from('project_creatives').delete().eq('project_id', projectId);
+        if (selectedCreativeIds.length) {
+          const contributorRows = selectedCreativeIds.map((creativeId, index) => ({
+            project_id: projectId,
+            creative_id: creativeId,
+            display_order: index * 100,
+          }));
+          const { error: contributorError } = await supabase.from('project_creatives').insert(contributorRows);
+          if (contributorError) throw contributorError;
+        }
+      }
       if (removedGalleryPaths.length) await deleteImages(removedGalleryPaths);
       pendingGalleryFiles.forEach((item) => {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
@@ -513,6 +557,23 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           Featured project
         </label>
       </div>
+
+      {creativeMembers.length > 0 && (
+        <section className="grid gap-3 rounded-lg border border-white/10 bg-zinc-900/70 p-5">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Project Contributors</h2>
+            <p className="mt-1 text-sm text-zinc-500">Assign one or more creatives who handled this work.</p>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {creativeMembers.map((creative) => (
+              <label key={creative.id} className="flex items-center gap-3 rounded-md border border-white/10 bg-zinc-950 px-3 py-3 text-sm text-zinc-300">
+                <input type="checkbox" checked={selectedCreativeIds.includes(creative.id)} onChange={() => toggleCreative(creative.id)} />
+                <span>{creative.name} <span className="text-zinc-500">· {creative.role}</span></span>
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="flex flex-wrap gap-3">
         <button disabled={saving || uploadingImages} className="inline-flex items-center gap-2 rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">

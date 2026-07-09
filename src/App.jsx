@@ -9,6 +9,9 @@ import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import Services from './pages/Services';
 import Contact from './pages/Contact';
+import Creatives from './pages/Creatives';
+import CreativeDetails from './pages/CreativeDetails';
+import StartProject from './pages/StartProject';
 import Login from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard';
 import AdminProjects from './pages/admin/AdminProjects';
@@ -18,6 +21,9 @@ import SiteSettings from './pages/admin/SiteSettings';
 import ContentIndex from './pages/admin/ContentIndex';
 import ContentEditor from './pages/admin/ContentEditor';
 import IconsMedia from './pages/admin/IconsMedia';
+import AdminCreatives from './pages/admin/AdminCreatives';
+import AdminInquiries from './pages/admin/AdminInquiries';
+import AdminServiceBranches from './pages/admin/AdminServiceBranches';
 import { PublicContentProvider, usePublicContent } from './lib/contentApi';
 
 function SiteDocumentTitle() {
@@ -49,6 +55,9 @@ export default function App() {
       <Route path="/projects" element={<PublicLayout><Projects /></PublicLayout>} />
       <Route path="/projects/:slug" element={<PublicLayout><ProjectDetails /></PublicLayout>} />
       <Route path="/services" element={<PublicLayout><Services /></PublicLayout>} />
+      <Route path="/creatives" element={<PublicLayout><Creatives /></PublicLayout>} />
+      <Route path="/creatives/:slug" element={<PublicLayout><CreativeDetails /></PublicLayout>} />
+      <Route path="/start-a-project" element={<PublicLayout><StartProject /></PublicLayout>} />
       <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
       <Route path="/admin/login" element={<Login />} />
       <Route element={<ProtectedRoute />}>
@@ -56,6 +65,9 @@ export default function App() {
         <Route path="/admin/projects" element={<AdminProjects />} />
         <Route path="/admin/projects/new" element={<NewProject />} />
         <Route path="/admin/projects/:id/edit" element={<EditProject />} />
+        <Route path="/admin/creatives" element={<AdminCreatives />} />
+        <Route path="/admin/service-branches" element={<AdminServiceBranches />} />
+        <Route path="/admin/inquiries" element={<AdminInquiries />} />
         <Route path="/admin/settings" element={<SiteSettings />} />
         <Route path="/admin/content" element={<ContentIndex />} />
         <Route path="/admin/content/:pageKey" element={<ContentEditor />} />

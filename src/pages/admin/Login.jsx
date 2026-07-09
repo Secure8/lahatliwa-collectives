@@ -2,6 +2,7 @@ import { ArrowLeft, CheckCircle2, KeyRound, Lock, Mail, ShieldCheck, UserPlus } 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
+import { claimSignedInTeamRecord } from '../../lib/teamInvite';
 
 const modeCopy = {
   login: {
@@ -81,25 +82,19 @@ export default function Login() {
     setConfirmPassword('');
   }
 
-  async function claimInviteIfAvailable({ required = false } = {}) {
-    const { data, error: claimError } = await supabase.rpc('claim_team_invite');
-
-    if (claimError && required) {
-      throw claimError;
-    }
-
-    return { data, error: claimError };
-  }
-
   async function handleLogin() {
     const normalizedEmail = normalizeEmail(email);
-    const { error: loginError } = await supabase.auth.signInWithPassword({
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password,
     });
 
     if (loginError) throw loginError;
-    await claimInviteIfAvailable();
+
+    const { blockedReason, error: claimError } = await claimSignedInTeamRecord(loginData.user);
+    if (claimError) throw claimError;
+    if (blockedReason) throw new Error(blockedReason);
+
     navigate('/admin/dashboard');
   }
 
@@ -113,15 +108,6 @@ export default function Login() {
       throw new Error('Passwords do not match.');
     }
 
-    const { data: inviteData, error: inviteError } = await supabase
-      .rpc('check_team_invite', { invite_email: normalizedEmail })
-      .single();
-
-    if (inviteError) throw inviteError;
-    if (!inviteData?.allowed) {
-      throw new Error(inviteData?.message || 'This email has not been invited to the Lahat Liwa team.');
-    }
-
     const { data: signupData, error: signupError } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
@@ -133,7 +119,12 @@ export default function Login() {
     if (signupError) throw signupError;
 
     if (signupData.session) {
-      await claimInviteIfAvailable({ required: true });
+      const { blockedReason, error: claimError } = await claimSignedInTeamRecord(signupData.user);
+      if (claimError) throw claimError;
+      if (blockedReason) {
+        await supabase.auth.signOut();
+        throw new Error(blockedReason);
+      }
       navigate('/admin/dashboard');
       return;
     }
@@ -146,15 +137,6 @@ export default function Login() {
 
   async function handleReset() {
     const normalizedEmail = normalizeEmail(email);
-
-    const { data: inviteData, error: inviteError } = await supabase
-      .rpc('check_team_invite', { invite_email: normalizedEmail })
-      .single();
-
-    if (inviteError) throw inviteError;
-    if (!inviteData?.allowed) {
-      throw new Error(inviteData?.message || 'This email has not been invited to the Lahat Liwa team.');
-    }
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: `${window.location.origin}/admin/login`,
@@ -174,7 +156,10 @@ export default function Login() {
 
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) throw updateError;
-    await claimInviteIfAvailable();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const { blockedReason, error: claimError } = await claimSignedInTeamRecord(sessionData.session?.user);
+    if (claimError) throw claimError;
+    if (blockedReason) throw new Error(blockedReason);
     navigate('/admin/dashboard');
   }
 
@@ -268,7 +253,7 @@ export default function Login() {
 
           {isSetup && (
             <p className="mt-4 text-xs leading-5 text-zinc-500">
-              This is invite-only. The email must already exist in Team Management with an invited or active status.
+              This is only for invited Lahat Liwa team members. The email must already exist in Team Management with an invited or active status.
             </p>
           )}
 

@@ -3,6 +3,21 @@ create schema if not exists private;
 revoke all on schema private from public;
 grant usage on schema private to authenticated;
 
+do $$
+begin
+  if to_regprocedure('public.check_team_invite(text)') is not null then
+    revoke execute on function public.check_team_invite(text) from public, anon, authenticated;
+  end if;
+
+  if to_regprocedure('public.claim_team_invite()') is not null then
+    revoke execute on function public.claim_team_invite() from public, anon, authenticated;
+  end if;
+end;
+$$;
+
+drop function if exists public.check_team_invite(text);
+drop function if exists public.claim_team_invite();
+
 create or replace function private.guard_admin_user_self_update()
 returns trigger
 language plpgsql

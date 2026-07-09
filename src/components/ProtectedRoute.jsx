@@ -4,6 +4,7 @@ import LoadingState from './LoadingState';
 import { AdminAccessProvider, isPrivilegedRole, normalizeRole } from '../lib/adminAccess';
 import { PublicContentProvider } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
+import { claimSignedInTeamRecord, disabledTeamMessage, notInvitedMessage } from '../lib/teamInvite';
 
 export default function ProtectedRoute() {
   const sessionRef = useRef(null);
@@ -44,37 +45,14 @@ export default function ProtectedRoute() {
         .maybeSingle();
 
       if (!data && currentSession.user.email) {
-        const { data: claimedRecord } = await supabase
-          .rpc('claim_team_invite')
-          .maybeSingle();
+        const { data: claimedRecord, error: claimError, blockedReason: claimBlockedReason } = await claimSignedInTeamRecord(currentSession.user);
 
         if (claimedRecord) {
           data = claimedRecord;
-        }
-      }
-
-      if (!data && currentSession.user.email) {
-        const { data: emailRecord } = await supabase
-          .from('admin_users')
-          .select('id, user_id, email, display_name, avatar_url, role, status, creative_member_id')
-          .ilike('email', currentSession.user.email)
-          .maybeSingle();
-
-        if (emailRecord && !emailRecord.user_id && emailRecord.status === 'invited') {
-          const { data: claimedRecord } = await supabase
-            .from('admin_users')
-            .update({
-              user_id: currentSession.user.id,
-              email: currentSession.user.email,
-              status: emailRecord.status === 'invited' ? 'active' : emailRecord.status,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', emailRecord.id)
-            .select('id, user_id, email, display_name, avatar_url, role, status, creative_member_id')
-            .maybeSingle();
-          data = claimedRecord || emailRecord;
-        } else {
-          data = emailRecord;
+        } else if (claimError) {
+          adminError = claimError;
+        } else if (claimBlockedReason) {
+          setBlockedReason(claimBlockedReason);
         }
       }
 
@@ -83,10 +61,10 @@ export default function ProtectedRoute() {
         setError('Admin allowlist is not configured yet. Run the Supabase security migrations and add your user to admin_users.');
       } else if (!data) {
         updateAdminUser(null);
-        setBlockedReason('This account is signed in but is not on the team allowlist.');
+        setBlockedReason(notInvitedMessage);
       } else if (data.status === 'disabled') {
         updateAdminUser(data);
-        setBlockedReason('Access disabled. Ask a Super Admin to reactivate this account.');
+        setBlockedReason(disabledTeamMessage);
       } else {
         updateAdminUser({ ...data, role: normalizeRole(data.role) });
       }

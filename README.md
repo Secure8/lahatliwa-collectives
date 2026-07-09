@@ -252,6 +252,7 @@ After running `supabase/team_rbac_upgrade.sql`, run:
 
 ```text
 supabase/team_invite_setup.sql
+supabase/fix_team_invite_security_warnings.sql
 ```
 
 Team members added in `/admin/team` can then open `/admin/login` and choose `Set up team account`. Account setup is invite-only: the email must already exist in `admin_users` with `invited` or `active` status. Roles are never chosen during signup; they always come from the existing team record.

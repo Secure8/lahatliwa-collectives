@@ -1,5 +1,4 @@
-import Editor from '@monaco-editor/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Component, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminButton, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
@@ -24,6 +23,7 @@ export default function ContentEditor() {
   const [draftReady, setDraftReady] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const skipNextDraftSave = useRef(false);
@@ -179,45 +179,67 @@ export default function ContentEditor() {
           {message && <AdminNotice tone="success">{message}</AdminNotice>}
           {error && <AdminNotice>{error}</AdminNotice>}
 
-          <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+          <div className={`grid gap-5 ${advancedOpen ? 'xl:grid-cols-[0.9fr_1.1fr]' : ''}`}>
             <AdminSurface className="grid gap-5">
               <StructuredFields pageKey={pageKey} content={content} patch={patch} updateList={updateList} uploadHomeBackground={uploadHomeBackground} patchServiceGroup={patchServiceGroup} uploadServiceLogo={uploadServiceLogo} />
             </AdminSurface>
 
-            <AdminSurface className="hidden min-w-0 p-3 xl:block">
+            {advancedOpen ? <AdminSurface className="min-w-0 p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-sm text-zinc-300">Advanced JSON editor</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    try {
-                      const parsed = JSON.parse(jsonText);
-                      setContent(parsed);
-                      setJsonText(JSON.stringify(parsed, null, 2));
-                      setDirty(true);
-                      setError('');
-                    } catch (parseError) {
-                      setError(parseError.message);
-                    }
-                  }}
-                  className="rounded-md bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
-                >
-                  Apply JSON to form
-                </button>
+                <div>
+                  <p className="text-sm text-zinc-300">Advanced JSON editor</p>
+                  <p className="mt-1 text-xs text-zinc-500">Advanced edits are optional. The standard fields stay usable if this editor fails.</p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        const parsed = JSON.parse(jsonText);
+                        setContent(parsed);
+                        setJsonText(JSON.stringify(parsed, null, 2));
+                        setDirty(true);
+                        setError('');
+                      } catch (parseError) {
+                        setError(parseError.message || 'Invalid JSON. Fix the JSON before applying it to the form.');
+                      }
+                    }}
+                    className="rounded-md bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
+                  >
+                    Apply JSON to form
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdvancedOpen(false)}
+                    className="rounded-md bg-white/[0.035] px-3 py-2 text-xs text-zinc-500 ring-1 ring-white/[0.06] hover:text-zinc-200"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
-              <Editor
-                height="620px"
-                defaultLanguage="json"
-                theme="vs-dark"
-                value={jsonText}
+              <AdvancedEditorLoader
+                jsonText={jsonText}
                 onChange={(value) => {
-                  setJsonText(value || '');
+                  setJsonText(value);
                   setMessage('');
                   setDirty(true);
                 }}
-                options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: 'on', tabSize: 2, formatOnPaste: true, scrollBeyondLastLine: false }}
               />
-            </AdminSurface>
+            </AdminSurface> : (
+              <AdminSurface className="grid gap-4 border border-dashed border-white/[0.08] bg-transparent">
+                <div>
+                  <p className="text-sm font-medium text-zinc-200">Advanced JSON editor</p>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">Closed by default so the content editor loads quickly. Open it only when you need to edit the raw page structure.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen(true)}
+                  className="w-fit rounded-md bg-white/[0.055] px-4 py-2.5 text-sm font-medium text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085] hover:text-white"
+                >
+                  Open Advanced JSON Editor
+                </button>
+              </AdminSurface>
+            )}
           </div>
 
           <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
@@ -227,6 +249,113 @@ export default function ContentEditor() {
       )}
     </AdminLayout>
   );
+}
+
+function AdvancedEditorLoader({ jsonText, onChange }) {
+  const [EditorComponent, setEditorComponent] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const slowTimer = window.setTimeout(() => {
+      if (active) {
+        setLoadError('Advanced editor failed to load. You can still use the standard fields.');
+      }
+    }, 15000);
+
+    setEditorComponent(null);
+    setLoadError('');
+
+    import('../../components/admin/AdvancedJsonEditor')
+      .then((module) => {
+        window.clearTimeout(slowTimer);
+        if (!active) return;
+        setEditorComponent(() => module.default);
+        setLoadError('');
+      })
+      .catch(() => {
+        window.clearTimeout(slowTimer);
+        if (!active) return;
+        setLoadError('Advanced editor failed to load. You can still use the standard fields.');
+      });
+
+    return () => {
+      active = false;
+      window.clearTimeout(slowTimer);
+    };
+  }, [retryKey]);
+
+  if (loadError) {
+    return (
+      <div className="grid min-h-64 place-items-center rounded-md bg-zinc-950/45 p-6 text-center ring-1 ring-white/[0.07]">
+        <div className="max-w-sm">
+          <p className="text-sm font-medium text-zinc-200">{loadError}</p>
+          <p className="mt-2 text-xs leading-5 text-zinc-500">Your standard content fields are still active, and saving from the standard form will continue to work.</p>
+          <button
+            type="button"
+            onClick={() => setRetryKey((current) => current + 1)}
+            className="mt-4 rounded-md bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
+          >
+            Retry loading editor
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!EditorComponent) {
+    return (
+      <div className="grid h-[620px] place-items-center rounded-md bg-zinc-950/45 text-sm text-zinc-500 ring-1 ring-white/[0.07]">
+        Loading advanced JSON editor...
+      </div>
+    );
+  }
+
+  return (
+    <AdvancedEditorErrorBoundary key={retryKey} onRetry={() => setRetryKey((current) => current + 1)}>
+      <EditorComponent value={jsonText} onChange={onChange} />
+    </AdvancedEditorErrorBoundary>
+  );
+}
+
+class AdvancedEditorErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch() {
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="grid min-h-64 place-items-center rounded-md bg-zinc-950/45 p-6 text-center ring-1 ring-white/[0.07]">
+          <div className="max-w-sm">
+            <p className="text-sm font-medium text-zinc-200">Advanced editor failed to load. You can still use the standard fields.</p>
+            <p className="mt-2 text-xs leading-5 text-zinc-500">The visual/content fields are still available and safe to save.</p>
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false });
+                this.props.onRetry?.();
+              }}
+              className="mt-4 rounded-md bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
+            >
+              Retry loading editor
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackground, patchServiceGroup, uploadServiceLogo }) {

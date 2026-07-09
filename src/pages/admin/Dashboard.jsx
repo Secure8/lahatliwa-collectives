@@ -2,7 +2,7 @@ import { FileText, FolderKanban, Inbox, Plus, Settings, Users, Workflow } from '
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import DashboardStats from '../../components/admin/DashboardStats';
-import { AdminButton, AdminEmptyState, AdminPageHeader, AdminSoftPanel, AdminStatusBadge, AdminSurface } from '../../components/admin/AdminUI';
+import { AdminActionButton, AdminButton, AdminEmptyState, AdminPageHeader, AdminSoftPanel, AdminStatusBadge, AdminSurface } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { canCreateProjects, canManageAllProjects, canManageSettings, canManageTeam, useAdminAccess } from '../../lib/adminAccess';
 import { formatDate } from '../../lib/helpers';
@@ -110,7 +110,7 @@ export default function Dashboard() {
                         </div>
                         <p className="mt-1 text-sm text-zinc-500">{project.category} / {formatDate(project.created_at)}</p>
                       </div>
-                      <AdminButton to={`/admin/projects/${project.id}/edit`} variant="secondary">Edit</AdminButton>
+                      <AdminActionButton to={`/admin/projects/${project.id}/edit`}>Edit</AdminActionButton>
                     </AdminSoftPanel>
                   ))}
                 </div>
@@ -156,3 +156,4 @@ function QuickAction({ to, icon: Icon, label }) {
     </AdminButton>
   );
 }
+

@@ -322,7 +322,7 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
   }, [cached, pageKeys]);
 
   if (!content && loading) {
-    return createElement('div', { className: 'grid min-h-screen place-items-center bg-zinc-950 text-sm text-zinc-400' }, 'Loading portfolio...');
+    return createElement('div', { className: 'grid min-h-screen place-items-center bg-zinc-950 text-sm text-zinc-400' }, 'Loading Lahat Liwa...');
   }
 
   const value = { content: content || mergePublicContent(), loading };

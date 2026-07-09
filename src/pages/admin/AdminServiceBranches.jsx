@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminButton,
+  AdminActionButton,
+  AdminActionGroup,
   AdminCheckbox,
   AdminEmptyState,
   AdminInput,
@@ -156,14 +158,14 @@ export default function AdminServiceBranches() {
                 <p className="mt-2 text-xs text-zinc-600">/{branch.slug}</p>
                 {Array.isArray(branch.included_services) && branch.included_services.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {branch.included_services.map((service) => <span key={service} className="rounded-full bg-white/[0.055] px-2.5 py-1 text-xs text-zinc-400">{service}</span>)}
+                    {branch.included_services.map((service) => <span key={service} className="rounded-md bg-white/[0.055] px-2.5 py-1 text-xs text-zinc-400">{service}</span>)}
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <AdminButton onClick={() => editBranch(branch)} variant="secondary"><Edit size={16} /> Edit</AdminButton>
-                <AdminButton onClick={() => deleteBranch(branch)} variant="danger"><Trash2 size={16} /> Delete</AdminButton>
-              </div>
+              <AdminActionGroup>
+                <AdminActionButton onClick={() => editBranch(branch)}><Edit size={14} /> Edit</AdminActionButton>
+                <AdminActionButton onClick={() => deleteBranch(branch)} variant="danger"><Trash2 size={14} /> Delete</AdminActionButton>
+              </AdminActionGroup>
             </AdminSurface>
           ))}
         </div>
@@ -177,3 +179,4 @@ export default function AdminServiceBranches() {
     </AdminLayout>
   );
 }
+

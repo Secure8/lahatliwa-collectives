@@ -1,8 +1,8 @@
-# Hevv Portfolio
+# Lahat Liwa Collectives
 
-Modern portfolio website for Hevv Ching, built with React, Vite, Tailwind CSS, React Router, Supabase Auth, Supabase Database, and Supabase Storage.
+Modern public website and admin CMS for Lahat Liwa Collectives, built with React, Vite, Tailwind CSS, React Router, Supabase Auth, Supabase Database, and Supabase Storage.
 
-The site has a public portfolio area and a protected admin dashboard where a logged-in Supabase user can add, edit, publish, feature, and delete projects.
+The site has public pages for projects, creatives, service branches, and inquiries, plus a protected multi-user admin dashboard for team CMS workflows.
 
 ## Tech Stack
 

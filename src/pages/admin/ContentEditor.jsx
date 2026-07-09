@@ -200,7 +200,7 @@ export default function ContentEditor() {
                       setError(parseError.message);
                     }
                   }}
-                  className="rounded-full bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
+                  className="rounded-md bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
                 >
                   Apply JSON to form
                 </button>
@@ -290,7 +290,7 @@ function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackg
         </div>
         <div className="grid gap-4">
           {groups.map((group, index) => (
-            <div key={`${group.name || 'service'}-${index}`} className="grid gap-4 rounded-2xl bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
+            <div key={`${group.name || 'service'}-${index}`} className="grid gap-4 rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-medium text-zinc-200">Service {index + 1}</p>
                 <button
@@ -328,7 +328,7 @@ function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackg
         <button
           type="button"
           onClick={() => patch({ groups: [...groups, { name: 'New Service', description: '', items: [], iconName: 'Circle', iconUrl: '', customIconUrl: '', serviceLogoUrl: '' }] })}
-          className="w-fit rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]"
+          className="w-fit rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]"
         >
           Add service
         </button>
@@ -356,7 +356,7 @@ function Field({ label, value, onChange, type = 'text', min, max, step }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <input type={type} value={value} min={min} max={max} step={step} onChange={(event) => onChange(event.target.value)} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
+      <input type={type} value={value} min={min} max={max} step={step} onChange={(event) => onChange(event.target.value)} className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
     </label>
   );
 }
@@ -365,7 +365,7 @@ function Textarea({ label, value, onChange, onBlur, rows = 4 }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
+      <textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
     </label>
   );
 }
@@ -374,7 +374,7 @@ function Select({ label, value, options, onChange }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45">
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45">
         {options.map((option) => <option key={option} value={option}>{option}</option>)}
       </select>
     </label>
@@ -385,7 +385,7 @@ function ColorField({ label, value, onChange }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <div className="flex items-center gap-3 rounded-xl bg-zinc-950/55 px-3 py-2 ring-1 ring-white/[0.08]">
+      <div className="flex items-center gap-3 rounded-md bg-zinc-950/55 px-3 py-2 ring-1 ring-white/[0.08]">
         <input type="color" value={value} onChange={(event) => onChange(event.target.value)} className="h-9 w-12 bg-transparent" />
         <span className="font-mono text-xs text-zinc-400">{value}</span>
       </div>
@@ -395,17 +395,18 @@ function ColorField({ label, value, onChange }) {
 
 function UploadRow({ label, value, onFile, onClear }) {
   return (
-    <div className="rounded-2xl bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
+    <div className="rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
       <p className="text-sm text-zinc-300">{label}</p>
       <p className="mt-1 text-xs text-zinc-500">Images over 5 MB are compressed automatically. Videos should stay as external links.</p>
       {value && <img src={value} alt="" className="mt-3 max-h-28 max-w-full object-cover" />}
       <div className="mt-4 flex flex-wrap gap-3">
-        <label className="cursor-pointer rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
+        <label className="cursor-pointer rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
           Choose image
           <input className="sr-only" type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0])} />
         </label>
-        {value && <button type="button" onClick={onClear} className="rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-400 ring-1 ring-white/[0.08] hover:text-white">Remove</button>}
+        {value && <button type="button" onClick={onClear} className="rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-400 ring-1 ring-white/[0.08] hover:text-white">Remove</button>}
       </div>
     </div>
   );
 }
+

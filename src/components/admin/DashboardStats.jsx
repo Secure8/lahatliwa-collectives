@@ -19,3 +19,4 @@ export default function DashboardStats({ stats }) {
     </div>
   );
 }
+

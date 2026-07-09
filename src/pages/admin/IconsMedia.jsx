@@ -1,7 +1,7 @@
 import { Copy, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
+import { AdminActionButton, AdminActionGroup, AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { createMediaAsset, deleteMediaAsset, fetchMediaAssets, uploadMediaAssetFile } from '../../lib/contentApi';
 
@@ -92,7 +92,7 @@ export default function IconsMedia() {
         <Field label="Alt text" value={form.altText} onChange={(value) => update('altText', value)} />
         <label className="grid gap-2 text-sm text-zinc-300">
           Icon file
-          <span className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-zinc-950/55 px-3 py-3 text-zinc-200 ring-1 ring-white/[0.08] hover:ring-amber-200/30">
+          <span className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-zinc-950/55 px-3 py-3 text-zinc-200 ring-1 ring-white/[0.08] hover:ring-amber-200/30">
             <Upload size={16} /> {file ? file.name : 'Choose file'}
             <input className="sr-only" type="file" accept=".svg,image/svg+xml,image/png,image/webp" onChange={(event) => setFile(event.target.files?.[0] || null)} />
           </span>
@@ -107,7 +107,7 @@ export default function IconsMedia() {
           {assets.map((asset) => (
             <AdminSurface key={asset.id} as="article">
               <div className="flex items-start gap-4">
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-zinc-950/55 ring-1 ring-white/[0.07]">
+                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-zinc-950/55 ring-1 ring-white/[0.07]">
                   <img src={asset.url} alt={asset.alt_text || asset.name} className="max-h-10 max-w-10 object-contain" />
                 </div>
                 <div className="min-w-0">
@@ -116,14 +116,14 @@ export default function IconsMedia() {
                   <p className="mt-2 break-all text-xs text-zinc-500">{asset.url}</p>
                 </div>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button onClick={() => copyUrl(asset.url)} className="inline-flex items-center gap-2 rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-300 ring-1 ring-white/[0.08] hover:text-white" type="button">
-                  <Copy size={15} /> Copy URL
-                </button>
-                <button onClick={() => remove(asset)} className="inline-flex items-center gap-2 rounded-full bg-red-400/10 px-3 py-2 text-sm text-red-200 ring-1 ring-red-300/20 hover:bg-red-500/10" type="button">
-                  <Trash2 size={15} /> Delete
-                </button>
-              </div>
+              <AdminActionGroup className="mt-4">
+                <AdminActionButton onClick={() => copyUrl(asset.url)}>
+                  <Copy size={14} /> Copy URL
+                </AdminActionButton>
+                <AdminActionButton onClick={() => remove(asset)} variant="danger">
+                  <Trash2 size={14} /> Delete
+                </AdminActionButton>
+              </AdminActionGroup>
             </AdminSurface>
           ))}
         </div> : <AdminEmptyState title="No media assets yet" message="Uploaded icons and media assets will appear here." />
@@ -136,7 +136,8 @@ function Field({ label, value, onChange }) {
   return (
     <label className="grid gap-2 text-sm text-zinc-300">
       {label}
-      <input value={value} onChange={(event) => onChange(event.target.value)} className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
+      <input value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
     </label>
   );
 }
+

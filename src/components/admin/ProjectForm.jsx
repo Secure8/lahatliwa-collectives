@@ -520,7 +520,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6">
-      {error && <div className="rounded-xl bg-red-300/10 p-4 text-sm text-red-100 ring-1 ring-red-300/20">{error}</div>}
+      {error && <div className="rounded-md bg-red-300/10 p-4 text-sm text-red-100 ring-1 ring-red-300/20">{error}</div>}
 
       <FormSection eyebrow="Basic project info" title="Core details" description="Set the public title, URL slug, category, and description.">
       <div className="grid gap-5 lg:grid-cols-2">
@@ -528,7 +528,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         <Field label="Slug" required value={form.slug} onChange={updateSlug} onBlur={() => update('slug', slugify(form.slug))} />
         <label className="grid gap-2 text-sm text-zinc-300">
           Category
-          <select className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={form.category} onChange={(event) => update('category', event.target.value)} required>
+          <select className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={form.category} onChange={(event) => update('category', event.target.value)} required>
             {categories.map((category) => <option key={category}>{category}</option>)}
           </select>
         </label>
@@ -543,7 +543,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
       <label className="grid gap-2 text-sm text-zinc-300">
         Description
-        <textarea className="min-h-36 rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={form.description} onChange={(event) => update('description', event.target.value)} required />
+        <textarea className="min-h-36 rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={form.description} onChange={(event) => update('description', event.target.value)} required />
       </label>
 
       <Field label="Tools used, separated by commas" value={form.tools} onChange={(value) => update('tools', value)} />
@@ -559,7 +559,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           {form.cover_image && (
             <div>
               <p className="mb-2 text-xs text-zinc-500">Cover image</p>
-              <img src={getPublicImageUrl(form.cover_image)} alt="" className="h-28 max-w-full rounded-xl object-cover" />
+              <img src={getPublicImageUrl(form.cover_image)} alt="" className="h-28 max-w-full rounded-md object-cover" />
             </div>
           )}
           {form.gallery_images?.length > 0 && (
@@ -569,12 +569,12 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                 {form.gallery_images.map((file) => (
                   <div key={file} className="relative">
                     {isPdfFile(file)
-                      ? <a href={getPublicImageUrl(file)} target="_blank" rel="noreferrer" className="grid h-20 w-24 place-items-center rounded-xl bg-white/[0.05] pr-7 text-xs text-zinc-300 ring-1 ring-white/[0.07]">PDF</a>
-                      : <img src={getPublicImageUrl(file)} alt="" className="h-20 w-24 rounded-xl object-cover" />}
+                      ? <a href={getPublicImageUrl(file)} target="_blank" rel="noreferrer" className="grid h-20 w-24 place-items-center rounded-md bg-white/[0.05] pr-7 text-xs text-zinc-300 ring-1 ring-white/[0.07]">PDF</a>
+                      : <img src={getPublicImageUrl(file)} alt="" className="h-20 w-24 rounded-md object-cover" />}
                     <button
                       type="button"
                       onClick={() => removeGalleryFile(file)}
-                      className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-zinc-950/85 text-zinc-300 transition hover:text-red-200"
+                      className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-md bg-zinc-950/85 text-zinc-300 transition hover:text-red-200"
                       aria-label="Remove gallery file"
                     >
                       <Trash2 size={13} />
@@ -591,12 +591,12 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                 {pendingGalleryFiles.map((item) => (
                   <div key={item.id} className="relative">
                     {item.isPdf
-                      ? <div className="grid h-20 w-24 place-items-center rounded-xl bg-white/[0.05] pr-7 text-xs text-zinc-300 ring-1 ring-white/[0.07]">PDF</div>
-                      : <img src={item.previewUrl} alt="" className="h-20 w-24 rounded-xl object-cover" />}
+                      ? <div className="grid h-20 w-24 place-items-center rounded-md bg-white/[0.05] pr-7 text-xs text-zinc-300 ring-1 ring-white/[0.07]">PDF</div>
+                      : <img src={item.previewUrl} alt="" className="h-20 w-24 rounded-md object-cover" />}
                     <button
                       type="button"
                       onClick={() => removePendingGalleryFile(item.id)}
-                      className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-zinc-950/85 text-zinc-300 transition hover:text-red-200"
+                      className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-md bg-zinc-950/85 text-zinc-300 transition hover:text-red-200"
                       aria-label="Remove selected gallery file"
                     >
                       <Trash2 size={13} />
@@ -617,16 +617,16 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
           <Field label="Add external gallery link" value={externalUrl} onChange={setExternalUrl} />
-          <button type="button" onClick={addSingleExternalUrl} className="inline-flex h-fit items-center justify-center gap-2 self-end rounded-full bg-white/[0.055] px-4 py-3 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
+          <button type="button" onClick={addSingleExternalUrl} className="inline-flex h-fit items-center justify-center gap-2 self-end rounded-md bg-white/[0.055] px-4 py-3 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
             <Plus size={16} /> Add link
           </button>
         </div>
 
         <label className="grid gap-2 text-sm text-zinc-300">
           Bulk paste external links, one per line
-          <textarea className="min-h-24 rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={bulkExternalUrls} onChange={(event) => setBulkExternalUrls(event.target.value)} />
+          <textarea className="min-h-24 rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={bulkExternalUrls} onChange={(event) => setBulkExternalUrls(event.target.value)} />
         </label>
-        <button type="button" onClick={addBulkExternalUrls} className="w-fit rounded-full bg-white/[0.055] px-4 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
+        <button type="button" onClick={addBulkExternalUrls} className="w-fit rounded-md bg-white/[0.055] px-4 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
           Add pasted links
         </button>
 
@@ -713,7 +713,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </FormSection>
       )}
 
-      <div className="sticky bottom-4 z-10 flex flex-wrap gap-3 rounded-lg bg-zinc-950/92 p-3 shadow-[0_10px_34px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.08]">
+      <div className="sticky bottom-4 z-10 flex flex-wrap gap-3 rounded-lg bg-zinc-950/92 p-3  ring-1 ring-white/[0.08]">
         {canEditCurrent && (
         <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save'; }} className="inline-flex items-center gap-2 rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">
           <Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Saving...' : uploadingImages ? 'Uploading...' : 'Save project'}
@@ -749,13 +749,13 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
           <span>{item.platform || platformLabel(item.type)}</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={index === 0 || saving} onClick={() => onMove(item.id, -1)} className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.055] text-zinc-300 ring-1 ring-white/[0.08] disabled:opacity-40 hover:text-amber-200" aria-label="Move link up">
+          <button type="button" disabled={index === 0 || saving} onClick={() => onMove(item.id, -1)} className="grid h-9 w-9 place-items-center rounded-md bg-white/[0.055] text-zinc-300 ring-1 ring-white/[0.08] disabled:opacity-40 hover:text-amber-200" aria-label="Move link up">
             <ArrowUp size={15} />
           </button>
-          <button type="button" disabled={index === total - 1 || saving} onClick={() => onMove(item.id, 1)} className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.055] text-zinc-300 ring-1 ring-white/[0.08] disabled:opacity-40 hover:text-amber-200" aria-label="Move link down">
+          <button type="button" disabled={index === total - 1 || saving} onClick={() => onMove(item.id, 1)} className="grid h-9 w-9 place-items-center rounded-md bg-white/[0.055] text-zinc-300 ring-1 ring-white/[0.08] disabled:opacity-40 hover:text-amber-200" aria-label="Move link down">
             <ArrowDown size={15} />
           </button>
-          <button type="button" disabled={saving} onClick={() => onRemove(item.id)} className="inline-flex items-center gap-2 rounded-full bg-red-400/10 px-3 py-2 text-sm text-red-200 ring-1 ring-red-300/20 hover:bg-red-500/10">
+          <button type="button" disabled={saving} onClick={() => onRemove(item.id)} className="inline-flex items-center gap-2 rounded-md bg-red-400/10 px-3 py-2 text-sm text-red-200 ring-1 ring-red-300/20 hover:bg-red-500/10">
             <Trash2 size={15} /> Remove
           </button>
         </div>
@@ -765,7 +765,7 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
         <Field label="URL" value={item.url || ''} onChange={(value) => onChange({ url: value })} />
         <label className="grid gap-2 text-sm text-zinc-300">
           Platform
-          <select className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={item.type || 'external_link'} onChange={(event) => onChange({ type: event.target.value })}>
+          <select className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={item.type || 'external_link'} onChange={(event) => onChange({ type: event.target.value })}>
             {galleryItemTypes.map((type) => <option key={type} value={type}>{platformLabel(type)}</option>)}
           </select>
         </label>
@@ -775,11 +775,11 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
 
       <label className="grid gap-2 text-sm text-zinc-300">
         Optional description
-        <textarea className="min-h-20 rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={item.description || ''} onChange={(event) => onChange({ description: event.target.value })} />
+        <textarea className="min-h-20 rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={item.description || ''} onChange={(event) => onChange({ description: event.target.value })} />
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
           <Upload size={15} /> Upload thumbnail
           <input className="sr-only" type="file" accept="image/*" onChange={(event) => {
             onUploadThumbnail(event.target.files?.[0]);
@@ -794,7 +794,7 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
       </div>
 
       {item.thumbnail_url && (
-        <img src={item.thumbnail_url} alt="" className="h-24 max-w-48 rounded-xl object-cover" />
+        <img src={item.thumbnail_url} alt="" className="h-24 max-w-48 rounded-md object-cover" />
       )}
     </AdminSoftPanel>
   );
@@ -810,7 +810,7 @@ function Field({ label, value, onChange, type = 'text', required = false, onBlur
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
-        className="rounded-xl bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45"
+        className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45"
       />
     </label>
   );
@@ -828,4 +828,5 @@ function FormSection({ eyebrow, title, description, children }) {
     </AdminSurface>
   );
 }
+
 

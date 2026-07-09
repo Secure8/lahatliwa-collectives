@@ -69,15 +69,15 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="admin-shell min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,rgba(246,213,139,0.07),transparent_30%),linear-gradient(180deg,#101012_0%,#09090b_46%,#111113_100%)] text-white">
-      <aside className="fixed inset-x-0 top-0 z-30 bg-zinc-950/88 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-[1.5rem] lg:bg-zinc-900/80 lg:p-4 lg:shadow-[0_16px_48px_rgba(0,0,0,0.22)] lg:ring-1 lg:ring-white/[0.08]">
+      <aside className="fixed inset-x-0 top-0 z-30 bg-zinc-950/88 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-lg lg:bg-zinc-900/80 lg:p-4 lg: lg:ring-1 lg:ring-white/[0.08]">
         <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
           <div className="flex min-w-0 items-center gap-3 lg:block">
             <Link
               to="/admin/dashboard"
               preventScrollReset
               className={clsx(
-                'grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-sm font-bold',
-                content.logoUrl ? 'bg-transparent text-white' : 'bg-amber-300 text-zinc-950 shadow-[0_10px_24px_rgba(246,213,139,0.14)]'
+                'grid h-10 w-10 shrink-0 place-items-center rounded-lg text-sm font-bold',
+                content.logoUrl ? 'bg-transparent text-white' : 'bg-amber-300 text-zinc-950 '
               )}
             >
               {content.logoUrl ? (
@@ -106,26 +106,26 @@ export default function AdminLayout({ children }) {
           </nav>
 
           <div className="hidden gap-2 lg:grid">
-            <Link to="/" className="inline-flex items-center justify-center gap-2 rounded-full bg-white/[0.045] px-4 py-2.5 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-amber-100">
+            <Link to="/" className="inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.045] px-4 py-2.5 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-amber-100">
               <ExternalLink size={16} /> View site
             </Link>
-            <button onClick={logout} className="inline-flex items-center justify-center gap-2 rounded-full bg-white/[0.045] px-4 py-2.5 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-white">
+            <button onClick={logout} className="inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.045] px-4 py-2.5 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-white">
               <LogOut size={16} /> Logout
             </button>
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <Link to="/" className="grid h-10 w-10 place-items-center rounded-full bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.08]" aria-label="View site">
+            <Link to="/" className="grid h-10 w-10 place-items-center rounded-md bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.08]" aria-label="View site">
               <ExternalLink size={16} />
             </Link>
-            <button onClick={logout} className="grid h-10 w-10 place-items-center rounded-full bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.08]" aria-label="Logout">
+            <button onClick={logout} className="grid h-10 w-10 place-items-center rounded-md bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.08]" aria-label="Logout">
               <LogOut size={16} />
             </button>
           </div>
         </div>
         <nav className="admin-sidebar-scroll mt-3 flex gap-2 overflow-x-auto overscroll-x-contain pb-1 lg:hidden">
           {flatLinks.map(([label, href, Icon]) => (
-            <NavLink key={href} to={href} preventScrollReset className={({ isActive }) => clsx('inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors duration-150', isActive ? 'bg-amber-300 text-zinc-950' : 'bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.07]')}>
+            <NavLink key={href} to={href} preventScrollReset className={({ isActive }) => clsx('inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors duration-150', isActive ? 'bg-amber-300 text-zinc-950' : 'bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.07]')}>
               <Icon size={15} /> {label}
             </NavLink>
           ))}
@@ -149,17 +149,18 @@ function AdminNavLink({ label, href, Icon, onBeforeNavigate }) {
       }}
       className={({ isActive }) =>
         clsx(
-          'group flex items-center gap-3 rounded-full px-3 py-2.5 text-sm transition-colors duration-150',
+          'group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors duration-150',
           isActive
             ? 'bg-white/[0.09] text-white'
             : 'text-zinc-400 hover:bg-white/[0.055] hover:text-white'
         )
       }
     >
-      <span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.05] text-zinc-400 transition-colors duration-150 group-hover:text-amber-100">
+      <span className="grid h-8 w-8 place-items-center rounded-md bg-white/[0.05] text-zinc-400 transition-colors duration-150 group-hover:text-amber-100">
         <Icon size={16} />
       </span>
       {label}
     </NavLink>
   );
 }
+

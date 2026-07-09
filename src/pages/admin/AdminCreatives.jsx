@@ -1,7 +1,7 @@
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { AdminButton, AdminCheckbox, AdminEmptyState, AdminInput, AdminNotice, AdminPageHeader, AdminSoftPanel, AdminStatusBadge, AdminSurface, AdminTextarea } from '../../components/admin/AdminUI';
+import { AdminActionButton, AdminActionGroup, AdminButton, AdminCheckbox, AdminEmptyState, AdminInput, AdminNotice, AdminPageHeader, AdminSoftPanel, AdminStatusBadge, AdminSurface, AdminTextarea } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { parseList, slugify } from '../../lib/helpers';
 import { supabase } from '../../lib/supabaseClient';
@@ -162,11 +162,11 @@ export default function AdminCreatives() {
         <AdminTextarea label="Full bio" rows={5} value={form.full_bio || ''} onChange={(value) => update('full_bio', value)} />
         <AdminTextarea label="Social links, one per line as Label: URL" value={form.social_links || ''} onChange={(value) => update('social_links', value)} />
         <div className="flex flex-wrap items-center gap-3">
-          <label className="cursor-pointer rounded-full bg-white/[0.055] px-4 py-2.5 text-sm text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085]">
+          <label className="cursor-pointer rounded-md bg-white/[0.055] px-4 py-2.5 text-sm text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085]">
             Upload profile photo
             <input className="sr-only" type="file" accept="image/*" onChange={(event) => uploadProfile(event.target.files?.[0])} />
           </label>
-          {form.profile_image_url && <img src={form.profile_image_url} alt="" className="h-14 w-14 rounded-2xl object-cover" />}
+          {form.profile_image_url && <img src={form.profile_image_url} alt="" className="h-14 w-14 rounded-lg object-cover" />}
           <AdminCheckbox label="Featured" checked={form.is_featured} onChange={(value) => update('is_featured', value)} />
           <AdminCheckbox label="Published" checked={form.is_published} onChange={(value) => update('is_published', value)} />
         </div>
@@ -182,9 +182,9 @@ export default function AdminCreatives() {
             <AdminSurface key={creative.id} as="article" className="flex flex-col gap-5">
               <div className="flex items-start gap-4">
                 {creative.profile_image_url ? (
-                  <img src={creative.profile_image_url} alt="" className="h-16 w-16 rounded-2xl object-cover" />
+                  <img src={creative.profile_image_url} alt="" className="h-16 w-16 rounded-lg object-cover" />
                 ) : (
-                  <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white/[0.055] text-xl font-semibold text-zinc-500">{creative.name?.slice(0, 1) || 'L'}</div>
+                  <div className="grid h-16 w-16 place-items-center rounded-lg bg-white/[0.055] text-xl font-semibold text-zinc-500">{creative.name?.slice(0, 1) || 'L'}</div>
                 )}
                 <div className="min-w-0">
                   <h3 className="font-semibold text-white">{creative.name}</h3>
@@ -194,16 +194,18 @@ export default function AdminCreatives() {
               </div>
               {Array.isArray(creative.skills) && creative.skills.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {creative.skills.slice(0, 4).map((skill) => <span key={skill} className="rounded-full bg-white/[0.055] px-2.5 py-1 text-xs text-zinc-400">{skill}</span>)}
+                  {creative.skills.slice(0, 4).map((skill) => <span key={skill} className="rounded-md bg-white/[0.055] px-2.5 py-1 text-xs text-zinc-400">{skill}</span>)}
                 </div>
               )}
               <div className="mt-auto flex flex-wrap items-center gap-2">
                 {creative.is_featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}
                 <AdminStatusBadge status={creative.is_published ? 'published' : 'draft'}>{creative.is_published ? 'Published' : 'Draft'}</AdminStatusBadge>
               </div>
-              <AdminSoftPanel className="flex gap-2">
-                <AdminButton onClick={() => editCreative(creative)} variant="secondary"><Edit size={16} /> Edit</AdminButton>
-                <AdminButton onClick={() => deleteCreative(creative)} variant="danger"><Trash2 size={16} /> Delete</AdminButton>
+              <AdminSoftPanel className="p-2">
+                <AdminActionGroup>
+                  <AdminActionButton onClick={() => editCreative(creative)}><Edit size={14} /> Edit</AdminActionButton>
+                  <AdminActionButton onClick={() => deleteCreative(creative)} variant="danger"><Trash2 size={14} /> Delete</AdminActionButton>
+                </AdminActionGroup>
               </AdminSoftPanel>
             </AdminSurface>
           ))}
@@ -212,3 +214,4 @@ export default function AdminCreatives() {
     </AdminLayout>
   );
 }
+

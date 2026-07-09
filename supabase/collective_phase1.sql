@@ -168,7 +168,16 @@ create policy "Public can create project inquiries"
 on public.project_inquiries
 for insert
 to anon, authenticated
-with check (true);
+with check (
+  char_length(trim(name)) between 2 and 120
+  and char_length(trim(email_or_contact)) between 3 and 200
+  and char_length(trim(project_type)) between 2 and 120
+  and char_length(trim(message)) between 10 and 5000
+  and (organization is null or char_length(trim(organization)) <= 160)
+  and (budget_range is null or char_length(trim(budget_range)) <= 120)
+  and (preferred_contact is null or char_length(trim(preferred_contact)) <= 120)
+  and status = 'new'
+);
 
 drop policy if exists "Admins can manage project inquiries" on public.project_inquiries;
 create policy "Admins can manage project inquiries"

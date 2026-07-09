@@ -33,7 +33,7 @@ export function AdminPageHeader({ eyebrow, title, description, action }) {
 
 export function AdminSurface({ children, className = '', as: Component = 'section', ...props }) {
   return (
-    <Component {...props} className={clsx('rounded-lg bg-white/[0.045] p-5 shadow-[0_12px_36px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.07]', className)}>
+    <Component {...props} className={clsx('rounded-lg bg-white/[0.035] p-5 ring-1 ring-white/[0.055]', className)}>
       {children}
     </Component>
   );
@@ -51,7 +51,7 @@ export function AdminButton({ children, to, onClick, type = 'button', variant = 
   const classes = clsx(
     'inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-55',
     variant === 'primary'
-      ? 'bg-amber-300 text-zinc-950 shadow-[0_8px_22px_rgba(246,213,139,0.13)] hover:bg-amber-200'
+      ? 'bg-amber-300 text-zinc-950 hover:bg-amber-200'
       : variant === 'danger'
         ? 'bg-red-400/10 text-red-100 ring-1 ring-red-300/20 hover:bg-red-400/15'
         : variant === 'ghost'
@@ -67,16 +67,23 @@ export function AdminButton({ children, to, onClick, type = 'button', variant = 
   return <button type={type} onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
 }
 
-export function AdminIconButton({ children, label, onClick, to, variant = 'secondary', disabled = false }) {
+export function AdminActionGroup({ children, className = '' }) {
+  return <div className={clsx('flex flex-wrap items-center gap-1.5', className)}>{children}</div>;
+}
+
+export function AdminActionButton({ children, to, onClick, type = 'button', variant = 'secondary', disabled = false, className = '' }) {
   const classes = clsx(
-    'grid h-10 w-10 place-items-center rounded-md text-sm transition disabled:pointer-events-none disabled:opacity-40',
+    'inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium transition disabled:pointer-events-none disabled:opacity-50',
     variant === 'danger'
-      ? 'bg-red-400/10 text-red-100 ring-1 ring-red-300/20 hover:bg-red-400/15'
-      : 'bg-white/[0.055] text-zinc-300 ring-1 ring-white/[0.08] hover:bg-white/[0.085] hover:text-white'
+      ? 'text-red-200 hover:bg-red-300/10 hover:text-red-100'
+      : variant === 'primary'
+        ? 'bg-amber-300 text-zinc-950 hover:bg-amber-200'
+        : 'text-zinc-300 hover:bg-white/[0.055] hover:text-white',
+    className
   );
 
-  if (to) return <Link to={to} aria-label={label} title={label} className={classes}>{children}</Link>;
-  return <button type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
+  if (to) return <Link to={to} className={classes}>{children}</Link>;
+  return <button type={type} onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
 }
 
 export function AdminStatusBadge({ status, children }) {
@@ -173,3 +180,4 @@ export function AdminCheckbox({ label, checked, onChange }) {
     </label>
   );
 }
+

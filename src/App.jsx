@@ -1,8 +1,9 @@
 import { Route, Routes } from 'react-router-dom';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import LoadingState from './components/LoadingState';
 import Home from './pages/Home';
 import About from './pages/About';
 import Projects from './pages/Projects';
@@ -12,21 +13,22 @@ import Contact from './pages/Contact';
 import Creatives from './pages/Creatives';
 import CreativeDetails from './pages/CreativeDetails';
 import StartProject from './pages/StartProject';
-import Login from './pages/admin/Login';
-import Dashboard from './pages/admin/Dashboard';
-import AdminProjects from './pages/admin/AdminProjects';
-import NewProject from './pages/admin/NewProject';
-import EditProject from './pages/admin/EditProject';
-import SiteSettings from './pages/admin/SiteSettings';
-import ContentIndex from './pages/admin/ContentIndex';
-import ContentEditor from './pages/admin/ContentEditor';
-import IconsMedia from './pages/admin/IconsMedia';
-import AdminCreatives from './pages/admin/AdminCreatives';
-import AdminInquiries from './pages/admin/AdminInquiries';
-import AdminServiceBranches from './pages/admin/AdminServiceBranches';
-import AdminTeam from './pages/admin/AdminTeam';
 import AdminRouteGuard from './components/admin/AdminRouteGuard';
 import { PublicContentProvider, usePublicContent } from './lib/contentApi';
+
+const Login = lazy(() => import('./pages/admin/Login'));
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
+const NewProject = lazy(() => import('./pages/admin/NewProject'));
+const EditProject = lazy(() => import('./pages/admin/EditProject'));
+const SiteSettings = lazy(() => import('./pages/admin/SiteSettings'));
+const ContentIndex = lazy(() => import('./pages/admin/ContentIndex'));
+const ContentEditor = lazy(() => import('./pages/admin/ContentEditor'));
+const IconsMedia = lazy(() => import('./pages/admin/IconsMedia'));
+const AdminCreatives = lazy(() => import('./pages/admin/AdminCreatives'));
+const AdminInquiries = lazy(() => import('./pages/admin/AdminInquiries'));
+const AdminServiceBranches = lazy(() => import('./pages/admin/AdminServiceBranches'));
+const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 
 function SiteDocumentTitle() {
   const { content } = usePublicContent([]);
@@ -49,6 +51,14 @@ function PublicLayout({ children }) {
   );
 }
 
+function AdminSuspense({ children }) {
+  return (
+    <Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading admin" /></div>}>
+      {children}
+    </Suspense>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
@@ -61,20 +71,20 @@ export default function App() {
       <Route path="/creatives/:slug" element={<PublicLayout><CreativeDetails /></PublicLayout>} />
       <Route path="/start-a-project" element={<PublicLayout><StartProject /></PublicLayout>} />
       <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
-      <Route path="/admin/login" element={<Login />} />
+      <Route path="/admin/login" element={<AdminSuspense><Login /></AdminSuspense>} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/projects" element={<AdminProjects />} />
-        <Route path="/admin/projects/new" element={<NewProject />} />
-        <Route path="/admin/projects/:id/edit" element={<EditProject />} />
-        <Route path="/admin/creatives" element={<AdminCreatives />} />
-        <Route path="/admin/service-branches" element={<AdminServiceBranches />} />
-        <Route path="/admin/inquiries" element={<AdminInquiries />} />
-        <Route path="/admin/team" element={<AdminRouteGuard allow={['super_admin', 'admin']}><AdminTeam /></AdminRouteGuard>} />
-        <Route path="/admin/settings" element={<SiteSettings />} />
-        <Route path="/admin/content" element={<ContentIndex />} />
-        <Route path="/admin/content/:pageKey" element={<ContentEditor />} />
-        <Route path="/admin/media/icons" element={<IconsMedia />} />
+        <Route path="/admin/dashboard" element={<AdminSuspense><Dashboard /></AdminSuspense>} />
+        <Route path="/admin/projects" element={<AdminSuspense><AdminProjects /></AdminSuspense>} />
+        <Route path="/admin/projects/new" element={<AdminSuspense><NewProject /></AdminSuspense>} />
+        <Route path="/admin/projects/:id/edit" element={<AdminSuspense><EditProject /></AdminSuspense>} />
+        <Route path="/admin/creatives" element={<AdminSuspense><AdminCreatives /></AdminSuspense>} />
+        <Route path="/admin/service-branches" element={<AdminSuspense><AdminServiceBranches /></AdminSuspense>} />
+        <Route path="/admin/inquiries" element={<AdminSuspense><AdminInquiries /></AdminSuspense>} />
+        <Route path="/admin/team" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminTeam /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/settings" element={<AdminSuspense><SiteSettings /></AdminSuspense>} />
+        <Route path="/admin/content" element={<AdminSuspense><ContentIndex /></AdminSuspense>} />
+        <Route path="/admin/content/:pageKey" element={<AdminSuspense><ContentEditor /></AdminSuspense>} />
+        <Route path="/admin/media/icons" element={<AdminSuspense><IconsMedia /></AdminSuspense>} />
       </Route>
     </Routes>
   );

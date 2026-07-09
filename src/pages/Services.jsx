@@ -58,7 +58,7 @@ export default function Services() {
     <div className="page-shell py-20">
       <div className="max-w-3xl">
         <p className="text-xs font-medium uppercase tracking-[0.28em]" style={{ color: content.accentColor }}>Services</p>
-        <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.servicesPage.headingColor || content.primaryTextColor }}>Creative branches for practical digital work.</h1>
+        <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.servicesPage.headingColor || content.primaryTextColor }}>Service branches for practical digital work.</h1>
         <p className="mt-6 text-lg leading-8" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>Lahat Liwa Collectives works across studio, social, web, and creative production for teams, events, creators, and growing ideas.</p>
       </div>
       <div className="mt-14 grid gap-10 md:grid-cols-2">

@@ -1,5 +1,5 @@
 export const defaultSiteContent = {
-  legalName: 'Jevin Coching',
+  legalName: 'Lahat Liwa Collectives',
   displayName: 'Lahat Liwa',
   initials: 'LL',
   email: '',
@@ -7,9 +7,9 @@ export const defaultSiteContent = {
   logoUrl: '',
   logoAlt: 'Lahat Liwa logo',
   heroImageUrl: '',
-  heroImageAlt: 'Jevin Coching portrait',
+  heroImageAlt: 'Lahat Liwa Collectives hero portrait',
   showHeroPortrait: false,
-  footerText: 'A calm collective portfolio for visual work, social content, digital builds, and practical creative support.',
+  footerText: 'A calm collective website for visual work, social content, digital builds, and practical tech support.',
   primaryTextColor: '#f5f5f4',
   secondaryTextColor: '#d4d4d8',
   mutedTextColor: '#a1a1aa',
@@ -117,7 +117,7 @@ export const defaultPageContent = {
   contact: {
     heading: 'Let us build the next project.',
     description: 'For creative work, digital support, websites, apps, and project collaboration, reach out through email or social links.',
-    ctaText: 'Email Hevv',
+    ctaText: 'Email Lahat Liwa',
     notes: 'Use email for project inquiries, collaborations, and service requests.',
     headingColor: '',
     bodyTextColor: '',

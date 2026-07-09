@@ -3,7 +3,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.site_settings (
   id uuid primary key default gen_random_uuid(),
   brand_name text not null default 'Lahat Liwa',
-  personal_name text not null default 'Jevin Coching',
+  personal_name text not null default 'Lahat Liwa Collectives',
   tagline text,
   logo_url text,
   logo_alt text,

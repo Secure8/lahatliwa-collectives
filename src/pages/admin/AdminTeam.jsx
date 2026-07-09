@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminButton,
+  AdminActionButton,
+  AdminActionGroup,
   AdminEmptyState,
   AdminInput,
   AdminNotice,
@@ -210,10 +212,10 @@ export default function AdminTeam() {
                     <p className="mt-1 text-sm text-zinc-300">{linkedCreativeName(member.creative_member_id)}</p>
                     <p className="mt-1 text-xs text-zinc-600">{formatDate(member.created_at)}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end">
-                    <AdminButton onClick={() => editMember(member)} variant="secondary"><Edit size={15} /> Edit</AdminButton>
-                    <AdminButton onClick={() => removeMember(member)} variant="danger"><Trash2 size={15} /> Remove</AdminButton>
-                  </div>
+                  <AdminActionGroup className="lg:justify-end">
+                    <AdminActionButton onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>
+                    <AdminActionButton onClick={() => removeMember(member)} variant="danger"><Trash2 size={14} /> Remove</AdminActionButton>
+                  </AdminActionGroup>
                 </article>
               ))}
             </div>
@@ -223,3 +225,4 @@ export default function AdminTeam() {
     </AdminLayout>
   );
 }
+

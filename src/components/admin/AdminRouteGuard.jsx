@@ -18,3 +18,4 @@ export default function AdminRouteGuard({ allow = [], children }) {
   if (!children) return <Navigate to="/admin/dashboard" replace />;
   return children;
 }
+

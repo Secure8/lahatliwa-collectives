@@ -183,7 +183,7 @@ export default function AdminTeam() {
             </select>
           </label>
         </div>
-        <p className="text-xs leading-5 text-zinc-500">Create an invited record by email. When that person signs in with Supabase Auth using the same email, their account links to this role.</p>
+        <p className="text-xs leading-5 text-zinc-500">Create an invited record by email. The person can use "Set up team account" on the admin login page to create their password; their role always comes from this team record.</p>
         <div className="flex flex-wrap gap-3">
           <AdminButton disabled={saving} type="submit" variant="primary"><ShieldCheck size={17} /> {saving ? 'Saving...' : editingId ? 'Save member' : 'Add member'}</AdminButton>
           {editingId && <AdminButton onClick={resetForm} variant="ghost">Cancel</AdminButton>}

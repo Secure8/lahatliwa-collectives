@@ -44,13 +44,23 @@ export default function ProtectedRoute() {
         .maybeSingle();
 
       if (!data && currentSession.user.email) {
+        const { data: claimedRecord } = await supabase
+          .rpc('claim_team_invite')
+          .maybeSingle();
+
+        if (claimedRecord) {
+          data = claimedRecord;
+        }
+      }
+
+      if (!data && currentSession.user.email) {
         const { data: emailRecord } = await supabase
           .from('admin_users')
           .select('id, user_id, email, display_name, avatar_url, role, status, creative_member_id')
           .ilike('email', currentSession.user.email)
           .maybeSingle();
 
-        if (emailRecord && !emailRecord.user_id) {
+        if (emailRecord && !emailRecord.user_id && emailRecord.status === 'invited') {
           const { data: claimedRecord } = await supabase
             .from('admin_users')
             .update({

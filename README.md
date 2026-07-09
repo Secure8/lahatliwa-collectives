@@ -246,6 +246,16 @@ Raster images larger than 5 MB are automatically compressed into a web-optimized
 
 Only published projects appear on the public website.
 
+## Invite Team Accounts
+
+After running `supabase/team_rbac_upgrade.sql`, run:
+
+```text
+supabase/team_invite_setup.sql
+```
+
+Team members added in `/admin/team` can then open `/admin/login` and choose `Set up team account`. Account setup is invite-only: the email must already exist in `admin_users` with `invited` or `active` status. Roles are never chosen during signup; they always come from the existing team record.
+
 ## Video Notes
 
 Do not upload large videos directly into this app. Use YouTube, Vimeo, Google Drive, or another video hosting service, then paste the video URL into the project form.

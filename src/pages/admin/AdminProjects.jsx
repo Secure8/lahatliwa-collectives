@@ -7,6 +7,7 @@ import LoadingState from '../../components/LoadingState';
 import { canCreateProjects, canDeleteProject, canManageAllProjects, useAdminAccess } from '../../lib/adminAccess';
 import { supabase } from '../../lib/supabaseClient';
 import { deleteImages } from '../../lib/storage';
+import { collectProjectMediaPaths } from '../../lib/projectMediaCleanup';
 
 export default function AdminProjects() {
   const [projects, setProjects] = useState([]);
@@ -108,16 +109,16 @@ export default function AdminProjects() {
     }
     const confirmed = window.confirm(`Delete "${project.title}"? This cannot be undone.`);
     if (!confirmed) return;
+    const projectMediaPaths = collectProjectMediaPaths(project);
+    const { error: queueError } = await supabase.rpc('enqueue_project_media_cleanup', { p_project_id: project.id, p_paths: projectMediaPaths, p_reason: 'project_deleted' });
+    if (queueError) { setError(queueError.message); return; }
     const { error: deleteError } = await supabase.from('projects').delete().eq('id', project.id);
     if (deleteError) {
       setError(deleteError.message);
       return;
     }
 
-    const thumbnailPaths = (project.gallery_items || [])
-      .map((item) => item.thumbnail_storage_path)
-      .filter(Boolean);
-    await deleteImages([project.cover_image, ...(project.gallery_images || []), ...thumbnailPaths]);
+    try { await deleteImages(projectMediaPaths); await supabase.rpc('complete_project_cleanup_paths', { p_project_id: project.id, p_paths: projectMediaPaths }); } catch { setError(`Project deleted. ${projectMediaPaths.length} media files were queued for cleanup.`); }
     setProjects((current) => current.filter((item) => item.id !== project.id));
   }
 

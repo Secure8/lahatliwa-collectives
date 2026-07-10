@@ -12,6 +12,7 @@ import {
 import { canApproveProjects, canEditProject, useAdminAccess } from '../../lib/adminAccess';
 import { categories, parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
+import { collectProjectMediaPaths } from '../../lib/projectMediaCleanup';
 import {
   buildProjectContributorRow,
   contributorCreditRoles,
@@ -278,6 +279,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       validateCoverUploadFile(file);
       setUploadingImages(true);
       const path = await uploadCoverImage(file, { onStatus: trackImageUpload });
+      if (form.cover_image && form.cover_image !== path) {
+        setRemovedGalleryPaths((current) => current.includes(form.cover_image) ? current : [...current, form.cover_image]);
+      }
       update('cover_image', path);
     } catch (uploadError) {
       setError(uploadError.message || 'Cover image upload failed.');
@@ -613,7 +617,18 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           if (contributorDeleteError) throw contributorDeleteError;
         }
       }
-      if (removedGalleryPaths.length) await deleteImages(removedGalleryPaths);
+      if (removedGalleryPaths.length) {
+        const cleanupPaths = collectProjectMediaPaths({ gallery_images: removedGalleryPaths });
+        const { error: queueError } = await supabase.rpc('enqueue_project_media_cleanup', { p_project_id: projectId, p_paths: cleanupPaths, p_reason: 'media_removed' });
+        if (queueError) throw queueError;
+        try {
+          await deleteImages(cleanupPaths);
+          await supabase.rpc('complete_project_cleanup_paths', { p_project_id: projectId, p_paths: cleanupPaths });
+          setOptimizationMessage('Removed media and Storage cleanup completed.');
+        } catch (cleanupError) {
+          setOptimizationMessage('Media was removed. Storage cleanup has been queued for retry.');
+        }
+      }
       pendingGalleryFiles.forEach((item) => {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       });

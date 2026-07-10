@@ -95,5 +95,6 @@ export async function uploadExternalThumbnail(file, projectSlug = 'project', { o
 export async function deleteImages(paths) {
   const removable = (Array.isArray(paths) ? paths : [paths]).filter((path) => path && !path.startsWith('http'));
   if (removable.length === 0) return;
-  await supabase.storage.from(BUCKET).remove(removable);
+  const { error } = await supabase.storage.from(BUCKET).remove([...new Set(removable)]);
+  if (error) throw error;
 }

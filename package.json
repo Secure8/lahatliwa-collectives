@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:credits": "node --test src/lib/projectCredits.test.js"
+    "test:credits": "node --test src/lib/projectCredits.test.js",
+    "test:media": "node --test src/lib/projectMediaCleanup.test.js",
+    "worker:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-storage-cleanup-worker.ps1",
+    "worker:test": "powershell -ExecutionPolicy Bypass -File scripts/test-storage-cleanup-worker.ps1",
+    "worker:rotate-secret": "powershell -ExecutionPolicy Bypass -File scripts/setup-storage-cleanup-worker.ps1 -RotateSecret",
+    "worker:status": "powershell -ExecutionPolicy Bypass -File scripts/get-storage-cleanup-worker-status.ps1"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

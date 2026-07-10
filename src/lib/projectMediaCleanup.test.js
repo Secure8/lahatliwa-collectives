@@ -1,0 +1,5 @@
+import assert from 'node:assert/strict'; import test from 'node:test';
+import { classifyUnreferencedObject, collectProjectMediaPaths, normalizeStoragePath } from './projectMediaCleanup.js';
+test('normalizes relative and public storage paths',()=>{assert.equal(normalizeStoragePath('projects/covers/a.webp'),'projects/covers/a.webp');assert.equal(normalizeStoragePath('https://x.supabase.co/storage/v1/object/public/project-media/projects/covers/a.webp?x=1'),'projects/covers/a.webp');});
+test('collects unique project media paths',()=>{assert.deepEqual(collectProjectMediaPaths({cover_image:'projects/covers/a.webp',gallery_images:['projects/gallery/b.webp','projects/gallery/b.webp'],gallery_items:[{thumbnail_storage_path:'projects/thumbnails/c.webp'}]}),['projects/covers/a.webp','projects/gallery/b.webp','projects/thumbnails/c.webp']);});
+test('respects safety window when classifying unreferenced objects',()=>{assert.equal(classifyUnreferencedObject({name:'projects/x.webp',created_at:new Date().toISOString()},new Set()),'possible_orphan');assert.equal(classifyUnreferencedObject({name:'projects/x.webp',created_at:'2020-01-01'},new Set()),'confirmed_orphan');});

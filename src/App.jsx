@@ -29,6 +29,8 @@ const AdminCreatives = lazy(() => import('./pages/admin/AdminCreatives'));
 const AdminInquiries = lazy(() => import('./pages/admin/AdminInquiries'));
 const AdminServiceBranches = lazy(() => import('./pages/admin/AdminServiceBranches'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
+const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
+const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
 
 function SiteDocumentTitle() {
   const { content } = usePublicContent([]);
@@ -74,6 +76,8 @@ export default function App() {
       <Route path="/admin/login" element={<AdminSuspense><Login /></AdminSuspense>} />
       <Route element={<ProtectedRoute />}>
         <Route path="/admin/dashboard" element={<AdminSuspense><Dashboard /></AdminSuspense>} />
+        <Route path="/admin/my-profile" element={<AdminSuspense><MyProfile /></AdminSuspense>} />
+        <Route path="/admin/directory" element={<AdminSuspense><CreativeDirectory /></AdminSuspense>} />
         <Route path="/admin/projects" element={<AdminSuspense><AdminProjects /></AdminSuspense>} />
         <Route path="/admin/projects/new" element={<AdminSuspense><NewProject /></AdminSuspense>} />
         <Route path="/admin/projects/:id/edit" element={<AdminSuspense><EditProject /></AdminSuspense>} />

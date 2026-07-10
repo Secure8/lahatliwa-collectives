@@ -5,12 +5,15 @@ import { AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
 import ProjectForm from '../../components/admin/ProjectForm';
 import LoadingState from '../../components/LoadingState';
 import { supabase } from '../../lib/supabaseClient';
+import { canEditProject, canManageAllProjects, useAdminAccess } from '../../lib/adminAccess';
+import ContributorRequestPanel from '../../components/admin/ContributorRequestPanel';
 
 export default function EditProject() {
   const { id } = useParams();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { role, user, adminUser } = useAdminAccess();
 
   useEffect(() => {
     async function loadProject() {
@@ -27,7 +30,9 @@ export default function EditProject() {
       <AdminPageHeader eyebrow="Edit" title="Edit Project" description="Refine project details, gallery content, contributor assignments, and publishing settings." />
       {loading && <LoadingState label="Loading project" />}
       {error && <AdminNotice>{error}</AdminNotice>}
-      {project && <ProjectForm initialProject={project} mode="edit" />}
+      {project && (canEditProject(role, project, user?.id) || canManageAllProjects(role)
+        ? <><ProjectForm initialProject={project} mode="edit" /><div className="mt-6"><ContributorRequestPanel project={project} creativeId={adminUser?.creative_member_id} canReview /></div></>
+        : <><AdminNotice tone="success" className="mb-5">You can view this project as a contributor. Editing and credit management require owner, editor, manager, or administrator access.</AdminNotice><ContributorRequestPanel project={project} creativeId={adminUser?.creative_member_id} /></>)}
     </AdminLayout>
   );
 }

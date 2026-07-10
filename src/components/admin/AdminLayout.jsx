@@ -1,4 +1,4 @@
-import { ExternalLink, FileText, FolderKanban, Images, Inbox, LayoutDashboard, LogOut, Settings, UserCog, Users, Workflow } from 'lucide-react';
+import { ExternalLink, FileText, FolderKanban, Images, Inbox, LayoutDashboard, LogOut, Settings, User, UserCog, Users, Workflow } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -11,6 +11,8 @@ const links = [
     ['Dashboard', '/admin/dashboard', LayoutDashboard, () => true],
   ]],
   ['Studio', [
+    ['My Profile', '/admin/my-profile', User, ({ role }) => ['super_admin', 'admin', 'editor', 'creative'].includes(role)],
+    ['Directory', '/admin/directory', Users, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
     ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
     ['Services', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],

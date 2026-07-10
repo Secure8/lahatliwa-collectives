@@ -52,8 +52,11 @@ const contributorRoles = [
   'Photo Editor',
   'Videographer',
   'Video Editor',
+  'Page Manager',
   'Social Media Manager',
   'Content Planner',
+  'Caption Writer',
+  'Visual Creator',
   'Web Developer',
   'Graphic Designer',
   'Creative Director',
@@ -61,12 +64,56 @@ const contributorRoles = [
   'Contributor',
 ];
 
+const legacyContributorRoles = new Set([
+  'Photographer',
+  'Photo Editor',
+  'Videographer',
+  'Video Editor',
+  'Social Media Manager',
+  'Content Planner',
+  'Web Developer',
+  'Graphic Designer',
+  'Creative Director',
+  'Project Lead',
+  'Contributor',
+]);
+
+function uniqueRoles(roles) {
+  const seen = new Set();
+  return (roles || []).map((role) => String(role).trim()).filter((role) => {
+    const key = role.toLocaleLowerCase();
+    if (!role || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function splitCreditRoles(roles) {
+  const normalized = uniqueRoles(roles);
+  const presets = normalized.filter((role) => contributorRoles.includes(role));
+  const customRoles = normalized.filter((role) => !contributorRoles.includes(role)).join(', ');
+  return { roles: presets, customRoles };
+}
+
+function contributorCreditRoles(details) {
+  return uniqueRoles([
+    ...(details?.roles || []),
+    ...(details?.customRoles || '').split(','),
+  ]);
+}
+
+function isMissingCreditRolesColumn(error) {
+  const message = `${error?.message || ''} ${error?.details || ''}`;
+  return /credit_roles/i.test(message) && /(column|schema cache|does not exist)/i.test(message);
+}
+
 export default function ProjectForm({ initialProject, mode = 'new' }) {
   const navigate = useNavigate();
   const { role, user, adminUser } = useAdminAccess();
   const canApprove = canApproveProjects(role);
   const canEditCurrent = !initialProject || canEditProject(role, initialProject, user?.id);
   const draftKey = useMemo(() => `hevv-project-form-draft-v2:${mode}:${initialProject?.id || 'new'}`, [mode, initialProject?.id]);
+  const contributorDraftKey = useMemo(() => `${draftKey}:contributors`, [draftKey]);
   const [form, setForm] = useState(emptyProject);
   const [slugTouched, setSlugTouched] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
@@ -80,6 +127,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [creativeMembers, setCreativeMembers] = useState([]);
   const [selectedCreativeIds, setSelectedCreativeIds] = useState([]);
   const [contributorDetails, setContributorDetails] = useState({});
+  const [contributorDraftReady, setContributorDraftReady] = useState(false);
+  const [contributorsDirty, setContributorsDirty] = useState(false);
+  const [creditRolesSupported, setCreditRolesSupported] = useState(null);
   const [externalUrl, setExternalUrl] = useState('');
   const [bulkExternalUrls, setBulkExternalUrls] = useState('');
   const [error, setError] = useState('');
@@ -88,6 +138,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
   useEffect(() => {
     setDraftReady(false);
+    setContributorDraftReady(false);
+    setContributorsDirty(false);
     setDirty(false);
     setRemovedGalleryPaths([]);
     setPendingGalleryFiles((current) => {
@@ -130,6 +182,14 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   }, [dirty, draftKey, draftReady, form]);
 
   useEffect(() => {
+    if (!contributorDraftReady || !contributorsDirty) return;
+    try {
+      window.localStorage.setItem(contributorDraftKey, JSON.stringify({ selectedCreativeIds, contributorDetails }));
+    } catch {
+    }
+  }, [contributorDetails, contributorDraftKey, contributorDraftReady, contributorsDirty, selectedCreativeIds]);
+
+  useEffect(() => {
     if (!draftReady || !dirty) return undefined;
     const warnBeforeLeaving = (event) => {
       event.preventDefault();
@@ -152,33 +212,69 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         .select('id, name, role')
         .order('display_order', { ascending: true, nullsFirst: false })
         .order('name', { ascending: true });
-      setCreativeMembers(data || []);
+      const availableCreatives = data || [];
+      const availableCreativeIds = new Set(availableCreatives.map((creative) => creative.id));
+      setCreativeMembers(availableCreatives);
+
+      function applyContributorState(defaultIds, defaultDetails) {
+        let savedContributorDraft = null;
+        try {
+          savedContributorDraft = JSON.parse(window.localStorage.getItem(contributorDraftKey) || 'null');
+        } catch {
+          savedContributorDraft = null;
+        }
+        const savedIds = Array.isArray(savedContributorDraft?.selectedCreativeIds)
+          ? savedContributorDraft.selectedCreativeIds.filter((creativeId) => availableCreativeIds.has(creativeId))
+          : null;
+        const hasSavedDraft = savedIds && savedContributorDraft?.contributorDetails && typeof savedContributorDraft.contributorDetails === 'object';
+        setSelectedCreativeIds(hasSavedDraft ? savedIds : defaultIds);
+        setContributorDetails(hasSavedDraft ? savedContributorDraft.contributorDetails : defaultDetails);
+        setContributorsDirty(Boolean(hasSavedDraft));
+        setContributorDraftReady(true);
+      }
 
       if (initialProject?.id) {
-        const { data: links } = await supabase
+        let { data: links, error: linksError } = await supabase
           .from('project_creatives')
-          .select('creative_id, creative_member_id, contribution_role, role, is_primary, display_order')
+          .select('creative_id, creative_member_id, contribution_role, role, credit_roles, is_primary, display_order')
           .eq('project_id', initialProject.id);
+        if (isMissingCreditRolesColumn(linksError)) {
+          setCreditRolesSupported(false);
+          ({ data: links, error: linksError } = await supabase
+            .from('project_creatives')
+            .select('creative_id, creative_member_id, contribution_role, role, is_primary, display_order')
+            .eq('project_id', initialProject.id));
+        } else if (!linksError) {
+          setCreditRolesSupported(true);
+        }
+        if (linksError) setError(linksError.message || 'Project credits could not be loaded.');
         const normalizedLinks = (links || []).map((link) => ({
           creativeId: link.creative_member_id || link.creative_id,
-          role: link.role || link.contribution_role || 'Contributor',
+          ...splitCreditRoles(link.credit_roles?.length ? link.credit_roles : [link.role || link.contribution_role || 'Contributor']),
           isPrimary: link.is_primary === true,
           displayOrder: link.display_order ?? '',
         })).filter((link) => link.creativeId);
-        setSelectedCreativeIds(normalizedLinks.map((link) => link.creativeId));
-        setContributorDetails(Object.fromEntries(normalizedLinks.map((link) => [link.creativeId, {
-          role: link.role,
+        applyContributorState(normalizedLinks.map((link) => link.creativeId), Object.fromEntries(normalizedLinks.map((link) => [link.creativeId, {
+          roles: link.roles,
+          customRoles: link.customRoles,
           isPrimary: link.isPrimary,
           displayOrder: link.displayOrder,
         }])));
       } else {
+        const { error: supportError } = await supabase
+          .from('project_creatives')
+          .select('credit_roles')
+          .limit(1);
+        setCreditRolesSupported(isMissingCreditRolesColumn(supportError) ? false : supportError ? null : true);
         const linkedCreativeId = adminUser?.creative_member_id || '';
-        setSelectedCreativeIds(linkedCreativeId ? [linkedCreativeId] : []);
-        setContributorDetails(linkedCreativeId ? { [linkedCreativeId]: { role: 'Project Lead', isPrimary: true, displayOrder: 0 } } : {});
+        applyContributorState(
+          linkedCreativeId ? [linkedCreativeId] : [],
+          linkedCreativeId ? { [linkedCreativeId]: { roles: ['Project Lead'], customRoles: '', isPrimary: true, displayOrder: 0 } } : {},
+        );
       }
     }
     loadCreativeOptions();
-  }, [adminUser?.creative_member_id, initialProject?.id]);
+  }, [adminUser?.creative_member_id, contributorDraftKey, initialProject?.id]);
 
   useEffect(() => {
     pendingGalleryFilesRef.current = pendingGalleryFiles;
@@ -279,8 +375,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     ));
     setContributorDetails((current) => ({
       ...current,
-      [id]: current[id] || { role: 'Contributor', isPrimary: false, displayOrder: selectedCreativeIds.length * 100 },
+      [id]: current[id] || { roles: ['Contributor'], customRoles: '', isPrimary: false, displayOrder: selectedCreativeIds.length * 100 },
     }));
+    setContributorsDirty(true);
     setDirty(true);
   }
 
@@ -289,13 +386,23 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       const next = { ...current };
       if (patch.isPrimary === true) {
         selectedCreativeIds.forEach((creativeId) => {
-          next[creativeId] = { ...(next[creativeId] || { role: 'Contributor', isPrimary: false, displayOrder: '' }), isPrimary: false };
+          next[creativeId] = { ...(next[creativeId] || { roles: ['Contributor'], customRoles: '', isPrimary: false, displayOrder: '' }), isPrimary: false };
         });
       }
-      next[id] = { ...(next[id] || { role: 'Contributor', isPrimary: false, displayOrder: '' }), ...patch };
+      next[id] = { ...(next[id] || { roles: ['Contributor'], customRoles: '', isPrimary: false, displayOrder: '' }), ...patch };
       return next;
     });
+    setContributorsDirty(true);
     setDirty(true);
+  }
+
+  function toggleContributorRole(id, creditRole) {
+    const currentRoles = contributorDetails[id]?.roles || [];
+    updateContributor(id, {
+      roles: currentRoles.includes(creditRole)
+        ? currentRoles.filter((roleName) => roleName !== creditRole)
+        : [...currentRoles, creditRole],
+    });
   }
 
   function externalGalleryItems() {
@@ -412,6 +519,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   function clearDraft() {
     try {
       window.localStorage.removeItem(draftKey);
+      window.localStorage.removeItem(contributorDraftKey);
     } catch {
     }
   }
@@ -432,6 +540,18 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     if (['approve', 'reject', 'publish', 'archive'].includes(submitAction) && !canApprove) {
       setSaving(false);
       setError('You do not have permission to review this project.');
+      return;
+    }
+    if (selectedCreativeIds.length && creditRolesSupported === false) {
+      setSaving(false);
+      setError('Multiple credit roles need the project_credit_roles.sql migration. Run it in Supabase, then reopen this project.');
+      return;
+    }
+
+    const missingCreditCreative = selectedCreativeIds.find((creativeId) => !contributorCreditRoles(contributorDetails[creativeId]).length);
+    if (missingCreditCreative) {
+      setSaving(false);
+      setError('Choose or add at least one credit role for every selected creative.');
       return;
     }
 
@@ -504,21 +624,36 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       if (saveError) throw saveError;
       const projectId = initialProject?.id || savedProject?.id;
       if (projectId) {
-        await supabase.from('project_creatives').delete().eq('project_id', projectId);
         if (selectedCreativeIds.length) {
-          const contributorRows = selectedCreativeIds.map((creativeId, index) => ({
-            project_id: projectId,
-            creative_id: creativeId,
-            creative_member_id: creativeId,
-            contribution_role: contributorDetails[creativeId]?.role || 'Contributor',
-            role: contributorDetails[creativeId]?.role || 'Contributor',
-            is_primary: contributorDetails[creativeId]?.isPrimary === true,
-            display_order: contributorDetails[creativeId]?.displayOrder === '' || contributorDetails[creativeId]?.displayOrder == null
-              ? index * 100
-              : Number(contributorDetails[creativeId].displayOrder),
-          }));
-          const { error: contributorError } = await supabase.from('project_creatives').insert(contributorRows);
+          const contributorRows = selectedCreativeIds.map((creativeId, index) => {
+            const creditRoles = contributorCreditRoles(contributorDetails[creativeId]);
+            const legacyRole = creditRoles.find((creditRole) => legacyContributorRoles.has(creditRole)) || 'Contributor';
+            return {
+              project_id: projectId,
+              creative_id: creativeId,
+              creative_member_id: creativeId,
+              credit_roles: creditRoles,
+              contribution_role: legacyRole,
+              role: legacyRole,
+              is_primary: contributorDetails[creativeId]?.isPrimary === true,
+              display_order: contributorDetails[creativeId]?.displayOrder === '' || contributorDetails[creativeId]?.displayOrder == null
+                ? index * 100
+                : Number(contributorDetails[creativeId].displayOrder),
+            };
+          });
+          const { error: contributorError } = await supabase
+            .from('project_creatives')
+            .upsert(contributorRows, { onConflict: 'project_id,creative_id' });
           if (contributorError) throw contributorError;
+          const { error: staleContributorError } = await supabase
+            .from('project_creatives')
+            .delete()
+            .eq('project_id', projectId)
+            .not('creative_id', 'in', `(${selectedCreativeIds.join(',')})`);
+          if (staleContributorError) throw staleContributorError;
+        } else {
+          const { error: contributorDeleteError } = await supabase.from('project_creatives').delete().eq('project_id', projectId);
+          if (contributorDeleteError) throw contributorDeleteError;
         }
       }
       if (removedGalleryPaths.length) await deleteImages(removedGalleryPaths);
@@ -720,30 +855,41 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       </FormSection>
 
       {creativeMembers.length > 0 && (
-        <FormSection eyebrow="Contributors" title="Project contributors" description="Assign one or more creatives who handled this work.">
+        <FormSection eyebrow="Contributors" title="Project contributors" description="Assign creatives and give each person every role they handled. Choose any number of roles or add your own.">
           <div>
             <h2 className="sr-only">Project Contributors</h2>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {creativeMembers.map((creative) => (
-              <div key={creative.id} className="rounded-md bg-zinc-950/55 p-3 text-sm text-zinc-300 ring-1 ring-white/[0.07]">
-                <label className="flex items-center gap-3">
+              <div key={creative.id} className="min-w-0 rounded-md bg-zinc-950/55 p-3 text-sm text-zinc-300 ring-1 ring-white/[0.07] sm:p-4">
+                <label className="flex min-w-0 items-start gap-3 sm:items-center">
                 <input type="checkbox" checked={selectedCreativeIds.includes(creative.id)} onChange={() => toggleCreative(creative.id)} className="h-4 w-4 accent-amber-300" />
-                <span>{creative.name} <span className="text-zinc-500">/ {creative.role}</span></span>
+                <span className="min-w-0 leading-5"><span className="text-zinc-200">{creative.name}</span> <span className="block text-zinc-500 sm:inline">/ {creative.role}</span></span>
                 </label>
                 {selectedCreativeIds.includes(creative.id) && (
-                  <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                  <div className="mt-4 grid gap-4 border-t border-white/[0.07] pt-4">
+                    <fieldset className="grid gap-2">
+                      <legend className="mb-1 text-xs text-zinc-400">Credit roles</legend>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {contributorRoles.map((contributorRole) => (
+                          <label key={contributorRole} className="flex min-w-0 items-start gap-2 rounded-md bg-white/[0.035] px-2.5 py-2 text-xs leading-4 text-zinc-300 ring-1 ring-white/[0.06]">
+                            <input type="checkbox" checked={(contributorDetails[creative.id]?.roles || []).includes(contributorRole)} onChange={() => toggleContributorRole(creative.id, contributorRole)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-amber-300" />
+                            <span className="min-w-0 break-words">{contributorRole}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
                     <label className="grid gap-2 text-xs text-zinc-400">
-                      Credit role
-                      <select className="rounded-md bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none ring-1 ring-white/[0.08] focus:ring-amber-200/45" value={contributorDetails[creative.id]?.role || 'Contributor'} onChange={(event) => updateContributor(creative.id, { role: event.target.value })}>
-                        {contributorRoles.map((contributorRole) => <option key={contributorRole} value={contributorRole}>{contributorRole}</option>)}
-                      </select>
+                      Other credits <span className="text-zinc-600">Separate multiple roles with commas</span>
+                      <input className="min-w-0 rounded-md bg-zinc-950/70 px-3 py-2.5 text-sm text-white outline-none ring-1 ring-white/[0.08] focus:ring-amber-200/45" value={contributorDetails[creative.id]?.customRoles || ''} onChange={(event) => updateContributor(creative.id, { customRoles: event.target.value })} placeholder="Creative Graphics, Captions, Art Direction" />
                     </label>
-                    <Field label="Order" type="number" value={contributorDetails[creative.id]?.displayOrder ?? ''} onChange={(value) => updateContributor(creative.id, { displayOrder: value })} />
-                    <label className="inline-flex items-center gap-2 rounded-md bg-white/[0.045] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.07]">
-                      <input type="checkbox" checked={contributorDetails[creative.id]?.isPrimary === true} onChange={(event) => updateContributor(creative.id, { isPrimary: event.target.checked })} className="h-4 w-4 accent-amber-300" />
-                      Primary
-                    </label>
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                      <Field label="Display order" type="number" value={contributorDetails[creative.id]?.displayOrder ?? ''} onChange={(value) => updateContributor(creative.id, { displayOrder: value })} />
+                      <label className="inline-flex min-h-11 items-center gap-2 rounded-md bg-white/[0.045] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.07]">
+                        <input type="checkbox" checked={contributorDetails[creative.id]?.isPrimary === true} onChange={(event) => updateContributor(creative.id, { isPrimary: event.target.checked })} className="h-4 w-4 accent-amber-300" />
+                        Primary
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
@@ -752,26 +898,26 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </FormSection>
       )}
 
-      <div className="sticky bottom-4 z-10 flex flex-wrap gap-3 rounded-lg bg-zinc-950/92 p-3  ring-1 ring-white/[0.08]">
+      <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-2 rounded-lg bg-zinc-950/92 p-3 ring-1 ring-white/[0.08] sm:bottom-4 sm:flex sm:flex-wrap sm:gap-3">
         {canEditCurrent && (
-        <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save'; }} className="inline-flex items-center gap-2 rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60">
+        <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save'; }} className="col-span-2 inline-flex min-w-0 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 sm:col-auto sm:px-5">
           <Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Saving...' : uploadingImages ? 'Uploading...' : 'Save project'}
         </button>
         )}
         {canEditCurrent && !canApprove && (
-          <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'submit'; }} className="inline-flex items-center gap-2 rounded-md bg-white/[0.055] px-5 py-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60">
+          <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'submit'; }} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 py-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">
             Submit for review
           </button>
         )}
         {canApprove && (
           <>
-            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'approve'; }} className="rounded-md bg-emerald-300/12 px-5 py-3 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-300/20 hover:bg-emerald-300/16 disabled:opacity-60">Approve</button>
-            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'reject'; }} className="rounded-md bg-red-300/10 px-5 py-3 text-sm font-semibold text-red-100 ring-1 ring-red-300/20 hover:bg-red-300/14 disabled:opacity-60">Reject</button>
-            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="rounded-md bg-white/[0.055] px-5 py-3 text-sm font-semibold text-zinc-100 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60">Publish</button>
-            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'archive'; }} className="rounded-md bg-white/[0.035] px-5 py-3 text-sm font-semibold text-zinc-300 ring-1 ring-white/[0.07] hover:bg-white/[0.065] disabled:opacity-60">Archive</button>
+            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'approve'; }} className="rounded-md bg-emerald-300/12 px-3 py-3 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-300/20 hover:bg-emerald-300/16 disabled:opacity-60 sm:px-5">Approve</button>
+            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'reject'; }} className="rounded-md bg-red-300/10 px-3 py-3 text-sm font-semibold text-red-100 ring-1 ring-red-300/20 hover:bg-red-300/14 disabled:opacity-60 sm:px-5">Reject</button>
+            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="rounded-md bg-white/[0.055] px-3 py-3 text-sm font-semibold text-zinc-100 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:px-5">Publish</button>
+            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'archive'; }} className="rounded-md bg-white/[0.035] px-3 py-3 text-sm font-semibold text-zinc-300 ring-1 ring-white/[0.07] hover:bg-white/[0.065] disabled:opacity-60 sm:px-5">Archive</button>
           </>
         )}
-        <button type="button" onClick={() => navigate('/admin/projects')} className="rounded-md bg-white/[0.055] px-5 py-3 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
+        <button type="button" onClick={() => navigate('/admin/projects')} className="col-span-2 rounded-md bg-white/[0.055] px-3 py-3 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] sm:col-auto sm:px-5">
           Cancel
         </button>
       </div>

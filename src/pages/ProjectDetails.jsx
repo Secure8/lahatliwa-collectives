@@ -8,6 +8,11 @@ import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 import { getPublicImageUrl } from '../lib/storage';
 
+function isMissingCreditRolesColumn(error) {
+  const message = `${error?.message || ''} ${error?.details || ''}`;
+  return /credit_roles/i.test(message) && /(column|schema cache|does not exist)/i.test(message);
+}
+
 export default function ProjectDetails() {
   const { slug } = useParams();
   const [project, setProject] = useState(null);
@@ -22,15 +27,25 @@ export default function ProjectDetails() {
       if (projectError) setError('Project not found or not published yet.');
       else {
         setProject(data);
-        const { data: contributorRows } = await supabase
+        let { data: contributorRows, error: contributorError } = await supabase
           .from('project_creatives')
-          .select('role, contribution_role, is_primary, display_order, creative_members!project_creatives_creative_member_id_fkey(id, name, slug, role, profile_image_url)')
+          .select('role, contribution_role, credit_roles, is_primary, display_order, creative_members!project_creatives_creative_member_id_fkey(id, name, slug, role, profile_image_url)')
           .eq('project_id', data.id)
           .order('is_primary', { ascending: false })
           .order('display_order', { ascending: true, nullsFirst: false });
+        if (isMissingCreditRolesColumn(contributorError)) {
+          ({ data: contributorRows } = await supabase
+            .from('project_creatives')
+            .select('role, contribution_role, is_primary, display_order, creative_members!project_creatives_creative_member_id_fkey(id, name, slug, role, profile_image_url)')
+            .eq('project_id', data.id)
+            .order('is_primary', { ascending: false })
+            .order('display_order', { ascending: true, nullsFirst: false }));
+        }
         setContributors((contributorRows || []).map((row) => row.creative_members ? {
           ...row.creative_members,
-          creditRole: row.role || row.contribution_role || row.creative_members.role,
+          creditRoles: row.credit_roles?.length
+            ? row.credit_roles
+            : [row.role || row.contribution_role || row.creative_members.role].filter(Boolean),
           isPrimary: row.is_primary === true,
         } : null).filter(Boolean));
       }
@@ -74,7 +89,7 @@ export default function ProjectDetails() {
               {project.tools.map((tool) => <span key={tool} className="text-sm" style={{ color: content.secondaryTextColor }}>{tool}</span>)}
             </div>
           )}
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
             <Action href={project.video_url} icon={Play} label="Watch Video" accentColor={content.accentColor} />
             <Action href={project.social_post_url} icon={Share2} label="View Post" accentColor={content.accentColor} />
             <Action href={project.live_url} icon={ArrowUpRight} label="Live Project" accentColor={content.accentColor} />
@@ -83,12 +98,18 @@ export default function ProjectDetails() {
           {contributors.length > 0 && (
             <div className="major-border-top mt-8 pt-6">
               <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Creative Credits</p>
-              <div className="mt-4 flex flex-wrap gap-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {contributors.map((creative) => (
-                  <Link key={creative.id} to={`/creatives/${creative.slug}`} className="flex items-center gap-3 rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
-                    {creative.profile_image_url && <img src={creative.profile_image_url} alt="" loading="lazy" decoding="async" width="32" height="32" className="h-8 w-8 rounded-full object-cover" />}
-                    <span>{creative.name}</span>
-                    <span className="text-zinc-500">{creative.creditRole}</span>
+                  <Link key={creative.id} to={`/creatives/${creative.slug}`} className="group flex min-w-0 items-start gap-3 rounded-md border border-white/10 px-3 py-3 text-sm text-zinc-200 transition hover:border-[var(--site-accent)]">
+                    {creative.profile_image_url && <img src={creative.profile_image_url} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 shrink-0 rounded-full object-cover" />}
+                    <span className="min-w-0">
+                      <span className="block font-medium group-hover:text-[var(--site-accent)]">{creative.name}</span>
+                      <span className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1 text-xs leading-5 text-zinc-500">
+                        {creative.creditRoles.map((creditRole, index) => (
+                          <span key={creditRole}>{creditRole}{index < creative.creditRoles.length - 1 ? ',' : ''}</span>
+                        ))}
+                      </span>
+                    </span>
                   </Link>
                 ))}
               </div>
@@ -201,7 +222,7 @@ function ExternalGalleryCardContent({ item, compact = false }) {
 function Action({ href, icon: Icon, label, accentColor }) {
   if (!href) return null;
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border px-4 py-3 text-sm text-zinc-200 transition hover:opacity-80" style={{ borderColor: `${accentColor}55`, color: accentColor }}>
+    <a href={href} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center justify-center gap-2 border px-3 py-3 text-center text-sm text-zinc-200 transition hover:opacity-80 sm:px-4" style={{ borderColor: `${accentColor}55`, color: accentColor }}>
       <Icon size={17} /> {label}
     </a>
   );

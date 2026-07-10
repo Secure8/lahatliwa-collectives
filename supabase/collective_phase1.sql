@@ -117,6 +117,7 @@ create table if not exists public.project_creatives (
   project_id uuid not null references public.projects(id) on delete cascade,
   creative_id uuid not null references public.creative_members(id) on delete cascade,
   contribution_role text,
+  credit_roles text[] not null default '{}'::text[],
   display_order integer,
   created_at timestamptz not null default now(),
   primary key (project_id, creative_id)

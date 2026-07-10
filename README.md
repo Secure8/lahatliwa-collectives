@@ -246,6 +246,16 @@ Raster images larger than 5 MB are automatically compressed into a web-optimized
 
 Only published projects appear on the public website.
 
+## Unlimited Project Credits
+
+After the team/RBAC migrations, run:
+
+```text
+supabase/project_credit_roles.sql
+```
+
+Each creative can then receive any number of credit roles on one project, including custom roles. Existing single-role credits are preserved automatically, and the original role fields remain populated for compatibility.
+
 ## Invite Team Accounts
 
 After running `supabase/team_rbac_upgrade.sql`, run:

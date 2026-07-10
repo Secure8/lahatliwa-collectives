@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
 import { actionLabelForItem, getGalleryItemMediaUrl, getGalleryItemThumbnailUrl, getYouTubeVideoId, normalizeProjectGallery } from '../lib/galleryItems';
 import { formatDate } from '../lib/helpers';
+import { normalizeCreditRoleList } from '../lib/projectCredits';
 import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 import { getPublicImageUrl } from '../lib/storage';
@@ -43,9 +44,9 @@ export default function ProjectDetails() {
         }
         setContributors((contributorRows || []).map((row) => row.creative_members ? {
           ...row.creative_members,
-          creditRoles: row.credit_roles?.length
+          creditRoles: normalizeCreditRoleList(row.credit_roles?.length
             ? row.credit_roles
-            : [row.role || row.contribution_role || row.creative_members.role].filter(Boolean),
+            : [row.role || row.contribution_role || row.creative_members.role].filter(Boolean)),
           isPrimary: row.is_primary === true,
         } : null).filter(Boolean));
       }

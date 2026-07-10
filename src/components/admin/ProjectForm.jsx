@@ -12,6 +12,14 @@ import {
 import { canApproveProjects, canEditProject, useAdminAccess } from '../../lib/adminAccess';
 import { categories, parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
+import {
+  buildProjectContributorRow,
+  contributorCreditRoles,
+  normalizeContributorCreditDetails,
+  PROJECT_CREDIT_ROLE_PRESETS,
+  splitProjectCreditRoles,
+  toggleContributorPresetRole,
+} from '../../lib/projectCredits';
 import { supabase } from '../../lib/supabaseClient';
 import {
   deleteImages,
@@ -46,61 +54,6 @@ const emptyProject = {
   review_status: 'draft',
   review_notes: '',
 };
-
-const contributorRoles = [
-  'Photographer',
-  'Photo Editor',
-  'Videographer',
-  'Video Editor',
-  'Page Manager',
-  'Social Media Manager',
-  'Content Planner',
-  'Caption Writer',
-  'Visual Creator',
-  'Web Developer',
-  'Graphic Designer',
-  'Creative Director',
-  'Project Lead',
-  'Contributor',
-];
-
-const legacyContributorRoles = new Set([
-  'Photographer',
-  'Photo Editor',
-  'Videographer',
-  'Video Editor',
-  'Social Media Manager',
-  'Content Planner',
-  'Web Developer',
-  'Graphic Designer',
-  'Creative Director',
-  'Project Lead',
-  'Contributor',
-]);
-
-function uniqueRoles(roles) {
-  const seen = new Set();
-  return (roles || []).map((role) => String(role).trim()).filter((role) => {
-    const key = role.toLocaleLowerCase();
-    if (!role || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function splitCreditRoles(roles) {
-  const normalized = uniqueRoles(roles);
-  const presets = normalized.filter((role) => contributorRoles.includes(role));
-  const customRoles = normalized.filter((role) => !contributorRoles.includes(role)).join(', ');
-  return { roles: presets, customRoles };
-}
-
-function contributorCreditRoles(details) {
-  return uniqueRoles([
-    ...(details?.roles || []),
-    ...(details?.customRoles || '').split(','),
-  ]);
-}
 
 function isMissingCreditRolesColumn(error) {
   const message = `${error?.message || ''} ${error?.details || ''}`;
@@ -227,8 +180,13 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           ? savedContributorDraft.selectedCreativeIds.filter((creativeId) => availableCreativeIds.has(creativeId))
           : null;
         const hasSavedDraft = savedIds && savedContributorDraft?.contributorDetails && typeof savedContributorDraft.contributorDetails === 'object';
-        setSelectedCreativeIds(hasSavedDraft ? savedIds : defaultIds);
-        setContributorDetails(hasSavedDraft ? savedContributorDraft.contributorDetails : defaultDetails);
+        const contributorIds = hasSavedDraft ? savedIds : defaultIds;
+        const sourceDetails = hasSavedDraft ? savedContributorDraft.contributorDetails : defaultDetails;
+        setSelectedCreativeIds(contributorIds);
+        setContributorDetails(Object.fromEntries(contributorIds.map((creativeId) => [
+          creativeId,
+          normalizeContributorCreditDetails(sourceDetails[creativeId] || defaultDetails[creativeId]),
+        ])));
         setContributorsDirty(Boolean(hasSavedDraft));
         setContributorDraftReady(true);
       }
@@ -250,7 +208,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         if (linksError) setError(linksError.message || 'Project credits could not be loaded.');
         const normalizedLinks = (links || []).map((link) => ({
           creativeId: link.creative_member_id || link.creative_id,
-          ...splitCreditRoles(link.credit_roles?.length ? link.credit_roles : [link.role || link.contribution_role || 'Contributor']),
+          ...splitProjectCreditRoles(link.credit_roles?.length ? link.credit_roles : [link.role || link.contribution_role || 'Contributor']),
           isPrimary: link.is_primary === true,
           displayOrder: link.display_order ?? '',
         })).filter((link) => link.creativeId);
@@ -386,10 +344,10 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       const next = { ...current };
       if (patch.isPrimary === true) {
         selectedCreativeIds.forEach((creativeId) => {
-          next[creativeId] = { ...(next[creativeId] || { roles: ['Contributor'], customRoles: '', isPrimary: false, displayOrder: '' }), isPrimary: false };
+          next[creativeId] = { ...normalizeContributorCreditDetails(next[creativeId]), isPrimary: false };
         });
       }
-      next[id] = { ...(next[id] || { roles: ['Contributor'], customRoles: '', isPrimary: false, displayOrder: '' }), ...patch };
+      next[id] = { ...normalizeContributorCreditDetails(next[id]), ...patch };
       return next;
     });
     setContributorsDirty(true);
@@ -397,12 +355,21 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   }
 
   function toggleContributorRole(id, creditRole) {
-    const currentRoles = contributorDetails[id]?.roles || [];
-    updateContributor(id, {
-      roles: currentRoles.includes(creditRole)
-        ? currentRoles.filter((roleName) => roleName !== creditRole)
-        : [...currentRoles, creditRole],
-    });
+    setContributorDetails((current) => ({
+      ...current,
+      [id]: toggleContributorPresetRole(current[id], creditRole),
+    }));
+    setContributorsDirty(true);
+    setDirty(true);
+  }
+
+  function normalizeContributorCustomRoles(id) {
+    setContributorDetails((current) => ({
+      ...current,
+      [id]: normalizeContributorCreditDetails(current[id]),
+    }));
+    setContributorsDirty(true);
+    setDirty(true);
   }
 
   function externalGalleryItems() {
@@ -625,22 +592,12 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       const projectId = initialProject?.id || savedProject?.id;
       if (projectId) {
         if (selectedCreativeIds.length) {
-          const contributorRows = selectedCreativeIds.map((creativeId, index) => {
-            const creditRoles = contributorCreditRoles(contributorDetails[creativeId]);
-            const legacyRole = creditRoles.find((creditRole) => legacyContributorRoles.has(creditRole)) || 'Contributor';
-            return {
-              project_id: projectId,
-              creative_id: creativeId,
-              creative_member_id: creativeId,
-              credit_roles: creditRoles,
-              contribution_role: legacyRole,
-              role: legacyRole,
-              is_primary: contributorDetails[creativeId]?.isPrimary === true,
-              display_order: contributorDetails[creativeId]?.displayOrder === '' || contributorDetails[creativeId]?.displayOrder == null
-                ? index * 100
-                : Number(contributorDetails[creativeId].displayOrder),
-            };
-          });
+          const contributorRows = selectedCreativeIds.map((creativeId, index) => buildProjectContributorRow({
+            projectId,
+            creativeId,
+            details: contributorDetails[creativeId],
+            index,
+          }));
           const { error: contributorError } = await supabase
             .from('project_creatives')
             .upsert(contributorRows, { onConflict: 'project_id,creative_id' });
@@ -871,17 +828,20 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                     <fieldset className="grid gap-2">
                       <legend className="mb-1 text-xs text-zinc-400">Credit roles</legend>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        {contributorRoles.map((contributorRole) => (
-                          <label key={contributorRole} className="flex min-w-0 items-start gap-2 rounded-md bg-white/[0.035] px-2.5 py-2 text-xs leading-4 text-zinc-300 ring-1 ring-white/[0.06]">
-                            <input type="checkbox" checked={(contributorDetails[creative.id]?.roles || []).includes(contributorRole)} onChange={() => toggleContributorRole(creative.id, contributorRole)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-amber-300" />
-                            <span className="min-w-0 break-words">{contributorRole}</span>
-                          </label>
-                        ))}
+                        {PROJECT_CREDIT_ROLE_PRESETS.map((contributorRole) => {
+                          const selected = (contributorDetails[creative.id]?.roles || []).includes(contributorRole);
+                          return (
+                            <label key={contributorRole} className={`flex min-w-0 cursor-pointer items-start gap-2 rounded-md px-2.5 py-2 text-xs leading-4 ring-1 transition focus-within:ring-amber-200/60 ${selected ? 'bg-amber-300/12 text-amber-100 ring-amber-300/30' : 'bg-white/[0.025] text-zinc-400 ring-white/[0.06] hover:bg-white/[0.055] hover:text-zinc-200'}`}>
+                              <input type="checkbox" checked={selected} onChange={() => toggleContributorRole(creative.id, contributorRole)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-amber-300" />
+                              <span className="min-w-0 break-words">{contributorRole}</span>
+                            </label>
+                          );
+                        })}
                       </div>
                     </fieldset>
                     <label className="grid gap-2 text-xs text-zinc-400">
                       Other credits <span className="text-zinc-600">Separate multiple roles with commas</span>
-                      <input className="min-w-0 rounded-md bg-zinc-950/70 px-3 py-2.5 text-sm text-white outline-none ring-1 ring-white/[0.08] focus:ring-amber-200/45" value={contributorDetails[creative.id]?.customRoles || ''} onChange={(event) => updateContributor(creative.id, { customRoles: event.target.value })} placeholder="Creative Graphics, Captions, Art Direction" />
+                      <input className="min-w-0 rounded-md bg-zinc-950/70 px-3 py-2.5 text-sm text-white outline-none ring-1 ring-white/[0.08] focus:ring-amber-200/45" value={contributorDetails[creative.id]?.customRoles || ''} onChange={(event) => updateContributor(creative.id, { customRoles: event.target.value })} onBlur={() => normalizeContributorCustomRoles(creative.id)} placeholder="Creative Graphics, Captions, Art Direction" />
                     </label>
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
                       <Field label="Display order" type="number" value={contributorDetails[creative.id]?.displayOrder ?? ''} onChange={(value) => updateContributor(creative.id, { displayOrder: value })} />

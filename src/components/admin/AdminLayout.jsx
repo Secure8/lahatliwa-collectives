@@ -16,7 +16,7 @@ const links = [
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
     ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
     ['Services', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
-    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => isPrivilegedRole(role)],
+    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
     ['Team', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Website', [
@@ -71,14 +71,14 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="admin-shell min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,rgba(246,213,139,0.07),transparent_30%),linear-gradient(180deg,#101012_0%,#09090b_46%,#111113_100%)] text-white">
-      <aside className="fixed inset-x-0 top-0 z-30 bg-zinc-950/88 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-lg lg:bg-zinc-900/80 lg:p-4 lg: lg:ring-1 lg:ring-white/[0.08]">
+      <aside className="fixed inset-x-0 top-0 z-30 bg-zinc-950/88 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-md lg:bg-zinc-900/80 lg:p-4 lg: lg:ring-1 lg:ring-white/[0.08]">
         <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
           <div className="flex min-w-0 items-center gap-3 lg:block">
             <Link
               to="/admin/dashboard"
               preventScrollReset
               className={clsx(
-                'grid h-10 w-10 shrink-0 place-items-center rounded-lg text-sm font-bold',
+                'grid h-10 w-10 shrink-0 place-items-center rounded-md text-sm font-bold',
                 content.logoUrl ? 'bg-transparent text-white' : 'bg-amber-300 text-zinc-950 '
               )}
             >

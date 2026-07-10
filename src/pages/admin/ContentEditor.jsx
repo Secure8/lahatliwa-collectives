@@ -439,7 +439,7 @@ function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackg
         </div>
         <div className="grid gap-4">
           {groups.map((group, index) => (
-            <div key={`${group.name || 'service'}-${index}`} className="grid gap-4 rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
+            <div key={`${group.name || 'service'}-${index}`} className="grid gap-4 rounded-md bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-medium text-zinc-200">Service {index + 1}</p>
                 <button
@@ -544,7 +544,7 @@ function ColorField({ label, value, onChange }) {
 
 function UploadRow({ label, value, onFile, onClear }) {
   return (
-    <div className="rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
+    <div className="rounded-md bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
       <p className="text-sm text-zinc-300">{label}</p>
       <p className="mt-1 text-xs text-zinc-500">Large raster images are resized and optimized automatically. Hero images target 1 MB; service logos target 300 KB.</p>
       {value && <img src={value} alt="" className="mt-3 max-h-28 max-w-full object-cover" />}

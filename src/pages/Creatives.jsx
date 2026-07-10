@@ -36,7 +36,7 @@ export default function Creatives() {
         <p className="mt-5 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>A growing circle of creatives working across visuals, social content, websites, editing, and digital support.</p>
       </div>
       {loading && <LoadingState label="Loading creatives" />}
-      {error && <div className="rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
+      {error && <div className="rounded-md border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
       {!loading && !error && (
         creatives.length ? (
           <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">

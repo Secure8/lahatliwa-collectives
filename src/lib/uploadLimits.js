@@ -30,6 +30,12 @@ export const UPLOAD_LIMITS = Object.freeze({
     compressImage: true,
     message: 'Profile photos must be 300 KB or smaller. Please compress this file before uploading.',
   }),
+  creativeCover: Object.freeze({
+    maxBytes: 1 * MB,
+    maxDimension: 1800,
+    compressImage: true,
+    message: 'Creative cover photos must be 1 MB or smaller. Please choose a smaller image if optimization cannot reach that size.',
+  }),
   serviceMedia: Object.freeze({
     maxBytes: 300 * KB,
     maxDimension: 600,

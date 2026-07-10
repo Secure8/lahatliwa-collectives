@@ -28,7 +28,7 @@ export default function AdminProjectCard({
       onDragOver={onDragOver}
       onDrop={onDrop}
       className={clsx(
-        'group grid gap-4 rounded-lg bg-white/[0.045] p-4  ring-1 ring-white/[0.06] transition-colors duration-150 md:grid-cols-[1fr_auto] md:items-center',
+        'group grid gap-4 rounded-md bg-white/[0.045] p-4 ring-1 ring-white/[0.06] transition-colors duration-150 md:grid-cols-[1fr_auto] md:items-center',
         draggable && 'cursor-grab active:cursor-grabbing',
         isDragging && 'bg-amber-200/[0.08] opacity-75 ring-amber-200/30'
       )}

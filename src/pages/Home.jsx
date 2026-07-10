@@ -73,17 +73,17 @@ export default function Home() {
           <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{content.home.heroTitle}</h1>
           <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'A creative digital collective building visuals, stories, and digital experiences across photography, editing, social media, content, and web projects.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/start-a-project" className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
+            <Link to="/start-a-project" className="inline-flex items-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
               Start a Project <ArrowRight size={18} />
             </Link>
-            <Link to="/projects" className="fine-link rounded-full px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
+            <Link to="/projects" className="fine-link px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
               Explore Works
             </Link>
           </div>
           <p className="mt-8 max-w-xl text-sm leading-6" style={{ color: content.mutedTextColor }}>{content.tagline}</p>
         </div>
         {hasPortrait && (
-          <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-[1.25rem] bg-zinc-900/70 shadow-[0_24px_60px_rgba(0,0,0,0.2)] lg:ml-auto">
+          <div className="relative mx-auto w-full max-w-sm overflow-hidden bg-zinc-900/70 shadow-[0_24px_60px_rgba(0,0,0,0.2)] lg:ml-auto">
             <img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchpriority="high" width="800" height="1000" className="aspect-[4/5] w-full object-cover" />
           </div>
         )}
@@ -147,7 +147,7 @@ export default function Home() {
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Need visuals, content, a website, or digital support?</h2>
             <p className="mt-4 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>Tell the collective what you are planning and we will review the best next step.</p>
           </div>
-          <Link to="/start-a-project" className="inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
+          <Link to="/start-a-project" className="inline-flex w-fit items-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
             Send inquiry <ArrowRight size={18} />
           </Link>
         </div>

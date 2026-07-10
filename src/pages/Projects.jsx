@@ -54,7 +54,7 @@ export default function Projects() {
         <SearchBar value={search} onChange={setSearch} />
       </div>
       {loading && <LoadingState label="Loading projects" />}
-      {error && <div className="rounded-lg border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
+      {error && <div className="rounded-md border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
       {!loading && !error && (visible.length ? <ProjectGrid projects={visible} /> : <EmptyState title="No projects found" message="Try another search term." />)}
     </div>
   );

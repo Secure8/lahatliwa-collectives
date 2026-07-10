@@ -1,5 +1,5 @@
 import { ArrowRight, CheckCircle2, Clock3, MessageSquare, Send } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 
@@ -37,6 +37,15 @@ const processSteps = [
 ];
 
 const serviceTags = ['Websites', 'Social media', 'Photo/video', 'Campaigns', 'Content systems', 'Visual direction'];
+const inquiryLimits = {
+  name: [2, 120],
+  email_or_contact: [3, 200],
+  project_type: [2, 120],
+  message: [10, 5000],
+  organization: [0, 160],
+  budget_range: [0, 120],
+  preferred_contact: [0, 120],
+};
 
 const emptyInquiry = {
   name: '',
@@ -46,15 +55,65 @@ const emptyInquiry = {
   budget_range: budgetRanges[0],
   deadline: '',
   preferred_contact: '',
+  preferred_creative_id: '',
   message: '',
 };
+
+function normalizeInquiry(form) {
+  return {
+    name: form.name.trim(),
+    email_or_contact: form.email_or_contact.trim(),
+    organization: form.organization.trim() || null,
+    project_type: form.project_type.trim(),
+    budget_range: form.budget_range.trim() || null,
+    deadline: form.deadline || null,
+    preferred_contact: form.preferred_contact.trim() || null,
+    preferred_creative_id: form.preferred_creative_id || null,
+    message: form.message.trim(),
+  };
+}
+
+function validationError(payload, publishedCreativeIds) {
+  if (payload.name.length < inquiryLimits.name[0]) return 'Please enter your name.';
+  if (payload.name.length > inquiryLimits.name[1]) return 'Your name is too long.';
+  if (payload.email_or_contact.length < inquiryLimits.email_or_contact[0]) return 'Please enter your email or contact details.';
+  if (payload.email_or_contact.length > inquiryLimits.email_or_contact[1]) return 'Your email or contact details are too long.';
+  if (payload.project_type.length < inquiryLimits.project_type[0]) return 'Please choose a project type.';
+  if (payload.project_type.length > inquiryLimits.project_type[1]) return 'Your project type is too long.';
+  if (payload.message.length < inquiryLimits.message[0]) return 'Please describe your project in at least 10 characters.';
+  if (payload.message.length > inquiryLimits.message[1]) return 'Your project description is too long.';
+  if (payload.organization?.length > inquiryLimits.organization[1]) return 'Your organization name is too long.';
+  if (payload.budget_range?.length > inquiryLimits.budget_range[1]) return 'Your budget range is too long.';
+  if (payload.preferred_contact?.length > inquiryLimits.preferred_contact[1]) return 'Your preferred contact details are too long.';
+  if (payload.preferred_creative_id && !publishedCreativeIds.has(payload.preferred_creative_id)) return 'Please choose an available creative or select no preference.';
+  return '';
+}
+
+function isRlsError(submitError) {
+  const message = `${submitError?.message || ''} ${submitError?.details || ''}`.toLowerCase();
+  return submitError?.code === '42501' || message.includes('row-level security');
+}
 
 export default function StartProject() {
   const [form, setForm] = useState(emptyInquiry);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [creatives, setCreatives] = useState([]);
   const { content } = usePublicContent([]);
+
+  useEffect(() => {
+    async function loadCreatives() {
+      const { data } = await supabase
+        .from('creative_members')
+        .select('id, name, role')
+        .eq('is_published', true)
+        .order('display_order', { ascending: true, nullsFirst: false })
+        .order('name', { ascending: true });
+      setCreatives(data || []);
+    }
+    loadCreatives();
+  }, []);
 
   function update(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -62,25 +121,27 @@ export default function StartProject() {
 
   async function submit(event) {
     event.preventDefault();
-    setSaving(true);
     setMessage('');
     setError('');
 
+    const payload = normalizeInquiry(form);
+    const formError = validationError(payload, new Set(creatives.map((creative) => creative.id)));
+    if (formError) {
+      setError(formError);
+      return;
+    }
+
+    setSaving(true);
+
     try {
-      const payload = {
-        ...form,
-        deadline: form.deadline || null,
-        organization: form.organization || null,
-        preferred_contact: form.preferred_contact || null,
-        budget_range: form.budget_range || null,
-        status: 'new',
-      };
       const { error: inquiryError } = await supabase.from('project_inquiries').insert(payload);
       if (inquiryError) throw inquiryError;
       setForm(emptyInquiry);
       setMessage('Inquiry sent. We will review it and get back to you soon.');
     } catch (submitError) {
-      setError(submitError.message || 'Inquiry could not be sent right now. Please try again later.');
+      setError(isRlsError(submitError)
+        ? 'Please check the form details and try again.'
+        : submitError.message || 'Inquiry could not be sent right now. Please try again later.');
     } finally {
       setSaving(false);
     }
@@ -150,6 +211,18 @@ export default function StartProject() {
             <Field label="Deadline / target date" type="date" value={form.deadline} onChange={(value) => update('deadline', value)} />
           </div>
 
+          {creatives.length > 0 && <label className="grid gap-2">
+            <span className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: content.secondaryTextColor }}>Preferred creative</span>
+            <select
+              value={form.preferred_creative_id}
+              onChange={(event) => update('preferred_creative_id', event.target.value)}
+              className="min-h-12 w-full rounded-md border border-white/[0.08] bg-zinc-950/70 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.14] focus:border-[var(--project-accent)]"
+            >
+              <option value="">Let the collective decide</option>
+              {creatives.map((creative) => <option key={creative.id} value={creative.id}>{creative.name}{creative.role ? ` - ${creative.role}` : ''}</option>)}
+            </select>
+          </label>}
+
           <label className="grid gap-2">
             <span className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: content.secondaryTextColor }}>Message / details</span>
             <textarea
@@ -164,7 +237,7 @@ export default function StartProject() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <button
               disabled={saving}
-              className="group inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-zinc-950 transition duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+              className="group inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-zinc-950 transition duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
               style={{ backgroundColor: content.accentColor }}
             >
               <Send size={17} /> {saving ? 'Sending inquiry...' : 'Send inquiry'}

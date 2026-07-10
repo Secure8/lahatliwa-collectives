@@ -16,9 +16,7 @@ export default function AdminProjects() {
   const [draggingProjectId, setDraggingProjectId] = useState('');
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
-  const { role, user, adminUser } = useAdminAccess();
-  const [contributedIds, setContributedIds] = useState(new Set());
-  const [sharedIds, setSharedIds] = useState(new Set());
+  const { role, user } = useAdminAccess();
   const canCreate = canCreateProjects(role);
   const canManageAll = canManageAllProjects(role);
 
@@ -31,24 +29,24 @@ export default function AdminProjects() {
       .order('display_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false });
 
-    const [{ data, error: projectError }, { data: credits }, { data: access }] = await Promise.all([
-      query,
-      adminUser?.creative_member_id
-        ? supabase.from('project_creatives').select('project_id').eq('creative_member_id', adminUser.creative_member_id)
-        : Promise.resolve({ data: [] }),
-      user?.id ? supabase.from('project_access').select('project_id').eq('user_id', user.id).is('revoked_at', null) : Promise.resolve({ data: [] }),
-    ]);
+    const { data, error: projectError } = await query;
     if (projectError) setError(projectError.message);
-    else { setProjects(data || []); setContributedIds(new Set((credits || []).map((item) => item.project_id))); setSharedIds(new Set((access || []).map((item) => item.project_id))); }
+    else setProjects(data || []);
     setLoading(false);
   }
 
   useEffect(() => {
     loadProjects();
-  }, [adminUser?.creative_member_id, user?.id]);
+  }, []);
 
   const featuredProjects = useMemo(() => projects.filter((project) => project.featured), [projects]);
-  const filteredProjects = useMemo(() => projects.filter((project) => filter === 'all' || (filter === 'owned' && (project.owner_user_id === user?.id || project.created_by === user?.id)) || (filter === 'contributed' && contributedIds.has(project.id)) || (filter === 'shared' && sharedIds.has(project.id))), [contributedIds, filter, projects, sharedIds, user?.id]);
+  const filteredProjects = useMemo(() => projects.filter((project) => (
+    filter === 'all'
+    || (filter === 'owned' && (project.owner_user_id === user?.id || project.created_by === user?.id))
+    || (filter === 'published' && project.status === 'published')
+    || (filter === 'draft' && project.status === 'draft')
+    || (filter === 'archived' && project.status === 'archived')
+  )), [filter, projects, user?.id]);
 
   function moveProject(items, activeId, targetId) {
     const fromIndex = items.findIndex((project) => project.id === activeId);
@@ -127,7 +125,7 @@ export default function AdminProjects() {
       <AdminPageHeader
         eyebrow="Project manager"
         title="Projects"
-        description={canManageAll ? 'Arrange featured works, manage drafts, and keep the collective portfolio moving.' : 'Manage your own drafts, submissions, and published works under the collective.'}
+        description={canManageAll ? 'Arrange featured works, manage drafts, and keep the collective portfolio moving.' : 'Browse shared team projects, then manage the work you own or have been assigned.'}
         action={canCreate && <AdminButton to="/admin/projects/new" variant="primary">
           <Plus size={18} /> New project
         </AdminButton>}
@@ -177,9 +175,9 @@ export default function AdminProjects() {
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Content library</p>
                 <h2 className="mt-2 text-xl font-semibold text-white">All projects</h2>
               </div>
-              <div className="flex flex-wrap gap-2">{[['all','All accessible'],['owned','Owned projects'],['contributed','Contributed projects'],['shared','Shared with me']].map(([key,label])=><AdminButton key={key} onClick={()=>setFilter(key)} variant={filter===key?'primary':'secondary'}>{label}</AdminButton>)}</div>
+              <div className="flex flex-wrap gap-2">{[['all','All projects'],['published','Published'],['draft','Drafts'],['archived','Archived'],['owned','My projects']].map(([key,label])=><AdminButton key={key} onClick={()=>setFilter(key)} variant={filter===key?'primary':'secondary'}>{label}</AdminButton>)}</div>
               {filteredProjects.map((project) => <AdminProjectCard key={project.id} project={project} onDelete={deleteProject} />)}
-              {!filteredProjects.length && <p className="text-sm text-zinc-500">{filter === 'owned' ? 'You have not uploaded any projects yet.' : filter === 'contributed' ? 'You are not currently credited on any projects.' : filter === 'shared' ? 'No projects have been shared with you.' : 'No accessible projects yet.'}</p>}
+              {!filteredProjects.length && <p className="text-sm text-zinc-500">{filter === 'owned' ? 'You have not created any projects yet.' : `No ${filter === 'all' ? 'team' : filter} projects yet.`}</p>}
             </AdminSurface>
           </div>
         ) : <AdminEmptyState title="No projects yet" message="Add your first project from the dashboard." action={canCreate && <AdminButton to="/admin/projects/new" variant="primary"><Plus size={17} /> Add project</AdminButton>} />

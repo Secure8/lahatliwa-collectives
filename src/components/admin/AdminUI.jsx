@@ -33,7 +33,7 @@ export function AdminPageHeader({ eyebrow, title, description, action }) {
 
 export function AdminSurface({ children, className = '', as: Component = 'section', ...props }) {
   return (
-    <Component {...props} className={clsx('rounded-lg bg-white/[0.035] p-5 ring-1 ring-white/[0.055]', className)}>
+    <Component {...props} className={clsx('rounded-md bg-white/[0.035] p-5 ring-1 ring-white/[0.055]', className)}>
       {children}
     </Component>
   );
@@ -41,7 +41,7 @@ export function AdminSurface({ children, className = '', as: Component = 'sectio
 
 export function AdminSoftPanel({ children, className = '' }) {
   return (
-    <div className={clsx('rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.06]', className)}>
+    <div className={clsx('rounded-md bg-zinc-950/45 p-4 ring-1 ring-white/[0.06]', className)}>
       {children}
     </div>
   );

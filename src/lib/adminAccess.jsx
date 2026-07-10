@@ -47,8 +47,8 @@ export function canEditProject(role, project = {}, userId = '') {
   const normalized = normalizeRole(role);
   if (isPrivilegedRole(normalized)) return true;
   if (!['editor', 'creative'].includes(normalized)) return false;
-  const ownsProject = project.owner_user_id === userId || project.created_by === userId || !project.owner_user_id;
-  return ownsProject && project.status !== 'published' && ['draft', 'pending_review', 'rejected', undefined, null].includes(project.review_status);
+  const ownsProject = project.owner_user_id === userId || project.created_by === userId;
+  return ownsProject;
 }
 
 export function AdminAccessProvider({ value, children }) {

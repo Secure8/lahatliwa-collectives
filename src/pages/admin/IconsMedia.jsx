@@ -134,7 +134,7 @@ export default function IconsMedia() {
           {assets.map((asset) => (
             <AdminSurface key={asset.id} as="article">
               <div className="flex items-start gap-4">
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-zinc-950/55 ring-1 ring-white/[0.07]">
+                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-zinc-950/55 ring-1 ring-white/[0.07]">
                   <img src={asset.url} alt={asset.alt_text || asset.name} loading="lazy" decoding="async" className="max-h-10 max-w-10 object-contain" />
                 </div>
                 <div className="min-w-0">

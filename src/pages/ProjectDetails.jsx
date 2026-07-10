@@ -67,7 +67,7 @@ export default function ProjectDetails() {
       <Link to="/projects" className="fine-link site-hover-accent text-sm text-zinc-400">Back to projects</Link>
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[0.92fr_1.08fr]' : 'lg:grid-cols-1'}`}>
         {cover && (
-          <div className="overflow-hidden rounded-[1.5rem] bg-zinc-900">
+          <div className="overflow-hidden bg-zinc-900">
             <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} decoding="async" fetchpriority="high" width="1200" height="900" />
           </div>
         )}
@@ -139,12 +139,12 @@ function GalleryItem({ item, projectTitle }) {
   const youtubeId = item.type === 'youtube' ? getYouTubeVideoId(item.url) : '';
 
   if (item.type === 'image') {
-    return <img className="mb-5 h-auto w-full break-inside-avoid rounded-lg bg-zinc-900" src={mediaUrl} alt={item.title || `${projectTitle} gallery`} loading="lazy" decoding="async" />;
+    return <img className="mb-5 h-auto w-full break-inside-avoid bg-zinc-900" src={mediaUrl} alt={item.title || `${projectTitle} gallery`} loading="lazy" decoding="async" />;
   }
 
   if (item.type === 'pdf') {
     return (
-      <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="mb-5 flex min-h-40 break-inside-avoid items-center justify-center gap-3 rounded-lg border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
+      <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="mb-5 flex min-h-40 break-inside-avoid items-center justify-center gap-3 border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
         <FileText size={22} /> Open PDF
       </a>
     );
@@ -155,7 +155,7 @@ function GalleryItem({ item, projectTitle }) {
   }
 
   return (
-    <a href={item.url} target="_blank" rel="noopener noreferrer" className="mb-5 block break-inside-avoid overflow-hidden rounded-lg border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)]">
+    <a href={item.url} target="_blank" rel="noopener noreferrer" className="mb-5 block break-inside-avoid overflow-hidden border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)]">
       {thumbnailUrl ? (
         <img src={thumbnailUrl} alt={item.title || item.platform} loading="lazy" decoding="async" width="800" height="600" className="aspect-[4/3] w-full object-cover" />
       ) : (
@@ -176,7 +176,7 @@ function YouTubeGalleryItem({ item, youtubeId, thumbnailUrl }) {
   const previewUrl = thumbnailUrl || `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
 
   return (
-    <div className="mb-5 break-inside-avoid overflow-hidden rounded-lg border border-white/10 bg-zinc-900/70">
+    <div className="mb-5 break-inside-avoid overflow-hidden border border-white/10 bg-zinc-900/70">
       {playerOpen ? (
         <iframe
           className="aspect-video w-full"

@@ -1,4 +1,4 @@
-import { Edit, Plus, RotateCcw, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Copy, Edit, Eye, ExternalLink, Plus, RotateCcw, ShieldCheck, ShieldOff } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
@@ -16,6 +16,7 @@ import {
 import LoadingState from '../../components/LoadingState';
 import { roleLabel, useAdminAccess } from '../../lib/adminAccess';
 import { formatDate } from '../../lib/helpers';
+import { copyText } from '../../lib/clipboard';
 import { supabase } from '../../lib/supabaseClient';
 
 const roleOptions = ['super_admin', 'admin', 'editor', 'creative', 'viewer'];
@@ -82,7 +83,7 @@ export default function AdminTeam() {
         .order('created_at', { ascending: false }),
       supabase
         .from('creative_members')
-        .select('id, name, role')
+        .select('id, name, role, slug, is_published')
         .order('display_order', { ascending: true, nullsFirst: false })
         .order('name', { ascending: true }),
     ]);
@@ -99,6 +100,17 @@ export default function AdminTeam() {
 
   function update(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function copyMemberProfile(member) {
+    const creative = creatives.find((item) => item.id === member.creative_member_id);
+    if (!creative?.slug) return;
+    try {
+      await copyText(`${window.location.origin}/creatives/${creative.slug}`);
+      setMessage('Profile link copied.');
+    } catch (copyError) {
+      setError(copyError.message || 'Profile link could not be copied.');
+    }
   }
 
   function resetForm() {
@@ -326,6 +338,9 @@ export default function AdminTeam() {
                   </div>
                   <AdminActionGroup className="lg:justify-end">
                     {canManageMember && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>}
+                    {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton to={`/admin/creatives?preview=${member.creative_member_id}`}><Eye size={14} /> Preview profile</AdminActionButton>}
+                    {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton onClick={() => copyMemberProfile(member)}><Copy size={14} /> Copy profile</AdminActionButton>}
+                    {creatives.find((creative) => creative.id === member.creative_member_id)?.is_published && <AdminActionButton to={`/creatives/${creatives.find((creative) => creative.id === member.creative_member_id).slug}`}><ExternalLink size={14} /> Open public</AdminActionButton>}
                     {canDisable && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => disableMember(member)} variant="danger"><ShieldOff size={14} /> Remove Access</AdminActionButton>}
                     {canRestore && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => restoreMember(member)}><RotateCcw size={14} /> Restore Access</AdminActionButton>}
                   </AdminActionGroup>

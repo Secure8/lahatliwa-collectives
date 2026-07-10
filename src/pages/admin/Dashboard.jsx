@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabaseClient';
 export default function Dashboard() {
   const { role, user } = useAdminAccess();
   const canSeeAll = canManageAllProjects(role);
+  const canViewInquiries = ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role);
   const [stats, setStats] = useState({ total: 0, published: 0, draft: 0, featured: 0, creatives: 0, newInquiries: 0, serviceBranches: 0 });
   const [recentProjects, setRecentProjects] = useState([]);
   const [latestInquiries, setLatestInquiries] = useState([]);
@@ -33,7 +34,7 @@ export default function Dashboard() {
       ] = await Promise.all([
         projectQuery,
         supabase.from('creative_members').select('id, is_published'),
-        canSeeAll
+        canViewInquiries
           ? supabase.from('project_inquiries').select('id, name, project_type, message, status, created_at').order('created_at', { ascending: false })
           : Promise.resolve({ data: [] }),
         supabase.from('service_branches').select('id, is_published'),
@@ -54,7 +55,7 @@ export default function Dashboard() {
       setLoading(false);
     }
     if (canSeeAll || user?.id) loadStats();
-  }, [canSeeAll, user?.id]);
+  }, [canSeeAll, canViewInquiries, user?.id]);
 
   return (
     <AdminLayout>
@@ -76,7 +77,7 @@ export default function Dashboard() {
             <QuickAction to="/admin/projects" icon={FolderKanban} label="Manage projects" />
             {canSeeAll && <QuickAction to="/admin/creatives" icon={Users} label="Manage creatives" />}
             {canSeeAll && <QuickAction to="/admin/service-branches" icon={Workflow} label="Service branches" />}
-            {canSeeAll && <QuickAction to="/admin/inquiries" icon={Inbox} label="Review inquiries" />}
+            {canViewInquiries && <QuickAction to="/admin/inquiries" icon={Inbox} label="View inquiries" />}
             {canCreateProjects(role) && <QuickAction to="/admin/content" icon={FileText} label="Edit content" />}
             {canManageTeam(role) && <QuickAction to="/admin/team" icon={Users} label="Team access" />}
             {canManageSettings(role) && <QuickAction to="/admin/settings" icon={Settings} label="Site settings" />}

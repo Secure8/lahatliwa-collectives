@@ -124,7 +124,7 @@ export default function SiteSettings() {
 
         <div className="grid gap-5 md:grid-cols-2">
           <UploadField label="Upload logo" hint="Large raster logos are optimized to 300 KB. SVG files keep a 300 KB hard limit." value={form.logoUrl} onFile={(file) => uploadImage('logoUrl', file, 'logos', 'siteLogo')} onClear={() => update('logoUrl', '')} />
-          <div className="rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
+          <div className="rounded-md bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
             <UploadField compact label="Portrait / Profile Photo" hint="Large photos are resized and optimized to 300 KB automatically." value={form.heroImageUrl} onFile={(file) => uploadImage('heroImageUrl', file, 'heroes', 'creativeProfile')} onClear={() => update('heroImageUrl', '')} />
             <label className="mt-4 flex items-center gap-3 pt-4 text-sm text-zinc-300">
               <input type="checkbox" checked={form.showHeroPortrait === true} onChange={(event) => update('showHeroPortrait', event.target.checked)} className="accent-amber-300" />
@@ -191,7 +191,7 @@ function ColorField({ label, value, onChange }) {
 
 function UploadField({ label, hint, value, onFile, onClear, compact = false }) {
   return (
-    <div className={compact ? '' : 'rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]'}>
+    <div className={compact ? '' : 'rounded-md bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]'}>
       <p className="text-sm text-zinc-300">{label}</p>
       {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
       {value && <img src={value} alt="" className="mt-3 h-20 max-w-full object-contain" />}

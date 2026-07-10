@@ -194,7 +194,7 @@ export default function Login() {
           <ArrowLeft size={16} /> Back to site
         </Link>
 
-        <form onSubmit={handleSubmit} className="mt-5 rounded-lg bg-white/[0.04] p-6 ring-1 ring-white/[0.075] backdrop-blur">
+        <form onSubmit={handleSubmit} className="mt-5 rounded-md bg-white/[0.04] p-6 ring-1 ring-white/[0.075] backdrop-blur">
           <div className="flex items-start gap-3">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md bg-amber-300 text-zinc-950">
               <HeaderIcon size={20} />

@@ -35,7 +35,7 @@ export default function ContributorRequestPanel({ project, creativeId, canReview
     setNotice(error?.message || 'Request cancelled.'); await load(); setSaving(false);
   }
 
-  return <section className="grid gap-4 rounded-lg bg-zinc-950/45 p-4 ring-1 ring-white/[0.06]">
+  return <section className="grid gap-4 rounded-md bg-zinc-950/45 p-4 ring-1 ring-white/[0.06]">
     <div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Contributor credits</p><h2 className="mt-2 text-lg font-semibold text-white">{canReview ? 'Contributor requests' : 'Request contributor credit'}</h2></div>
     {!canReview && creativeId && <form onSubmit={submit} className="grid gap-3">
       <fieldset className="grid gap-2"><legend className="text-sm text-zinc-300">Requested roles</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{PROJECT_CREDIT_ROLE_PRESETS.map((role) => { const selected = details.roles.includes(role); return <label key={role} className={`flex cursor-pointer items-start gap-2 rounded-md px-2.5 py-2 text-xs ring-1 ${selected ? 'bg-amber-300/12 text-amber-100 ring-amber-300/30' : 'bg-white/[0.025] text-zinc-400 ring-white/[0.06]'}`}><input type="checkbox" checked={selected} onChange={() => setDetails((current) => toggleContributorPresetRole(current, role))} className="mt-0.5 accent-amber-300" />{role}</label>; })}</div></fieldset>

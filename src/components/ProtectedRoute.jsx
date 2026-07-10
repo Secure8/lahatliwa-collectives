@@ -106,14 +106,14 @@ export default function ProtectedRoute() {
   if (error) {
     return (
       <div className="page-shell py-20">
-        <div className="rounded-lg border border-red-400/30 bg-red-500/10 p-5 text-sm leading-6 text-red-100">{error}</div>
+        <div className="rounded-md border border-red-400/30 bg-red-500/10 p-5 text-sm leading-6 text-red-100">{error}</div>
       </div>
     );
   }
   if (blockedReason) {
     return (
       <div className="page-shell py-20">
-        <div className="rounded-lg border border-red-400/30 bg-red-500/10 p-5 text-sm leading-6 text-red-100">{blockedReason}</div>
+        <div className="rounded-md border border-red-400/30 bg-red-500/10 p-5 text-sm leading-6 text-red-100">{blockedReason}</div>
       </div>
     );
   }

@@ -500,17 +500,22 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     setSaving(true);
     setError('');
     let uploadedGalleryPaths = [];
-    const submitAction = submitActionRef.current || 'save';
-    submitActionRef.current = 'save';
+    const submitAction = submitActionRef.current || 'save_draft';
+    submitActionRef.current = 'save_draft';
 
-    if (!canEditCurrent && ['save', 'submit'].includes(submitAction)) {
+    if (!canEditCurrent && ['save_draft', 'submit'].includes(submitAction)) {
       setSaving(false);
       setError('You do not have permission to edit this project.');
       return;
     }
-    if (['approve', 'reject', 'publish', 'archive'].includes(submitAction) && !canApprove) {
+    if (['approve', 'reject', 'archive'].includes(submitAction) && !canApprove) {
       setSaving(false);
       setError('You do not have permission to review this project.');
+      return;
+    }
+    if (submitAction === 'publish' && !canEditCurrent) {
+      setSaving(false);
+      setError('You do not have permission to publish this project.');
       return;
     }
     if (selectedCreativeIds.length && creditRolesSupported === false) {
@@ -543,7 +548,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((item, index) => normalizeGalleryItem({ ...item, order: 1000 + index * 100 }, index));
       const now = new Date().toISOString();
-      const nextReviewStatus = submitAction === 'submit'
+      const nextReviewStatus = submitAction === 'save_draft'
+        ? 'draft'
+        : submitAction === 'submit'
         ? 'pending_review'
         : submitAction === 'approve'
           ? 'approved'
@@ -556,9 +563,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                 : form.review_status || 'draft';
       const nextStatus = submitAction === 'publish'
         ? 'published'
-        : ['submit', 'approve', 'reject', 'archive'].includes(submitAction)
+        : ['save_draft', 'submit', 'approve', 'reject', 'archive'].includes(submitAction)
           ? 'draft'
-          : canApprove
+          : canEditCurrent
             ? form.status
             : 'draft';
       const payload = {
@@ -670,7 +677,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </label>
         <label className="grid gap-2 text-sm text-zinc-300">
           Status
-          <select className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45 disabled:cursor-not-allowed disabled:opacity-60" value={canApprove ? form.status : 'draft'} onChange={(event) => update('status', event.target.value)} disabled={!canApprove}>
+          <select className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45 disabled:cursor-not-allowed disabled:opacity-60" value={canEditCurrent ? form.status : 'draft'} onChange={(event) => update('status', event.target.value)} disabled={!canEditCurrent}>
             <option value="draft">draft</option>
             <option value="published">published</option>
           </select>
@@ -705,7 +712,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           {form.cover_image && (
             <div>
               <p className="mb-2 text-xs text-zinc-500">Cover image</p>
-              <img src={getPublicImageUrl(form.cover_image)} alt="" className="h-28 max-w-full rounded-md object-cover" />
+              <img src={getPublicImageUrl(form.cover_image)} alt="" className="h-28 max-w-full object-cover" />
             </div>
           )}
           {form.gallery_images?.length > 0 && (
@@ -716,7 +723,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                   <div key={file} className="relative">
                     {isPdfFile(file)
                       ? <a href={getPublicImageUrl(file)} target="_blank" rel="noreferrer" className="grid h-20 w-24 place-items-center rounded-md bg-white/[0.05] pr-7 text-xs text-zinc-300 ring-1 ring-white/[0.07]">PDF</a>
-                      : <img src={getPublicImageUrl(file)} alt="" className="h-20 w-24 rounded-md object-cover" />}
+                      : <img src={getPublicImageUrl(file)} alt="" className="h-20 w-24 object-cover" />}
                     <button
                       type="button"
                       onClick={() => removeGalleryFile(file)}
@@ -738,7 +745,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                   <div key={item.id} className="relative">
                     {item.isPdf
                       ? <div className="grid h-20 w-24 place-items-center rounded-md bg-white/[0.05] pr-7 text-xs text-zinc-300 ring-1 ring-white/[0.07]">PDF</div>
-                      : <img src={item.previewUrl} alt="" className="h-20 w-24 rounded-md object-cover" />}
+                      : <img src={item.previewUrl} alt="" className="h-20 w-24 object-cover" />}
                     <button
                       type="button"
                       onClick={() => removePendingGalleryFile(item.id)}
@@ -873,12 +880,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </FormSection>
       )}
 
-      <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-2 rounded-lg bg-zinc-950/92 p-3 ring-1 ring-white/[0.08] sm:bottom-4 sm:flex sm:flex-wrap sm:gap-3">
-        {canEditCurrent && (
-        <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save'; }} className="col-span-2 inline-flex min-w-0 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 sm:col-auto sm:px-5">
-          <Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Saving...' : uploadingImages ? 'Uploading...' : 'Save project'}
-        </button>
-        )}
+      <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-2 rounded-md bg-zinc-950/92 p-3 ring-1 ring-white/[0.08] sm:bottom-4 sm:flex sm:flex-wrap sm:gap-3">
+        {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="col-span-2 inline-flex min-w-0 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 sm:col-auto sm:px-5"><Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Publishing...' : uploadingImages ? 'Uploading...' : mode === 'new' ? 'Create & Publish' : 'Publish Changes'}</button>}
+        {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save_draft'; }} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 py-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">Save Draft</button>}
         {canEditCurrent && !canApprove && (
           <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'submit'; }} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 py-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">
             Submit for review
@@ -888,7 +892,6 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           <>
             <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'approve'; }} className="rounded-md bg-emerald-300/12 px-3 py-3 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-300/20 hover:bg-emerald-300/16 disabled:opacity-60 sm:px-5">Approve</button>
             <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'reject'; }} className="rounded-md bg-red-300/10 px-3 py-3 text-sm font-semibold text-red-100 ring-1 ring-red-300/20 hover:bg-red-300/14 disabled:opacity-60 sm:px-5">Reject</button>
-            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="rounded-md bg-white/[0.055] px-3 py-3 text-sm font-semibold text-zinc-100 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:px-5">Publish</button>
             <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'archive'; }} className="rounded-md bg-white/[0.035] px-3 py-3 text-sm font-semibold text-zinc-300 ring-1 ring-white/[0.07] hover:bg-white/[0.065] disabled:opacity-60 sm:px-5">Archive</button>
           </>
         )}
@@ -955,7 +958,7 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
       </div>
 
       {item.thumbnail_url && (
-        <img src={item.thumbnail_url} alt="" className="h-24 max-w-48 rounded-md object-cover" />
+        <img src={item.thumbnail_url} alt="" className="h-24 max-w-48 object-cover" />
       )}
     </AdminSoftPanel>
   );

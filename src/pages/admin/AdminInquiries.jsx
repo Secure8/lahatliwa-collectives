@@ -11,6 +11,7 @@ import {
 import LoadingState from '../../components/LoadingState';
 import { formatDate } from '../../lib/helpers';
 import { supabase } from '../../lib/supabaseClient';
+import { canManageAllProjects, useAdminAccess } from '../../lib/adminAccess';
 
 const statuses = ['new', 'reviewed', 'contacted', 'accepted', 'declined', 'completed'];
 const filters = ['all', ...statuses];
@@ -32,15 +33,21 @@ export default function AdminInquiries() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [creativeNames, setCreativeNames] = useState({});
+  const { role, adminUser } = useAdminAccess();
+  const canManage = canManageAllProjects(role);
 
   async function loadInquiries() {
     setLoading(true);
-    const { data, error: loadError } = await supabase
-      .from('project_inquiries')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const [{ data, error: loadError }, { data: creativeRows }] = await Promise.all([
+      supabase.from('project_inquiries').select('*').order('created_at', { ascending: false }),
+      supabase.from('creative_members').select('id, name').eq('is_published', true),
+    ]);
     if (loadError) setError(loadError.message);
-    else setInquiries(data || []);
+    else {
+      setInquiries(data || []);
+      setCreativeNames(Object.fromEntries((creativeRows || []).map((creative) => [creative.id, creative.name])));
+    }
     setLoading(false);
   }
 
@@ -113,9 +120,10 @@ export default function AdminInquiries() {
                       <span>Budget: {inquiry.budget_range || 'N/A'}</span>
                       <span>Deadline: {inquiry.deadline ? formatDate(inquiry.deadline) : 'N/A'}</span>
                       {inquiry.preferred_contact && <span>Preferred: {inquiry.preferred_contact}</span>}
+                      {creativeNames[inquiry.preferred_creative_id] && <span className={inquiry.preferred_creative_id === adminUser?.creative_member_id ? 'text-amber-100' : ''}>Preferred creative: {creativeNames[inquiry.preferred_creative_id]}</span>}
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                  {canManage ? <div className="flex flex-wrap items-center gap-2 md:justify-end">
                     <label className="sr-only" htmlFor={`inquiry-status-${inquiry.id}`}>Status</label>
                     <select
                       id={`inquiry-status-${inquiry.id}`}
@@ -128,7 +136,7 @@ export default function AdminInquiries() {
                     <AdminActionGroup>
                       <AdminActionButton onClick={() => deleteInquiry(inquiry)} variant="danger"><Trash2 size={14} /> Delete</AdminActionButton>
                     </AdminActionGroup>
-                  </div>
+                  </div> : <p className="text-xs text-zinc-600 md:text-right">View only</p>}
                 </article>
               ))}
             </div>

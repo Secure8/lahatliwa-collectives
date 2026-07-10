@@ -381,6 +381,7 @@ function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackg
   if (pageKey === 'home') {
     return (
       <>
+        <Field label="Hero eyebrow" value={content.heroEyebrow || ''} onChange={(value) => patch({ heroEyebrow: value })} />
         <Field label="Hero title" value={content.heroTitle || ''} onChange={(value) => patch({ heroTitle: value })} />
         <Textarea label="Hero description" value={content.heroDescription || ''} onChange={(value) => patch({ heroDescription: value })} />
         <div className="grid gap-4 md:grid-cols-2">

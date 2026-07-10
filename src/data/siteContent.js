@@ -72,6 +72,7 @@ export const defaultSiteContent = {
 
 export const defaultPageContent = {
   home: {
+    heroEyebrow: defaultSiteContent.hero.eyebrow,
     heroTitle: defaultSiteContent.hero.title,
     heroDescription: defaultSiteContent.hero.description,
     primaryCta: defaultSiteContent.hero.primaryCta,

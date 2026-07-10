@@ -1,11 +1,7 @@
--- Creative self-management, project visibility, explicit access, and contributor requests.
--- Run after team_rbac_upgrade.sql and project_credit_roles.sql.
-
 create schema if not exists private;
 revoke all on schema private from public;
 grant usage on schema private to authenticated;
 
--- One active dashboard account maps to one public creative profile. Super admins may remain unlinked.
 create unique index if not exists admin_users_active_creative_member_unique_idx
 on public.admin_users(creative_member_id)
 where creative_member_id is not null and status in ('active', 'invited');
@@ -182,7 +178,6 @@ begin
 end;
 $$;
 
--- Public RPC wrappers are security invoker; all authority checks remain in private functions.
 create or replace function public.submit_contributor_request(p_project_id uuid, p_roles text[], p_message text default null)
 returns uuid language sql security invoker set search_path = public, private, pg_temp as $$ select private.submit_contributor_request(p_project_id, p_roles, p_message); $$;
 create or replace function public.review_contributor_request(p_request_id uuid, p_decision text, p_roles text[] default null)

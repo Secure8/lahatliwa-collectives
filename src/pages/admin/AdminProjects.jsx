@@ -2,7 +2,7 @@ import { Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminProjectCard from '../../components/admin/AdminProjectCard';
-import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
+import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { canCreateProjects, canDeleteProject, canManageAllProjects, useAdminAccess } from '../../lib/adminAccess';
 import { supabase } from '../../lib/supabaseClient';
@@ -45,7 +45,7 @@ export default function AdminProjects() {
     || (filter === 'owned' && (project.owner_user_id === user?.id || project.created_by === user?.id))
     || (filter === 'published' && project.status === 'published')
     || (filter === 'draft' && project.status === 'draft')
-    || (filter === 'archived' && project.status === 'archived')
+    || (filter === 'archived' && project.review_status === 'archived')
   )), [filter, projects, user?.id]);
 
   function moveProject(items, activeId, targetId) {
@@ -135,7 +135,7 @@ export default function AdminProjects() {
       {!loading && (
         projects.length ? (
           <div className="grid gap-6">
-            {canManageAll && <AdminSurface className="grid gap-4">
+            {canManageAll && <section className="grid gap-4 border-y border-white/[0.07] py-5">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Homepage curation</p>
@@ -168,9 +168,9 @@ export default function AdminProjects() {
                   ))}
                 </div>
               ) : <AdminEmptyState title="No featured projects yet" message="Mark projects as featured to arrange them here." />}
-            </AdminSurface>}
+            </section>}
 
-            <AdminSurface className="grid gap-4">
+            <section className="grid gap-4 border-y border-white/[0.07] py-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Content library</p>
                 <h2 className="mt-2 text-xl font-semibold text-white">All projects</h2>
@@ -178,7 +178,7 @@ export default function AdminProjects() {
               <div className="flex flex-wrap gap-2">{[['all','All projects'],['published','Published'],['draft','Drafts'],['archived','Archived'],['owned','My projects']].map(([key,label])=><AdminButton key={key} onClick={()=>setFilter(key)} variant={filter===key?'primary':'secondary'}>{label}</AdminButton>)}</div>
               {filteredProjects.map((project) => <AdminProjectCard key={project.id} project={project} onDelete={deleteProject} />)}
               {!filteredProjects.length && <p className="text-sm text-zinc-500">{filter === 'owned' ? 'You have not created any projects yet.' : `No ${filter === 'all' ? 'team' : filter} projects yet.`}</p>}
-            </AdminSurface>
+            </section>
           </div>
         ) : <AdminEmptyState title="No projects yet" message="Add your first project from the dashboard." action={canCreate && <AdminButton to="/admin/projects/new" variant="primary"><Plus size={17} /> Add project</AdminButton>} />
       )}

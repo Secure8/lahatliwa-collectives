@@ -2,8 +2,8 @@ import { ImagePlus } from 'lucide-react';
 
 export default function ImageUploader({ label, hint = '', multiple = false, accept = 'image/*', onChange }) {
   return (
-    <label className="group flex min-h-32 cursor-pointer flex-col items-center justify-center gap-3 rounded-md bg-zinc-950/45 px-5 py-6 text-center text-sm text-zinc-300 ring-1 ring-white/[0.08] transition hover:bg-white/[0.055] hover:ring-amber-200/30">
-      <span className="grid h-11 w-11 place-items-center rounded-md bg-amber-300/10 text-amber-100 ring-1 ring-amber-200/10 transition group-hover:bg-amber-300/15">
+    <label className="group flex min-h-28 cursor-pointer flex-col items-center justify-center gap-3 border-y border-white/[0.09] bg-transparent px-5 py-5 text-center text-sm text-zinc-300 transition hover:border-amber-200/30 hover:bg-white/[0.02]">
+      <span className="grid h-10 w-10 place-items-center text-amber-100 transition group-hover:text-amber-200">
         <ImagePlus size={19} />
       </span>
       <span>{label}</span>

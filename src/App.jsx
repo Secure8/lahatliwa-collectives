@@ -29,6 +29,7 @@ const AdminCreatives = lazy(() => import('./pages/admin/AdminCreatives'));
 const CreativeEditor = lazy(() => import('./pages/admin/CreativeEditor'));
 const AdminInquiries = lazy(() => import('./pages/admin/AdminInquiries'));
 const AdminServiceBranches = lazy(() => import('./pages/admin/AdminServiceBranches'));
+const ServiceBranchEditor = lazy(() => import('./pages/admin/ServiceBranchEditor'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
 const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
@@ -86,6 +87,8 @@ export default function App() {
         <Route path="/admin/creatives/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><CreativeEditor /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/creatives/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><CreativeEditor /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/service-branches" element={<AdminSuspense><AdminServiceBranches /></AdminSuspense>} />
+        <Route path="/admin/service-branches/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><ServiceBranchEditor /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/service-branches/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><ServiceBranchEditor /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/inquiries" element={<AdminSuspense><AdminInquiries /></AdminSuspense>} />
         <Route path="/admin/team" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminTeam /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/settings" element={<AdminSuspense><SiteSettings /></AdminSuspense>} />

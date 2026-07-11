@@ -33,7 +33,7 @@ import {
   validateExternalThumbnailUploadFile,
   validateGalleryUploadFile,
 } from '../../lib/storage';
-import { AdminCheckbox, AdminSoftPanel, AdminSurface } from './AdminUI';
+import { AdminCheckbox } from './AdminUI';
 import ImageUploader from './ImageUploader';
 
 const emptyProject = {
@@ -671,13 +671,13 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         <Field label="Slug" required value={form.slug} onChange={updateSlug} onBlur={() => update('slug', slugify(form.slug))} />
         <label className="grid gap-2 text-sm text-zinc-300">
           Category
-          <select className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={form.category} onChange={(event) => update('category', event.target.value)} required>
+          <select className="border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition focus:border-amber-200/60" value={form.category} onChange={(event) => update('category', event.target.value)} required>
             {categories.map((category) => <option key={category}>{category}</option>)}
           </select>
         </label>
         <label className="grid gap-2 text-sm text-zinc-300">
           Status
-          <select className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45 disabled:cursor-not-allowed disabled:opacity-60" value={canEditCurrent ? form.status : 'draft'} onChange={(event) => update('status', event.target.value)} disabled={!canEditCurrent}>
+          <select className="border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition focus:border-amber-200/60 disabled:cursor-not-allowed disabled:opacity-60" value={canEditCurrent ? form.status : 'draft'} onChange={(event) => update('status', event.target.value)} disabled={!canEditCurrent}>
             <option value="draft">draft</option>
             <option value="published">published</option>
           </select>
@@ -686,7 +686,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
       <label className="grid gap-2 text-sm text-zinc-300">
         Description
-        <textarea className="min-h-36 rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={form.description} onChange={(event) => update('description', event.target.value)} required />
+        <textarea className="min-h-36 resize-y border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 leading-6 text-white outline-none transition focus:border-amber-200/60" value={form.description} onChange={(event) => update('description', event.target.value)} required />
       </label>
 
       <Field label="Tools used, separated by commas" value={form.tools} onChange={(value) => update('tools', value)} />
@@ -708,7 +708,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         />
       </div>
       {(form.cover_image || form.gallery_images?.length > 0 || pendingGalleryFiles.length > 0) && (
-        <AdminSoftPanel className="grid gap-4">
+        <div className="grid gap-4 border-y border-white/[0.08] py-5">
           {form.cover_image && (
             <div>
               <p className="mb-2 text-xs text-zinc-500">Cover image</p>
@@ -759,7 +759,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
               </div>
             </div>
           )}
-        </AdminSoftPanel>
+        </div>
       )}
       </FormSection>
 
@@ -770,16 +770,16 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
           <Field label="Add external gallery link" value={externalUrl} onChange={setExternalUrl} />
-          <button type="button" onClick={addSingleExternalUrl} className="inline-flex h-fit items-center justify-center gap-2 self-end rounded-md bg-white/[0.055] px-4 py-3 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
+          <button type="button" onClick={addSingleExternalUrl} className="inline-flex h-10 items-center justify-center gap-2 self-end px-4 text-sm text-zinc-200 hover:bg-white/[0.04]">
             <Plus size={16} /> Add link
           </button>
         </div>
 
         <label className="grid gap-2 text-sm text-zinc-300">
           Bulk paste external links, one per line
-          <textarea className="min-h-24 rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={bulkExternalUrls} onChange={(event) => setBulkExternalUrls(event.target.value)} />
+          <textarea className="min-h-24 resize-y border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition focus:border-amber-200/60" value={bulkExternalUrls} onChange={(event) => setBulkExternalUrls(event.target.value)} />
         </label>
-        <button type="button" onClick={addBulkExternalUrls} className="w-fit rounded-md bg-white/[0.055] px-4 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
+        <button type="button" onClick={addBulkExternalUrls} className="h-10 w-fit px-4 text-sm text-zinc-200 hover:bg-white/[0.04]">
           Add pasted links
         </button>
 
@@ -817,7 +817,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         <div className="grid gap-5 lg:grid-cols-2">
           <label className="grid gap-2 text-sm text-zinc-300">
             Review status
-            <select className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45 disabled:cursor-not-allowed disabled:opacity-60" value={form.review_status || 'draft'} onChange={(event) => update('review_status', event.target.value)} disabled={!canApprove}>
+            <select className="border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition focus:border-amber-200/60 disabled:cursor-not-allowed disabled:opacity-60" value={form.review_status || 'draft'} onChange={(event) => update('review_status', event.target.value)} disabled={!canApprove}>
               <option value="draft">draft</option>
               <option value="pending_review">pending review</option>
               <option value="approved">approved</option>
@@ -828,7 +828,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           </label>
           <label className="grid gap-2 text-sm text-zinc-300 lg:col-span-2">
             Review notes
-            <textarea className="min-h-24 rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={form.review_notes || ''} onChange={(event) => update('review_notes', event.target.value)} placeholder="Optional internal note for the team" />
+            <textarea className="min-h-24 resize-y border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60" value={form.review_notes || ''} onChange={(event) => update('review_notes', event.target.value)} placeholder="Optional internal note for the team" />
           </label>
         </div>
       </FormSection>
@@ -840,7 +840,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {creativeMembers.map((creative) => (
-              <div key={creative.id} className="min-w-0 rounded-md bg-zinc-950/55 p-3 text-sm text-zinc-300 ring-1 ring-white/[0.07] sm:p-4">
+              <div key={creative.id} className="min-w-0 border-y border-white/[0.07] px-1 py-4 text-sm text-zinc-300 sm:px-2">
                 <label className="flex min-w-0 items-start gap-3 sm:items-center">
                 <input type="checkbox" checked={selectedCreativeIds.includes(creative.id)} onChange={() => toggleCreative(creative.id)} className="h-4 w-4 accent-amber-300" />
                 <span className="min-w-0 leading-5"><span className="text-zinc-200">{creative.name}</span> <span className="block text-zinc-500 sm:inline">/ {creative.role}</span></span>
@@ -863,7 +863,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                     </fieldset>
                     <label className="grid gap-2 text-xs text-zinc-400">
                       Other credits <span className="text-zinc-600">Separate multiple roles with commas</span>
-                      <input className="min-w-0 rounded-md bg-zinc-950/70 px-3 py-2.5 text-sm text-white outline-none ring-1 ring-white/[0.08] focus:ring-amber-200/45" value={contributorDetails[creative.id]?.customRoles || ''} onChange={(event) => updateContributor(creative.id, { customRoles: event.target.value })} onBlur={() => normalizeContributorCustomRoles(creative.id)} placeholder="Creative Graphics, Captions, Art Direction" />
+                      <input className="min-w-0 border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-sm text-white outline-none placeholder:text-zinc-700 focus:border-amber-200/60" value={contributorDetails[creative.id]?.customRoles || ''} onChange={(event) => updateContributor(creative.id, { customRoles: event.target.value })} onBlur={() => normalizeContributorCustomRoles(creative.id)} placeholder="Creative Graphics, Captions, Art Direction" />
                     </label>
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
                       <Field label="Display order" type="number" value={contributorDetails[creative.id]?.displayOrder ?? ''} onChange={(value) => updateContributor(creative.id, { displayOrder: value })} />
@@ -880,22 +880,22 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </FormSection>
       )}
 
-      <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-2 rounded-md bg-zinc-950/92 p-3 ring-1 ring-white/[0.08] sm:bottom-4 sm:flex sm:flex-wrap sm:gap-3">
-        {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="col-span-2 inline-flex min-w-0 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 py-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 sm:col-auto sm:px-5"><Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Publishing...' : uploadingImages ? 'Uploading...' : mode === 'new' ? 'Create & Publish' : 'Publish Changes'}</button>}
-        {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save_draft'; }} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 py-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">Save Draft</button>}
+      <div className="sticky bottom-0 z-10 grid grid-cols-2 gap-2 border-t border-white/[0.1] bg-zinc-950/92 py-3 backdrop-blur sm:flex sm:flex-wrap sm:gap-3">
+        {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="col-span-2 inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 sm:col-auto sm:px-5"><Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Publishing...' : uploadingImages ? 'Uploading...' : mode === 'new' ? 'Create & Publish' : 'Publish Changes'}</button>}
+        {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save_draft'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">Save Draft</button>}
         {canEditCurrent && !canApprove && (
-          <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'submit'; }} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 py-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">
+          <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'submit'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">
             Submit for review
           </button>
         )}
         {canApprove && (
           <>
-            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'approve'; }} className="rounded-md bg-emerald-300/12 px-3 py-3 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-300/20 hover:bg-emerald-300/16 disabled:opacity-60 sm:px-5">Approve</button>
-            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'reject'; }} className="rounded-md bg-red-300/10 px-3 py-3 text-sm font-semibold text-red-100 ring-1 ring-red-300/20 hover:bg-red-300/14 disabled:opacity-60 sm:px-5">Reject</button>
-            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'archive'; }} className="rounded-md bg-white/[0.035] px-3 py-3 text-sm font-semibold text-zinc-300 ring-1 ring-white/[0.07] hover:bg-white/[0.065] disabled:opacity-60 sm:px-5">Archive</button>
+            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'approve'; }} className="h-10 rounded-md bg-emerald-300/12 px-3 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-300/20 hover:bg-emerald-300/16 disabled:opacity-60 sm:px-5">Approve</button>
+            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'reject'; }} className="h-10 rounded-md bg-red-300/10 px-3 text-sm font-semibold text-red-100 ring-1 ring-red-300/20 hover:bg-red-300/14 disabled:opacity-60 sm:px-5">Reject</button>
+            <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'archive'; }} className="h-10 rounded-md bg-white/[0.035] px-3 text-sm font-semibold text-zinc-300 ring-1 ring-white/[0.07] hover:bg-white/[0.065] disabled:opacity-60 sm:px-5">Archive</button>
           </>
         )}
-        <button type="button" onClick={() => navigate('/admin/projects')} className="col-span-2 rounded-md bg-white/[0.055] px-3 py-3 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] sm:col-auto sm:px-5">
+        <button type="button" onClick={() => navigate('/admin/projects')} className="col-span-2 h-10 rounded-md bg-white/[0.055] px-3 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] sm:col-auto sm:px-5">
           Cancel
         </button>
       </div>
@@ -905,7 +905,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
 function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUploadThumbnail, onMove, onRemove }) {
   return (
-    <AdminSoftPanel className="grid gap-4">
+    <div className="grid gap-4 border-y border-white/[0.08] py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 text-sm text-zinc-300">
           <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-zinc-400">#{index + 1}</span>
@@ -928,7 +928,7 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
         <Field label="URL" value={item.url || ''} onChange={(value) => onChange({ url: value })} />
         <label className="grid gap-2 text-sm text-zinc-300">
           Platform
-          <select className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={item.type || 'external_link'} onChange={(event) => onChange({ type: event.target.value })}>
+          <select className="border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition focus:border-amber-200/60" value={item.type || 'external_link'} onChange={(event) => onChange({ type: event.target.value })}>
             {galleryItemTypes.map((type) => <option key={type} value={type}>{platformLabel(type)}</option>)}
           </select>
         </label>
@@ -938,11 +938,11 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
 
       <label className="grid gap-2 text-sm text-zinc-300">
         Optional description
-        <textarea className="min-h-20 rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" value={item.description || ''} onChange={(event) => onChange({ description: event.target.value })} />
+        <textarea className="min-h-20 resize-y border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition focus:border-amber-200/60" value={item.description || ''} onChange={(event) => onChange({ description: event.target.value })} />
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
+        <label className="inline-flex h-10 cursor-pointer items-center gap-2 px-3 text-sm text-zinc-200 hover:bg-white/[0.04]">
           <Upload size={15} /> Upload thumbnail
           <input className="sr-only" type="file" accept="image/*" onChange={(event) => {
             onUploadThumbnail(event.target.files?.[0]);
@@ -960,7 +960,7 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
       {item.thumbnail_url && (
         <img src={item.thumbnail_url} alt="" className="h-24 max-w-48 object-cover" />
       )}
-    </AdminSoftPanel>
+    </div>
   );
 }
 
@@ -974,7 +974,7 @@ function Field({ label, value, onChange, type = 'text', required = false, onBlur
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
-        className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45"
+        className="border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60"
       />
     </label>
   );
@@ -982,14 +982,14 @@ function Field({ label, value, onChange, type = 'text', required = false, onBlur
 
 function FormSection({ eyebrow, title, description, children }) {
   return (
-    <AdminSurface className="grid gap-5">
+    <section className="grid gap-5 border-t border-white/[0.08] py-7 first:border-t-0 first:pt-0">
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{eyebrow}</p>
         <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
         {description && <p className="mt-2 text-sm leading-6 text-zinc-500">{description}</p>}
       </div>
       {children}
-    </AdminSurface>
+    </section>
   );
 }
 

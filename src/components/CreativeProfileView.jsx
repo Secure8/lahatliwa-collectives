@@ -12,6 +12,7 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
   const { content } = usePublicContent([]);
   const skills = Array.isArray(creative.skills) ? creative.skills : [];
   const socialLinks = Array.isArray(creative.social_links) ? creative.social_links : [];
+  const bio = adminPreview ? creative.short_bio || creative.full_bio : creative.full_bio || creative.short_bio;
 
   async function copyProfileLink() {
     try {
@@ -27,7 +28,7 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
   return (
     <article className="min-w-0">
       {adminPreview && <p className="mb-6 text-xs font-medium uppercase tracking-[0.2em] text-amber-200">Admin preview</p>}
-      <div className="relative h-44 overflow-hidden bg-zinc-900 sm:h-56 md:h-64">
+      <div className={`relative overflow-hidden bg-zinc-900 ${adminPreview ? 'h-36 sm:h-44 md:h-52' : 'h-44 sm:h-56 md:h-64'}`}>
         {creative.cover_image ? (
           <img src={creative.cover_image} alt="" decoding="async" fetchPriority="high" width="1800" height="720" className="h-full w-full object-cover" />
         ) : <div className="h-full w-full bg-zinc-900" />}
@@ -36,16 +37,16 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
       <section className="grid gap-7 border-b border-white/[0.08] pb-10 md:grid-cols-[10rem_minmax(0,1fr)] md:items-start md:gap-10">
         <div className="relative z-10 -mt-14 flex justify-center md:-mt-16 md:justify-start">
           {creative.profile_image_url ? (
-            <img src={creative.profile_image_url} alt={creative.name} decoding="async" width="240" height="240" className="h-32 w-32 rounded-full bg-zinc-900 object-cover ring-4 ring-zinc-950 sm:h-40 sm:w-40" />
+            <img src={creative.profile_image_url} alt={creative.name} decoding="async" width="240" height="240" className={`${adminPreview ? 'h-28 w-28 sm:h-36 sm:w-36' : 'h-32 w-32 sm:h-40 sm:w-40'} rounded-full bg-zinc-900 object-cover ring-4 ring-zinc-950`} />
           ) : (
-            <div className="grid h-32 w-32 place-items-center rounded-full bg-zinc-900 text-5xl font-semibold text-zinc-600 ring-4 ring-zinc-950 sm:h-40 sm:w-40">{creative.name?.slice(0, 1)}</div>
+            <div className={`${adminPreview ? 'h-28 w-28 text-4xl sm:h-36 sm:w-36' : 'h-32 w-32 text-5xl sm:h-40 sm:w-40'} grid place-items-center rounded-full bg-zinc-900 font-semibold text-zinc-600 ring-4 ring-zinc-950`}>{creative.name?.slice(0, 1)}</div>
           )}
         </div>
         <div className="min-w-0 pt-2 text-center md:pt-7 md:text-left">
           <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.accentColor }}>{creative.role}</p>
           <h1 className="mt-3 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.primaryTextColor }}>{creative.name}</h1>
           {creative.availability_status && <p className="mt-3 text-sm text-zinc-400">{creative.availability_status}</p>}
-          <p className="mt-5 max-w-3xl text-base leading-7 sm:text-lg sm:leading-8" style={{ color: content.secondaryTextColor }}>{creative.full_bio || creative.short_bio}</p>
+          {bio && <p className={`mt-5 max-w-3xl ${adminPreview ? 'text-sm leading-6 sm:text-base sm:leading-7' : 'text-base leading-7 sm:text-lg sm:leading-8'}`} style={{ color: content.secondaryTextColor }}>{bio}</p>}
           <div className="mt-6 flex flex-wrap justify-center gap-2 md:justify-start">
             <button type="button" onClick={copyProfileLink} className="inline-flex items-center gap-2 border border-white/[0.12] px-3.5 py-2.5 text-sm text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
               {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? 'Profile link copied' : 'Copy profile link'}

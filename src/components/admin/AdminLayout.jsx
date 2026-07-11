@@ -108,10 +108,10 @@ export default function AdminLayout({ children }) {
           </nav>
 
           <div className="hidden gap-2 lg:grid">
-            <Link to="/" className="inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.045] px-4 py-2.5 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-amber-100">
+            <Link to="/" className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.045] px-4 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-amber-100">
               <ExternalLink size={16} /> View site
             </Link>
-            <button onClick={logout} className="inline-flex items-center justify-center gap-2 rounded-md bg-white/[0.045] px-4 py-2.5 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-white">
+            <button onClick={logout} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.045] px-4 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-white">
               <LogOut size={16} /> Logout
             </button>
           </div>

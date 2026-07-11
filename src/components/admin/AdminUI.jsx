@@ -49,7 +49,7 @@ export function AdminSoftPanel({ children, className = '' }) {
 
 export function AdminButton({ children, to, onClick, type = 'button', variant = 'secondary', className = '', disabled = false }) {
   const classes = clsx(
-    'inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-55',
+    'inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 text-sm font-semibold leading-none transition disabled:pointer-events-none disabled:opacity-55',
     variant === 'primary'
       ? 'bg-amber-300 text-zinc-950 hover:bg-amber-200'
       : variant === 'danger'
@@ -68,12 +68,12 @@ export function AdminButton({ children, to, onClick, type = 'button', variant = 
 }
 
 export function AdminActionGroup({ children, className = '' }) {
-  return <div className={clsx('flex flex-wrap items-center gap-1.5', className)}>{children}</div>;
+  return <div className={clsx('flex min-h-9 flex-wrap content-center items-center gap-1.5', className)}>{children}</div>;
 }
 
 export function AdminActionButton({ children, to, onClick, type = 'button', variant = 'secondary', disabled = false, className = '' }) {
   const classes = clsx(
-    'inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium transition disabled:pointer-events-none disabled:opacity-50',
+    'inline-flex h-9 min-w-20 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-xs font-medium leading-none transition disabled:pointer-events-none disabled:opacity-50',
     variant === 'danger'
       ? 'text-red-200 hover:bg-red-300/10 hover:text-red-100'
       : variant === 'primary'

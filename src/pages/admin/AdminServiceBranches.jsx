@@ -176,7 +176,7 @@ export default function AdminServiceBranches() {
         <AdminTextarea label="Description" value={form.description || ''} onChange={(value) => update('description', value)} />
         <AdminInput label="Included services, comma-separated" value={form.included_services || ''} onChange={(value) => update('included_services', value)} />
         <div className="flex flex-wrap items-center gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-white/[0.055] px-4 py-2.5 text-sm text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085]">
+          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-white/[0.055] px-4 text-sm text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085]">
             <Upload size={16} /> {uploadingIcon ? 'Optimizing icon...' : 'Upload icon or image'}
             <input className="sr-only" type="file" accept="image/*" onChange={(event) => {
               uploadBranchIcon(event.target.files?.[0]);

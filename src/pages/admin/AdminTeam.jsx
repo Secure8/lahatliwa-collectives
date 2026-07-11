@@ -1,5 +1,6 @@
-import { Copy, Edit, Eye, ExternalLink, Plus, RotateCcw, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Copy, Edit, Eye, ExternalLink, Plus, RotateCcw, ShieldCheck, ShieldOff, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   AdminButton,
@@ -20,8 +21,14 @@ import { copyText } from '../../lib/clipboard';
 import { supabase } from '../../lib/supabaseClient';
 
 const roleOptions = ['super_admin', 'admin', 'editor', 'creative', 'viewer'];
-const statusOptions = ['active', 'invited', 'disabled'];
+const statusOptions = ['active', 'invited'];
 const teamFilters = ['active', 'invited', 'disabled', 'all'];
+const emptyFilterCopy = {
+  active: 'No active team members found.',
+  invited: 'No pending invitations.',
+  disabled: 'No disabled team members.',
+  all: 'No team members found.',
+};
 const teamRecordSelect = 'id, user_id, email, display_name, avatar_url, role, status, creative_member_id, created_at, updated_at';
 
 const emptyForm = {
@@ -56,6 +63,9 @@ export default function AdminTeam() {
   const [updatingMemberId, setUpdatingMemberId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [lifecycle, setLifecycle] = useState(null);
+  const [pin, setPin] = useState('');
+  const [confirmation, setConfirmation] = useState('');
 
   const isSuperAdmin = role === 'super_admin';
   const availableRoleOptions = isSuperAdmin ? roleOptions : roleOptions.filter((option) => option !== 'super_admin');
@@ -72,10 +82,10 @@ export default function AdminTeam() {
   const editingMember = team.find((member) => member.id === editingId);
   const editingCurrentAccount = editingMember?.user_id === adminUser?.user_id;
   const formRoleOptions = editingCurrentAccount ? [normalizedTeamRole(editingMember)] : availableRoleOptions;
-  const formStatusOptions = editingCurrentAccount ? [editingMember.status] : statusOptions;
+  const formStatusOptions = editingMember ? [editingMember.status] : statusOptions;
 
-  async function loadTeam() {
-    setLoading(true);
+  async function loadTeam({ showLoading = true } = {}) {
+    if (showLoading) setLoading(true);
     const [{ data: teamRows, error: teamError }, { data: creativeRows }] = await Promise.all([
       supabase
         .from('admin_users')
@@ -91,7 +101,7 @@ export default function AdminTeam() {
     if (teamError) setError(teamError.message);
     else setTeam(teamRows || []);
     setCreatives(creativeRows || []);
-    setLoading(false);
+    if (showLoading) setLoading(false);
   }
 
   useEffect(() => {
@@ -160,6 +170,9 @@ export default function AdminTeam() {
       if (protectedSuperAdminChange(existing, form.role, form.status)) {
         throw new Error('You cannot downgrade or disable the last active Super Admin.');
       }
+      if (existing && form.status !== existing.status) {
+        throw new Error('Use the PIN-protected Remove Access or Restore Access action to change access status.');
+      }
 
       const payload = {
         email: form.email.trim().toLowerCase(),
@@ -189,7 +202,7 @@ export default function AdminTeam() {
     }
   }
 
-  async function disableMember(member) {
+  function openLifecycle(action, member) {
     if (member.user_id === adminUser?.user_id) {
       setError('You cannot disable your own team access.');
       return;
@@ -202,47 +215,63 @@ export default function AdminTeam() {
       setError('You cannot disable the last active Super Admin.');
       return;
     }
-    if (!window.confirm(`Remove admin access for ${member.email || member.display_name || 'this team member'}? Their team record and project history will be retained.`)) return;
-
-    setUpdatingMemberId(member.id);
-    setError('');
-    setMessage('');
-    const { data: disabledMember, error: updateError } = await supabase
-      .from('admin_users')
-      .update({ status: 'disabled', updated_at: new Date().toISOString() })
-      .eq('id', member.id)
-      .select(teamRecordSelect)
-      .single();
-    if (updateError) setError(updateError.message);
-    else {
-      setTeam((current) => sortTeam(current.map((item) => item.id === member.id ? disabledMember : item)));
-      setMessage('Access removed. The retained team record is available under Disabled or All.');
-    }
-    setUpdatingMemberId('');
+    if (!isSuperAdmin) { setError('Only a Super Admin can perform protected member actions.'); return; }
+    setPin(''); setConfirmation(''); setError(''); setLifecycle({ action, member });
   }
 
-  async function restoreMember(member) {
-    if (!isSuperAdmin && isSuperAdminMember(member)) {
-      setError('Only a Super Admin can restore another Super Admin account.');
-      return;
+  async function runLifecycle(event) {
+    event.preventDefault(); const { action, member } = lifecycle;
+    setUpdatingMemberId(member.id); setError(''); setMessage('');
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      if (!session?.access_token) throw new Error('Your session has expired. Please sign in again.');
+      const { data, error: invokeError } = await supabase.functions.invoke('admin-member-actions', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action, target_admin_user_id: member.id, pin, confirmation },
+      });
+      if (invokeError) {
+        let specificMessage = '';
+        if (invokeError instanceof FunctionsHttpError) {
+          const response = invokeError.context;
+          try {
+            const payload = await response.clone().json();
+            specificMessage = payload?.message || payload?.error || '';
+          } catch {
+            try { specificMessage = await response.text(); } catch { specificMessage = ''; }
+          }
+        } else if (invokeError instanceof FunctionsFetchError) {
+          specificMessage = 'Could not reach the member action service. Please try again.';
+        } else if (invokeError instanceof FunctionsRelayError) {
+          specificMessage = 'The member action service is temporarily unavailable.';
+        }
+        throw new Error(specificMessage || invokeError.message || 'The member action failed.');
+      }
+      if (data?.success === false) throw new Error(data.message || data.error || 'The member action failed.');
+      const nextStatus = data?.result?.status;
+      if (action === 'remove_access' && nextStatus === 'disabled') {
+        setTeam((current) => sortTeam(current.map((item) => item.id === member.id ? { ...item, status: 'disabled', updated_at: new Date().toISOString() } : item)));
+        setCreatives((current) => current.map((creative) => creative.id === member.creative_member_id ? { ...creative, is_published: false } : creative));
+        setActiveFilter('disabled');
+      } else if (action === 'restore_access' && ['active', 'invited'].includes(nextStatus)) {
+        setTeam((current) => sortTeam(current.map((item) => item.id === member.id ? { ...item, status: nextStatus, updated_at: new Date().toISOString() } : item)));
+        setActiveFilter(nextStatus);
+        const { data: restoredCreatives } = await supabase
+          .from('creative_members')
+          .select('id, name, role, slug, is_published')
+          .order('display_order', { ascending: true, nullsFirst: false })
+          .order('name', { ascending: true });
+        if (restoredCreatives) setCreatives(restoredCreatives);
+      } else {
+        await loadTeam({ showLoading: false });
+      }
+      setLifecycle(null);
+      setMessage(action === 'remove_access' ? 'Access removed and public traces hidden.' : action === 'restore_access' ? 'Access and previous public visibility restored.' : 'Member permanently deleted and website-visible traces removed.');
+    } catch (lifecycleError) {
+      setError(lifecycleError.message || 'The member action failed.');
+    } finally {
+      setUpdatingMemberId('');
     }
-
-    const restoredStatus = member.user_id ? 'active' : 'invited';
-    setUpdatingMemberId(member.id);
-    setError('');
-    setMessage('');
-    const { data: restoredMember, error: updateError } = await supabase
-      .from('admin_users')
-      .update({ status: restoredStatus, updated_at: new Date().toISOString() })
-      .eq('id', member.id)
-      .select(teamRecordSelect)
-      .single();
-    if (updateError) setError(updateError.message);
-    else {
-      setTeam((current) => sortTeam(current.map((item) => item.id === member.id ? restoredMember : item)));
-      setMessage(restoredStatus === 'active' ? 'Team access restored.' : 'Invitation restored. The member can now set up their account.');
-    }
-    setUpdatingMemberId('');
   }
 
   function linkedCreativeName(id) {
@@ -291,7 +320,7 @@ export default function AdminTeam() {
       {loading ? <LoadingState label="Loading team" /> : (
         team.length ? (
           <div className="grid gap-5">
-            <div className="flex gap-5 overflow-x-auto border-b border-white/[0.06]">
+            <div className="flex gap-6 overflow-x-auto border-b border-white/[0.06] px-0.5">
               {teamFilters.map((filter) => {
                 const isActive = activeFilter === filter;
                 return (
@@ -299,7 +328,7 @@ export default function AdminTeam() {
                     key={filter}
                     type="button"
                     onClick={() => setActiveFilter(filter)}
-                    className={`shrink-0 border-b-2 px-0 pb-3 text-sm capitalize transition ${isActive ? 'border-amber-200 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}
+                    className={`shrink-0 border-b px-0 pb-3 text-sm capitalize transition ${isActive ? 'border-amber-200 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}
                   >
                     {filter} <span className="ml-1 text-xs text-zinc-600">{teamCounts[filter]}</span>
                   </button>
@@ -309,48 +338,65 @@ export default function AdminTeam() {
 
             <p className="max-w-3xl text-xs leading-5 text-zinc-500">Removed users are disabled and hidden from the active team list, but their records remain for credits, project history, and security audit.</p>
 
-            {visibleTeam.length ? <AdminSurface>
-            <div className="grid gap-1">
+            {visibleTeam.length ? <AdminSurface className="overflow-hidden p-0">
+            <div>
               {visibleTeam.map((member) => {
                 const currentAccount = member.user_id === adminUser?.user_id;
                 const protectedSuperAdmin = isSuperAdminMember(member) && member.status === 'active' && activeSuperAdminCount <= 1;
                 const canManageMember = isSuperAdmin || !isSuperAdminMember(member);
-                const canDisable = member.status !== 'disabled' && !currentAccount && !protectedSuperAdmin && canManageMember;
-                const canRestore = member.status === 'disabled' && canManageMember;
+                const canDisable = isSuperAdmin && member.status !== 'disabled' && !currentAccount && !protectedSuperAdmin;
+                const canRestore = isSuperAdmin && member.status === 'disabled';
+                const canDelete = isSuperAdmin && !currentAccount && !protectedSuperAdmin;
                 return (
-                <article key={member.id} className="grid gap-4 border-b border-white/[0.06] py-4 last:border-b-0 lg:grid-cols-[1.2fr_0.8fr_0.9fr_auto] lg:items-center">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-medium text-white">{member.display_name || member.email || 'Unnamed member'}</h3>
-                      <AdminStatusBadge status={member.status}>{member.status}</AdminStatusBadge>
-                      {currentAccount && <AdminStatusBadge>Current account</AdminStatusBadge>}
+                <article key={member.id} className={`grid gap-4 border-b border-white/[0.06] px-4 py-4 last:border-b-0 sm:px-5 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-center xl:gap-6 ${updatingMemberId === member.id ? 'opacity-60' : ''}`}>
+                  <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(8rem,0.65fr)_minmax(0,0.9fr)] md:items-center md:gap-6">
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <h3 className="truncate font-medium text-white">{member.display_name || member.email || 'Unnamed member'}</h3>
+                        {currentAccount && <span className="shrink-0 text-[11px] text-zinc-500">You</span>}
+                      </div>
+                      <p className="mt-1 truncate text-sm leading-5 text-zinc-500" title={member.email || ''}>{member.email || 'No email yet'}</p>
                     </div>
-                    <p className="mt-1 text-sm text-zinc-500">{member.email || 'No email yet'}</p>
+                    <div className="flex items-center justify-between gap-3 md:block">
+                      <div><p className="text-[11px] uppercase tracking-[0.16em] text-zinc-600">Role</p><p className="mt-1 text-sm capitalize text-zinc-300">{roleLabel(member.role)}</p></div>
+                      <div className="md:mt-2"><AdminStatusBadge status={member.status}>{member.status}</AdminStatusBadge></div>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-600">Creative profile</p>
+                      <p className="mt-1 truncate text-sm text-zinc-300">{linkedCreativeName(member.creative_member_id)}</p>
+                      <p className="mt-1 text-xs text-zinc-600">Added {formatDate(member.created_at)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-zinc-600">Role</p>
-                    <p className="mt-1 text-sm capitalize text-zinc-300">{roleLabel(member.role)}</p>
+                  <div className="grid grid-rows-[2.25rem_2.25rem] gap-1.5 border-t border-white/[0.05] pt-3 xl:w-full xl:self-stretch xl:border-l xl:border-t-0 xl:py-1 xl:pl-5">
+                    <AdminActionGroup className="min-h-9 xl:justify-start">
+                      {canManageMember && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>}
+                      {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton to={`/admin/creatives?preview=${member.creative_member_id}`}><Eye size={14} /> Preview</AdminActionButton>}
+                      {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton onClick={() => copyMemberProfile(member)}><Copy size={14} /> Copy link</AdminActionButton>}
+                      {member.status !== 'disabled' && creatives.find((creative) => creative.id === member.creative_member_id)?.is_published && <AdminActionButton to={`/creatives/${creatives.find((creative) => creative.id === member.creative_member_id).slug}`}><ExternalLink size={14} /> Public</AdminActionButton>}
+                    </AdminActionGroup>
+                    <AdminActionGroup className="min-h-9 xl:justify-start">
+                      {canDisable && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('remove_access', member)} variant="danger"><ShieldOff size={14} /> Remove Access</AdminActionButton>}
+                      {canRestore && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('restore_access', member)}><RotateCcw size={14} /> Restore Access</AdminActionButton>}
+                      {canDelete && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('permanent_delete', member)} variant="danger"><Trash2 size={14} /> Permanently Delete</AdminActionButton>}
+                    </AdminActionGroup>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-zinc-600">Creative profile</p>
-                    <p className="mt-1 text-sm text-zinc-300">{linkedCreativeName(member.creative_member_id)}</p>
-                    <p className="mt-1 text-xs text-zinc-600">{formatDate(member.created_at)}</p>
-                  </div>
-                  <AdminActionGroup className="lg:justify-end">
-                    {canManageMember && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>}
-                    {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton to={`/admin/creatives?preview=${member.creative_member_id}`}><Eye size={14} /> Preview profile</AdminActionButton>}
-                    {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton onClick={() => copyMemberProfile(member)}><Copy size={14} /> Copy profile</AdminActionButton>}
-                    {creatives.find((creative) => creative.id === member.creative_member_id)?.is_published && <AdminActionButton to={`/creatives/${creatives.find((creative) => creative.id === member.creative_member_id).slug}`}><ExternalLink size={14} /> Open public</AdminActionButton>}
-                    {canDisable && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => disableMember(member)} variant="danger"><ShieldOff size={14} /> Remove Access</AdminActionButton>}
-                    {canRestore && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => restoreMember(member)}><RotateCcw size={14} /> Restore Access</AdminActionButton>}
-                  </AdminActionGroup>
                 </article>
               );})}
             </div>
-          </AdminSurface> : <AdminEmptyState title={`No ${activeFilter} team members`} message={activeFilter === 'disabled' ? 'Removed team members will appear here.' : `There are no team records in the ${activeFilter} view.`} />}
+          </AdminSurface> : <AdminEmptyState title={emptyFilterCopy[activeFilter]} />}
           </div>
-        ) : <AdminEmptyState title="No team members yet" message="Create the first team record above." />
+        ) : <AdminEmptyState title={emptyFilterCopy[activeFilter]} />
       )}
+      {lifecycle && <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true">
+        <AdminSurface as="form" onSubmit={runLifecycle} className="w-full max-w-lg grid gap-5">
+          <div className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">PIN-protected action</p><h2 className="mt-2 text-xl font-semibold text-white">{lifecycle.action === 'permanent_delete' ? 'Permanently Delete' : lifecycle.action === 'restore_access' ? 'Restore Access' : 'Remove Access'}</h2></div><button type="button" onClick={() => setLifecycle(null)} aria-label="Close"><X size={20} /></button></div>
+          <p className="text-sm leading-6 text-zinc-300">{lifecycle.action === 'permanent_delete' ? "This removes the member's website-visible traces and cannot be easily undone." : lifecycle.action === 'restore_access' ? 'This restores access and visibility saved when access was removed.' : 'This temporarily blocks admin access and hides linked public profiles, projects, and credits. It can be restored.'}</p>
+          {error && <AdminNotice>{error}</AdminNotice>}
+          <AdminInput label="Super Admin PIN" type="password" required value={pin} onChange={setPin} />
+          {lifecycle.action === 'permanent_delete' && <AdminInput label="Type DELETE to confirm" required value={confirmation} onChange={setConfirmation} />}
+          <div className="flex gap-3"><AdminButton type="submit" variant={lifecycle.action === 'permanent_delete' ? 'danger' : 'primary'} disabled={!pin || (lifecycle.action === 'permanent_delete' && confirmation !== 'DELETE') || updatingMemberId === lifecycle.member.id}>{updatingMemberId ? 'Working...' : 'Confirm action'}</AdminButton><AdminButton onClick={() => setLifecycle(null)} variant="ghost">Cancel</AdminButton></div>
+        </AdminSurface>
+      </div>}
     </AdminLayout>
   );
 }

@@ -1,336 +1,95 @@
-import { Copy, Edit, ExternalLink, Eye, Plus, Trash2 } from 'lucide-react';
+import { Copy, Edit, ExternalLink, Eye, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import CreativeProfileView from '../../components/CreativeProfileView';
-import { AdminActionButton, AdminActionGroup, AdminButton, AdminCheckbox, AdminEmptyState, AdminInput, AdminNotice, AdminPageHeader, AdminSoftPanel, AdminStatusBadge, AdminSurface, AdminTextarea } from '../../components/admin/AdminUI';
+import { AdminActionButton, AdminActionGroup, AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminStatusBadge } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
-import { parseList, slugify } from '../../lib/helpers';
 import { isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
-import { uploadStatusText } from '../../lib/imageCompression';
-import { supabase } from '../../lib/supabaseClient';
 import { copyText } from '../../lib/clipboard';
-import { socialLinksFromText } from '../../lib/socialLinks';
-import { uploadSiteAsset } from '../../lib/contentApi';
-
-const emptyCreative = {
-  name: '',
-  slug: '',
-  role: '',
-  short_bio: '',
-  full_bio: '',
-  profile_image_url: '',
-  cover_image: '',
-  skills: '',
-  social_links: '',
-  availability_status: '',
-  is_featured: false,
-  is_published: true,
-  display_order: '',
-};
-
-function sortCreatives(rows) {
-  return [...rows].sort((a, b) => {
-    const orderA = a.display_order ?? Number.MAX_SAFE_INTEGER;
-    const orderB = b.display_order ?? Number.MAX_SAFE_INTEGER;
-    if (orderA !== orderB) return orderA - orderB;
-    return String(b.created_at || '').localeCompare(String(a.created_at || ''));
-  });
-}
+import { supabase } from '../../lib/supabaseClient';
 
 export default function AdminCreatives() {
   const { role } = useAdminAccess();
+  const navigate = useNavigate();
   const [creatives, setCreatives] = useState([]);
-  const [form, setForm] = useState(emptyCreative);
-  const [editingId, setEditingId] = useState('');
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
+  const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [previewProjects, setPreviewProjects] = useState([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const previewId = searchParams.get('preview');
   const previewCreative = creatives.find((creative) => creative.id === previewId) || null;
-  const canManageCreatives = isPrivilegedRole(role);
-
-  async function loadCreatives() {
-    setLoading(true);
-    const { data, error: loadError } = await supabase
-      .from('creative_members')
-      .select('*')
-      .order('display_order', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: false });
-    if (loadError) setError(loadError.message);
-    else setCreatives(data || []);
-    setLoading(false);
-  }
 
   useEffect(() => {
-    loadCreatives();
+    supabase.from('creative_members').select('*').order('display_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false })
+      .then(({ data, error: loadError }) => {
+        if (loadError) setError(loadError.message);
+        else setCreatives(data || []);
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
-    async function loadPreviewProjects() {
-      if (!previewCreative) {
-        setPreviewProjects([]);
-        return;
-      }
-      setPreviewLoading(true);
-      const { data, error: previewError } = await supabase
-        .from('project_creatives')
-        .select('projects(*)')
-        .eq('creative_id', previewCreative.id)
-        .order('is_primary', { ascending: false })
-        .order('display_order', { ascending: true, nullsFirst: false });
-      if (previewError) setError(previewError.message);
-      else setPreviewProjects((data || []).map((link) => link.projects).filter(Boolean));
-      setPreviewLoading(false);
-    }
-    loadPreviewProjects();
+    if (!previewCreative) { setPreviewProjects([]); return; }
+    setPreviewLoading(true);
+    supabase.from('project_creatives').select('projects(*)').eq('creative_id', previewCreative.id)
+      .order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false })
+      .then(({ data, error: previewError }) => {
+        if (previewError) setError(previewError.message);
+        else setPreviewProjects((data || []).map((link) => link.projects).filter(Boolean));
+        setPreviewLoading(false);
+      });
   }, [previewCreative?.id]);
 
-  function previewCreativeProfile(creative) {
-    setSearchParams({ preview: creative.id });
-  }
-
-  function update(name, value) {
-    setForm((current) => ({ ...current, [name]: value, slug: name === 'name' && !editingId ? slugify(value) : current.slug }));
-  }
-
-  function editCreative(creative) {
-    setEditingId(creative.id);
-    setForm({
-      ...emptyCreative,
-      ...creative,
-      skills: Array.isArray(creative.skills) ? creative.skills.join(', ') : '',
-      social_links: Array.isArray(creative.social_links) ? creative.social_links.map((link) => `${link.label}: ${link.href}`).join('\n') : '',
-      display_order: creative.display_order ?? '',
-    });
-  }
-
-  function resetForm() {
-    setEditingId('');
-    setForm(emptyCreative);
-  }
-
-  async function uploadProfile(file) {
-    if (!file) return;
-    setSaving(true);
-    setError('');
-    setUploadStatus('');
-    let optimizedMessage = '';
-    try {
-      const url = await uploadSiteAsset(file, 'creatives', 'creativeProfile', {
-        onStatus(status) {
-          setUploadStatus(uploadStatusText(status));
-          if (status?.message) optimizedMessage = status.message;
-        },
-      });
-      update('profile_image_url', url);
-      setUploadStatus(optimizedMessage || 'Profile photo uploaded.');
-    } catch (uploadError) {
-      setError(uploadError.message || 'Profile upload failed.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function uploadCover(file) {
-    if (!file) return;
-    setSaving(true);
-    setError('');
-    setUploadStatus('');
-    let optimizedMessage = '';
-    try {
-      const url = await uploadSiteAsset(file, 'creatives/covers', 'creativeCover', {
-        onStatus(status) {
-          setUploadStatus(uploadStatusText(status));
-          if (status?.message) optimizedMessage = status.message;
-        },
-      });
-      update('cover_image', url);
-      setUploadStatus(optimizedMessage || 'Cover photo uploaded.');
-    } catch (uploadError) {
-      setError(uploadError.message || 'Cover photo upload failed.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function save(event) {
-    event.preventDefault();
-    setSaving(true);
-    setError('');
-    const payload = {
-      name: form.name,
-      slug: slugify(form.slug || form.name),
-      role: form.role,
-      short_bio: form.short_bio || null,
-      full_bio: form.full_bio || null,
-      profile_image_url: form.profile_image_url || null,
-      cover_image: form.cover_image || null,
-      skills: parseList(form.skills),
-      social_links: socialLinksFromText(form.social_links || ''),
-      availability_status: form.availability_status || null,
-      is_featured: form.is_featured,
-      is_published: form.is_published,
-      display_order: form.display_order === '' ? null : Number(form.display_order),
-      updated_at: new Date().toISOString(),
-    };
-
-    const query = editingId
-      ? supabase.from('creative_members').update(payload).eq('id', editingId).select('*').single()
-      : supabase.from('creative_members').insert(payload).select('*').single();
-    const { data: savedCreative, error: saveError } = await query;
-    if (saveError) setError(saveError.message);
-    else {
-      setCreatives((current) => sortCreatives(editingId
-        ? current.map((creative) => creative.id === editingId ? savedCreative : creative)
-        : [savedCreative, ...current]));
-      resetForm();
-    }
-    setSaving(false);
-  }
-
-  async function deleteCreative(creative) {
-    if (!window.confirm(`Delete "${creative.name}"?`)) return;
-    const { error: deleteError } = await supabase.from('creative_members').delete().eq('id', creative.id);
-    if (deleteError) setError(deleteError.message);
-    else setCreatives((current) => current.filter((item) => item.id !== creative.id));
-  }
-
   async function copyProfileLink(creative) {
-    try {
-      await copyText(`${window.location.origin}/creatives/${creative.slug}`);
-      setUploadStatus('Profile link copied.');
-    } catch (copyError) {
-      setError(copyError.message || 'Profile link could not be copied.');
-    }
+    try { await copyText(`${window.location.origin}/creatives/${creative.slug}`); setNotice('Profile link copied.'); }
+    catch (copyError) { setError(copyError.message || 'Profile link could not be copied.'); }
   }
 
-  if (!canManageCreatives) return <Navigate to={role === 'creative' || role === 'editor' ? '/admin/my-profile' : '/admin/dashboard'} replace />;
+  if (!isPrivilegedRole(role)) return <Navigate to={role === 'creative' || role === 'editor' ? '/admin/my-profile' : '/admin/dashboard'} replace />;
 
-  if (previewId) {
-    return (
-      <AdminLayout>
-        <AdminPageHeader
-          eyebrow="Creative profile"
-          title={previewCreative?.name || 'Profile preview'}
-          description="Preview the public profile appearance without the profile management list."
-          action={<AdminButton to="/admin/creatives" variant="ghost">Back to creatives</AdminButton>}
-        />
-        {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
-        {loading ? <LoadingState label="Loading profile preview" /> : previewCreative ? (
-          <section className="border-y border-white/[0.08] py-7">
-            <div className="mb-7 flex flex-wrap items-center justify-end gap-2">
-              {previewCreative.is_published && <AdminButton to={`/creatives/${previewCreative.slug}`}><ExternalLink size={15} /> Open public</AdminButton>}
-              <AdminButton onClick={() => copyProfileLink(previewCreative)}><Copy size={15} /> Copy link</AdminButton>
-            </div>
-            {previewLoading ? <LoadingState label="Loading profile preview" /> : <CreativeProfileView creative={previewCreative} projects={previewProjects} adminPreview />}
-          </section>
-        ) : <AdminEmptyState title="Creative profile not found" message="Return to the creative manager and choose another profile." action={<AdminButton to="/admin/creatives">Back to creatives</AdminButton>} />}
-      </AdminLayout>
-    );
-  }
+  if (previewId) return (
+    <AdminLayout>
+      <AdminPageHeader eyebrow="Creative profile" title={previewCreative?.name || 'Profile preview'} description="Preview the public profile appearance." action={<AdminButton onClick={() => setSearchParams({})} variant="ghost">Back</AdminButton>} />
+      {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
+      {notice && <AdminNotice tone="success" className="mb-5">{notice}</AdminNotice>}
+      {loading ? <LoadingState label="Loading profile preview" /> : previewCreative ? (
+        <section className="border-y border-white/[0.08] py-7">
+          <div className="mb-7 flex flex-wrap justify-end gap-2">
+            <AdminButton onClick={() => copyProfileLink(previewCreative)}><Copy size={15} /> Copy link</AdminButton>
+            {previewCreative.is_published && <AdminButton to={`/creatives/${previewCreative.slug}`}><ExternalLink size={15} /> Open public</AdminButton>}
+          </div>
+          {previewLoading ? <LoadingState label="Loading profile preview" /> : <CreativeProfileView creative={previewCreative} projects={previewProjects} adminPreview />}
+        </section>
+      ) : <AdminEmptyState title="Creative profile not found" action={<AdminButton onClick={() => setSearchParams({})}>Back</AdminButton>} />}
+    </AdminLayout>
+  );
 
   return (
     <AdminLayout>
-      <AdminPageHeader
-        eyebrow="Collective"
-        title="Creatives"
-        description="Manage the people, roles, profiles, and featured members behind Lahat Liwa Collectives."
-        action={<AdminButton variant="primary" onClick={resetForm}><Plus size={17} /> Add Creative</AdminButton>}
-      />
-
+      <AdminPageHeader eyebrow="Collective" title="Creatives" description="Manage public creative profiles and visibility." action={<AdminButton variant="primary" to="/admin/creatives/new"><Plus size={17} /> Add Creative</AdminButton>} />
       {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
-
-      <AdminSurface as="form" onSubmit={save} className="mb-8 grid gap-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Profile editor</p>
-            <h2 className="mt-2 text-xl font-semibold">{editingId ? 'Edit creative' : 'Add creative'}</h2>
-          </div>
-          {editingId && <AdminButton type="button" variant="ghost" onClick={resetForm}>Cancel edit</AdminButton>}
-        </div>
-        <div className="grid gap-5 md:grid-cols-2">
-          <AdminInput label="Name" required value={form.name} onChange={(value) => update('name', value)} />
-          <AdminInput label="Slug" required value={form.slug} onChange={(value) => update('slug', value)} onBlur={() => update('slug', slugify(form.slug))} />
-          <AdminInput label="Role / title" required value={form.role} onChange={(value) => update('role', value)} />
-          <AdminInput label="Availability status" value={form.availability_status || ''} onChange={(value) => update('availability_status', value)} />
-          <AdminInput label="Skills, comma-separated" value={form.skills || ''} onChange={(value) => update('skills', value)} />
-          <AdminInput label="Display order" type="number" value={form.display_order ?? ''} onChange={(value) => update('display_order', value)} />
-        </div>
-        <AdminTextarea label="Short bio" value={form.short_bio || ''} onChange={(value) => update('short_bio', value)} />
-        <AdminTextarea label="Full bio" rows={5} value={form.full_bio || ''} onChange={(value) => update('full_bio', value)} />
-        <AdminTextarea label="Social links, one per line as Label: URL" value={form.social_links || ''} onChange={(value) => update('social_links', value)} />
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="cursor-pointer rounded-md bg-white/[0.055] px-4 py-2.5 text-sm text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085]">
-            Upload profile photo
-            <input className="sr-only" type="file" accept="image/*" onChange={(event) => uploadProfile(event.target.files?.[0])} />
-          </label>
-          <span className="text-xs text-zinc-500">Large raster photos are optimized to 300 KB or smaller. SVG files keep a 300 KB hard limit.</span>
-          {form.profile_image_url && <img src={form.profile_image_url} alt="" className="h-14 w-14 rounded-full object-cover" />}
-          <AdminCheckbox label="Featured" checked={form.is_featured} onChange={(value) => update('is_featured', value)} />
-          <AdminCheckbox label="Published" checked={form.is_published} onChange={(value) => update('is_published', value)} />
-        </div>
-        <div className="grid gap-3 border-t border-white/[0.07] pt-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="cursor-pointer rounded-md bg-white/[0.055] px-4 py-2.5 text-sm text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085]">
-              {form.cover_image ? 'Replace cover photo' : 'Upload cover photo'}
-              <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadCover(event.target.files?.[0])} />
-            </label>
-            {form.cover_image && <AdminButton type="button" variant="ghost" onClick={() => update('cover_image', '')}>Remove cover photo</AdminButton>}
-            <span className="text-xs text-zinc-500">Cover images are resized to 1800px and optimized to 1 MB.</span>
-          </div>
-          {form.cover_image && <img src={form.cover_image} alt="Cover preview" className="aspect-[16/5] w-full bg-zinc-900 object-cover" />}
-        </div>
-        {uploadStatus && <AdminNotice tone="success">{uploadStatus}</AdminNotice>}
-        <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
-          <Plus size={17} /> {saving ? 'Saving...' : editingId ? 'Save creative' : 'Add creative'}
-        </AdminButton>
-      </AdminSurface>
-
-      {loading && <LoadingState label="Loading creatives" />}
-      {!loading && (creatives.length ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {notice && <AdminNotice tone="success" className="mb-5">{notice}</AdminNotice>}
+      {loading ? <LoadingState label="Loading creatives" /> : creatives.length ? (
+        <section className="overflow-hidden border-y border-white/[0.07]">
           {creatives.map((creative) => (
-            <AdminSurface key={creative.id} as="article" className="flex flex-col gap-5">
-              <div className="flex items-start gap-4">
-                {creative.profile_image_url ? (
-                  <img src={creative.profile_image_url} alt="" loading="lazy" decoding="async" width="64" height="64" className="h-16 w-16 rounded-full object-cover" />
-                ) : (
-                  <div className="grid h-16 w-16 place-items-center rounded-full bg-white/[0.055] text-xl font-semibold text-zinc-500">{creative.name?.slice(0, 1) || 'L'}</div>
-                )}
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-white">{creative.name}</h3>
-                  <p className="mt-1 text-sm text-zinc-400">{creative.role}</p>
-                  <p className="mt-1 truncate text-xs text-zinc-600">/{creative.slug}</p>
-                </div>
-              </div>
-              {Array.isArray(creative.skills) && creative.skills.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {creative.skills.slice(0, 4).map((skill) => <span key={skill} className="rounded-md bg-white/[0.055] px-2.5 py-1 text-xs text-zinc-400">{skill}</span>)}
-                </div>
-              )}
-              <div className="mt-auto flex flex-wrap items-center gap-2">
-                {creative.is_featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}
-                <AdminStatusBadge status={creative.is_published ? 'published' : 'draft'}>{creative.is_published ? 'Published' : 'Draft'}</AdminStatusBadge>
-              </div>
-              <AdminSoftPanel className="p-2">
-                  <AdminActionGroup>
-                    <AdminActionButton onClick={() => editCreative(creative)}><Edit size={14} /> Edit</AdminActionButton>
-                    <AdminActionButton onClick={() => previewCreativeProfile(creative)}><Eye size={14} /> Preview</AdminActionButton>
-                    <AdminActionButton onClick={() => copyProfileLink(creative)}><Copy size={14} /> Copy link</AdminActionButton>
-                    {creative.is_published && <AdminActionButton to={`/creatives/${creative.slug}`}><ExternalLink size={14} /> Open public</AdminActionButton>}
-                  <AdminActionButton onClick={() => deleteCreative(creative)} variant="danger"><Trash2 size={14} /> Delete</AdminActionButton>
-                </AdminActionGroup>
-              </AdminSoftPanel>
-            </AdminSurface>
+            <article key={creative.id} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-4 border-b border-white/[0.06] px-1 py-5 last:border-b-0 sm:px-2 lg:grid-cols-[3.5rem_minmax(0,1.15fr)_minmax(10rem,0.8fr)_minmax(9rem,0.55fr)_auto] lg:gap-x-6">
+              {creative.profile_image_url ? <img src={creative.profile_image_url} alt="" loading="lazy" width="56" height="56" className="h-14 w-14 rounded-full object-cover" /> : <div className="grid h-14 w-14 place-items-center rounded-full bg-white/[0.055] text-lg font-semibold text-zinc-500">{creative.name?.slice(0, 1) || 'L'}</div>}
+              <div className="min-w-0"><h3 className="truncate font-semibold text-white">{creative.name}</h3><p className="mt-1 truncate text-xs text-zinc-600">/{creative.slug}</p></div>
+              <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2 lg:col-start-auto"><p className="text-[11px] uppercase tracking-[0.16em] text-zinc-600">Role / title</p><p className="mt-1 line-clamp-2 text-sm text-zinc-300">{creative.role}</p></div>
+              <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:col-start-2 lg:col-start-auto">{creative.is_featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}<AdminStatusBadge status={creative.is_published ? 'published' : 'draft'}>{creative.is_published ? 'Published' : 'Draft'}</AdminStatusBadge></div>
+              <div className="col-span-2 border-t border-white/[0.05] pt-3 sm:col-span-1 sm:col-start-2 lg:col-start-auto lg:border-0 lg:pt-0"><AdminActionGroup className="lg:justify-end">
+                <AdminActionButton variant="primary" onClick={() => navigate(`/admin/creatives/${creative.id}/edit`)}><Edit size={14} /> Edit</AdminActionButton>
+                <AdminActionButton onClick={() => setSearchParams({ preview: creative.id })}><Eye size={14} /> Preview</AdminActionButton>
+                <AdminActionButton onClick={() => copyProfileLink(creative)}><Copy size={14} /> Copy link</AdminActionButton>
+                {creative.is_published && <AdminActionButton to={`/creatives/${creative.slug}`}><ExternalLink size={14} /> Open public</AdminActionButton>}
+              </AdminActionGroup></div>
+            </article>
           ))}
-        </div>
-      ) : <AdminEmptyState title="No creatives yet." message="Add your first creative member." action={<AdminButton variant="primary" onClick={resetForm}><Plus size={17} /> Add Creative</AdminButton>} />)}
+        </section>
+      ) : <AdminEmptyState title="No creatives yet." action={<AdminButton variant="primary" to="/admin/creatives/new"><Plus size={17} /> Add Creative</AdminButton>} />}
     </AdminLayout>
   );
 }
-

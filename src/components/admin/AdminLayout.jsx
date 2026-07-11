@@ -1,5 +1,5 @@
-import { ExternalLink, FileText, FolderKanban, Images, Inbox, LayoutDashboard, LogOut, Settings, User, UserCog, Users, Workflow } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { ExternalLink, FileText, FolderKanban, Images, Inbox, LayoutDashboard, LogOut, Menu, Settings, User, UserCog, Users, Workflow, X } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { canCreateProjects, canManageSettings, canManageTeam, isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
@@ -31,17 +31,24 @@ const SIDEBAR_SCROLL_KEY = 'lahat-liwa-admin-sidebar-scroll';
 export default function AdminLayout({ children }) {
   const navigate = useNavigate();
   const sidebarNavRef = useRef(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { content } = usePublicContent([]);
   const access = useAdminAccess();
   const visibleGroups = links
     .map(([group, groupLinks]) => [group, groupLinks.filter(([, , , canShow]) => canShow(access))])
     .filter(([, groupLinks]) => groupLinks.length > 0);
-  const flatLinks = visibleGroups.flatMap(([, groupLinks]) => groupLinks);
 
   useEffect(() => {
     document.documentElement.classList.add('admin-mode');
     return () => document.documentElement.classList.remove('admin-mode');
   }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [mobileOpen]);
 
   useLayoutEffect(() => {
     const nav = sidebarNavRef.current;
@@ -70,8 +77,8 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="admin-shell min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,rgba(246,213,139,0.07),transparent_30%),linear-gradient(180deg,#101012_0%,#09090b_46%,#111113_100%)] text-white">
-      <aside className="fixed inset-x-0 top-0 z-30 bg-zinc-950/88 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-md lg:bg-zinc-900/80 lg:p-4 lg: lg:ring-1 lg:ring-white/[0.08]">
+    <div className="admin-shell min-h-screen overflow-x-hidden bg-zinc-950 text-white">
+      <aside className="fixed inset-x-0 top-0 z-30 border-b border-white/[0.08] bg-zinc-950/95 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-md lg:border lg:border-white/[0.08] lg:bg-zinc-900/80 lg:p-4">
         <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
           <div className="flex min-w-0 items-center gap-3 lg:block">
             <Link
@@ -117,23 +124,19 @@ export default function AdminLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <Link to="/" className="grid h-10 w-10 place-items-center rounded-md bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.08]" aria-label="View site">
-              <ExternalLink size={16} />
-            </Link>
-            <button onClick={logout} className="grid h-10 w-10 place-items-center rounded-md bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.08]" aria-label="Logout">
-              <LogOut size={16} />
+            <button type="button" onClick={() => setMobileOpen((current) => !current)} className="grid h-10 w-10 place-items-center text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50" aria-label={mobileOpen ? 'Close admin menu' : 'Open admin menu'} aria-expanded={mobileOpen}>
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
-        <nav className="admin-sidebar-scroll mt-3 flex gap-2 overflow-x-auto overscroll-x-contain pb-1 lg:hidden">
-          {flatLinks.map(([label, href, Icon]) => (
-            <NavLink key={href} to={href} preventScrollReset className={({ isActive }) => clsx('inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors duration-150', isActive ? 'bg-amber-300 text-zinc-950' : 'bg-white/[0.06] text-zinc-300 ring-1 ring-white/[0.07]')}>
-              <Icon size={15} /> {label}
-            </NavLink>
-          ))}
-        </nav>
+        {mobileOpen && <div className="fixed inset-x-0 bottom-0 top-[65px] z-40 grid grid-rows-[1fr_auto] border-t border-white/[0.08] bg-zinc-950 p-4 lg:hidden">
+          <nav className="admin-sidebar-scroll min-h-0 overflow-y-auto" aria-label="Admin navigation">
+            {visibleGroups.map(([group, groupLinks]) => <div key={group} className="mb-5"><p className="mb-2 text-[0.66rem] uppercase tracking-[0.2em] text-zinc-600">{group}</p><div className="grid">{groupLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} onClick={() => setMobileOpen(false)} className={({ isActive }) => clsx('flex items-center gap-3 border-b border-white/[0.07] px-1 py-3 text-sm', isActive ? 'text-amber-100' : 'text-zinc-400')}><Icon size={16} /><span>{label}</span><span className="sr-only">{label} page</span></NavLink>)}</div></div>)}
+          </nav>
+          <div className="grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-4"><Link to="/" onClick={() => setMobileOpen(false)} className="inline-flex h-10 items-center justify-center gap-2 text-sm text-zinc-300"><ExternalLink size={16} /> View site</Link><button type="button" onClick={logout} className="inline-flex h-10 items-center justify-center gap-2 text-sm text-zinc-300"><LogOut size={16} /> Logout</button></div>
+        </div>}
       </aside>
-      <main className="px-4 pb-10 pt-32 sm:px-5 lg:ml-80 lg:px-8 lg:pt-10">
+      <main className="px-4 pb-10 pt-24 sm:px-5 lg:ml-80 lg:px-8 lg:pt-10">
         <div className="mx-auto max-w-7xl">{children}</div>
       </main>
     </div>

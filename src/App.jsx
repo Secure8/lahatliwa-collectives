@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -76,6 +76,7 @@ export default function App() {
       <Route path="/start-a-project" element={<PublicLayout><StartProject /></PublicLayout>} />
       <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
       <Route path="/admin/login" element={<AdminSuspense><Login /></AdminSuspense>} />
+      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/admin/dashboard" element={<AdminSuspense><Dashboard /></AdminSuspense>} />
         <Route path="/admin/my-profile" element={<AdminSuspense><MyProfile /></AdminSuspense>} />

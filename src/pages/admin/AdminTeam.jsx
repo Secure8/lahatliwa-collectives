@@ -1,5 +1,5 @@
 import { Copy, Edit, Eye, ExternalLink, Plus, RotateCcw, ShieldCheck, ShieldOff, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
@@ -14,7 +14,6 @@ import {
   AdminStatusBadge,
   AdminSurface,
 } from '../../components/admin/AdminUI';
-import LoadingState from '../../components/LoadingState';
 import { roleLabel, useAdminAccess } from '../../lib/adminAccess';
 import { formatDate } from '../../lib/helpers';
 import { copyText } from '../../lib/clipboard';
@@ -22,7 +21,7 @@ import { supabase } from '../../lib/supabaseClient';
 
 const roleOptions = ['super_admin', 'admin', 'editor', 'creative', 'viewer'];
 const statusOptions = ['active', 'invited'];
-const teamFilters = ['active', 'invited', 'disabled', 'all'];
+const teamFilters = ['all', 'active', 'disabled', 'invited'];
 const emptyFilterCopy = {
   active: 'No active team members found.',
   invited: 'No pending invitations.',
@@ -57,8 +56,12 @@ export default function AdminTeam() {
   const [creatives, setCreatives] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState('');
-  const [activeFilter, setActiveFilter] = useState('active');
+  const [showMemberForm, setShowMemberForm] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [updatingMemberId, setUpdatingMemberId] = useState('');
   const [message, setMessage] = useState('');
@@ -66,6 +69,8 @@ export default function AdminTeam() {
   const [lifecycle, setLifecycle] = useState(null);
   const [pin, setPin] = useState('');
   const [confirmation, setConfirmation] = useState('');
+  const mountedRef = useRef(true);
+  const loadRequestRef = useRef(0);
 
   const isSuperAdmin = role === 'super_admin';
   const availableRoleOptions = isSuperAdmin ? roleOptions : roleOptions.filter((option) => option !== 'super_admin');
@@ -76,16 +81,23 @@ export default function AdminTeam() {
     disabled: team.filter((member) => member.status === 'disabled').length,
     all: team.length,
   }), [team]);
-  const visibleTeam = useMemo(() => (
-    activeFilter === 'all' ? team : team.filter((member) => member.status === activeFilter)
-  ), [activeFilter, team]);
+  const visibleTeam = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return team.filter((member) => (
+      (activeFilter === 'all' || member.status === activeFilter)
+      && (roleFilter === 'all' || normalizedTeamRole(member) === roleFilter)
+      && (!query || [member.display_name, member.email].some((value) => String(value || '').toLowerCase().includes(query)))
+    ));
+  }, [activeFilter, roleFilter, search, team]);
   const editingMember = team.find((member) => member.id === editingId);
   const editingCurrentAccount = editingMember?.user_id === adminUser?.user_id;
   const formRoleOptions = editingCurrentAccount ? [normalizedTeamRole(editingMember)] : availableRoleOptions;
   const formStatusOptions = editingMember ? [editingMember.status] : statusOptions;
 
   async function loadTeam({ showLoading = true } = {}) {
+    const requestId = ++loadRequestRef.current;
     if (showLoading) setLoading(true);
+    setLoadError('');
     const [{ data: teamRows, error: teamError }, { data: creativeRows }] = await Promise.all([
       supabase
         .from('admin_users')
@@ -98,14 +110,17 @@ export default function AdminTeam() {
         .order('name', { ascending: true }),
     ]);
 
-    if (teamError) setError(teamError.message);
+    if (!mountedRef.current || requestId !== loadRequestRef.current) return;
+    if (teamError) setLoadError(teamError.message || 'Unable to load team members.');
     else setTeam(teamRows || []);
-    setCreatives(creativeRows || []);
+    if (!teamError) setCreatives(creativeRows || []);
     if (showLoading) setLoading(false);
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     loadTeam();
+    return () => { mountedRef.current = false; };
   }, []);
 
   function update(name, value) {
@@ -126,12 +141,23 @@ export default function AdminTeam() {
   function resetForm() {
     setEditingId('');
     setForm(emptyForm);
+    setShowMemberForm(false);
+    setError('');
+  }
+
+  function openAddMember() {
+    setError('');
+    setMessage('');
+    setEditingId('');
+    setForm(emptyForm);
+    setShowMemberForm(true);
   }
 
   function editMember(member) {
     setError('');
     setMessage('');
     setEditingId(member.id);
+    setShowMemberForm(true);
     setForm({
       email: member.email || '',
       display_name: member.display_name || '',
@@ -280,44 +306,52 @@ export default function AdminTeam() {
 
   return (
     <AdminLayout>
+      <div className="w-full max-w-6xl">
       <AdminPageHeader
         eyebrow="Team CMS"
         title="Team Management"
         description="Add team members, assign roles, link creative profiles, and control access to Lahat Liwa Collectives."
-        action={<AdminButton onClick={resetForm} variant="primary"><Plus size={17} /> Add member</AdminButton>}
+        action={<AdminButton onClick={openAddMember} variant="primary"><Plus size={17} /> Add Member</AdminButton>}
       />
 
       {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
       {message && <AdminNotice tone="success" className="mb-5">{message}</AdminNotice>}
 
-      <AdminSurface as="form" onSubmit={save} className="mb-8 grid gap-5">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Access record</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{editingId ? 'Edit team member' : 'Add team member'}</h2>
+      <section className="border-b border-white/[0.08] pb-6" aria-labelledby="team-summary-heading">
+        <div className="mb-5">
+          <h2 id="team-summary-heading" className="text-lg font-semibold text-white">Team Summary</h2>
+          <p className="mt-1 text-sm text-zinc-500">Active and disabled access records remain visible here for lifecycle management.</p>
         </div>
-        <div className="grid gap-5 lg:grid-cols-2">
-          <AdminInput label="Email" type="email" required value={form.email} onChange={(value) => update('email', value)} />
-          <AdminInput label="Display name" value={form.display_name} onChange={(value) => update('display_name', value)} />
-          <AdminSelect label="Role" value={form.role} options={formRoleOptions} onChange={(value) => update('role', value)} />
-          <AdminSelect label="Status" value={form.status} options={formStatusOptions} onChange={(value) => update('status', value)} />
-          <label className="grid gap-2 text-sm text-zinc-300">
-            <span>Linked creative profile</span>
-            <select value={form.creative_member_id} onChange={(event) => update('creative_member_id', event.target.value)} className="w-full rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45">
-              <option value="">Not linked</option>
-              {creatives.map((creative) => (
-                <option key={creative.id} value={creative.id}>{creative.name} / {creative.role}</option>
-              ))}
-            </select>
-          </label>
+        <div className="grid grid-cols-2 sm:grid-cols-4">
+          {[['all', 'Total'], ['active', 'Active'], ['disabled', 'Disabled'], ['invited', 'Invited']].map(([key, label]) => (
+            <div key={key} className="border-t border-white/[0.08] py-4 pr-4 sm:px-4 sm:first:pl-0">
+              <p className="text-xs uppercase tracking-[0.14em] text-zinc-600">{label}</p>
+              <p className="mt-2 text-2xl font-semibold text-white">{teamCounts[key]}</p>
+            </div>
+          ))}
         </div>
-        <p className="text-xs leading-5 text-zinc-500">Create an invited record by email. The person can use "Set up team account" on the admin login page to create their password; their role always comes from this team record.</p>
-        <div className="flex flex-wrap gap-3">
-          <AdminButton disabled={saving} type="submit" variant="primary"><ShieldCheck size={17} /> {saving ? 'Saving...' : editingId ? 'Save member' : 'Add member'}</AdminButton>
-          {editingId && <AdminButton onClick={resetForm} variant="ghost">Cancel</AdminButton>}
-        </div>
-      </AdminSurface>
+      </section>
 
-      {loading ? <LoadingState label="Loading team" /> : (
+      <section className="grid gap-4 border-b border-white/[0.08] py-6 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,1fr)_12rem]">
+        <label className="grid gap-1.5 text-sm text-zinc-300">
+          <span>Search members</span>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email" className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60" />
+        </label>
+        <label className="grid gap-1.5 text-sm text-zinc-300">
+          <span>Role</span>
+          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none [color-scheme:dark] focus:border-amber-200/60">
+            <option value="all">All roles</option>
+            {roleOptions.map((option) => <option key={option} value={option}>{roleLabel(option)}</option>)}
+          </select>
+        </label>
+      </section>
+
+      {loading ? <TeamSkeleton /> : loadError ? (
+        <div className="border-b border-red-300/15 py-8">
+          <p className="text-sm text-red-200">{loadError}</p>
+          <button type="button" onClick={() => loadTeam()} className="mt-3 border-b border-red-200/30 pb-1 text-sm text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/50">Retry loading team</button>
+        </div>
+      ) : (
         team.length ? (
           <div className="grid gap-5">
             <div className="flex gap-6 overflow-x-auto border-b border-white/[0.06] px-0.5">
@@ -336,10 +370,9 @@ export default function AdminTeam() {
               })}
             </div>
 
-            <p className="max-w-3xl text-xs leading-5 text-zinc-500">Removed users are disabled and hidden from the active team list, but their records remain for credits, project history, and security audit.</p>
+            <p className="max-w-3xl text-xs leading-5 text-zinc-500">Removed users remain visible under All and Disabled so Super Admins can restore access while preserving credits and project history.</p>
 
-            {visibleTeam.length ? <AdminSurface className="overflow-hidden p-0">
-            <div>
+            {visibleTeam.length ? <div className="border-b border-white/[0.08]">
               {visibleTeam.map((member) => {
                 const currentAccount = member.user_id === adminUser?.user_id;
                 const protectedSuperAdmin = isSuperAdminMember(member) && member.status === 'active' && activeSuperAdminCount <= 1;
@@ -350,12 +383,17 @@ export default function AdminTeam() {
                 return (
                 <article key={member.id} className={`grid gap-4 border-b border-white/[0.06] px-4 py-4 last:border-b-0 sm:px-5 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-center xl:gap-6 ${updatingMemberId === member.id ? 'opacity-60' : ''}`}>
                   <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(8rem,0.65fr)_minmax(0,0.9fr)] md:items-center md:gap-6">
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-white/[0.04] text-sm font-medium text-zinc-500">
+                        {member.avatar_url ? <img src={member.avatar_url} alt="" className="h-full w-full object-cover" /> : String(member.display_name || member.email || '?').slice(0, 1).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-2">
                         <h3 className="truncate font-medium text-white">{member.display_name || member.email || 'Unnamed member'}</h3>
                         {currentAccount && <span className="shrink-0 text-[11px] text-zinc-500">You</span>}
                       </div>
                       <p className="mt-1 truncate text-sm leading-5 text-zinc-500" title={member.email || ''}>{member.email || 'No email yet'}</p>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between gap-3 md:block">
                       <div><p className="text-[11px] uppercase tracking-[0.16em] text-zinc-600">Role</p><p className="mt-1 text-sm capitalize text-zinc-300">{roleLabel(member.role)}</p></div>
@@ -382,11 +420,41 @@ export default function AdminTeam() {
                   </div>
                 </article>
               );})}
-            </div>
-          </AdminSurface> : <AdminEmptyState title={emptyFilterCopy[activeFilter]} />}
+          </div> : <AdminEmptyState title={team.length ? 'No members match these filters.' : emptyFilterCopy[activeFilter]} message={team.length ? 'Adjust the search, role, or status filter.' : undefined} />}
           </div>
         ) : <AdminEmptyState title={emptyFilterCopy[activeFilter]} />
       )}
+      {showMemberForm && <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="member-form-title">
+        <AdminSurface as="form" onSubmit={save} className="grid max-h-[calc(100vh-2rem)] w-full max-w-2xl gap-5 overflow-y-auto">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Access record</p>
+              <h2 id="member-form-title" className="mt-2 text-xl font-semibold text-white">{editingId ? 'Edit Team Member' : 'Add Member'}</h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-500">{editingId ? 'Update this member’s existing team record.' : 'Invite a person and assign their initial team access.'}</p>
+            </div>
+            <button type="button" onClick={resetForm} disabled={saving} aria-label="Close member form" className="text-zinc-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50 disabled:cursor-not-allowed disabled:opacity-50"><X size={20} /></button>
+          </div>
+          {error && <AdminNotice>{error}</AdminNotice>}
+          <div className="grid gap-5 sm:grid-cols-2">
+            <AdminInput label="Email" type="email" required value={form.email} onChange={(value) => update('email', value)} />
+            <AdminInput label="Display name" value={form.display_name} onChange={(value) => update('display_name', value)} />
+            <AdminSelect label="Role" value={form.role} options={formRoleOptions} onChange={(value) => update('role', value)} />
+            <AdminSelect label="Status" value={form.status} options={formStatusOptions} onChange={(value) => update('status', value)} />
+            <label className="grid gap-2 text-sm text-zinc-300 sm:col-span-2">
+              <span>Linked creative profile</span>
+              <select value={form.creative_member_id} onChange={(event) => update('creative_member_id', event.target.value)} className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none [color-scheme:dark] focus:border-amber-200/60">
+                <option value="">Not linked</option>
+                {creatives.map((creative) => <option key={creative.id} value={creative.id}>{creative.name} / {creative.role}</option>)}
+              </select>
+            </label>
+          </div>
+          <p className="text-xs leading-5 text-zinc-500">Create an invited record by email. The person can use “Set up team account” on the admin login page to create their password; their role always comes from this team record.</p>
+          <div className="flex flex-wrap gap-3">
+            <AdminButton disabled={saving} type="submit" variant="primary"><ShieldCheck size={17} /> {saving ? 'Saving...' : editingId ? 'Save Member' : 'Add Member'}</AdminButton>
+            <AdminButton disabled={saving} onClick={resetForm} variant="ghost">Cancel</AdminButton>
+          </div>
+        </AdminSurface>
+      </div>}
       {lifecycle && <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true">
         <AdminSurface as="form" onSubmit={runLifecycle} className="w-full max-w-lg grid gap-5">
           <div className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">PIN-protected action</p><h2 className="mt-2 text-xl font-semibold text-white">{lifecycle.action === 'permanent_delete' ? 'Permanently Delete' : lifecycle.action === 'restore_access' ? 'Restore Access' : 'Remove Access'}</h2></div><button type="button" onClick={() => setLifecycle(null)} aria-label="Close"><X size={20} /></button></div>
@@ -397,7 +465,12 @@ export default function AdminTeam() {
           <div className="flex gap-3"><AdminButton type="submit" variant={lifecycle.action === 'permanent_delete' ? 'danger' : 'primary'} disabled={!pin || (lifecycle.action === 'permanent_delete' && confirmation !== 'DELETE') || updatingMemberId === lifecycle.member.id}>{updatingMemberId ? 'Working...' : 'Confirm action'}</AdminButton><AdminButton onClick={() => setLifecycle(null)} variant="ghost">Cancel</AdminButton></div>
         </AdminSurface>
       </div>}
+      </div>
     </AdminLayout>
   );
+}
+
+function TeamSkeleton() {
+  return <div className="py-5" aria-label="Loading team members">{[0, 1, 2, 3].map((item) => <div key={item} className="grid grid-cols-[2.5rem_1fr] gap-3 border-b border-white/[0.08] py-5"><div className="h-10 w-10 animate-pulse rounded-full bg-white/[0.05]" /><div className="grid content-center gap-3"><div className="h-3 w-40 max-w-full animate-pulse bg-white/[0.05]" /><div className="h-2 w-56 max-w-full animate-pulse bg-white/[0.04]" /></div></div>)}</div>;
 }
 

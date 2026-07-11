@@ -188,15 +188,15 @@ export default function Login() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top_left,rgba(246,213,139,0.10),transparent_32%),linear-gradient(180deg,#101012,#09090b)] px-4 py-12">
+    <main className="grid min-h-screen place-items-center bg-zinc-950 px-4 py-12">
       <section className="w-full max-w-md">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-100">
           <ArrowLeft size={16} /> Back to site
         </Link>
 
-        <form onSubmit={handleSubmit} className="mt-5 rounded-md bg-white/[0.04] p-6 ring-1 ring-white/[0.075] backdrop-blur">
+        <form onSubmit={handleSubmit} className="mt-5 border-y border-white/[0.1] py-7">
           <div className="flex items-start gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-md bg-amber-300 text-zinc-950">
+            <span className="grid h-12 w-12 shrink-0 place-items-center bg-amber-300 text-zinc-950">
               <HeaderIcon size={20} />
             </span>
             <div>
@@ -217,7 +217,7 @@ export default function Login() {
             <label className="mt-6 grid gap-2 text-sm text-zinc-300">
               Email
               <input
-                className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition placeholder:text-zinc-600 focus:ring-amber-200/45"
+                className="border-0 border-b border-white/[0.14] bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-200/60"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -231,7 +231,7 @@ export default function Login() {
             <label className="mt-4 grid gap-2 text-sm text-zinc-300">
               {passwordLabel}
               <input
-                className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition placeholder:text-zinc-600 focus:ring-amber-200/45"
+                className="border-0 border-b border-white/[0.14] bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-200/60"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -246,7 +246,7 @@ export default function Login() {
             <label className="mt-4 grid gap-2 text-sm text-zinc-300">
               Confirm password
               <input
-                className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition placeholder:text-zinc-600 focus:ring-amber-200/45"
+                className="border-0 border-b border-white/[0.14] bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-200/60"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}

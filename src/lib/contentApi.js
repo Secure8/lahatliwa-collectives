@@ -291,7 +291,8 @@ export async function deleteMediaAsset(asset) {
   const { error } = await supabase.from(MEDIA_TABLE).delete().eq('id', asset.id);
   if (error) throw error;
   if (asset.storage_path) {
-    await supabase.storage.from(BUCKET).remove([asset.storage_path]);
+    const { error: storageError } = await supabase.storage.from(BUCKET).remove([asset.storage_path]);
+    if (storageError) throw new Error(`The media record was deleted, but its storage file could not be removed: ${storageError.message}`);
   }
 }
 

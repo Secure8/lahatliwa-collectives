@@ -1,23 +1,232 @@
 import { Component, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { AdminButton, AdminNotice, AdminPageHeader, AdminSurface } from '../../components/admin/AdminUI';
+import { AdminButton, AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { defaultPageContent } from '../../data/siteContent';
 import { fetchPageContent, updatePageContent, uploadSiteAsset } from '../../lib/contentApi';
 import { uploadStatusText } from '../../lib/imageCompression';
 
-const titles = {
-  home: 'Home Content',
-  about: 'About Content',
-  services: 'Services Content',
-  contact: 'Contact Content',
+const pageMeta = {
+  home: {
+    title: 'Edit Home Page',
+    publicPath: '/',
+    helper: 'Update the home hero, featured content, services preview, and hero background settings.',
+  },
+  about: {
+    title: 'Edit About Page',
+    publicPath: '/about',
+    helper: 'Update the About page heading, introduction, story copy, and supporting lists.',
+  },
+  services: {
+    title: 'Edit Services Page',
+    publicPath: '/services',
+    helper: 'Update the Services page heading, intro copy, theme colors, and fallback service groups.',
+  },
+  contact: {
+    title: 'Edit Contact Page',
+    publicPath: '/contact',
+    helper: 'Update the Contact page heading, description, CTA text, notes, and theme colors.',
+  },
 };
+
+const lineInput = 'w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60';
+const lineTextarea = `${lineInput} min-h-28 resize-y leading-6`;
+
+function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false }) {
+  const classes = `inline-flex h-10 items-center gap-2 border-b px-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${subtle ? 'border-white/[0.08] text-zinc-400 hover:border-amber-200/35 hover:text-white' : 'border-white/[0.12] text-zinc-300 hover:border-amber-200/40 hover:text-white'}`;
+  if (to) return <Link to={to} className={classes}>{children}</Link>;
+  if (href) return <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noreferrer noopener' : undefined} className={classes}>{children}</a>;
+  return <button type="button" onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
+}
+
+function Section({ title, description, children }) {
+  return (
+    <section className="grid gap-5 border-t border-white/[0.08] py-7 first:border-t-0 first:pt-0">
+      <div>
+        <h2 className="text-lg font-semibold text-white">{title}</h2>
+        {description && <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-500">{description}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, value, onChange, placeholder, type = 'text', error, hint, onBlur, required = false, min, max, step, disabled = false }) {
+  return (
+    <label className="grid gap-1.5 text-sm text-zinc-300">
+      <span>{label}</span>
+      <input
+        required={required}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        min={min}
+        max={max}
+        step={step}
+        disabled={disabled}
+        aria-invalid={Boolean(error)}
+        className={`${lineInput} disabled:cursor-not-allowed disabled:text-zinc-500`}
+      />
+      {error ? <span className="text-xs text-red-200">{error}</span> : hint ? <span className="text-xs text-zinc-600">{hint}</span> : null}
+    </label>
+  );
+}
+
+function Textarea({ label, value, onChange, placeholder, rows = 4, error, hint, onBlur, required = false }) {
+  return (
+    <label className="grid gap-1.5 text-sm text-zinc-300">
+      <span>{label}</span>
+      <textarea
+        required={required}
+        rows={rows}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        aria-invalid={Boolean(error)}
+        className={lineTextarea}
+      />
+      {error ? <span className="text-xs text-red-200">{error}</span> : hint ? <span className="text-xs text-zinc-600">{hint}</span> : null}
+    </label>
+  );
+}
+
+function Select({ label, value, options, onChange, error, hint }) {
+  return (
+    <label className="grid gap-1.5 text-sm text-zinc-300">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className={lineInput} aria-invalid={Boolean(error)}>
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+      {error ? <span className="text-xs text-red-200">{error}</span> : hint ? <span className="text-xs text-zinc-600">{hint}</span> : null}
+    </label>
+  );
+}
+
+function ColorField({ label, value, onChange, hint }) {
+  return (
+    <label className="grid gap-1.5 text-sm text-zinc-300">
+      <span>{label}</span>
+      <div className="flex items-center gap-3 border-b border-white/[0.12] py-2.5 text-zinc-300">
+        <input type="color" value={value || '#000000'} onChange={(event) => onChange(event.target.value)} className="h-8 w-10 bg-transparent" />
+        <span className="font-mono text-xs text-zinc-400">{value || '—'}</span>
+      </div>
+      {hint && <span className="text-xs text-zinc-600">{hint}</span>}
+    </label>
+  );
+}
+
+function UploadRow({ label, value, onFile, onClear, hint, error, disabled = false }) {
+  return (
+    <div className="grid gap-3 border-t border-white/[0.07] pt-4">
+      <div className="grid gap-1.5 text-sm text-zinc-300">
+        <span>{label}</span>
+        {hint && <span className="text-xs text-zinc-600">{hint}</span>}
+        {error && <span className="text-xs text-red-200">{error}</span>}
+      </div>
+      {value ? <img src={value} alt="" className="max-h-28 max-w-full object-cover" /> : <div className="grid h-20 place-items-center border-b border-white/[0.06] text-xs text-zinc-600">No image selected</div>}
+      <div className="flex flex-wrap items-center gap-3">
+        <label className={`inline-flex h-10 cursor-pointer items-center gap-2 border-b px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white ${disabled ? 'pointer-events-none opacity-50' : 'border-white/[0.12]'}`}>
+          Choose image
+          <input className="sr-only" type="file" accept="image/*" disabled={disabled} onChange={(event) => { onFile(event.target.files?.[0]); event.target.value = ''; }} />
+        </label>
+        {value && <button type="button" onClick={onClear} className="inline-flex h-10 items-center border-b border-white/[0.12] px-2 text-sm text-zinc-400 transition hover:border-red-300/35 hover:text-red-100">Remove</button>}
+      </div>
+    </div>
+  );
+}
+
+function getFallback(pageKey) {
+  return defaultPageContent[pageKey] || {};
+}
+
+function normalizeString(value) {
+  return typeof value === 'string' ? value : '';
+}
+
+function normalizeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function parseListText(value = '') {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function listText(value) {
+  return normalizeArray(value).join(', ');
+}
+
+function buildInitialState(pageKey, remoteContent, draft) {
+  const merged = { ...getFallback(pageKey), ...(remoteContent || {}) };
+  if (!draft) return merged;
+  return { ...merged, ...draft };
+}
+
+function validateUrl(value = '') {
+  if (!value) return true;
+  return /^(https?:\/\/|\/)/i.test(value);
+}
+
+function validateContent(pageKey, content) {
+  const errors = {};
+
+  if (pageKey === 'home') {
+    if (!normalizeString(content.heroTitle).trim()) errors.heroTitle = 'Hero title is required.';
+    if (!normalizeString(content.heroEyebrow).trim()) errors.heroEyebrow = 'Hero eyebrow is required.';
+    if (!normalizeString(content.featuredHeading).trim()) errors.featuredHeading = 'Featured heading is required.';
+    if (!normalizeString(content.servicesHeading).trim()) errors.servicesHeading = 'Services heading is required.';
+    if (normalizeString(content.heroDescription).trim().length > 260) errors.heroDescription = 'Keep the hero description concise.';
+    if (normalizeString(content.servicesIntro).trim().length > 260) errors.servicesIntro = 'Keep the services intro concise.';
+    if (content.heroBackgroundImageUrl && !validateUrl(content.heroBackgroundImageUrl)) errors.heroBackgroundImageUrl = 'Enter a valid public image URL.';
+  }
+
+  if (pageKey === 'about') {
+    if (!normalizeString(content.title).trim()) errors.title = 'Page title is required.';
+    if (normalizeString(content.intro).trim().length > 260) errors.intro = 'Keep the intro concise.';
+    if (normalizeString(content.journey).trim().length > 700) errors.journey = 'Keep the story section readable and balanced.';
+  }
+
+  if (pageKey === 'services') {
+    if (!normalizeString(content.title).trim()) errors.title = 'Page title is required.';
+    if (normalizeString(content.intro).trim().length > 260) errors.intro = 'Keep the intro concise.';
+    if ((content.groups || []).some((group) => !normalizeString(group?.name).trim())) errors.groups = 'Each service group needs a name.';
+    (content.groups || []).forEach((group, index) => {
+      if (normalizeString(group?.description).trim().length > 260) {
+        errors[`groupDescription-${index}`] = 'Keep each service description concise.';
+      }
+      if (group?.iconUrl && !validateUrl(group.iconUrl)) errors[`groupIconUrl-${index}`] = 'Enter a valid icon URL.';
+      if (group?.customIconUrl && !validateUrl(group.customIconUrl)) errors[`groupCustomIconUrl-${index}`] = 'Enter a valid custom icon URL.';
+      if (group?.serviceLogoUrl && !validateUrl(group.serviceLogoUrl)) errors[`groupServiceLogoUrl-${index}`] = 'Enter a valid service logo URL.';
+    });
+  }
+
+  if (pageKey === 'contact') {
+    if (!normalizeString(content.heading).trim()) errors.heading = 'Heading is required.';
+    if (!normalizeString(content.ctaText).trim()) errors.ctaText = 'CTA text is required.';
+    if (normalizeString(content.description).trim().length > 260) errors.description = 'Keep the description concise.';
+    if (normalizeString(content.notes).trim().length > 240) errors.notes = 'Keep the notes concise.';
+  }
+
+  return errors;
+}
+
+function updateGroup(content, index, patch) {
+  const groups = [...normalizeArray(content.groups)];
+  groups[index] = { ...(groups[index] || {}), ...patch };
+  return { ...content, groups };
+}
 
 export default function ContentEditor() {
   const { pageKey } = useParams();
-  const fallback = useMemo(() => defaultPageContent[pageKey] || {}, [pageKey]);
-  const draftKey = useMemo(() => `hevv-content-editor-draft-v2:${pageKey}`, [pageKey]);
+  const meta = pageMeta[pageKey];
+  const fallback = useMemo(() => getFallback(pageKey), [pageKey]);
+  const draftKey = useMemo(() => `hevv-content-editor-draft-v3:${pageKey}`, [pageKey]);
   const [content, setContent] = useState(fallback);
   const [jsonText, setJsonText] = useState(JSON.stringify(fallback, null, 2));
   const [loading, setLoading] = useState(true);
@@ -28,15 +237,20 @@ export default function ContentEditor() {
   const [uploadStatus, setUploadStatus] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const skipNextDraftSave = useRef(false);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
     let active = true;
+
     async function loadContent() {
       setLoading(true);
       setDraftReady(false);
       setDirty(false);
       setError('');
+      setFieldErrors({});
+
       try {
         const remoteContent = await fetchPageContent(pageKey).catch(() => null);
         let draft = null;
@@ -45,28 +259,26 @@ export default function ContentEditor() {
         } catch {
           draft = null;
         }
-        const hasDraft = Boolean(draft);
-        const mergedContent = { ...fallback, ...(remoteContent || {}) };
-        const nextJsonText = draft?.jsonText || JSON.stringify(draft?.content || mergedContent, null, 2);
-        let nextContent = draft?.content || mergedContent;
-        try {
-          nextContent = JSON.parse(nextJsonText);
-        } catch {
-        }
+
+        const nextContent = buildInitialState(pageKey, remoteContent, draft?.content);
+        const nextJsonText = draft?.jsonText || JSON.stringify(nextContent, null, 2);
+
         if (!active) return;
         setContent(nextContent);
         setJsonText(nextJsonText);
         setDraftReady(true);
-        setDirty(hasDraft);
+        setDirty(Boolean(draft));
       } finally {
         if (active) setLoading(false);
       }
     }
+
     loadContent();
+
     return () => {
       active = false;
     };
-  }, [pageKey, fallback, draftKey]);
+  }, [pageKey, draftKey]);
 
   useEffect(() => {
     if (!draftReady || !dirty) return;
@@ -95,22 +307,27 @@ export default function ContentEditor() {
       const next = { ...current, ...updates };
       setJsonText(JSON.stringify(next, null, 2));
       setMessage('');
+      setError('');
+      setFieldErrors((currentErrors) => {
+        const nextErrors = { ...currentErrors };
+        Object.keys(updates).forEach((key) => delete nextErrors[key]);
+        return nextErrors;
+      });
       setDirty(true);
       return next;
     });
   }
 
-  function updateList(key, value) {
-    patch({ [key]: value.split(',').map((item) => item.trim()).filter(Boolean) });
+  function patchList(key, value) {
+    patch({ [key]: parseListText(value) });
   }
 
   function patchServiceGroup(index, updates) {
     setContent((current) => {
-      const groups = [...(current.groups || [])];
-      groups[index] = { ...(groups[index] || {}), ...updates };
-      const next = { ...current, groups };
+      const next = updateGroup(current, index, updates);
       setJsonText(JSON.stringify(next, null, 2));
       setMessage('');
+      setError('');
       setDirty(true);
       return next;
     });
@@ -160,23 +377,48 @@ export default function ContentEditor() {
     }
   }
 
+  function applyJsonToForm() {
+    try {
+      const parsed = JSON.parse(jsonText);
+      setContent(parsed);
+      setJsonText(JSON.stringify(parsed, null, 2));
+      setDirty(true);
+      setMessage('Advanced JSON applied to the form.');
+      setError('');
+      setFieldErrors(validateContent(pageKey, parsed));
+    } catch (parseError) {
+      setError(parseError.message || 'Invalid JSON. Fix the JSON before applying it to the form.');
+    }
+  }
+
   async function save(event) {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     setError('');
     setMessage('');
+    setFieldErrors({});
+
     try {
       const parsed = JSON.parse(jsonText);
+      const validationErrors = validateContent(pageKey, parsed);
+      if (Object.keys(validationErrors).length > 0) {
+        setFieldErrors(validationErrors);
+        setError('Fix the highlighted fields before saving.');
+        setSaving(false);
+        return;
+      }
+
       await updatePageContent(pageKey, parsed);
       skipNextDraftSave.current = true;
       setContent(parsed);
       setJsonText(JSON.stringify(parsed, null, 2));
       setDirty(false);
+      setMessage('Page content saved.');
       try {
         window.localStorage.removeItem(draftKey);
       } catch {
       }
-      setMessage('Page content saved.');
     } catch (saveError) {
       setError(saveError.message || 'Unable to save page content. Check that the JSON is valid.');
     } finally {
@@ -184,89 +426,240 @@ export default function ContentEditor() {
     }
   }
 
-  if (!defaultPageContent[pageKey]) {
-    return <AdminLayout><AdminNotice>Unknown page content key.</AdminNotice></AdminLayout>;
+  function discardDraft() {
+    if (!window.confirm('Discard your unsaved changes and reload the saved page content?')) return;
+    const next = fallback;
+    setContent(next);
+    setJsonText(JSON.stringify(next, null, 2));
+    setDirty(false);
+    setFieldErrors({});
+    setMessage('Unsaved changes discarded.');
+    setError('');
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+    }
+  }
+
+  if (!meta) {
+    return (
+      <AdminLayout>
+        <AdminNotice>Unknown page content key.</AdminNotice>
+      </AdminLayout>
+    );
   }
 
   return (
     <AdminLayout>
-      <AdminPageHeader eyebrow="Website CMS" title={titles[pageKey]} description="Use the form for normal edits. The JSON editor is available on desktop for advanced structure changes." />
+      <AdminPageHeader
+        eyebrow="Website CMS"
+        title={meta.title}
+        description={meta.helper}
+        action={
+          <>
+            <LineButton to="/admin/content" subtle>Back to Page Content</LineButton>
+            <LineButton to={meta.publicPath} subtle>Preview Page</LineButton>
+            <LineButton href={meta.publicPath} subtle external>Open Public Page</LineButton>
+          </>
+        }
+      />
 
-      {loading ? <LoadingState label="Loading content" /> : (
+      {loading ? (
+        <LoadingState label="Loading content" />
+      ) : (
         <form onSubmit={save} className="grid gap-5">
           {message && <AdminNotice tone="success">{message}</AdminNotice>}
           {uploadStatus && <AdminNotice tone="success">{uploadStatus}</AdminNotice>}
           {error && <AdminNotice>{error}</AdminNotice>}
 
-          <div className={`grid gap-5 ${advancedOpen ? 'xl:grid-cols-[0.9fr_1.1fr]' : ''}`}>
-            <AdminSurface className="grid gap-5">
-              <StructuredFields pageKey={pageKey} content={content} patch={patch} updateList={updateList} uploadHomeBackground={uploadHomeBackground} patchServiceGroup={patchServiceGroup} uploadServiceLogo={uploadServiceLogo} />
-            </AdminSurface>
-
-            {advancedOpen ? <AdminSurface className="min-w-0 p-3">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm text-zinc-300">Advanced JSON editor</p>
-                  <p className="mt-1 text-xs text-zinc-500">Advanced edits are optional. The standard fields stay usable if this editor fails.</p>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      try {
-                        const parsed = JSON.parse(jsonText);
-                        setContent(parsed);
-                        setJsonText(JSON.stringify(parsed, null, 2));
-                        setDirty(true);
-                        setError('');
-                      } catch (parseError) {
-                        setError(parseError.message || 'Invalid JSON. Fix the JSON before applying it to the form.');
-                      }
-                    }}
-                    className="rounded-md bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
-                  >
-                    Apply JSON to form
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAdvancedOpen(false)}
-                    className="rounded-md bg-white/[0.035] px-3 py-2 text-xs text-zinc-500 ring-1 ring-white/[0.06] hover:text-zinc-200"
-                  >
-                    Close
-                  </button>
-                </div>
+          <div className="grid gap-6">
+            <Section title="Content Fields" description="Edit the structured page fields below. The advanced editor stays closed unless you need the raw JSON.">
+              <div className="grid gap-6">
+                <PageFields
+                  pageKey={pageKey}
+                  content={content}
+                  patch={patch}
+                  patchList={patchList}
+                  patchServiceGroup={patchServiceGroup}
+                  uploadHomeBackground={uploadHomeBackground}
+                  uploadServiceLogo={uploadServiceLogo}
+                  fieldErrors={fieldErrors}
+                />
               </div>
-              <AdvancedEditorLoader
-                jsonText={jsonText}
-                onChange={(value) => {
-                  setJsonText(value);
-                  setMessage('');
-                  setDirty(true);
-                }}
-              />
-            </AdminSurface> : (
-              <AdminSurface className="grid gap-4 border border-dashed border-white/[0.08] bg-transparent">
-                <div>
-                  <p className="text-sm font-medium text-zinc-200">Advanced JSON editor</p>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">Closed by default so the content editor loads quickly. Open it only when you need to edit the raw page structure.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAdvancedOpen(true)}
-                  className="w-fit rounded-md bg-white/[0.055] px-4 py-2.5 text-sm font-medium text-zinc-200 ring-1 ring-white/[0.08] transition hover:bg-white/[0.085] hover:text-white"
-                >
-                  Open Advanced JSON Editor
-                </button>
-              </AdminSurface>
-            )}
-          </div>
+            </Section>
 
-          <AdminButton disabled={saving} type="submit" variant="primary" className="w-fit">
-            {saving ? 'Saving...' : 'Save page content'}
-          </AdminButton>
+            <Section
+              title="Advanced JSON Editor"
+              description="Advanced edits are optional. The visual fields remain usable even if the editor fails to load."
+            >
+              {advancedOpen ? (
+                <div className="grid gap-4 border-t border-white/[0.07] pt-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-zinc-300">Raw page JSON</p>
+                    <div className="flex flex-wrap gap-3">
+                      <button type="button" onClick={applyJsonToForm} className="inline-flex h-10 items-center border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white">Apply JSON to Form</button>
+                      <button type="button" onClick={() => setAdvancedOpen(false)} className="inline-flex h-10 items-center border-b border-white/[0.08] px-2 text-sm text-zinc-500 transition hover:border-amber-200/35 hover:text-white">Close Advanced JSON Editor</button>
+                    </div>
+                  </div>
+                  <AdvancedEditorLoader jsonText={jsonText} onChange={(value) => { setJsonText(value); setMessage(''); setError(''); setDirty(true); }} />
+                </div>
+              ) : (
+                <div className="grid gap-4 border-t border-white/[0.07] pt-5">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">Advanced JSON editor</p>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">Closed by default so the page loads quickly. Open it only when you need to edit the raw page structure.</p>
+                  </div>
+                  <LineButton onClick={() => setAdvancedOpen(true)}>Open Advanced JSON Editor</LineButton>
+                </div>
+              )}
+            </Section>
+
+            <Section
+              title="Save Actions"
+              description="Save updates this page only. Discard reloads the saved content without leaving the editor."
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <AdminButton type="submit" variant="primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</AdminButton>
+                <AdminButton type="button" variant="ghost" onClick={discardDraft} disabled={!dirty || saving}>Discard Changes</AdminButton>
+                <LineButton to={meta.publicPath} subtle>Preview Page</LineButton>
+                <LineButton href={meta.publicPath} subtle external>Open Public Page</LineButton>
+              </div>
+            </Section>
+          </div>
         </form>
       )}
     </AdminLayout>
+  );
+}
+
+function PageFields({ pageKey, content, patch, patchList, patchServiceGroup, uploadHomeBackground, uploadServiceLogo, fieldErrors }) {
+  if (pageKey === 'home') {
+    return (
+      <>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Field label="Hero eyebrow" value={content.heroEyebrow || ''} onChange={(value) => patch({ heroEyebrow: value })} error={fieldErrors.heroEyebrow} hint="Small text displayed above the main heading." required />
+          <Field label="Hero title" value={content.heroTitle || ''} onChange={(value) => patch({ heroTitle: value })} error={fieldErrors.heroTitle} hint="Primary heading shown in the hero section." required />
+        </div>
+        <Textarea label="Hero description" value={content.heroDescription || ''} onChange={(value) => patch({ heroDescription: value })} error={fieldErrors.heroDescription} hint="Keep this concise for better page balance." rows={4} />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Field label="Primary CTA label" value={content.primaryCta || ''} onChange={(value) => patch({ primaryCta: value })} hint="Displayed as the main action label." />
+          <Field label="Secondary CTA label" value={content.secondaryCta || ''} onChange={(value) => patch({ secondaryCta: value })} hint="Displayed beside the main hero action." />
+          <Field label="Featured heading" value={content.featuredHeading || ''} onChange={(value) => patch({ featuredHeading: value })} error={fieldErrors.featuredHeading} hint="Section heading shown above featured work." required />
+          <Field label="Services heading" value={content.servicesHeading || ''} onChange={(value) => patch({ servicesHeading: value })} error={fieldErrors.servicesHeading} hint="Section heading shown above the services preview." required />
+        </div>
+        <Textarea label="Services intro" value={content.servicesIntro || ''} onChange={(value) => patch({ servicesIntro: value })} error={fieldErrors.servicesIntro} hint="Short intro text displayed above the service cards." rows={4} />
+        <div className="grid gap-6 md:grid-cols-2">
+          <ColorField label="Hero title color" value={content.heroTitleColor || ''} onChange={(value) => patch({ heroTitleColor: value })} />
+          <ColorField label="Hero description color" value={content.heroDescriptionColor || ''} onChange={(value) => patch({ heroDescriptionColor: value })} />
+          <ColorField label="Section heading color" value={content.sectionHeadingColor || ''} onChange={(value) => patch({ sectionHeadingColor: value })} />
+          <ColorField label="Accent text color" value={content.accentTextColor || ''} onChange={(value) => patch({ accentTextColor: value })} />
+        </div>
+        <UploadRow
+          label="Hero background image"
+          value={content.heroBackgroundImageUrl || ''}
+          onFile={uploadHomeBackground}
+          onClear={() => patch({ heroBackgroundImageUrl: '' })}
+          hint="Recommended for the home hero background. Existing image optimization still applies."
+          error={fieldErrors.heroBackgroundImageUrl}
+        />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Field label="Background position" value={content.heroBackgroundPosition || 'center'} onChange={(value) => patch({ heroBackgroundPosition: value })} hint="Controls how the hero image is positioned." />
+          <Select label="Background style" value={content.heroBackgroundStyle || 'none'} options={['none', 'soft-cover', 'split-image', 'ambient-blur', 'subtle-texture']} onChange={(value) => patch({ heroBackgroundStyle: value })} hint="Select the visual treatment used on the home hero." />
+          <Field label="Overlay opacity" type="number" min="0" max="1" step="0.05" value={content.heroBackgroundOverlayOpacity ?? 0.55} onChange={(value) => patch({ heroBackgroundOverlayOpacity: Number(value) })} hint="Controls how dark the overlay sits over the image." />
+          <Field label="Background blur" type="number" min="0" max="24" step="1" value={content.heroBackgroundBlur ?? 0} onChange={(value) => patch({ heroBackgroundBlur: Number(value) })} hint="Only used with blur-based hero treatments." />
+        </div>
+      </>
+    );
+  }
+
+  if (pageKey === 'about') {
+    return (
+      <>
+        <Field label="Page title" value={content.title || ''} onChange={(value) => patch({ title: value })} error={fieldErrors.title} hint="Main heading shown on the About page." required />
+        <Textarea label="Introduction" value={content.intro || ''} onChange={(value) => patch({ intro: value })} error={fieldErrors.intro} hint="Keep this concise for better page balance." rows={4} />
+        <Textarea label="Creative journey" value={content.journey || ''} onChange={(value) => patch({ journey: value })} error={fieldErrors.journey} hint="Longer story text shown lower on the About page." rows={6} />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Textarea label="Skills, comma-separated" value={listText(content.skills)} onChange={(value) => patchList('skills', value)} hint="Used for the public About page skills list." rows={4} />
+          <Textarea label="Tools, comma-separated" value={listText(content.tools)} onChange={(value) => patchList('tools', value)} hint="Used for the public About page tools list." rows={4} />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <ColorField label="Heading color" value={content.headingColor || ''} onChange={(value) => patch({ headingColor: value })} />
+          <ColorField label="Body text color" value={content.bodyTextColor || ''} onChange={(value) => patch({ bodyTextColor: value })} />
+          <ColorField label="Accent color" value={content.accentColor || ''} onChange={(value) => patch({ accentColor: value })} />
+        </div>
+      </>
+    );
+  }
+
+  if (pageKey === 'services') {
+    return (
+      <>
+        <Field label="Page title" value={content.title || ''} onChange={(value) => patch({ title: value })} error={fieldErrors.title} hint="Main heading shown on the Services page." required />
+        <Textarea label="Introduction" value={content.intro || ''} onChange={(value) => patch({ intro: value })} error={fieldErrors.intro} hint="Short intro text shown before the service groups." rows={4} />
+        <div className="grid gap-6 md:grid-cols-2">
+          <ColorField label="Heading color" value={content.headingColor || ''} onChange={(value) => patch({ headingColor: value })} />
+          <ColorField label="Body text color" value={content.bodyTextColor || ''} onChange={(value) => patch({ bodyTextColor: value })} />
+          <ColorField label="Service title color" value={content.serviceTitleColor || ''} onChange={(value) => patch({ serviceTitleColor: value })} />
+          <ColorField label="Icon color" value={content.iconColor || ''} onChange={(value) => patch({ iconColor: value })} />
+        </div>
+        <div className="grid gap-5">
+          {(content.groups || []).map((group, index) => (
+            <section key={`${group.name || 'service'}-${index}`} className="grid gap-5 border-t border-white/[0.07] py-5 first:border-t-0 first:pt-0">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-medium text-zinc-200">Service Group {index + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => patch({ groups: (content.groups || []).filter((_, groupIndex) => groupIndex !== index) })}
+                  className="inline-flex h-10 items-center border-b border-white/[0.12] px-2 text-sm text-zinc-400 transition hover:border-red-300/35 hover:text-red-100"
+                >
+                  Remove group
+                </button>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <Field label="Service name" value={group.name || ''} onChange={(value) => patchServiceGroup(index, { name: value })} error={fieldErrors.groups} required />
+                <Field label="Lucide icon name" value={group.iconName || ''} onChange={(value) => patchServiceGroup(index, { iconName: value })} hint="Used when no custom icon image is set." />
+              </div>
+              <Textarea label="Description" value={group.description || ''} onChange={(value) => patchServiceGroup(index, { description: value })} error={fieldErrors[`groupDescription-${index}`]} hint="Short service summary displayed on the public page." rows={4} />
+              <Textarea label="Items, comma-separated" value={listText(group.items)} onChange={(value) => patchServiceGroup(index, { items: parseListText(value) })} hint="Displayed as the service item list." rows={4} />
+              <div className="grid gap-6 md:grid-cols-2">
+                <Field label="Service logo URL" value={group.serviceLogoUrl || ''} onChange={(value) => patchServiceGroup(index, { serviceLogoUrl: value })} error={fieldErrors[`groupServiceLogoUrl-${index}`]} hint="Optional logo shown beside the icon." />
+                <Field label="Custom icon URL" value={group.customIconUrl || group.iconUrl || ''} onChange={(value) => patchServiceGroup(index, { customIconUrl: value, iconUrl: '' })} error={fieldErrors[`groupCustomIconUrl-${index}`]} hint="Optional replacement for the Lucide icon." />
+              </div>
+              <Field label="Fallback icon image URL" value={group.iconUrl || ''} onChange={(value) => patchServiceGroup(index, { iconUrl: value })} error={fieldErrors[`groupIconUrl-${index}`]} hint="Used by the public page if an icon image exists." />
+              <UploadRow
+                label="Service logo upload"
+                value={group.serviceLogoUrl || ''}
+                onFile={(file) => uploadServiceLogo(index, file)}
+                onClear={() => patchServiceGroup(index, { serviceLogoUrl: '' })}
+                hint="Upload a small logo for this service group. Existing optimization stays active."
+                error={fieldErrors[`groupServiceLogoUrl-${index}`]}
+              />
+            </section>
+          ))}
+          <button
+            type="button"
+            onClick={() => patch({ groups: [...(content.groups || []), { name: 'New Service', description: '', items: [], iconName: 'Circle', iconUrl: '', customIconUrl: '', serviceLogoUrl: '' }] })}
+            className="inline-flex h-10 w-fit items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white"
+          >
+            Add service group
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Field label="Heading" value={content.heading || ''} onChange={(value) => patch({ heading: value })} error={fieldErrors.heading} hint="Main heading shown at the top of the Contact page." required />
+      <Textarea label="Description" value={content.description || ''} onChange={(value) => patch({ description: value })} error={fieldErrors.description} hint="Short intro text shown under the heading." rows={4} />
+      <Field label="CTA text" value={content.ctaText || ''} onChange={(value) => patch({ ctaText: value })} error={fieldErrors.ctaText} hint="Label used on the contact email button." required />
+      <Textarea label="Contact notes" value={content.notes || ''} onChange={(value) => patch({ notes: value })} error={fieldErrors.notes} hint="Extra notes shown below the CTA." rows={4} />
+      <div className="grid gap-6 md:grid-cols-3">
+        <ColorField label="Heading color" value={content.headingColor || ''} onChange={(value) => patch({ headingColor: value })} />
+        <ColorField label="Body text color" value={content.bodyTextColor || ''} onChange={(value) => patch({ bodyTextColor: value })} />
+        <ColorField label="Accent color" value={content.accentColor || ''} onChange={(value) => patch({ accentColor: value })} />
+      </div>
+    </>
   );
 }
 
@@ -291,7 +684,6 @@ function AdvancedEditorLoader({ jsonText, onChange }) {
         window.clearTimeout(slowTimer);
         if (!active) return;
         setEditorComponent(() => module.default);
-        setLoadError('');
       })
       .catch(() => {
         window.clearTimeout(slowTimer);
@@ -307,14 +699,14 @@ function AdvancedEditorLoader({ jsonText, onChange }) {
 
   if (loadError) {
     return (
-      <div className="grid min-h-64 place-items-center rounded-md bg-zinc-950/45 p-6 text-center ring-1 ring-white/[0.07]">
+      <div className="grid min-h-64 place-items-center border-b border-white/[0.06] py-8 text-center">
         <div className="max-w-sm">
           <p className="text-sm font-medium text-zinc-200">{loadError}</p>
           <p className="mt-2 text-xs leading-5 text-zinc-500">Your standard content fields are still active, and saving from the standard form will continue to work.</p>
           <button
             type="button"
             onClick={() => setRetryKey((current) => current + 1)}
-            className="mt-4 rounded-md bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
+            className="mt-4 inline-flex h-10 items-center border-b border-white/[0.12] px-2 text-xs text-zinc-300 transition hover:border-amber-200/40 hover:text-white"
           >
             Retry loading editor
           </button>
@@ -325,7 +717,7 @@ function AdvancedEditorLoader({ jsonText, onChange }) {
 
   if (!EditorComponent) {
     return (
-      <div className="grid h-[620px] place-items-center rounded-md bg-zinc-950/45 text-sm text-zinc-500 ring-1 ring-white/[0.07]">
+      <div className="grid h-[620px] place-items-center border-b border-white/[0.06] text-sm text-zinc-500">
         Loading advanced JSON editor...
       </div>
     );
@@ -348,23 +740,20 @@ class AdvancedEditorErrorBoundary extends Component {
     return { hasError: true };
   }
 
-  componentDidCatch() {
-  }
-
   render() {
     if (this.state.hasError) {
       return (
-        <div className="grid min-h-64 place-items-center rounded-md bg-zinc-950/45 p-6 text-center ring-1 ring-white/[0.07]">
+        <div className="grid min-h-64 place-items-center border-b border-white/[0.06] py-8 text-center">
           <div className="max-w-sm">
             <p className="text-sm font-medium text-zinc-200">Advanced editor failed to load. You can still use the standard fields.</p>
-            <p className="mt-2 text-xs leading-5 text-zinc-500">The visual/content fields are still available and safe to save.</p>
+            <p className="mt-2 text-xs leading-5 text-zinc-500">The structured fields are still available and safe to save.</p>
             <button
               type="button"
               onClick={() => {
                 this.setState({ hasError: false });
                 this.props.onRetry?.();
               }}
-              className="mt-4 rounded-md bg-white/[0.055] px-3 py-2 text-xs text-zinc-300 ring-1 ring-white/[0.08] hover:text-white"
+              className="mt-4 inline-flex h-10 items-center border-b border-white/[0.12] px-2 text-xs text-zinc-300 transition hover:border-amber-200/40 hover:text-white"
             >
               Retry loading editor
             </button>
@@ -376,186 +765,3 @@ class AdvancedEditorErrorBoundary extends Component {
     return this.props.children;
   }
 }
-
-function StructuredFields({ pageKey, content, patch, updateList, uploadHomeBackground, patchServiceGroup, uploadServiceLogo }) {
-  if (pageKey === 'home') {
-    return (
-      <>
-        <Field label="Hero eyebrow" value={content.heroEyebrow || ''} onChange={(value) => patch({ heroEyebrow: value })} />
-        <Field label="Hero title" value={content.heroTitle || ''} onChange={(value) => patch({ heroTitle: value })} />
-        <Textarea label="Hero description" value={content.heroDescription || ''} onChange={(value) => patch({ heroDescription: value })} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Primary CTA" value={content.primaryCta || ''} onChange={(value) => patch({ primaryCta: value })} />
-          <Field label="Secondary CTA" value={content.secondaryCta || ''} onChange={(value) => patch({ secondaryCta: value })} />
-          <Field label="Featured heading" value={content.featuredHeading || ''} onChange={(value) => patch({ featuredHeading: value })} />
-          <Field label="Services heading" value={content.servicesHeading || ''} onChange={(value) => patch({ servicesHeading: value })} />
-        </div>
-        <Textarea label="Services intro" value={content.servicesIntro || ''} onChange={(value) => patch({ servicesIntro: value })} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <ColorField label="Hero title color" value={content.heroTitleColor || '#f5f5f4'} onChange={(value) => patch({ heroTitleColor: value })} />
-          <ColorField label="Hero description color" value={content.heroDescriptionColor || '#d4d4d8'} onChange={(value) => patch({ heroDescriptionColor: value })} />
-          <ColorField label="Section heading color" value={content.sectionHeadingColor || '#f5f5f4'} onChange={(value) => patch({ sectionHeadingColor: value })} />
-          <ColorField label="Accent text color" value={content.accentTextColor || '#f6d58b'} onChange={(value) => patch({ accentTextColor: value })} />
-        </div>
-        <UploadRow label="Hero background image" value={content.heroBackgroundImageUrl || ''} onFile={uploadHomeBackground} onClear={() => patch({ heroBackgroundImageUrl: '' })} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Background position" value={content.heroBackgroundPosition || 'center'} onChange={(value) => patch({ heroBackgroundPosition: value })} />
-          <Select label="Background style" value={content.heroBackgroundStyle || 'none'} options={['none', 'soft-cover', 'split-image', 'ambient-blur', 'subtle-texture']} onChange={(value) => patch({ heroBackgroundStyle: value })} />
-          <Field label="Overlay opacity" type="number" min="0" max="1" step="0.05" value={content.heroBackgroundOverlayOpacity ?? 0.55} onChange={(value) => patch({ heroBackgroundOverlayOpacity: Number(value) })} />
-          <Field label="Background blur" type="number" min="0" max="24" step="1" value={content.heroBackgroundBlur ?? 0} onChange={(value) => patch({ heroBackgroundBlur: Number(value) })} />
-        </div>
-      </>
-    );
-  }
-
-  if (pageKey === 'about') {
-    return (
-      <>
-        <Field label="Page title" value={content.title || ''} onChange={(value) => patch({ title: value })} />
-        <Textarea label="Intro" value={content.intro || ''} onChange={(value) => patch({ intro: value })} />
-        <Textarea label="Creative journey" value={content.journey || ''} onChange={(value) => patch({ journey: value })} />
-        <Textarea label="Skills, comma-separated" value={(content.skills || []).join(', ')} onChange={(value) => updateList('skills', value)} />
-        <Textarea label="Tools, comma-separated" value={(content.tools || []).join(', ')} onChange={(value) => updateList('tools', value)} />
-        <div className="grid gap-4 md:grid-cols-3">
-          <ColorField label="Heading color" value={content.headingColor || '#f5f5f4'} onChange={(value) => patch({ headingColor: value })} />
-          <ColorField label="Body text color" value={content.bodyTextColor || '#d4d4d8'} onChange={(value) => patch({ bodyTextColor: value })} />
-          <ColorField label="Accent color" value={content.accentColor || '#f6d58b'} onChange={(value) => patch({ accentColor: value })} />
-        </div>
-      </>
-    );
-  }
-
-  if (pageKey === 'services') {
-    const groups = content.groups || [];
-    return (
-      <>
-        <Field label="Page title" value={content.title || ''} onChange={(value) => patch({ title: value })} />
-        <Textarea label="Intro" value={content.intro || ''} onChange={(value) => patch({ intro: value })} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <ColorField label="Heading color" value={content.headingColor || '#f5f5f4'} onChange={(value) => patch({ headingColor: value })} />
-          <ColorField label="Body text color" value={content.bodyTextColor || '#d4d4d8'} onChange={(value) => patch({ bodyTextColor: value })} />
-          <ColorField label="Service title color" value={content.serviceTitleColor || '#f5f5f4'} onChange={(value) => patch({ serviceTitleColor: value })} />
-          <ColorField label="Icon color" value={content.iconColor || '#f6d58b'} onChange={(value) => patch({ iconColor: value })} />
-        </div>
-        <div className="grid gap-4">
-          {groups.map((group, index) => (
-            <div key={`${group.name || 'service'}-${index}`} className="grid gap-4 rounded-md bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium text-zinc-200">Service {index + 1}</p>
-                <button
-                  type="button"
-                  onClick={() => patch({ groups: groups.filter((_, groupIndex) => groupIndex !== index) })}
-                  className="text-xs text-zinc-500 hover:text-red-200"
-                >
-                  Remove
-                </button>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Service name" value={group.name || ''} onChange={(value) => patchServiceGroup(index, { name: value })} />
-                <Field label="Lucide icon name" value={group.iconName || ''} onChange={(value) => patchServiceGroup(index, { iconName: value })} />
-              </div>
-              <Textarea label="Description" value={group.description || ''} onChange={(value) => patchServiceGroup(index, { description: value })} />
-              <Textarea
-                label="Items, comma-separated"
-                value={group.itemsText ?? (group.items || []).join(', ')}
-                onChange={(value) => patchServiceGroup(index, { itemsText: value })}
-                onBlur={() => patchServiceGroup(index, {
-                  items: (group.itemsText ?? '').split(',').map((item) => item.trim()).filter(Boolean),
-                  itemsText: undefined,
-                })}
-              />
-              <UploadRow
-                label="Service logo"
-                value={group.serviceLogoUrl || ''}
-                onFile={(file) => uploadServiceLogo(index, file)}
-                onClear={() => patchServiceGroup(index, { serviceLogoUrl: '' })}
-              />
-              <Field label="Icon image URL" value={group.customIconUrl || group.iconUrl || ''} onChange={(value) => patchServiceGroup(index, { customIconUrl: value, iconUrl: '' })} />
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => patch({ groups: [...groups, { name: 'New Service', description: '', items: [], iconName: 'Circle', iconUrl: '', customIconUrl: '', serviceLogoUrl: '' }] })}
-          className="w-fit rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]"
-        >
-          Add service
-        </button>
-        <p className="text-xs leading-5 text-zinc-500">The service logo appears on the left side of the icon on the public Services page. Icon image URLs can still be copied from Icons / Media.</p>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Field label="Heading" value={content.heading || ''} onChange={(value) => patch({ heading: value })} />
-      <Textarea label="Description" value={content.description || ''} onChange={(value) => patch({ description: value })} />
-      <Field label="CTA text" value={content.ctaText || ''} onChange={(value) => patch({ ctaText: value })} />
-      <Textarea label="Contact notes" value={content.notes || ''} onChange={(value) => patch({ notes: value })} />
-      <div className="grid gap-4 md:grid-cols-3">
-        <ColorField label="Heading color" value={content.headingColor || '#f5f5f4'} onChange={(value) => patch({ headingColor: value })} />
-        <ColorField label="Body text color" value={content.bodyTextColor || '#d4d4d8'} onChange={(value) => patch({ bodyTextColor: value })} />
-        <ColorField label="Accent color" value={content.accentColor || '#f6d58b'} onChange={(value) => patch({ accentColor: value })} />
-      </div>
-    </>
-  );
-}
-
-function Field({ label, value, onChange, type = 'text', min, max, step }) {
-  return (
-    <label className="grid gap-2 text-sm text-zinc-300">
-      {label}
-      <input type={type} value={value} min={min} max={max} step={step} onChange={(event) => onChange(event.target.value)} className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
-    </label>
-  );
-}
-
-function Textarea({ label, value, onChange, onBlur, rows = 4 }) {
-  return (
-    <label className="grid gap-2 text-sm text-zinc-300">
-      {label}
-      <textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45" />
-    </label>
-  );
-}
-
-function Select({ label, value, options, onChange }) {
-  return (
-    <label className="grid gap-2 text-sm text-zinc-300">
-      {label}
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-200/45">
-        {options.map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
-    </label>
-  );
-}
-
-function ColorField({ label, value, onChange }) {
-  return (
-    <label className="grid gap-2 text-sm text-zinc-300">
-      {label}
-      <div className="flex items-center gap-3 rounded-md bg-zinc-950/55 px-3 py-2 ring-1 ring-white/[0.08]">
-        <input type="color" value={value} onChange={(event) => onChange(event.target.value)} className="h-9 w-12 bg-transparent" />
-        <span className="font-mono text-xs text-zinc-400">{value}</span>
-      </div>
-    </label>
-  );
-}
-
-function UploadRow({ label, value, onFile, onClear }) {
-  return (
-    <div className="rounded-md bg-zinc-950/45 p-4 ring-1 ring-white/[0.07]">
-      <p className="text-sm text-zinc-300">{label}</p>
-      <p className="mt-1 text-xs text-zinc-500">Large raster images are resized and optimized automatically. Hero images target 1 MB; service logos target 300 KB.</p>
-      {value && <img src={value} alt="" className="mt-3 max-h-28 max-w-full object-cover" />}
-      <div className="mt-4 flex flex-wrap gap-3">
-        <label className="cursor-pointer rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085]">
-          Choose image
-          <input className="sr-only" type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0])} />
-        </label>
-        {value && <button type="button" onClick={onClear} className="rounded-md bg-white/[0.055] px-3 py-2 text-sm text-zinc-400 ring-1 ring-white/[0.08] hover:text-white">Remove</button>}
-      </div>
-    </div>
-  );
-}
-

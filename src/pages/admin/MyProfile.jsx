@@ -775,7 +775,7 @@ export default function MyProfile() {
               const meta = socialLinkMeta(link);
               const Icon = socialIcons[meta.platform] || Globe2;
               return (
-                <div key={`${index}-${meta.platform}-${link.href || 'empty'}`} className="grid gap-3 border-b border-white/[0.06] pb-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+                <div key={index} className="grid gap-3 border-b border-white/[0.06] pb-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
                   <div className="grid gap-1.5 text-sm text-zinc-300">
                     <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-zinc-500">
                       <Icon size={13} /> {meta.label}

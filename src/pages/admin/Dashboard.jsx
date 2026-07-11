@@ -143,7 +143,7 @@ export default function Dashboard() {
         <section className="grid gap-8 border-b border-white/[0.08] py-7 lg:grid-cols-2">
           <ActivitySection title="Recent Projects" description={canSeeAll ? 'Latest portfolio additions.' : 'Latest projects available to you.'} actionTo="/admin/projects" actionLabel="View all projects">
             {loading ? <ActivitySkeleton /> : recentProjects.length ? recentProjects.map((project) => (
-              <Link key={project.id} to={`/admin/projects/${project.id}/edit`} className={`grid gap-2 border-t border-white/[0.08] py-4 first:border-t-0 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-start ${focusLink}`}>
+              <Link key={project.id} to={`/admin/projects/${project.id}/edit`} className={`grid cursor-pointer gap-2 border-t border-white/[0.1] px-2 py-4 transition hover:border-amber-200/25 hover:bg-white/[0.025] focus-visible:bg-white/[0.025] first:border-t-0 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-start ${focusLink}`}>
                 <div className="min-w-0"><h3 className="truncate font-medium text-white">{project.title}</h3><p className="mt-1 text-xs text-zinc-500">{project.category || 'Uncategorized'} · {formatDate(project.updated_at || project.created_at)}</p></div>
                 <div className="flex flex-wrap gap-2"><AdminStatusBadge status={project.review_status || project.status} />{project.featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}</div>
               </Link>
@@ -152,7 +152,7 @@ export default function Dashboard() {
 
           {canViewInquiries && <ActivitySection title="Latest Inquiries" description="Newest messages in the client pipeline." actionTo="/admin/inquiries" actionLabel="View all inquiries">
             {loading ? <ActivitySkeleton /> : latestInquiries.length ? latestInquiries.map((inquiry) => (
-              <Link key={inquiry.id} to="/admin/inquiries" className={`grid gap-2 border-t border-white/[0.08] py-4 first:border-t-0 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-start ${focusLink}`}>
+              <Link key={inquiry.id} to="/admin/inquiries" className={`grid cursor-pointer gap-2 border-t border-white/[0.1] px-2 py-4 transition hover:border-amber-200/25 hover:bg-white/[0.025] focus-visible:bg-white/[0.025] first:border-t-0 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-start ${focusLink}`}>
                 <div className="min-w-0"><h3 className="truncate font-medium text-white">{inquiry.name}</h3><p className="mt-1 text-xs text-zinc-500">{inquiry.project_type || 'General inquiry'} · {formatDate(inquiry.created_at)}</p><p className="mt-2 line-clamp-1 text-sm text-zinc-500">{inquiry.message}</p></div>
                 <AdminStatusBadge status={inquiry.status} />
               </Link>

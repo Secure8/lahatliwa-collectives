@@ -129,6 +129,41 @@ select {
   text-rendering: optimizeLegibility;
 }
 
+.admin-shell :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]), textarea, select) {
+  min-height: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.375rem;
+  background-color: rgba(255, 255, 255, 0.035);
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-shell :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]), textarea, select):hover {
+  border-color: rgba(246, 213, 139, 0.28);
+}
+
+.admin-shell :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]), textarea, select):focus {
+  border-color: rgba(246, 213, 139, 0.58);
+  box-shadow: 0 0 0 2px rgba(246, 213, 139, 0.14);
+  outline: none;
+}
+
+.admin-shell :where(input, textarea, select)[aria-invalid="true"] {
+  border-color: rgba(252, 165, 165, 0.7);
+}
+
+.admin-shell :where(button:not(:disabled), a[href], label:has(input[type="file"]), select) {
+  cursor: pointer;
+}
+
+.admin-shell :where(a[href], button, input, textarea, select):focus-visible {
+  outline: 2px solid rgba(246, 213, 139, 0.72);
+  outline-offset: 2px;
+}
+
+.admin-shell :where(button, input, textarea, select):disabled {
+  cursor: not-allowed;
+}
+
 .admin-sidebar-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(246, 213, 139, 0.28) transparent;

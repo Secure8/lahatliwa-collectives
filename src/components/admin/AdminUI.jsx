@@ -16,6 +16,9 @@ const statusTone = {
   accepted: 'bg-emerald-300/12 text-emerald-100 ring-emerald-300/20',
   declined: 'bg-red-300/12 text-red-100 ring-red-300/20',
   completed: 'bg-zinc-100/12 text-zinc-100 ring-white/15',
+  active: 'bg-emerald-300/10 text-emerald-100 ring-emerald-300/25',
+  disabled: 'bg-red-300/10 text-red-100 ring-red-300/25',
+  invited: 'bg-amber-300/10 text-amber-100 ring-amber-300/25',
 };
 
 export function AdminPageHeader({ eyebrow, title, description, action }) {
@@ -23,7 +26,7 @@ export function AdminPageHeader({ eyebrow, title, description, action }) {
     <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-3xl">
         {eyebrow && <p className="text-xs font-medium uppercase tracking-[0.24em] text-amber-200/80">{eyebrow}</p>}
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{title}</h1>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-amber-100 sm:text-4xl">{title}</h1>
         {description && <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>}
       </div>
       {action && <div className="flex shrink-0 flex-wrap gap-3">{action}</div>}
@@ -33,7 +36,7 @@ export function AdminPageHeader({ eyebrow, title, description, action }) {
 
 export function AdminSurface({ children, className = '', as: Component = 'section', ...props }) {
   return (
-    <Component {...props} className={clsx('rounded-md bg-white/[0.035] p-5 ring-1 ring-white/[0.055]', className)}>
+    <Component {...props} className={clsx('rounded-md border border-amber-200/15 bg-zinc-950/95 p-5 shadow-lg shadow-black/15', className)}>
       {children}
     </Component>
   );
@@ -49,14 +52,14 @@ export function AdminSoftPanel({ children, className = '' }) {
 
 export function AdminButton({ children, to, onClick, type = 'button', variant = 'secondary', className = '', disabled = false }) {
   const classes = clsx(
-    'inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 text-sm font-semibold leading-none transition disabled:pointer-events-none disabled:opacity-55',
+    'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border px-4 text-sm font-semibold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
     variant === 'primary'
-      ? 'bg-amber-300 text-zinc-950 hover:bg-amber-200'
+      ? 'border-amber-200/70 bg-amber-300 text-zinc-950 shadow-sm shadow-amber-950/30 hover:bg-amber-200'
       : variant === 'danger'
-        ? 'bg-red-400/10 text-red-100 ring-1 ring-red-300/20 hover:bg-red-400/15'
+        ? 'border-red-300/30 bg-red-400/10 text-red-100 hover:border-red-300/50 hover:bg-red-400/15'
         : variant === 'ghost'
-          ? 'text-zinc-300 hover:bg-white/[0.06] hover:text-white'
-          : 'bg-white/[0.055] text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] hover:text-white',
+          ? 'border-transparent text-amber-200/80 underline decoration-amber-200/25 underline-offset-4 hover:bg-white/[0.04] hover:text-amber-100'
+          : 'border-white/[0.14] bg-white/[0.045] text-zinc-100 hover:border-amber-200/30 hover:bg-white/[0.08] hover:text-white',
     className
   );
 
@@ -73,12 +76,12 @@ export function AdminActionGroup({ children, className = '' }) {
 
 export function AdminActionButton({ children, to, onClick, type = 'button', variant = 'secondary', disabled = false, className = '' }) {
   const classes = clsx(
-    'inline-flex h-9 min-w-20 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-xs font-medium leading-none transition disabled:pointer-events-none disabled:opacity-50',
+    'inline-flex h-9 min-w-20 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-xs font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
     variant === 'danger'
-      ? 'text-red-200 hover:bg-red-300/10 hover:text-red-100'
+      ? 'border-red-300/20 bg-red-300/[0.04] text-red-200 hover:border-red-300/40 hover:bg-red-300/10 hover:text-red-100'
       : variant === 'primary'
-        ? 'bg-amber-300 text-zinc-950 hover:bg-amber-200'
-        : 'text-zinc-300 hover:bg-white/[0.055] hover:text-white',
+        ? 'border-amber-200/70 bg-amber-300 text-zinc-950 hover:bg-amber-200'
+        : 'border-white/[0.12] bg-white/[0.025] text-zinc-200 hover:border-amber-200/30 hover:bg-white/[0.07] hover:text-white',
     className
   );
 
@@ -89,7 +92,7 @@ export function AdminActionButton({ children, to, onClick, type = 'button', vari
 export function AdminStatusBadge({ status, children }) {
   const key = String(status || '').toLowerCase();
   return (
-    <span className={clsx('inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium capitalize ring-1', statusTone[key] || 'bg-white/[0.06] text-zinc-300 ring-white/[0.08]')}>
+    <span className={clsx('inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium capitalize ring-1', statusTone[key] || 'bg-white/[0.06] text-zinc-300 ring-white/[0.14]')}>
       {children || status}
     </span>
   );
@@ -141,7 +144,7 @@ export function AdminNotice({ children, tone = 'error', className = '' }) {
   );
 }
 
-const inputClasses = 'w-full rounded-md bg-zinc-950/55 px-3 py-3 text-white outline-none ring-1 ring-white/[0.08] transition placeholder:text-zinc-600 focus:ring-amber-200/45';
+const inputClasses = 'w-full rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/55 focus:ring-2 focus:ring-amber-200/20 disabled:cursor-not-allowed disabled:bg-white/[0.015] disabled:text-zinc-500 aria-[invalid=true]:border-red-300/60 aria-[invalid=true]:focus:ring-red-300/20';
 
 export function AdminInput({ label, value, onChange, type = 'text', required = false, min, max, step, className = '', onBlur }) {
   return (

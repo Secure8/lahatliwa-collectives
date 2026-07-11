@@ -217,7 +217,7 @@ export default function Login() {
             <label className="mt-6 grid gap-2 text-sm text-zinc-300">
               Email
               <input
-                className="border-0 border-b border-white/[0.14] bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-200/60"
+                className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -231,7 +231,7 @@ export default function Login() {
             <label className="mt-4 grid gap-2 text-sm text-zinc-300">
               {passwordLabel}
               <input
-                className="border-0 border-b border-white/[0.14] bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-200/60"
+                className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -246,7 +246,7 @@ export default function Login() {
             <label className="mt-4 grid gap-2 text-sm text-zinc-300">
               Confirm password
               <input
-                className="border-0 border-b border-white/[0.14] bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-200/60"
+                className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}

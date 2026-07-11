@@ -123,6 +123,19 @@ export default function AdminTeam() {
     return () => { mountedRef.current = false; };
   }, []);
 
+  useEffect(() => {
+    if (!showMemberForm && !lifecycle) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event) => {
+      if (event.key !== 'Escape' || saving || updatingMemberId) return;
+      if (showMemberForm) resetForm();
+      else setLifecycle(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', closeOnEscape); };
+  }, [lifecycle, saving, showMemberForm, updatingMemberId]);
+
   function update(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
   }
@@ -424,9 +437,9 @@ export default function AdminTeam() {
           </div>
         ) : <AdminEmptyState title={emptyFilterCopy[activeFilter]} />
       )}
-      {showMemberForm && <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="member-form-title">
-        <AdminSurface as="form" onSubmit={save} className="grid max-h-[calc(100vh-2rem)] w-full max-w-2xl gap-5 overflow-y-auto">
-          <div className="flex items-start justify-between gap-4">
+      {showMemberForm && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="member-form-title">
+        <AdminSurface as="form" onSubmit={save} className="grid max-h-[calc(100vh-2rem)] w-full max-w-2xl gap-5 overflow-y-auto border-amber-200/25 bg-zinc-950/98 shadow-2xl">
+          <div className="flex items-start justify-between gap-4 border-b border-amber-200/15 pb-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Access record</p>
               <h2 id="member-form-title" className="mt-2 text-xl font-semibold text-white">{editingId ? 'Edit Team Member' : 'Add Member'}</h2>
@@ -455,9 +468,9 @@ export default function AdminTeam() {
           </div>
         </AdminSurface>
       </div>}
-      {lifecycle && <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true">
-        <AdminSurface as="form" onSubmit={runLifecycle} className="w-full max-w-lg grid gap-5">
-          <div className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">PIN-protected action</p><h2 className="mt-2 text-xl font-semibold text-white">{lifecycle.action === 'permanent_delete' ? 'Permanently Delete' : lifecycle.action === 'restore_access' ? 'Restore Access' : 'Remove Access'}</h2></div><button type="button" onClick={() => setLifecycle(null)} aria-label="Close"><X size={20} /></button></div>
+      {lifecycle && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="lifecycle-dialog-title">
+        <AdminSurface as="form" onSubmit={runLifecycle} className="grid w-full max-w-lg gap-5 border-amber-200/25 bg-zinc-950/98 shadow-2xl">
+          <div className="flex items-start justify-between gap-4 border-b border-amber-200/15 pb-4"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">PIN-protected action</p><h2 id="lifecycle-dialog-title" className="mt-2 text-xl font-semibold text-white">{lifecycle.action === 'permanent_delete' ? 'Permanently Delete' : lifecycle.action === 'restore_access' ? 'Restore Access' : 'Remove Access'}</h2></div><button type="button" onClick={() => setLifecycle(null)} aria-label="Close lifecycle dialog" className="text-zinc-400 hover:text-white"><X size={20} /></button></div>
           <p className="text-sm leading-6 text-zinc-300">{lifecycle.action === 'permanent_delete' ? "This removes the member's website-visible traces and cannot be easily undone." : lifecycle.action === 'restore_access' ? 'This restores access and visibility saved when access was removed.' : 'This temporarily blocks admin access and hides linked public profiles, projects, and credits. It can be restored.'}</p>
           {error && <AdminNotice>{error}</AdminNotice>}
           <AdminInput label="Super Admin PIN" type="password" required value={pin} onChange={setPin} />

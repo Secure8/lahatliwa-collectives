@@ -11,6 +11,7 @@ const BUCKET = 'project-media';
 const UPLOAD_OPTIONS = { upsert: false, cacheControl: '31536000' };
 const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache-v2';
 const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache'];
+const PUBLIC_CONTENT_UPDATED_EVENT = 'hevv-public-content-updated';
 const ALL_PAGE_KEYS = ['home', 'about', 'services', 'contact'];
 const PUBLIC_CONTENT_MEMORY_TTL = 60 * 1000;
 const PublicContentContext = createContext(null);
@@ -31,6 +32,12 @@ function normalizeExternalUrl(url = '') {
   if (!trimmed) return '';
   if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('mailto:')) return trimmed;
   return `https://${trimmed}`;
+}
+
+function toNullableString(value) {
+  if (value === null || value === undefined) return null;
+  const trimmed = String(value).trim();
+  return trimmed ? trimmed : null;
 }
 
 export function resolvePublicAssetUrl(url = '') {
@@ -73,30 +80,60 @@ function mapSettingsRow(row) {
   };
 }
 
+export function settingsFormFromRow(row) {
+  if (!row) return {};
+  return {
+    settingsId: row.id,
+    displayName: row.brand_name || defaultSiteContent.displayName,
+    legalName: row.personal_name || defaultSiteContent.legalName,
+    tagline: row.tagline ?? defaultSiteContent.tagline,
+    logoUrl: row.logo_url ?? null,
+    logoAlt: row.logo_alt || defaultSiteContent.logoAlt,
+    heroImageUrl: row.hero_image_url ?? null,
+    heroImageAlt: row.hero_image_alt || defaultSiteContent.heroImageAlt,
+    showHeroPortrait: row.show_hero_portrait ?? defaultSiteContent.showHeroPortrait,
+    email: row.contact_email ?? defaultSiteContent.email,
+    footerText: row.footer_text ?? defaultSiteContent.footerText,
+    primaryTextColor: row.primary_text_color ?? defaultSiteContent.primaryTextColor,
+    secondaryTextColor: row.secondary_text_color ?? defaultSiteContent.secondaryTextColor,
+    mutedTextColor: row.muted_text_color ?? defaultSiteContent.mutedTextColor,
+    accentColor: row.accent_color ?? defaultSiteContent.accentColor,
+    dividerLineColor: row.divider_line_color ?? defaultSiteContent.dividerLineColor,
+    defaultBackgroundImageUrl: row.default_background_image_url ?? null,
+    defaultBackgroundOverlayOpacity: row.default_background_overlay_opacity ?? defaultSiteContent.defaultBackgroundOverlayOpacity,
+    githubUrl: row.github_url ?? '',
+    facebookUrl: row.facebook_url ?? '',
+    instagramUrl: row.instagram_url ?? '',
+    linkedinUrl: row.linkedin_url ?? '',
+    youtubeUrl: row.youtube_url ?? '',
+    tiktokUrl: row.tiktok_url ?? '',
+  };
+}
+
 export function mapSettingsToPayload(settings) {
   return {
-    brand_name: settings.displayName || defaultSiteContent.displayName,
-    personal_name: settings.legalName || defaultSiteContent.legalName,
-    tagline: settings.tagline || null,
-    logo_url: settings.logoUrl || null,
-    logo_alt: settings.logoAlt || null,
-    hero_image_url: settings.heroImageUrl || null,
-    hero_image_alt: settings.heroImageAlt || null,
+    brand_name: toNullableString(settings.displayName) || defaultSiteContent.displayName,
+    personal_name: toNullableString(settings.legalName) || defaultSiteContent.legalName,
+    tagline: toNullableString(settings.tagline),
+    logo_url: toNullableString(settings.logoUrl),
+    logo_alt: toNullableString(settings.logoAlt),
+    hero_image_url: toNullableString(settings.heroImageUrl),
+    hero_image_alt: toNullableString(settings.heroImageAlt),
     show_hero_portrait: settings.showHeroPortrait === true,
-    contact_email: settings.email || null,
-    github_url: normalizeExternalUrl(settings.githubUrl || ''),
-    facebook_url: normalizeExternalUrl(settings.facebookUrl || ''),
-    instagram_url: normalizeExternalUrl(settings.instagramUrl || ''),
-    linkedin_url: normalizeExternalUrl(settings.linkedinUrl || ''),
-    youtube_url: normalizeExternalUrl(settings.youtubeUrl || ''),
-    tiktok_url: normalizeExternalUrl(settings.tiktokUrl || ''),
-    footer_text: settings.footerText || null,
-    primary_text_color: settings.primaryTextColor || null,
-    secondary_text_color: settings.secondaryTextColor || null,
-    muted_text_color: settings.mutedTextColor || null,
-    accent_color: settings.accentColor || null,
-    divider_line_color: settings.dividerLineColor || null,
-    default_background_image_url: settings.defaultBackgroundImageUrl || null,
+    contact_email: toNullableString(settings.email),
+    github_url: toNullableString(normalizeExternalUrl(settings.githubUrl || '')),
+    facebook_url: toNullableString(normalizeExternalUrl(settings.facebookUrl || '')),
+    instagram_url: toNullableString(normalizeExternalUrl(settings.instagramUrl || '')),
+    linkedin_url: toNullableString(normalizeExternalUrl(settings.linkedinUrl || '')),
+    youtube_url: toNullableString(normalizeExternalUrl(settings.youtubeUrl || '')),
+    tiktok_url: toNullableString(normalizeExternalUrl(settings.tiktokUrl || '')),
+    footer_text: toNullableString(settings.footerText),
+    primary_text_color: toNullableString(settings.primaryTextColor),
+    secondary_text_color: toNullableString(settings.secondaryTextColor),
+    muted_text_color: toNullableString(settings.mutedTextColor),
+    accent_color: toNullableString(settings.accentColor),
+    divider_line_color: toNullableString(settings.dividerLineColor),
+    default_background_image_url: toNullableString(settings.defaultBackgroundImageUrl),
     default_background_overlay_opacity: Number(settings.defaultBackgroundOverlayOpacity ?? defaultSiteContent.defaultBackgroundOverlayOpacity),
     updated_at: new Date().toISOString(),
   };
@@ -132,10 +169,20 @@ export function settingsFromSiteContent(content) {
   };
 }
 
-export async function fetchSiteSettings() {
-  const { data, error } = await supabase.from(SETTINGS_TABLE).select('*').order('created_at', { ascending: true }).limit(1).maybeSingle();
+async function fetchCanonicalSiteSettingsRow() {
+  const { data, error } = await supabase
+    .from(SETTINGS_TABLE)
+    .select('*')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
-  return mapSettingsRow(data);
+  return data;
+}
+
+export async function fetchSiteSettings() {
+  const row = await fetchCanonicalSiteSettingsRow();
+  return mapSettingsRow(row);
 }
 
 function missingSchemaColumn(error) {
@@ -146,14 +193,23 @@ function missingSchemaColumn(error) {
 async function saveSettingsPayload(settings, payload) {
   const skippedColumns = [];
   let nextPayload = { ...payload };
+  let targetId = settings.settingsId || null;
+
+  if (!targetId) {
+    const existingRow = await fetchCanonicalSiteSettingsRow();
+    targetId = existingRow?.id || null;
+  }
 
   for (let attempt = 0; attempt < OPTIONAL_SETTINGS_COLUMNS.size + 1; attempt += 1) {
-    const query = settings.settingsId
-      ? supabase.from(SETTINGS_TABLE).update(nextPayload).eq('id', settings.settingsId).select('id').single()
-      : supabase.from(SETTINGS_TABLE).insert(nextPayload).select('id').single();
+    const query = targetId
+      ? supabase.from(SETTINGS_TABLE).update(nextPayload).eq('id', targetId).select('*').single()
+      : supabase.from(SETTINGS_TABLE).insert(nextPayload).select('*').single();
 
     const { data, error } = await query;
-    if (!error) return { id: data?.id || settings.settingsId, skippedColumns };
+    if (!error) {
+      if (!data?.id) throw new Error('The saved settings could not be refreshed.');
+      return { row: data, skippedColumns };
+    }
 
     const column = missingSchemaColumn(error);
     if (!OPTIONAL_SETTINGS_COLUMNS.has(column) || !(column in nextPayload)) throw error;
@@ -163,14 +219,15 @@ async function saveSettingsPayload(settings, payload) {
     nextPayload = payloadWithoutColumn;
   }
 
-  return { id: settings.settingsId, skippedColumns };
+  throw new Error('The saved settings could not be refreshed.');
 }
 
 export async function updateSiteSettings(settings) {
   const payload = mapSettingsToPayload(settings);
-  const data = await saveSettingsPayload(settings, payload);
-  clearCachedPublicContent();
-  return data;
+  const { row, skippedColumns } = await saveSettingsPayload(settings, payload);
+  const mappedSettings = mapSettingsRow(row);
+  syncPublicContentCache(mappedSettings);
+  return { row, settings: mappedSettings, skippedColumns };
 }
 
 export async function fetchPageContent(pageKey) {
@@ -289,6 +346,27 @@ function writeCachedPublicContent(content) {
   }
 }
 
+function notifyPublicContentChanged(content) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent(PUBLIC_CONTENT_UPDATED_EVENT, { detail: content }));
+  } catch {
+  }
+}
+
+export function syncPublicContentCache(settings = {}) {
+  const cached = readCachedPublicContent() || mergePublicContent();
+  const nextContent = mergePublicContent(settings, {
+    home: cached.home || {},
+    about: cached.about || {},
+    services: cached.servicesPage || {},
+    contact: cached.contactPage || {},
+  });
+  writeCachedPublicContent(nextContent);
+  notifyPublicContentChanged(nextContent);
+  return nextContent;
+}
+
 function clearCachedPublicContent() {
   memoryPublicContent = null;
   memoryPublicContentUpdatedAt = 0;
@@ -331,6 +409,10 @@ async function loadPublicContentBundle(pageKeys) {
   }
 }
 
+function readCurrentCachedContent() {
+  return readCachedPublicContent() || mergePublicContent();
+}
+
 function themeStyle(content) {
   return {
     '--site-accent': content.accentColor || defaultSiteContent.accentColor,
@@ -361,8 +443,24 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
       }
     }
     loadContent();
+
+    const handleCacheChange = () => {
+      const nextContent = readCurrentCachedContent();
+      setContent(nextContent);
+      setLoading(false);
+    };
+
+    const handleStorageChange = (event) => {
+      if (event.key && event.key !== PUBLIC_CONTENT_CACHE_KEY) return;
+      handleCacheChange();
+    };
+
+    window.addEventListener(PUBLIC_CONTENT_UPDATED_EVENT, handleCacheChange);
+    window.addEventListener('storage', handleStorageChange);
     return () => {
       active = false;
+      window.removeEventListener(PUBLIC_CONTENT_UPDATED_EVENT, handleCacheChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, [cached, pageKeys]);
 
@@ -399,8 +497,24 @@ export function usePublicContent(pageKeys = []) {
       }
     }
     loadContent();
+
+    const handleCacheChange = () => {
+      const nextContent = readCurrentCachedContent();
+      setContent(nextContent);
+      setLoading(false);
+    };
+
+    const handleStorageChange = (event) => {
+      if (event.key && event.key !== PUBLIC_CONTENT_CACHE_KEY) return;
+      handleCacheChange();
+    };
+
+    window.addEventListener(PUBLIC_CONTENT_UPDATED_EVENT, handleCacheChange);
+    window.addEventListener('storage', handleStorageChange);
     return () => {
       active = false;
+      window.removeEventListener(PUBLIC_CONTENT_UPDATED_EVENT, handleCacheChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, [keys]);
 

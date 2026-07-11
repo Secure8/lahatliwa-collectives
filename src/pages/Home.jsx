@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
 import ProjectGrid from '../components/ProjectGrid';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
+import { createHeroBackgroundRender } from '../lib/heroBackground';
 import { supabase } from '../lib/supabaseClient';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
@@ -16,8 +17,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const { content } = usePublicContent(['home', 'services']);
   const homeBg = content.home.heroBackgroundImageUrl || content.defaultBackgroundImageUrl;
-  const overlayOpacity = content.home.heroBackgroundOverlayOpacity ?? content.defaultBackgroundOverlayOpacity ?? 0.55;
-  const bgStyle = content.home.heroBackgroundStyle || 'none';
+  const heroBackground = createHeroBackgroundRender({
+    imageUrl: homeBg,
+    position: content.home.heroBackgroundPosition || 'center',
+    overlayOpacity: content.home.heroBackgroundOverlayOpacity ?? content.defaultBackgroundOverlayOpacity ?? 0.55,
+    blur: content.home.heroBackgroundBlur || 14,
+    mode: content.home.heroBackgroundStyle || 'none',
+  });
   const showHeroPortrait = content.showHeroPortrait === true || content.show_hero_portrait === true;
   const hasPortrait = Boolean(content.heroImageUrl && showHeroPortrait);
   const servicePreview = (content.servicesPage?.groups || []).slice(0, 3);
@@ -54,20 +60,12 @@ export default function Home() {
       <section className="relative overflow-hidden">
         {homeBg && (
           <>
-            <div
-              className={`absolute inset-0 bg-cover bg-no-repeat ${bgStyle === 'ambient-blur' ? 'scale-105' : ''}`}
-              style={{
-                backgroundImage: `url(${homeBg})`,
-                backgroundPosition: content.home.heroBackgroundPosition || 'center',
-                filter: bgStyle === 'ambient-blur' ? `blur(${content.home.heroBackgroundBlur || 14}px)` : undefined,
-              }}
-              aria-hidden="true"
-            />
-            <div className="absolute inset-0 bg-zinc-950" style={{ opacity: overlayOpacity }} aria-hidden="true" />
+            <div className={`absolute inset-0 ${heroBackground.mode === 'ambient-blur' ? 'scale-105' : ''}`} style={heroBackground.style} aria-hidden="true" />
+            <div className="absolute inset-0 bg-zinc-950" style={{ opacity: heroBackground.overlayOpacity }} aria-hidden="true" />
           </>
         )}
         {!homeBg && <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(120,113,108,0.12),transparent_45%),linear-gradient(180deg,#101012,#09090b)]" aria-hidden="true" />}
-      <div className={`page-shell relative grid min-h-[calc(100vh-4rem)] items-center gap-10 py-16 ${hasPortrait ? (bgStyle === 'split-image' ? 'lg:grid-cols-[0.95fr_1.05fr]' : 'lg:grid-cols-[1.1fr_0.7fr]') : 'lg:grid-cols-1'} lg:gap-14 lg:py-20`}>
+      <div className={`page-shell relative grid min-h-[calc(100vh-4rem)] items-center gap-10 py-16 ${hasPortrait ? (heroBackground.mode === 'split-image' ? 'lg:grid-cols-[0.95fr_1.05fr]' : 'lg:grid-cols-[1.1fr_0.7fr]') : 'lg:grid-cols-1'} lg:gap-14 lg:py-20`}>
         <div className="max-w-2xl">
           <p className="text-xs font-medium uppercase tracking-[0.28em]" style={{ color: content.home.accentTextColor || content.accentColor }}>{content.home.heroEyebrow || content.hero.eyebrow}</p>
           <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{content.home.heroTitle}</h1>

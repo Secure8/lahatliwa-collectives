@@ -9,6 +9,7 @@ import AdminRouteGuard from './components/admin/AdminRouteGuard';
 import { PublicContentProvider, usePublicContent } from './lib/contentApi';
 import PublicScrollRestoration from './components/PublicScrollRestoration';
 import PublicErrorBoundary from './components/PublicErrorBoundary';
+import { publicRouteBoundaryKey } from './lib/navigationHistory';
 
 const Login = lazy(() => import('./pages/admin/Login'));
 const About = lazy(() => import('./pages/About'));
@@ -56,7 +57,7 @@ function PublicLayout() {
       <SiteDocumentTitle />
       <PublicScrollRestoration />
       <Navbar />
-      <main className="min-h-[60vh] overflow-x-hidden"><PublicErrorBoundary key={location.key}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
+      <main className="min-h-[60vh] overflow-x-hidden"><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
       <Footer />
     </PublicContentProvider>
   );

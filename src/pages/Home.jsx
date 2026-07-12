@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabaseClient';
 import { branchForKey, branchProjectsUrl, normalizeBranchQuery, PROJECT_BRANCHES, projectBranchKey, projectsForBranch } from '../lib/projectBranches';
 import { fairProjectExposure } from '../lib/fairProjectExposure';
 import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
-import { shouldPushFilter } from '../lib/navigationHistory';
+import { scrollPreservingNavigationState, shouldPushFilter } from '../lib/navigationHistory';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -56,7 +56,7 @@ export default function Home() {
         setProjects(rows);
         if (!rows.some((project) => projectBranchKey(project.category) === 'studio')) {
           const firstAvailable = PROJECT_BRANCHES.find((branch) => rows.some((project) => projectBranchKey(project.category) === branch.key));
-          if (firstAvailable && !searchParams.has('branch')) setSearchParams({ branch: firstAvailable.key }, { replace: true });
+          if (firstAvailable && !searchParams.has('branch')) setSearchParams({ branch: firstAvailable.key }, { replace: true, state: scrollPreservingNavigationState('home-projects', window.scrollY) });
         }
       } else setProjectError('Projects could not be loaded right now.');
       setCreatives(creativeRows || []);
@@ -69,7 +69,7 @@ export default function Home() {
     if (!shouldPushFilter(selectedBranch, branchKey)) return;
     const next = new URLSearchParams(searchParams);
     next.set('branch', branchKey);
-    setSearchParams(next);
+    setSearchParams(next, { state: scrollPreservingNavigationState('home-projects', window.scrollY) });
   }
 
   return (
@@ -105,7 +105,7 @@ export default function Home() {
       </div>
       </section>
 
-      <section className="page-shell major-border-top py-16" aria-labelledby="selected-work-heading">
+      <section id="selected-work" className="page-shell major-border-top scroll-mt-20 py-16" aria-labelledby="selected-work-heading">
         <div className="mb-8 max-w-2xl">
           <div>
             <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Selected work</p>
@@ -119,7 +119,7 @@ export default function Home() {
             return <button key={branch.key} type="button" role="tab" aria-selected={active} onClick={() => selectHomeBranch(branch.key)} className={`min-w-0 border-b px-2 py-4 text-left transition sm:px-4 ${active ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
           })}
         </div>
-        {loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}
+        <div className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
         <Link to={branchProjectsUrl(selectedBranch)} className="fine-link site-hover-accent mt-9 inline-flex items-center gap-2 text-sm text-zinc-300">View all {selectedBranchInfo.label} projects <ArrowRight size={16} /></Link>
       </section>
 

@@ -17,6 +17,7 @@
     "test:navigation-history": "node --test src/lib/navigationHistory.test.js",
     "test:scroll-restoration": "node --test src/lib/scrollRestoration.test.js",
     "test:public-images": "node --test src/lib/publicImages.test.js",
+    "test:query-navigation": "node --test src/lib/queryNavigation.test.js",
     "test:reconciliation": "node --test src/lib/storageReconciliation.test.js",
     "worker:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-storage-cleanup-worker.ps1",
     "worker:test": "powershell -ExecutionPolicy Bypass -File scripts/test-storage-cleanup-worker.ps1",

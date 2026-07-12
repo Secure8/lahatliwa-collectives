@@ -7,7 +7,7 @@ import SearchBar from '../components/SearchBar';
 import { usePublicContent } from '../lib/contentApi';
 import { normalizeBranchQuery, PROJECT_BRANCHES, projectsForBranch } from '../lib/projectBranches';
 import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
-import { shouldPushFilter } from '../lib/navigationHistory';
+import { scrollPreservingNavigationState, shouldPushFilter } from '../lib/navigationHistory';
 
 export default function Projects() {
   const [projects, setProjects] = useState(() => readCachedPublicProjectSummaries() || []);
@@ -34,7 +34,7 @@ export default function Projects() {
 
   useEffect(() => {
     if (!searchParams.get('branch') || selectedBranch) return;
-    const next = new URLSearchParams(searchParams); next.delete('branch'); setSearchParams(next, { replace: true });
+    const next = new URLSearchParams(searchParams); next.delete('branch'); setSearchParams(next, { replace: true, state: scrollPreservingNavigationState('project-results', window.scrollY) });
   }, [searchParams, selectedBranch, setSearchParams]);
 
   const visible = useMemo(() => {
@@ -49,13 +49,13 @@ export default function Projects() {
     if (!shouldPushFilter(selectedBranch, branch)) return;
     const next = new URLSearchParams(searchParams);
     if (branch) next.set('branch', branch); else next.delete('branch');
-    setSearchParams(next);
+    setSearchParams(next, { state: scrollPreservingNavigationState('project-results', window.scrollY) });
   }
 
   function updateSearch(value) {
     const next = new URLSearchParams(searchParams);
     if (value) next.set('search', value); else next.delete('search');
-    setSearchParams(next, { replace: true });
+    setSearchParams(next, { replace: true, state: scrollPreservingNavigationState('project-results', window.scrollY) });
   }
 
   return (
@@ -66,7 +66,7 @@ export default function Projects() {
         <p className="mt-5 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>{featuredOnly ? 'Browse every featured project from the portfolio, including the work highlighted on the homepage.' : 'Search through published portfolio pieces across photography, editing, design, websites, apps, and digital work.'}</p>
         {featuredOnly && <Link to="/projects" className="site-hover-accent mt-5 inline-flex text-sm text-zinc-300">View all projects</Link>}
       </div>
-      <div className="major-border-y mb-12 py-5">
+      <div id="project-results" className="major-border-y mb-12 scroll-mt-20 py-5">
         <SearchBar value={search} onChange={updateSearch} />
         <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3" aria-label="Filter projects by branch">
           <button type="button" onClick={() => selectBranch(null)} className={`border-b pb-1 text-sm transition ${!selectedBranch ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}>All Projects</button>

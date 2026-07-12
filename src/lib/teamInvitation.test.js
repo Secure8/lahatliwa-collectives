@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeInvitationEmail, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
+import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeInvitationEmail, orphanedAuthConflict, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
 
 test('invitation roles exclude privileged and unsupported roles', () => {
   ['admin', 'editor', 'creative', 'viewer'].forEach((role) => assert.equal(validateInvitationRole(role), true));
@@ -28,6 +28,13 @@ test('only an active exact Super Admin passes server authorization', () => {
 test('duplicate invited and active records have distinct safe conflicts', () => {
   assert.equal(invitationConflict({ status: 'invited' }).code, 'MEMBER_ALREADY_INVITED');
   assert.equal(invitationConflict({ status: 'active' }).code, 'MEMBER_ACTIVE');
+  assert.equal(invitationConflict({ status: 'disabled' }).code, 'MEMBER_INACTIVE');
+});
+
+test('orphaned Auth accounts require explicit review and are never silently recreated', () => {
+  assert.equal(orphanedAuthConflict({ invited_at: '2026-07-13', email_confirmed_at: null, last_sign_in_at: null }).code, 'ORPHANED_PENDING_AUTH');
+  assert.equal(orphanedAuthConflict({ invited_at: '2026-07-13', email_confirmed_at: '2026-07-13' }).code, 'AUTH_ACCOUNT_REVIEW_REQUIRED');
+  assert.equal(orphanedAuthConflict(null), null);
 });
 
 test('resend preserves role by accepting only an existing invited assignable record', () => {

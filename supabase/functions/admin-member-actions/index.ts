@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { assessDisposableIdentity, deleteIdentityLayers, IdentityDeletionError } from './memberDeletion.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +21,44 @@ const knownLifecycleMessages = new Map([
   ['You cannot downgrade or disable the last active Super Admin.', 'The last active Super Admin cannot be removed.'],
 ]);
 const incompleteDatabaseCodes = new Set(['PGRST202', '42P01', '42703', '42883']);
+
+const normalizeEmail = (value: unknown) => String(value || '').trim().toLowerCase();
+
+async function findAuthUserByEmail(admin: any, email: string) {
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const matches = data.users.filter((candidate: any) => normalizeEmail(candidate.email) === email);
+    if (matches.length > 1) throw new Error('Ambiguous Auth identity.');
+    if (matches.length === 1) return matches[0];
+    if (data.users.length < 1000) return null;
+  }
+  throw new Error('Auth lookup exceeded its safe page limit.');
+}
+
+async function collectDependencies(admin: any, target: any, authUserId: string | null) {
+  const checks: Array<{ label: string; request: any }> = [];
+  if (authUserId) {
+    checks.push(
+      { label: 'other Team records', request: admin.from('admin_users').select('id', { count: 'exact', head: true }).neq('id', target.id).or(`user_id.eq.${authUserId},invited_by.eq.${authUserId}`) },
+      { label: 'projects', request: admin.from('projects').select('id', { count: 'exact', head: true }).or(`created_by.eq.${authUserId},updated_by.eq.${authUserId},owner_user_id.eq.${authUserId}`) },
+      { label: 'project access', request: admin.from('project_access').select('id', { count: 'exact', head: true }).or(`user_id.eq.${authUserId},granted_by.eq.${authUserId}`) },
+      { label: 'contributor requests', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).or(`requester_user_id.eq.${authUserId},reviewed_by.eq.${authUserId}`) },
+      { label: 'upload cleanup history', request: admin.from('storage_cleanup_jobs').select('id', { count: 'exact', head: true }).eq('created_by', authUserId) },
+      { label: 'member lifecycle history', request: admin.from('admin_member_lifecycle_snapshots').select('admin_user_id', { count: 'exact', head: true }).eq('removed_by', authUserId) },
+    );
+  }
+  if (target.creative_member_id) {
+    checks.push(
+      { label: 'project credits', request: admin.from('project_creatives').select('project_id', { count: 'exact', head: true }).or(`creative_member_id.eq.${target.creative_member_id},creative_id.eq.${target.creative_member_id}`) },
+      { label: 'creative contributor activity', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).eq('creative_member_id', target.creative_member_id) },
+    );
+  }
+  const results = await Promise.all(checks.map(async ({ label, request }) => ({ label, ...(await request) })));
+  const failed = results.find((result) => result.error);
+  if (failed) throw failed.error;
+  return results.map(({ label, count }) => ({ label, count: Number(count || 0) }));
+}
 
 Deno.serve(async (req) => {
   console.log('[member-action] request received', {
@@ -88,7 +127,7 @@ Deno.serve(async (req) => {
     }
     if (action === 'permanent_delete' && body.confirmation !== 'DELETE') return fail('INVALID_CONFIRMATION', 'Type DELETE to confirm permanent deletion.', 400);
 
-    const { data: target, error: targetError } = await admin.from('admin_users').select('id, role, status').eq('id', targetMemberId).neq('status', 'deleted').maybeSingle();
+    const { data: target, error: targetError } = await admin.from('admin_users').select('id, user_id, email, role, status, creative_member_id').eq('id', targetMemberId).neq('status', 'deleted').maybeSingle();
     if (targetError) {
       console.error('[member-action] database/RPC error', { code: targetError.code || 'TARGET_LOOKUP' });
       return fail('DATABASE_ERROR', 'Member lifecycle database setup is incomplete.', 500);
@@ -107,6 +146,38 @@ Deno.serve(async (req) => {
       if ((count || 0) <= 1) {
         console.warn('[member-action] protected last Super Admin');
         return fail('LAST_SUPER_ADMIN', 'The last active Super Admin cannot be removed.', 409);
+      }
+    }
+
+    if (action === 'permanent_delete') {
+      let authUser = null;
+      try {
+        if (target.user_id) {
+          const { data: authData, error: authError } = await admin.auth.admin.getUserById(target.user_id);
+          if (authError) throw authError;
+          authUser = authData.user;
+        } else {
+          authUser = await findAuthUserByEmail(admin, normalizeEmail(target.email));
+        }
+        if (authUser && normalizeEmail(authUser.email) !== normalizeEmail(target.email)) throw new Error('Auth email does not match Team identity.');
+        const dependencies = await collectDependencies(admin, target, authUser?.id || null);
+        const assessment = assessDisposableIdentity(target, authUser, dependencies);
+        if (!assessment.allowed) return fail(assessment.code, assessment.message, 409);
+        const result = await deleteIdentityLayers({
+          memberId: target.id,
+          authUserId: authUser?.id || null,
+          deleteAuthUser: async (id: string) => { const { error } = await admin.auth.admin.deleteUser(id, false); if (error) throw error; },
+          deleteTeamRow: async (id: string) => { const { error } = await admin.from('admin_users').delete().eq('id', id); if (error) throw error; },
+          teamRowExists: async (id: string) => { const { data, error } = await admin.from('admin_users').select('id').eq('id', id).maybeSingle(); if (error) throw error; return Boolean(data); },
+        });
+        return reply({ success: true, result });
+      } catch (error) {
+        if (error instanceof IdentityDeletionError) {
+          console.error('[member-action] identity deletion failed', { action, targetMemberId, code: error.code, layer: error.layer });
+          return fail(error.code, error.message, 500);
+        }
+        console.error('[member-action] deletion safety check failed', { action, targetMemberId, code: (error as any)?.code || 'SAFETY_CHECK_FAILED' });
+        return fail('SAFETY_CHECK_FAILED', 'The member could not be safely checked for deletion. No deletion was performed.', 500);
       }
     }
 

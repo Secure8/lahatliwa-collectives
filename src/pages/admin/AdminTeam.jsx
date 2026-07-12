@@ -19,7 +19,7 @@ import { formatDate } from '../../lib/helpers';
 import { copyText } from '../../lib/clipboard';
 import { supabase } from '../../lib/supabaseClient';
 import { buildTeamMemberPayload, canAssignTeamRole, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
-import { filterVisibleTeamMembers, removeDeletedTeamMember } from '../../lib/teamVisibility';
+import { filterVisibleTeamMembers } from '../../lib/teamVisibility';
 
 const roleOptions = TEAM_ROLES;
 const teamFilters = ['all', 'active', 'disabled', 'invited'];
@@ -72,7 +72,6 @@ export default function AdminTeam() {
   const [confirmation, setConfirmation] = useState('');
   const mountedRef = useRef(true);
   const loadRequestRef = useRef(0);
-  const confirmedDeletedIdsRef = useRef(new Set());
 
   const isSuperAdmin = role === 'super_admin';
   const availableRoleOptions = isSuperAdmin ? roleOptions : [];
@@ -115,7 +114,7 @@ export default function AdminTeam() {
 
     if (!mountedRef.current || requestId !== loadRequestRef.current) return;
     if (teamError) setLoadError(teamError.message || 'Unable to load team members.');
-    else setTeam(filterVisibleTeamMembers(teamRows, confirmedDeletedIdsRef.current));
+    else setTeam(filterVisibleTeamMembers(teamRows));
     if (!teamError) setCreatives(creativeRows || []);
     if (showLoading) setLoading(false);
   }
@@ -371,14 +370,12 @@ export default function AdminTeam() {
           .order('name', { ascending: true });
         if (restoredCreatives) setCreatives(restoredCreatives);
       } else if (action === 'permanent_delete' && nextStatus === 'deleted') {
-        confirmedDeletedIdsRef.current.add(member.id);
-        setTeam((current) => removeDeletedTeamMember(current, member.id));
         await loadTeam({ showLoading: false });
       } else {
         await loadTeam({ showLoading: false });
       }
       setLifecycle(null);
-      setMessage(action === 'remove_access' ? 'Access removed and public traces hidden.' : action === 'restore_access' ? 'Access and previous public visibility restored.' : 'Member permanently deleted and website-visible traces removed.');
+      setMessage(action === 'remove_access' ? 'Member deactivated. Access was revoked while historical records were preserved.' : action === 'restore_access' ? 'Member reactivated and previous public visibility restored.' : 'Member deleted from both Auth and Team records.');
     } catch (lifecycleError) {
       setError(lifecycleError.message || 'The member action failed.');
     } finally {
@@ -463,9 +460,9 @@ export default function AdminTeam() {
                 const currentAccount = member.user_id === adminUser?.user_id;
                 const protectedSuperAdmin = isSuperAdminMember(member) && member.status === 'active' && activeSuperAdminCount <= 1;
                 const canManageMember = isSuperAdmin && !isSuperAdminMember(member);
-                const canDisable = isSuperAdmin && member.status !== 'disabled' && !currentAccount && !protectedSuperAdmin;
+                const canDisable = isSuperAdmin && member.status === 'active' && !currentAccount && !protectedSuperAdmin;
                 const canRestore = isSuperAdmin && member.status === 'disabled';
-                const canDelete = isSuperAdmin && !currentAccount && !protectedSuperAdmin;
+                const canDelete = isSuperAdmin && member.status === 'invited' && !member.user_id && !member.creative_member_id;
                 return (
                 <article key={member.id} className={`grid gap-4 border-b border-white/[0.06] px-4 py-4 last:border-b-0 sm:px-5 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-center xl:gap-6 ${updatingMemberId === member.id ? 'opacity-60' : ''}`}>
                   <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(8rem,0.65fr)_minmax(0,0.9fr)] md:items-center md:gap-6">
@@ -501,9 +498,9 @@ export default function AdminTeam() {
                       {member.status !== 'disabled' && creatives.find((creative) => creative.id === member.creative_member_id)?.is_published && <AdminActionButton to={`/creatives/${creatives.find((creative) => creative.id === member.creative_member_id).slug}`}><ExternalLink size={14} /> Public</AdminActionButton>}
                     </AdminActionGroup>
                     <AdminActionGroup className="w-full min-w-0 gap-2 border-t border-red-300/10 pt-3 xl:justify-start">
-                      {canDisable && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('remove_access', member)} variant="danger"><ShieldOff size={14} /> Remove Access</AdminActionButton>}
-                      {canRestore && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('restore_access', member)}><RotateCcw size={14} /> Restore Access</AdminActionButton>}
-                      {canDelete && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('permanent_delete', member)} variant="danger"><Trash2 size={14} /> Permanently Delete</AdminActionButton>}
+                      {canDisable && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('remove_access', member)} variant="danger"><ShieldOff size={14} /> Deactivate member</AdminActionButton>}
+                      {canRestore && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('restore_access', member)}><RotateCcw size={14} /> Reactivate member</AdminActionButton>}
+                      {canDelete && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('permanent_delete', member)} variant="danger"><Trash2 size={14} /> Delete member</AdminActionButton>}
                     </AdminActionGroup>
                   </div>
                 </article>
@@ -545,8 +542,8 @@ export default function AdminTeam() {
       </div>}
       {lifecycle && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="lifecycle-dialog-title">
         <AdminSurface as="form" onSubmit={runLifecycle} className="grid w-full max-w-lg gap-5 border-amber-200/25 bg-zinc-950/98 shadow-2xl">
-          <div className="flex items-start justify-between gap-4 border-b border-amber-200/15 pb-4"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">PIN-protected action</p><h2 id="lifecycle-dialog-title" className="mt-2 text-xl font-semibold text-white">{lifecycle.action === 'permanent_delete' ? 'Permanently Delete' : lifecycle.action === 'restore_access' ? 'Restore Access' : 'Remove Access'}</h2></div><button type="button" onClick={() => setLifecycle(null)} aria-label="Close lifecycle dialog" className="text-zinc-400 hover:text-white"><X size={20} /></button></div>
-          <p className="text-sm leading-6 text-zinc-300">{lifecycle.action === 'permanent_delete' ? "This removes the member's website-visible traces and cannot be easily undone." : lifecycle.action === 'restore_access' ? 'This restores access and visibility saved when access was removed.' : 'This temporarily blocks admin access and hides linked public profiles, projects, and credits. It can be restored.'}</p>
+          <div className="flex items-start justify-between gap-4 border-b border-amber-200/15 pb-4"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">PIN-protected action</p><h2 id="lifecycle-dialog-title" className="mt-2 text-xl font-semibold text-white">{lifecycle.action === 'permanent_delete' ? 'Delete member' : lifecycle.action === 'restore_access' ? 'Reactivate member' : 'Deactivate member'}</h2></div><button type="button" onClick={() => setLifecycle(null)} aria-label="Close lifecycle dialog" className="text-zinc-400 hover:text-white"><X size={20} /></button></div>
+          <p className="text-sm leading-6 text-zinc-300">{lifecycle.action === 'permanent_delete' ? 'This is allowed only for an untouched invitation with no account activity or references. Both Auth and Team records will be removed.' : lifecycle.action === 'restore_access' ? 'This restores access and visibility saved when the member was deactivated.' : 'This revokes application access while preserving profiles, credits, ownership, and history. It can be reversed.'}</p>
           {error && <AdminNotice>{error}</AdminNotice>}
           <AdminInput label="Super Admin PIN" type="password" required value={pin} onChange={setPin} />
           {lifecycle.action === 'permanent_delete' && <AdminInput label="Type DELETE to confirm" required value={confirmation} onChange={setConfirmation} />}

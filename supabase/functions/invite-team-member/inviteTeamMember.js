@@ -25,7 +25,16 @@ export function invitationConflict(record) {
   if (!record) return null;
   if (record.status === 'active') return { code: 'MEMBER_ACTIVE', message: 'This email already belongs to an active team member.' };
   if (record.status === 'invited') return { code: 'MEMBER_ALREADY_INVITED', message: 'This email has already been invited. Use Resend Invitation instead.' };
+  if (record.status === 'disabled') return { code: 'MEMBER_INACTIVE', message: 'This email belongs to an inactive member. Reactivate the existing member instead.' };
   return { code: 'MEMBER_EXISTS', message: 'A team record already exists for this email.' };
+}
+
+export function orphanedAuthConflict(authUser) {
+  if (!authUser) return null;
+  const untouchedPending = Boolean(authUser.invited_at && !authUser.email_confirmed_at && !authUser.confirmed_at && !authUser.last_sign_in_at);
+  return untouchedPending
+    ? { code: 'ORPHANED_PENDING_AUTH', message: 'A pending Auth account exists without a Team record. A Super Admin must review and repair or remove it before inviting again.' }
+    : { code: 'AUTH_ACCOUNT_REVIEW_REQUIRED', message: 'A used Auth account exists without Team membership. A Super Admin must review it before this email can be invited.' };
 }
 
 export function mapInvitationApiError(error) {

@@ -12,6 +12,7 @@
     "test:team-roles": "node --test src/lib/teamRoles.test.js",
     "test:team-invitations": "node --test src/lib/teamInvitation.test.js",
     "test:team-visibility": "node --test src/lib/teamVisibility.test.js",
+    "test:member-deletion": "node --test src/lib/memberDeletion.test.js",
     "test:project-branches": "node --test src/lib/projectBranches.test.js",
     "test:fair-project-exposure": "node --test src/lib/fairProjectExposure.test.js",
     "test:navigation-history": "node --test src/lib/navigationHistory.test.js",

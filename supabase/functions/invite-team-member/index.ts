@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeInvitationEmail, validateInvitationRole } from './inviteTeamMember.js';
+import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeInvitationEmail, orphanedAuthConflict, validateInvitationRole } from './inviteTeamMember.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -137,6 +137,10 @@ Deno.serve(async (req) => {
     }
     const conflict = invitationConflict(existing);
     if (conflict) return fail(conflict.code, conflict.message, 409, { memberId: existing.id, memberState: existing.status });
+
+    const existingAuthUser = await findAuthUserByEmail(admin, email);
+    const authConflict = orphanedAuthConflict(existingAuthUser);
+    if (authConflict) return fail(authConflict.code, authConflict.message, 409, { memberState: 'auth_only' });
 
     const payload = {
       email,

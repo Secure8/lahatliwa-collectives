@@ -63,10 +63,16 @@ export default function Login() {
   }, [isReset, isSetup, isUpdatePassword, loading]);
 
   useEffect(() => {
+    const callbackType = new URLSearchParams(window.location.search).get('type')
+      || new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type');
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setMode('updatePassword');
         setNotice('Password recovery verified. Create a new password below.');
+        setError('');
+      } else if (callbackType === 'invite' && ['INITIAL_SESSION', 'SIGNED_IN'].includes(event)) {
+        setMode('updatePassword');
+        setNotice('Invitation verified. Create your team account password below.');
         setError('');
       }
     });

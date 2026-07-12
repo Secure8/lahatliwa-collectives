@@ -1,4 +1,4 @@
-import { Copy, Edit, Eye, ExternalLink, Plus, RotateCcw, ShieldCheck, ShieldOff, Trash2, X } from 'lucide-react';
+import { Copy, Edit, Eye, ExternalLink, Mail, Plus, RotateCcw, ShieldCheck, ShieldOff, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -21,7 +21,6 @@ import { supabase } from '../../lib/supabaseClient';
 import { buildTeamMemberPayload, canAssignTeamRole, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
 
 const roleOptions = TEAM_ROLES;
-const statusOptions = ['active', 'invited'];
 const teamFilters = ['all', 'active', 'disabled', 'invited'];
 const emptyFilterCopy = {
   active: 'No active team members found.',
@@ -93,7 +92,7 @@ export default function AdminTeam() {
   const editingMember = team.find((member) => member.id === editingId);
   const editingCurrentAccount = editingMember?.user_id === adminUser?.user_id;
   const formRoleOptions = editingCurrentAccount ? [normalizedTeamRole(editingMember)] : availableRoleOptions;
-  const formStatusOptions = editingMember ? [editingMember.status] : statusOptions;
+  const formStatusOptions = editingMember ? [editingMember.status] : ['invited'];
 
   async function loadTeam({ showLoading = true } = {}) {
     const requestId = ++loadRequestRef.current;
@@ -187,6 +186,37 @@ export default function AdminTeam() {
     return isLastSuperAdmin && (nextRole !== 'super_admin' || nextStatus !== 'active');
   }
 
+  async function invokeInvitation(body) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session?.access_token) throw new Error('Your session has expired. Please sign in again.');
+
+    const { data, error: invokeError } = await supabase.functions.invoke('invite-team-member', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body,
+    });
+    if (!invokeError) {
+      if (data?.success === false) throw new Error(data.message || 'The invitation could not be completed.');
+      return data;
+    }
+
+    let specificMessage = '';
+    if (invokeError instanceof FunctionsHttpError) {
+      const response = invokeError.context;
+      try {
+        const payload = await response.clone().json();
+        specificMessage = payload?.message || payload?.error || '';
+      } catch {
+        try { specificMessage = await response.text(); } catch { specificMessage = ''; }
+      }
+    } else if (invokeError instanceof FunctionsFetchError) {
+      specificMessage = 'Could not reach the invitation service. Please try again.';
+    } else if (invokeError instanceof FunctionsRelayError) {
+      specificMessage = 'The invitation service is temporarily unavailable.';
+    }
+    throw new Error(specificMessage || invokeError.message || 'The invitation could not be completed.');
+  }
+
   async function save(event) {
     event.preventDefault();
     setSaving(true);
@@ -214,20 +244,30 @@ export default function AdminTeam() {
         throw new Error('Use the PIN-protected Remove Access or Restore Access action to change access status.');
       }
 
-      const payload = buildTeamMemberPayload(form, adminUser?.user_id);
+      if (!editingId) {
+        const invitation = await invokeInvitation({
+          action: 'invite',
+          email: form.email,
+          displayName: form.display_name,
+          role: form.role,
+          creativeMemberId: form.creative_member_id || null,
+        });
+        await loadTeam({ showLoading: false });
+        setActiveFilter('invited');
+        setMessage(invitation?.message || 'Team member added and invitation email sent.');
+        resetForm();
+        return;
+      }
 
-      const query = editingId
-        ? supabase.from('admin_users').update(payload).eq('id', editingId).select(teamRecordSelect).single()
-        : supabase.from('admin_users').insert(payload).select(teamRecordSelect).single();
-      const { data: savedMember, error: saveError } = await query;
+      const payload = buildTeamMemberPayload(form, adminUser?.user_id);
+      const { data: savedMember, error: saveError } = await supabase.from('admin_users').update(payload).eq('id', editingId).select(teamRecordSelect).single();
       if (saveError) throw saveError;
-      setTeam((current) => sortTeam(editingId
-        ? current.map((member) => member.id === editingId ? savedMember : member)
-        : [savedMember, ...current]));
+      setTeam((current) => sortTeam(current.map((member) => member.id === editingId ? savedMember : member)));
       setActiveFilter(savedMember.status || 'all');
-      setMessage(editingId ? 'Team member updated.' : 'Team invitation added.');
+      setMessage('Team member updated.');
       resetForm();
     } catch (saveError) {
+      if (!editingId) await loadTeam({ showLoading: false });
       const safeMessage = saveError.code === '23505'
         ? 'A team member with this email already exists.'
         : saveError.code === '23514'
@@ -236,6 +276,20 @@ export default function AdminTeam() {
       setError(safeMessage || 'Could not save this team member.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function resendInvitation(member) {
+    setUpdatingMemberId(member.id);
+    setError('');
+    setMessage('');
+    try {
+      const result = await invokeInvitation({ action: 'resend', memberId: member.id });
+      setMessage(result?.message || 'Invitation email sent again.');
+    } catch (resendError) {
+      setError(resendError.message || 'The invitation could not be resent.');
+    } finally {
+      setUpdatingMemberId('');
     }
   }
 
@@ -419,6 +473,7 @@ export default function AdminTeam() {
                   <div className="grid min-w-0 gap-3 border-t border-white/[0.1] pt-3 xl:w-full xl:self-stretch xl:border-l xl:border-t-0 xl:py-1 xl:pl-5">
                     <AdminActionGroup className="w-full min-w-0 gap-2 xl:justify-start">
                       {canManageMember && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>}
+                      {isSuperAdmin && member.status === 'invited' && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => resendInvitation(member)}><Mail size={14} /> {updatingMemberId === member.id ? 'Sending...' : 'Resend Invitation'}</AdminActionButton>}
                       {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton to={`/admin/creatives?preview=${member.creative_member_id}`}><Eye size={14} /> Preview</AdminActionButton>}
                       {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton onClick={() => copyMemberProfile(member)}><Copy size={14} /> Copy link</AdminActionButton>}
                       {member.status !== 'disabled' && creatives.find((creative) => creative.id === member.creative_member_id)?.is_published && <AdminActionButton to={`/creatives/${creatives.find((creative) => creative.id === member.creative_member_id).slug}`}><ExternalLink size={14} /> Public</AdminActionButton>}
@@ -459,7 +514,7 @@ export default function AdminTeam() {
               </select>
             </label>
           </div>
-          <p className="text-xs leading-5 text-zinc-500">Create an invited record by email. The person can use “Set up team account” on the admin login page to create their password; their role always comes from this team record.</p>
+          <p className="text-xs leading-5 text-zinc-500">An invitation email will be sent after the invited Team record is created. The person can still use “Set up team account” on the admin login page as a fallback; their role always comes from this Team record.</p>
           <div className="flex flex-wrap gap-3">
             <AdminButton disabled={saving} type="submit" variant="primary"><ShieldCheck size={17} /> {saving ? 'Saving...' : editingId ? 'Save Member' : 'Add Member'}</AdminButton>
             <AdminButton disabled={saving} onClick={resetForm} variant="ghost">Cancel</AdminButton>

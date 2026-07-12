@@ -6,9 +6,10 @@ import { PublicContentProvider } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 import { claimSignedInTeamRecord, disabledTeamMessage, notInvitedMessage } from '../lib/teamInvite';
 import { useAuthSession } from '../lib/authSession';
+import { dashboardRedirectAllowed } from '../lib/authCallback';
 
 export default function ProtectedRoute() {
-  const { status: authStatus, session } = useAuthSession();
+  const { status: authStatus, session, authFlow } = useAuthSession();
   const [authorization, setAuthorization] = useState({ status: 'idle', adminUser: null, message: '' });
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function ProtectedRoute() {
     return () => { active = false; };
   }, [authStatus, session?.user?.id]);
 
+  if (!dashboardRedirectAllowed(authFlow)) return <Navigate to="/set-password" replace />;
   if (authStatus === 'initializing' || (authStatus === 'authenticated' && authorization.status !== 'authorized' && !['unauthorized', 'error'].includes(authorization.status))) {
     return <div className="page-shell py-20"><LoadingState label="Checking admin access" /></div>;
   }

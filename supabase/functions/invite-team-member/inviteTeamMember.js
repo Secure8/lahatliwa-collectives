@@ -39,6 +39,14 @@ export function mapInvitationApiError(error) {
   return { code: 'EMAIL_DELIVERY_FAILED', message: 'The Team record is invited, but Supabase could not send the invitation email. Use Resend Invitation or the manual setup flow.' };
 }
 
+export function mapPasswordResetApiError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  if (message.includes('rate') || error?.status === 429) {
+    return { code: 'EMAIL_RATE_LIMITED', message: 'The password-reset email rate limit was reached. Try again later.' };
+  }
+  return { code: 'EMAIL_DELIVERY_FAILED', message: 'The password reset email could not be sent. Try again later.' };
+}
+
 export function isExistingAuthUserError(error) {
   const message = String(error?.message || '').toLowerCase();
   return error?.code === 'email_exists' || message.includes('already registered') || message.includes('already exists');
@@ -46,4 +54,18 @@ export function isExistingAuthUserError(error) {
 
 export function canResendInvitation(record) {
   return Boolean(record && record.status === 'invited' && validateInvitationRole(record.role));
+}
+
+export function canRecreatePendingInvitation(member, authUser, hasActivity) {
+  return Boolean(
+    canResendInvitation(member)
+    && !member.user_id
+    && authUser?.id
+    && normalizeInvitationEmail(authUser.email) === normalizeInvitationEmail(member.email)
+    && authUser.invited_at
+    && !authUser.email_confirmed_at
+    && !authUser.confirmed_at
+    && !authUser.last_sign_in_at
+    && !hasActivity
+  );
 }

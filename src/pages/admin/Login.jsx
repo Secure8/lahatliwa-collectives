@@ -7,6 +7,7 @@ import { teamPasswordRedirectUrl } from '../../lib/authRedirects';
 import { useAuthSession } from '../../lib/authSession';
 import PasswordField from '../../components/auth/PasswordField';
 import LoadingState from '../../components/LoadingState';
+import { dashboardRedirectAllowed } from '../../lib/authCallback';
 
 const modeCopy = {
   login: {
@@ -39,14 +40,14 @@ function safeAuthMessage(authError) {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { status: authStatus } = useAuthSession();
+  const { status: authStatus, authFlow } = useAuthSession();
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState(() => new URLSearchParams(window.location.search).get('password_updated') === '1' ? 'Password saved. Sign in with your new password.' : '');
 
   const currentCopy = modeCopy[mode] || modeCopy.login;
   const HeaderIcon = currentCopy.icon;
@@ -63,6 +64,7 @@ export default function Login() {
   }, [isSetup, loading]);
 
   if (authStatus === 'initializing') return <div className="page-shell py-20"><LoadingState label="Restoring session" /></div>;
+  if (!dashboardRedirectAllowed(authFlow)) return <Navigate to="/set-password" replace />;
   if (authStatus === 'authenticated' && !loading) return <Navigate to="/admin/dashboard" replace />;
 
   function switchMode(nextMode) {

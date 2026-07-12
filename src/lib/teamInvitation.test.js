@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, normalizeInvitationEmail, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
+import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeInvitationEmail, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
 
 test('invitation roles exclude privileged and unsupported roles', () => {
   ['admin', 'editor', 'creative', 'viewer'].forEach((role) => assert.equal(validateInvitationRole(role), true));
@@ -36,10 +36,25 @@ test('resend preserves role by accepting only an existing invited assignable rec
   assert.equal(canResendInvitation({ status: 'invited', role: 'super_admin' }), false);
 });
 
+test('only an untouched pending Auth invitation may be recreated', () => {
+  const member = { email: 'invite@example.com', role: 'creative', status: 'invited', user_id: null };
+  const authUser = { id: 'auth-id', email: member.email, invited_at: '2026-07-13', email_confirmed_at: null, confirmed_at: null, last_sign_in_at: null };
+  assert.equal(canRecreatePendingInvitation(member, authUser, false), true);
+  assert.equal(canRecreatePendingInvitation({ ...member, status: 'active' }, authUser, false), false);
+  assert.equal(canRecreatePendingInvitation({ ...member, user_id: 'auth-id' }, authUser, false), false);
+  assert.equal(canRecreatePendingInvitation(member, { ...authUser, last_sign_in_at: '2026-07-13' }, false), false);
+  assert.equal(canRecreatePendingInvitation(member, authUser, true), false);
+});
+
 test('Auth invitation errors map to safe public messages', () => {
   assert.equal(mapInvitationApiError({ status: 429, message: 'rate limit' }).code, 'EMAIL_RATE_LIMITED');
   assert.equal(mapInvitationApiError({ message: 'User already registered' }).code, 'AUTH_USER_EXISTS');
   assert.equal(mapInvitationApiError({ message: 'SMTP rejected request' }).code, 'EMAIL_DELIVERY_FAILED');
+});
+
+test('password reset delivery errors use recovery-specific messages', () => {
+  assert.equal(mapPasswordResetApiError({ status: 429, message: 'rate limit' }).message, 'The password-reset email rate limit was reached. Try again later.');
+  assert.equal(mapPasswordResetApiError({ message: 'SMTP unavailable' }).code, 'EMAIL_DELIVERY_FAILED');
 });
 
 test('resend can safely detect an existing Auth user for account recovery fallback', () => {

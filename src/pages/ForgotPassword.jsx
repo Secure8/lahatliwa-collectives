@@ -5,15 +5,17 @@ import LoadingState from '../components/LoadingState';
 import { teamPasswordRedirectUrl } from '../lib/authRedirects';
 import { useAuthSession } from '../lib/authSession';
 import { supabase } from '../lib/supabaseClient';
+import { dashboardRedirectAllowed } from '../lib/authCallback';
 
 export default function ForgotPassword() {
-  const { status } = useAuthSession();
+  const { status, authFlow } = useAuthSession();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
 
   if (status === 'initializing') return <div className="page-shell py-20"><LoadingState label="Restoring session" /></div>;
+  if (!dashboardRedirectAllowed(authFlow)) return <Navigate to="/set-password" replace />;
   if (status === 'authenticated') return <Navigate to="/admin/dashboard" replace />;
 
   async function submit(event) {

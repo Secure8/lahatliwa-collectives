@@ -296,6 +296,20 @@ export default function AdminTeam() {
     }
   }
 
+  async function sendPasswordReset(member) {
+    setUpdatingMemberId(member.id);
+    setError('');
+    setMessage('');
+    try {
+      const result = await invokeInvitation({ action: 'password_reset', memberId: member.id });
+      setMessage(result?.message || 'Password reset email sent.');
+    } catch (resetError) {
+      setError(resetError.message || 'The password reset email could not be sent.');
+    } finally {
+      setUpdatingMemberId('');
+    }
+  }
+
   function openLifecycle(action, member) {
     if (member.user_id === adminUser?.user_id) {
       setError('You cannot disable your own team access.');
@@ -480,7 +494,8 @@ export default function AdminTeam() {
                   <div className="grid min-w-0 gap-3 border-t border-white/[0.1] pt-3 xl:w-full xl:self-stretch xl:border-l xl:border-t-0 xl:py-1 xl:pl-5">
                     <AdminActionGroup className="w-full min-w-0 gap-2 xl:justify-start">
                       {canManageMember && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>}
-                      {isSuperAdmin && member.status === 'invited' && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => resendInvitation(member)}><Mail size={14} /> {updatingMemberId === member.id ? 'Sending...' : 'Resend Invitation'}</AdminActionButton>}
+                      {isSuperAdmin && member.status === 'invited' && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => resendInvitation(member)}><Mail size={14} /> {updatingMemberId === member.id ? 'Sending...' : 'Resend invitation'}</AdminActionButton>}
+                      {isSuperAdmin && member.status === 'active' && member.user_id && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => sendPasswordReset(member)}><Mail size={14} /> {updatingMemberId === member.id ? 'Sending...' : 'Send password reset'}</AdminActionButton>}
                       {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton to={`/admin/creatives?preview=${member.creative_member_id}`}><Eye size={14} /> Preview</AdminActionButton>}
                       {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton onClick={() => copyMemberProfile(member)}><Copy size={14} /> Copy link</AdminActionButton>}
                       {member.status !== 'disabled' && creatives.find((creative) => creative.id === member.creative_member_id)?.is_published && <AdminActionButton to={`/creatives/${creatives.find((creative) => creative.id === member.creative_member_id).slug}`}><ExternalLink size={14} /> Public</AdminActionButton>}

@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, KeyRound, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, KeyRound, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { claimSignedInTeamRecord } from '../lib/teamInvite';
@@ -6,21 +6,13 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuthSession } from '../lib/authSession';
 import PasswordField from '../components/auth/PasswordField';
 
-function callbackHasError() {
-  const search = new URLSearchParams(window.location.search);
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  return Boolean(search.get('error') || search.get('error_code') || hash.get('error') || hash.get('error_code'));
-}
-
 export default function SetPassword() {
   const navigate = useNavigate();
-  const { status: authStatus, session } = useAuthSession();
+  const { authFlow, session, finishAuthFlow } = useAuthSession();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [complete, setComplete] = useState(() => new URLSearchParams(window.location.search).get('complete') === '1');
-  const [invalidCallback] = useState(callbackHasError);
 
   async function savePassword(event) {
     event.preventDefault();
@@ -46,8 +38,9 @@ export default function SetPassword() {
         await supabase.auth.signOut();
         throw new Error(blockedReason);
       }
-      window.history.replaceState(window.history.state, '', '/set-password?complete=1');
-      setComplete(true);
+      await supabase.auth.signOut({ scope: 'local' });
+      finishAuthFlow();
+      navigate('/admin/login?password_updated=1', { replace: true });
     } catch (saveError) {
       const message = String(saveError.message || '');
       const normalized = message.toLowerCase();
@@ -81,16 +74,14 @@ export default function SetPassword() {
             </div>
           </div>
 
-          {authStatus === 'initializing' && !invalidCallback ? (
+          {authFlow.startsWith('processing-') ? (
             <p className="mt-6 border-t border-white/[0.07] pt-6 text-sm text-zinc-400" role="status">Verifying your secure link...</p>
-          ) : invalidCallback || authStatus !== 'authenticated' ? (
+          ) : authFlow === 'invalid' ? (
             <div className="mt-6 border-t border-white/[0.07] pt-6">
               <p className="text-sm leading-6 text-red-100">{error || 'This password link is invalid or has expired. Request a new invitation or password reset link.'}</p>
               <div className="mt-5 flex flex-wrap gap-5"><Link to="/forgot-password" className="inline-flex border-b border-amber-200/40 pb-1 text-sm text-amber-100">Request a new reset link</Link><Link to="/admin/login" className="inline-flex border-b border-white/[0.12] pb-1 text-sm text-zinc-300">Return to Admin Login</Link></div>
             </div>
-          ) : complete ? (
-            <div className="mt-6 border-t border-white/[0.07] pt-6"><p className="flex gap-2 text-sm leading-6 text-emerald-100" role="status"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /> Your password was saved and your team account is ready.</p><button type="button" onClick={() => navigate('/admin/dashboard', { replace: true })} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-amber-300 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-200"><ShieldCheck size={17} /> Continue to dashboard</button></div>
-          ) : (
+          ) : authFlow === 'setting-password' ? (
             <form onSubmit={savePassword} className="mt-6">
               {error && <div className="mb-5 rounded-md bg-red-300/10 p-3 text-sm leading-6 text-red-100 ring-1 ring-red-300/20" role="alert">{error}</div>}
               <PasswordField label="New password" value={password} onChange={setPassword} minLength={8} autoComplete="new-password" disabled={saving} />
@@ -99,7 +90,7 @@ export default function SetPassword() {
                 <ShieldCheck size={17} /> {saving ? 'Saving password...' : 'Save password'}
               </button>
             </form>
-          )}
+          ) : <p className="mt-6 border-t border-white/[0.07] pt-6 text-sm text-zinc-400" role="status">Completing authentication...</p>}
         </div>
       </section>
     </main>

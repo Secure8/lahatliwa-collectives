@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { TEAM_PASSWORD_PATH, teamPasswordRedirectUrl } from './authRedirects.js';
+import { dashboardRedirectAllowed, initialAuthFlow, readAuthCallback } from './authCallback.js';
 
 const root = resolve(import.meta.dirname, '../..');
 
@@ -46,4 +47,38 @@ test('authentication password fields use the shared accessible reveal control', 
   assert.match(passwordField, /aria-label=/);
   assert.match(login, /PasswordField/);
   assert.match(setPassword, /PasswordField/);
+});
+
+test('invitation and recovery callbacks take precedence over an existing dashboard session', () => {
+  const invitation = readAuthCallback({ pathname: '/set-password', search: '?code=invite-code&type=invite', hash: '' });
+  const recovery = readAuthCallback({ pathname: '/set-password', search: '?token_hash=recovery-token&type=recovery', hash: '' });
+  assert.equal(initialAuthFlow(invitation), 'processing-invite');
+  assert.equal(initialAuthFlow(recovery), 'processing-recovery');
+  assert.equal(dashboardRedirectAllowed(initialAuthFlow(invitation)), false);
+  assert.equal(dashboardRedirectAllowed(initialAuthFlow(recovery)), false);
+  assert.equal(dashboardRedirectAllowed('setting-password'), false);
+  assert.equal(dashboardRedirectAllowed('none'), true);
+});
+
+test('expired callbacks are invalid and cannot use a restored session', () => {
+  const expired = readAuthCallback({ pathname: '/set-password', search: '?error=access_denied&error_code=otp_expired', hash: '' });
+  assert.equal(initialAuthFlow(expired), 'invalid');
+  assert.equal(dashboardRedirectAllowed(initialAuthFlow(expired)), false);
+});
+
+test('resend invitation never uses the recovery API and activated reset does', () => {
+  const source = readFileSync(resolve(root, 'supabase/functions/invite-team-member/index.ts'), 'utf8');
+  const resendBlock = source.slice(source.indexOf("if (action === 'resend')"), source.indexOf('const email = normalizeInvitationEmail(body.email)'));
+  const resetBlock = source.slice(source.indexOf("if (action === 'password_reset')"), source.indexOf("if (action === 'resend')"));
+  assert.doesNotMatch(resendBlock, /resetPasswordForEmail/);
+  assert.match(resendBlock, /inviteUserByEmail/);
+  assert.match(resetBlock, /resetPasswordForEmail/);
+  assert.doesNotMatch(resetBlock, /deleteUser/);
+});
+
+test('password completion signs out and replaces the callback with Login', () => {
+  const source = readFileSync(resolve(root, 'src/pages/SetPassword.jsx'), 'utf8');
+  assert.match(source, /signOut\(\{ scope: 'local' \}\)/);
+  assert.match(source, /navigate\('\/admin\/login\?password_updated=1', \{ replace: true \}\)/);
+  assert.doesNotMatch(source, /navigate\('\/admin\/dashboard/);
 });

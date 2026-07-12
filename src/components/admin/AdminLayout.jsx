@@ -73,7 +73,7 @@ export default function AdminLayout({ children }) {
 
   async function logout() {
     await supabase.auth.signOut();
-    navigate('/admin/login');
+    navigate('/admin/login', { replace: true });
   }
 
   return (

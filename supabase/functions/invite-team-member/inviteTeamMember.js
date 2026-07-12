@@ -1,5 +1,12 @@
 export const ASSIGNABLE_TEAM_ROLES = ['admin', 'editor', 'creative', 'viewer'];
 
+export function invitationRedirectUrl(siteUrl) {
+  const url = new URL('/set-password', String(siteUrl || ''));
+  const localHttp = url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname);
+  if (url.protocol !== 'https:' && !localHttp) throw new Error('PUBLIC_SITE_URL must use HTTPS.');
+  return url.toString();
+}
+
 export function normalizeInvitationEmail(value) {
   const email = String(value || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return null;

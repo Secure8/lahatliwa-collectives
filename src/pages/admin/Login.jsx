@@ -1,8 +1,12 @@
-import { ArrowLeft, CheckCircle2, KeyRound, Lock, Mail, ShieldCheck, UserPlus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, CheckCircle2, Lock, ShieldCheck, UserPlus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { claimSignedInTeamRecord } from '../../lib/teamInvite';
+import { teamPasswordRedirectUrl } from '../../lib/authRedirects';
+import { useAuthSession } from '../../lib/authSession';
+import PasswordField from '../../components/auth/PasswordField';
+import LoadingState from '../../components/LoadingState';
 
 const modeCopy = {
   login: {
@@ -15,24 +19,27 @@ const modeCopy = {
     title: 'Set up team account',
     description: 'Create a password only if your email was invited by the team.',
   },
-  reset: {
-    icon: Mail,
-    title: 'Reset password',
-    description: 'Send a secure reset link to your team email.',
-  },
-  updatePassword: {
-    icon: KeyRound,
-    title: 'Create new password',
-    description: 'Enter a new password for your Lahat Liwa team account.',
-  },
 };
 
 function normalizeEmail(value) {
   return value.trim().toLowerCase();
 }
 
+function safeAuthMessage(authError) {
+  const original = String(authError?.message || '');
+  const message = original.toLowerCase();
+  if (original === 'This email has not been invited to the Lahat Liwa team.' || original === 'Your team access has been disabled.') return original;
+  if (message.includes('invalid login credentials')) return 'The email or password is incorrect.';
+  if (message.includes('email not confirmed')) return 'Confirm your email before signing in.';
+  if (message.includes('already registered') || message.includes('already exists')) return 'An account already exists for this email. Sign in or reset its password.';
+  if (message.includes('rate') || authError?.status === 429) return 'Too many authentication requests were made. Please wait before trying again.';
+  if (message.includes('at least') || message.includes('passwords do not match')) return original;
+  return 'This request could not be completed right now. Check your connection and try again.';
+}
+
 export default function Login() {
   const navigate = useNavigate();
+  const { status: authStatus } = useAuthSession();
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,41 +51,19 @@ export default function Login() {
   const currentCopy = modeCopy[mode] || modeCopy.login;
   const HeaderIcon = currentCopy.icon;
   const isSetup = mode === 'setup';
-  const isReset = mode === 'reset';
-  const isUpdatePassword = mode === 'updatePassword';
   const passwordLabel = isSetup ? 'Create password' : 'Password';
-  const canShowPassword = !isReset;
 
   const submitLabel = useMemo(() => {
     if (loading) {
       if (isSetup) return 'Setting up...';
-      if (isReset) return 'Sending reset link...';
-      if (isUpdatePassword) return 'Saving password...';
       return 'Logging in...';
     }
     if (isSetup) return 'Create password';
-    if (isReset) return 'Send reset link';
-    if (isUpdatePassword) return 'Save new password';
     return 'Login';
-  }, [isReset, isSetup, isUpdatePassword, loading]);
+  }, [isSetup, loading]);
 
-  useEffect(() => {
-    const callbackType = new URLSearchParams(window.location.search).get('type')
-      || new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type');
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setMode('updatePassword');
-        setNotice('Password recovery verified. Create a new password below.');
-        setError('');
-      } else if (callbackType === 'invite' && ['INITIAL_SESSION', 'SIGNED_IN'].includes(event)) {
-        setMode('updatePassword');
-        setNotice('Invitation verified. Create your team account password below.');
-        setError('');
-      }
-    });
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
+  if (authStatus === 'initializing') return <div className="page-shell py-20"><LoadingState label="Restoring session" /></div>;
+  if (authStatus === 'authenticated' && !loading) return <Navigate to="/admin/dashboard" replace />;
 
   function switchMode(nextMode) {
     setMode(nextMode);
@@ -104,7 +89,7 @@ export default function Login() {
       throw new Error(blockedReason);
     }
 
-    navigate('/admin/dashboard');
+    navigate('/admin/dashboard', { replace: true });
   }
 
   async function handleSetup() {
@@ -121,7 +106,7 @@ export default function Login() {
       email: normalizedEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/admin/login`,
+        emailRedirectTo: teamPasswordRedirectUrl(window.location.origin),
       },
     });
 
@@ -134,7 +119,7 @@ export default function Login() {
         await supabase.auth.signOut();
         throw new Error(blockedReason);
       }
-      navigate('/admin/dashboard');
+      navigate('/admin/dashboard', { replace: true });
       return;
     }
 
@@ -144,50 +129,18 @@ export default function Login() {
     setMode('login');
   }
 
-  async function handleReset() {
-    const normalizedEmail = normalizeEmail(email);
-
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${window.location.origin}/admin/login`,
-    });
-
-    if (resetError) throw resetError;
-    setNotice('Password reset link sent. Check your email for the secure reset link.');
-  }
-
-  async function handleUpdatePassword() {
-    if (password.length < 8) {
-      throw new Error('Use at least 8 characters for the password.');
-    }
-    if (password !== confirmPassword) {
-      throw new Error('Passwords do not match.');
-    }
-
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    if (updateError) throw updateError;
-    const { data: sessionData } = await supabase.auth.getSession();
-    const { blockedReason, error: claimError } = await claimSignedInTeamRecord(sessionData.session?.user);
-    if (claimError) throw claimError;
-    if (blockedReason) {
-      await supabase.auth.signOut();
-      throw new Error(blockedReason);
-    }
-    navigate('/admin/dashboard');
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError('');
     setNotice('');
 
     try {
       if (isSetup) await handleSetup();
-      else if (isReset) await handleReset();
-      else if (isUpdatePassword) await handleUpdatePassword();
       else await handleLogin();
     } catch (submitError) {
-      setError(submitError.message || 'This request could not be completed right now.');
+      setError(safeAuthMessage(submitError));
     } finally {
       setLoading(false);
     }
@@ -219,8 +172,7 @@ export default function Login() {
           )}
           {error && <div className="mt-5 rounded-md bg-red-300/10 p-3 text-sm leading-6 text-red-100 ring-1 ring-red-300/20">{error}</div>}
 
-          {!isUpdatePassword && (
-            <label className="mt-6 grid gap-2 text-sm text-zinc-300">
+          <label className="mt-6 grid gap-2 text-sm text-zinc-300">
               Email
               <input
                 className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20"
@@ -229,39 +181,13 @@ export default function Login() {
                 onChange={(event) => setEmail(event.target.value)}
                 required
                 autoComplete="email"
+                disabled={loading}
               />
-            </label>
-          )}
+          </label>
 
-          {canShowPassword && (
-            <label className="mt-4 grid gap-2 text-sm text-zinc-300">
-              {passwordLabel}
-              <input
-                className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                minLength={isSetup || isUpdatePassword ? 8 : undefined}
-                autoComplete={isSetup || isUpdatePassword ? 'new-password' : 'current-password'}
-              />
-            </label>
-          )}
+          <div className="mt-4"><PasswordField label={passwordLabel} value={password} onChange={setPassword} minLength={isSetup ? 8 : undefined} autoComplete={isSetup ? 'new-password' : 'current-password'} disabled={loading} /></div>
 
-          {(isSetup || isUpdatePassword) && (
-            <label className="mt-4 grid gap-2 text-sm text-zinc-300">
-              Confirm password
-              <input
-                className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20"
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                required
-                minLength={8}
-                autoComplete="new-password"
-              />
-            </label>
-          )}
+          {isSetup && <div className="mt-4"><PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} minLength={8} autoComplete="new-password" disabled={loading} /></div>}
 
           {isSetup && (
             <p className="mt-4 text-xs leading-5 text-zinc-500">
@@ -284,16 +210,10 @@ export default function Login() {
                 <button type="button" onClick={() => switchMode('setup')} className="text-left text-zinc-300 transition hover:text-amber-100">
                   Set up team account
                 </button>
-                <button type="button" onClick={() => switchMode('reset')} className="text-left text-zinc-500 transition hover:text-amber-100">
-                  Forgot password?
-                </button>
+                <Link to="/forgot-password" className="text-left text-zinc-500 transition hover:text-amber-100">Forgot password?</Link>
               </>
             )}
-            {mode === 'setup' && (
-              <button type="button" onClick={() => switchMode('reset')} className="text-left text-zinc-500 transition hover:text-amber-100">
-                Already set up but forgot your password?
-              </button>
-            )}
+            {mode === 'setup' && <Link to="/forgot-password" className="text-left text-zinc-500 transition hover:text-amber-100">Already set up but forgot your password?</Link>}
           </div>
         </form>
       </section>

@@ -1,8 +1,7 @@
 import { Facebook, Github, Globe, Instagram, Linkedin, Lock, Mail, Music2, Youtube } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicContent } from '../lib/contentApi';
-import { supabase } from '../lib/supabaseClient';
+import { useAuthSession } from '../lib/authSession';
 
 const socialIconMap = {
   Facebook,
@@ -15,24 +14,9 @@ const socialIconMap = {
 
 export default function Footer() {
   const { content } = usePublicContent([]);
-  const [hasSession, setHasSession] = useState(false);
+  const { status: authStatus } = useAuthSession();
+  const hasSession = authStatus === 'authenticated';
   const socialLinks = content.socialLinks || [];
-
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) setHasSession(Boolean(data.session));
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setHasSession(Boolean(session));
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
 
   return (
     <footer className="major-border-top mt-28">

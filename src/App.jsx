@@ -14,6 +14,8 @@ import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadProject
 import { applyPublicMetadata } from './lib/publicMetadata';
 
 const Login = lazy(() => import('./pages/admin/Login'));
+const SetPassword = lazy(() => import('./pages/SetPassword'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const About = lazy(loadAbout);
 const Projects = lazy(loadProjects);
 const ProjectDetails = lazy(loadProjectDetails);
@@ -129,6 +131,8 @@ export default function App() {
         <Route path="/start-a-project" element={<StartProject />} />
         <Route path="/contact" element={<Contact />} />
       </Route>
+      <Route path="/set-password" element={<AdminSuspense><SetPassword /></AdminSuspense>} />
+      <Route path="/forgot-password" element={<AdminSuspense><ForgotPassword /></AdminSuspense>} />
       <Route path="/admin/login" element={<AdminSuspense><Login /></AdminSuspense>} />
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route element={<ProtectedRoute />}>

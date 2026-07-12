@@ -19,6 +19,7 @@
     "test:public-images": "node --test src/lib/publicImages.test.js",
     "test:query-navigation": "node --test src/lib/queryNavigation.test.js",
     "test:production-audit": "node --test src/lib/productionAudit.test.js",
+    "test:auth-redirects": "node --test src/lib/authRedirects.test.js",
     "test:reconciliation": "node --test src/lib/storageReconciliation.test.js",
     "worker:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-storage-cleanup-worker.ps1",
     "worker:test": "powershell -ExecutionPolicy Bypass -File scripts/test-storage-cleanup-worker.ps1",

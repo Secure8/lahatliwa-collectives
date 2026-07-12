@@ -1,0 +1,50 @@
+import { ArrowLeft, CheckCircle2, Mail, Send } from 'lucide-react';
+import { useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import LoadingState from '../components/LoadingState';
+import { teamPasswordRedirectUrl } from '../lib/authRedirects';
+import { useAuthSession } from '../lib/authSession';
+import { supabase } from '../lib/supabaseClient';
+
+export default function ForgotPassword() {
+  const { status } = useAuthSession();
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+
+  if (status === 'initializing') return <div className="page-shell py-20"><LoadingState label="Restoring session" /></div>;
+  if (status === 'authenticated') return <Navigate to="/admin/dashboard" replace />;
+
+  async function submit(event) {
+    event.preventDefault();
+    if (sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo: teamPasswordRedirectUrl(window.location.origin),
+      });
+      if (resetError) throw resetError;
+      setSent(true);
+    } catch (submitError) {
+      setError(submitError.status === 429
+        ? 'Too many email requests were made. Please wait before trying again.'
+        : 'The reset email could not be sent. Check your connection and try again.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <main className="grid min-h-screen place-items-center bg-zinc-950 px-4 py-12 text-white">
+      <section className="w-full max-w-md">
+        <Link to="/admin/login" className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-100"><ArrowLeft size={16} /> Back to login</Link>
+        <div className="mt-5 border-y border-white/[0.1] py-7">
+          <div className="flex items-start gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center bg-amber-300 text-zinc-950"><Mail size={20} /></span><div><h1 className="text-2xl font-semibold">Reset password</h1><p className="mt-1 text-sm leading-6 text-zinc-400">We will send a secure password link to your team email.</p></div></div>
+          {sent ? <div className="mt-6 border-t border-white/[0.07] pt-6"><p className="flex gap-2 text-sm leading-6 text-emerald-100" role="status"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /> Reset link sent. Check your inbox and use the newest email.</p><Link to="/admin/login" className="mt-5 inline-flex border-b border-amber-200/40 pb-1 text-sm text-amber-100">Return to login</Link></div> : <form onSubmit={submit} className="mt-6"><label className="grid gap-2 text-sm text-zinc-300">Email<input className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" disabled={sending} /></label>{error && <div className="mt-5 rounded-md bg-red-300/10 p-3 text-sm leading-6 text-red-100 ring-1 ring-red-300/20" role="alert">{error}</div>}<button disabled={sending} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-amber-300 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"><Send size={17} /> {sending ? 'Sending reset link...' : 'Send reset link'}</button></form>}
+        </div>
+      </section>
+    </main>
+  );
+}

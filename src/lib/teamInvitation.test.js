@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canResendInvitation, invitationConflict, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, normalizeInvitationEmail, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
+import { canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, normalizeInvitationEmail, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
 
 test('invitation roles exclude privileged and unsupported roles', () => {
   ['admin', 'editor', 'creative', 'viewer'].forEach((role) => assert.equal(validateInvitationRole(role), true));
@@ -10,6 +10,12 @@ test('invitation roles exclude privileged and unsupported roles', () => {
 test('email normalization is strict and lowercase', () => {
   assert.equal(normalizeInvitationEmail(' New.Member@Example.COM '), 'new.member@example.com');
   assert.equal(normalizeInvitationEmail('not-an-email'), null);
+});
+
+test('invitation redirect uses the configured HTTPS site origin', () => {
+  assert.equal(invitationRedirectUrl('https://www.lahatliwa.studio/admin/login'), 'https://www.lahatliwa.studio/set-password');
+  assert.equal(invitationRedirectUrl('http://localhost:5173'), 'http://localhost:5173/set-password');
+  assert.throws(() => invitationRedirectUrl('http://example.com'), /HTTPS/);
 });
 
 test('only an active exact Super Admin passes server authorization', () => {

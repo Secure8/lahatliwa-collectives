@@ -1,12 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { canResendInvitation, invitationConflict, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, normalizeInvitationEmail, validateInvitationRole } from './inviteTeamMember.js';
+import { canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, normalizeInvitationEmail, validateInvitationRole } from './inviteTeamMember.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Content-Type': 'application/json',
 };
-const redirectTo = 'https://www.lahatliwa.studio/admin/login';
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
 const fail = (code: string, message: string, status: number, extra: Record<string, unknown> = {}) => reply({ success: false, code, message, ...extra }, status);
 
@@ -20,7 +19,14 @@ Deno.serve(async (req) => {
   const url = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !anonKey || !serviceKey) return fail('SERVER_CONFIGURATION', 'The invitation service is not configured.', 500);
+  const siteUrl = Deno.env.get('PUBLIC_SITE_URL');
+  if (!url || !anonKey || !serviceKey || !siteUrl) return fail('SERVER_CONFIGURATION', 'The invitation service is not configured.', 500);
+  let redirectTo = '';
+  try {
+    redirectTo = invitationRedirectUrl(siteUrl);
+  } catch {
+    return fail('SERVER_CONFIGURATION', 'The invitation service redirect is not configured.', 500);
+  }
 
   try {
     const callerClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } });

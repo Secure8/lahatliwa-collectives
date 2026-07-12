@@ -1,6 +1,6 @@
 import { ArrowRight, Camera, Circle, Code2, Sparkles, Wrench } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import CreativeCard from '../components/CreativeCard';
 import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
@@ -8,15 +8,17 @@ import ProjectGrid from '../components/ProjectGrid';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
 import { createHeroBackgroundRender } from '../lib/heroBackground';
 import { supabase } from '../lib/supabaseClient';
-import { branchForKey, branchProjectsUrl, PROJECT_BRANCHES, projectBranchKey, projectsForBranch } from '../lib/projectBranches';
+import { branchForKey, branchProjectsUrl, normalizeBranchQuery, PROJECT_BRANCHES, projectBranchKey, projectsForBranch } from '../lib/projectBranches';
 import { fairProjectExposure } from '../lib/fairProjectExposure';
-import { fetchPublicProjectSummaries } from '../lib/publicProjectData';
+import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
+import { shouldPushFilter } from '../lib/navigationHistory';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
 export default function Home() {
-  const [projects, setProjects] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState('studio');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [projects, setProjects] = useState(() => readCachedPublicProjectSummaries() || []);
+  const selectedBranch = normalizeBranchQuery(searchParams.get('branch'), 'studio');
   const [projectError, setProjectError] = useState('');
   const [creatives, setCreatives] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export default function Home() {
         setProjects(rows);
         if (!rows.some((project) => projectBranchKey(project.category) === 'studio')) {
           const firstAvailable = PROJECT_BRANCHES.find((branch) => rows.some((project) => projectBranchKey(project.category) === branch.key));
-          if (firstAvailable) setSelectedBranch(firstAvailable.key);
+          if (firstAvailable && !searchParams.has('branch')) setSearchParams({ branch: firstAvailable.key }, { replace: true });
         }
       } else setProjectError('Projects could not be loaded right now.');
       setCreatives(creativeRows || []);
@@ -63,12 +65,19 @@ export default function Home() {
     loadFeatured();
   }, []);
 
+  function selectHomeBranch(branchKey) {
+    if (!shouldPushFilter(selectedBranch, branchKey)) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('branch', branchKey);
+    setSearchParams(next);
+  }
+
   return (
     <div>
       <section className="relative overflow-hidden">
         {homeBg && (
           <>
-            <div className={`absolute inset-0 ${heroBackground.mode === 'ambient-blur' ? 'scale-105' : ''}`} style={heroBackground.style} aria-hidden="true" />
+            <div className={`hero-background-visual absolute inset-0 ${heroBackground.mode === 'ambient-blur' ? 'lg:scale-105' : ''}`} style={{ ...heroBackground.style, filter: undefined, transform: undefined, '--hero-background-blur': heroBackground.mode === 'ambient-blur' ? `blur(${content.home.heroBackgroundBlur || 14}px)` : 'none' }} aria-hidden="true" />
             <div className="absolute inset-0 bg-zinc-950" style={{ opacity: heroBackground.overlayOpacity }} aria-hidden="true" />
           </>
         )}
@@ -90,7 +99,7 @@ export default function Home() {
         </div>
         {hasPortrait && (
           <div className="relative mx-auto w-full max-w-sm overflow-hidden bg-zinc-900/70 shadow-[0_24px_60px_rgba(0,0,0,0.2)] lg:ml-auto">
-            <img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchpriority="high" width="800" height="1000" className="aspect-[4/5] w-full object-cover" />
+            <img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchPriority="high" sizes="(max-width: 1023px) min(100vw - 2rem, 384px), 384px" width="800" height="1000" className="aspect-[4/5] w-full object-cover" />
           </div>
         )}
       </div>
@@ -107,7 +116,7 @@ export default function Home() {
         <div className="mb-10 grid grid-cols-2 border-y border-white/[0.08] sm:grid-cols-4" role="tablist" aria-label="Project branches">
           {PROJECT_BRANCHES.map((branch) => {
             const active = selectedBranch === branch.key;
-            return <button key={branch.key} type="button" role="tab" aria-selected={active} onClick={() => setSelectedBranch(branch.key)} className={`min-w-0 border-b px-2 py-4 text-left transition sm:px-4 ${active ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
+            return <button key={branch.key} type="button" role="tab" aria-selected={active} onClick={() => selectHomeBranch(branch.key)} className={`min-w-0 border-b px-2 py-4 text-left transition sm:px-4 ${active ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
           })}
         </div>
         {loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}

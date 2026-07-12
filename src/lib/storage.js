@@ -1,6 +1,8 @@
 import { supabase } from './supabaseClient';
 import { optimizeImageForUpload } from './imageCompression';
 import { validateUploadFile } from './uploadLimits';
+import { normalizePublicImagePath } from './publicImages';
+export { normalizePublicImagePath } from './publicImages';
 
 const BUCKET = 'project-media';
 const UPLOAD_OPTIONS = { upsert: false, cacheControl: '31536000' };
@@ -43,11 +45,13 @@ export function isPdfFile(path = '') {
 }
 
 export function getPublicImageUrl(path) {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const normalized = normalizePublicImagePath(path);
+  if (!normalized) return '';
+  if (/^(https?:)?\/\//i.test(normalized) || /^(data|blob):/i.test(normalized) || normalized.startsWith('/')) return normalized;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(normalized);
   return data.publicUrl;
 }
+
 
 export async function uploadCoverImage(file, { onStatus } = {}) {
   if (!file) return '';

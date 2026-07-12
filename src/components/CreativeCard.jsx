@@ -1,15 +1,22 @@
 import { ArrowUpRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { getPublicImageUrl } from '../lib/storage';
+import { publicLocationState } from '../lib/navigationHistory';
+import { useState } from 'react';
 
 export default function CreativeCard({ creative }) {
+  const location = useLocation();
+  const linkState = publicLocationState(location, `creative-${creative.id}`);
+  const profileImage = getPublicImageUrl(creative.profile_image_url);
+  const [imageFailed, setImageFailed] = useState(false);
   const allSkills = Array.isArray(creative.skills) ? creative.skills : [];
   const skills = allSkills.slice(0, 4);
 
   return (
-    <article className="group major-border-top flex h-full flex-col pt-5">
-      <Link to={`/creatives/${creative.slug}`} className="block">
-        {creative.profile_image_url ? (
-          <img src={creative.profile_image_url} alt={creative.name} loading="lazy" decoding="async" width="800" height="800" className="mx-auto aspect-square w-full max-w-48 rounded-full bg-zinc-900 object-cover opacity-90 transition duration-700 group-hover:scale-[1.01] group-hover:opacity-100" />
+    <article id={`creative-${creative.id}`} className="group major-border-top flex h-full scroll-mt-24 flex-col pt-5">
+      <Link to={`/creatives/${creative.slug}`} state={linkState} className="block">
+        {profileImage && !imageFailed ? (
+          <img src={profileImage} alt={creative.name} loading="lazy" decoding="async" width="800" height="800" className="mx-auto aspect-square w-full max-w-48 rounded-full bg-zinc-900 object-cover opacity-90 transition duration-500 group-hover:scale-[1.01] group-hover:opacity-100" onError={() => setImageFailed(true)} />
         ) : (
           <div className="mx-auto grid aspect-square w-full max-w-48 place-items-center rounded-full bg-zinc-900 text-3xl font-semibold text-zinc-600">
             {creative.name?.slice(0, 1) || 'L'}
@@ -21,7 +28,7 @@ export default function CreativeCard({ creative }) {
           <span className="line-clamp-2">{creative.role}</span>
           {creative.is_featured && <span className="shrink-0 site-accent">Featured</span>}
         </div>
-        <Link to={`/creatives/${creative.slug}`} className="site-primary mt-2 flex items-start justify-between gap-4">
+        <Link to={`/creatives/${creative.slug}`} state={linkState} className="site-primary mt-2 flex items-start justify-between gap-4">
           <h3 className="line-clamp-2 min-h-7 text-xl font-medium leading-snug">{creative.name}</h3>
           <ArrowUpRight className="mt-1 shrink-0 text-zinc-500 transition group-hover:text-[var(--site-accent)]" size={17} />
         </Link>

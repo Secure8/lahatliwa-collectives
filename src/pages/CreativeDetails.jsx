@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import CreativeProfileView from '../components/CreativeProfileView';
 import LoadingState from '../components/LoadingState';
 import { supabase } from '../lib/supabaseClient';
+import { detailBackAction } from '../lib/navigationHistory';
 
 export default function CreativeDetails() {
+  const location = useLocation(); const navigate = useNavigate();
   const { slug } = useParams();
   const [creative, setCreative] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -31,5 +33,6 @@ export default function CreativeDetails() {
   if (loading) return <div className="page-shell py-20"><LoadingState label="Loading creative" /></div>;
   if (error || !creative) return <div className="page-shell py-20"><p className="major-border-y py-8 text-zinc-300">{error || 'Creative profile not found.'}</p></div>;
 
-  return <article className="page-shell py-14 sm:py-20"><Link to="/creatives" className="fine-link site-hover-accent text-sm text-zinc-400">Back to creatives</Link><div className="mt-10"><CreativeProfileView creative={creative} projects={projects} /></div></article>;
+  const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/creatives'); if (action.delta) navigate(action.delta); else navigate(action.to); };
+  return <article className="page-shell py-14 sm:py-20"><button type="button" onClick={goBack} className="fine-link site-hover-accent text-sm text-zinc-400">Back</button><div className="mt-10"><CreativeProfileView creative={creative} projects={projects} /></div></article>;
 }

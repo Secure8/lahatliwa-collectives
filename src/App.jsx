@@ -1,22 +1,24 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { lazy, Suspense, useEffect } from 'react';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useMemo } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingState from './components/LoadingState';
 import Home from './pages/Home';
-import About from './pages/About';
-import Projects from './pages/Projects';
-import ProjectDetails from './pages/ProjectDetails';
-import Services from './pages/Services';
-import Contact from './pages/Contact';
-import Creatives from './pages/Creatives';
-import CreativeDetails from './pages/CreativeDetails';
-import StartProject from './pages/StartProject';
 import AdminRouteGuard from './components/admin/AdminRouteGuard';
 import { PublicContentProvider, usePublicContent } from './lib/contentApi';
+import PublicScrollRestoration from './components/PublicScrollRestoration';
+import PublicErrorBoundary from './components/PublicErrorBoundary';
 
 const Login = lazy(() => import('./pages/admin/Login'));
+const About = lazy(() => import('./pages/About'));
+const Projects = lazy(() => import('./pages/Projects'));
+const ProjectDetails = lazy(() => import('./pages/ProjectDetails'));
+const Services = lazy(() => import('./pages/Services'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Creatives = lazy(() => import('./pages/Creatives'));
+const CreativeDetails = lazy(() => import('./pages/CreativeDetails'));
+const StartProject = lazy(() => import('./pages/StartProject'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
@@ -44,12 +46,17 @@ function SiteDocumentTitle() {
   return null;
 }
 
-function PublicLayout({ children }) {
+function PublicLayout() {
+  const location = useLocation();
+  const { pathname } = location;
+  const contentArea = pathname === '/' ? 'home' : pathname === '/about' ? 'about' : pathname === '/services' ? 'services' : pathname === '/contact' ? 'contact' : 'shared';
+  const pageKeys = useMemo(() => contentArea === 'home' ? ['home', 'services'] : contentArea === 'shared' ? [] : [contentArea], [contentArea]);
   return (
-    <PublicContentProvider>
+    <PublicContentProvider pageKeys={pageKeys}>
       <SiteDocumentTitle />
+      <PublicScrollRestoration />
       <Navbar />
-      <main className="overflow-x-hidden">{children}</main>
+      <main className="min-h-[60vh] overflow-x-hidden"><PublicErrorBoundary key={location.key}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
       <Footer />
     </PublicContentProvider>
   );
@@ -66,15 +73,17 @@ function AdminSuspense({ children }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-      <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-      <Route path="/projects" element={<PublicLayout><Projects /></PublicLayout>} />
-      <Route path="/projects/:slug" element={<PublicLayout><ProjectDetails /></PublicLayout>} />
-      <Route path="/services" element={<PublicLayout><Services /></PublicLayout>} />
-      <Route path="/creatives" element={<PublicLayout><Creatives /></PublicLayout>} />
-      <Route path="/creatives/:slug" element={<PublicLayout><CreativeDetails /></PublicLayout>} />
-      <Route path="/start-a-project" element={<PublicLayout><StartProject /></PublicLayout>} />
-      <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+      <Route element={<PublicLayout />}>
+        <Route index element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:slug" element={<ProjectDetails />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/creatives" element={<Creatives />} />
+        <Route path="/creatives/:slug" element={<CreativeDetails />} />
+        <Route path="/start-a-project" element={<StartProject />} />
+        <Route path="/contact" element={<Contact />} />
+      </Route>
       <Route path="/admin/login" element={<AdminSuspense><Login /></AdminSuspense>} />
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route element={<ProtectedRoute />}>

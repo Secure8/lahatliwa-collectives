@@ -23,7 +23,7 @@ html {
   width: 100%;
   min-height: 100%;
   overflow-x: hidden;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 html.admin-mode {
@@ -183,4 +183,11 @@ select {
 
 .admin-sidebar-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+@media (min-width: 1024px) {
+  .hero-background-visual { filter: var(--hero-background-blur, none); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }

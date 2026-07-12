@@ -1,11 +1,12 @@
 import { ArrowUpRight, Calendar, ExternalLink, FileText, Github, Play, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
 import { actionLabelForItem, getGalleryItemMediaUrl, getGalleryItemThumbnailUrl, getYouTubeVideoId, normalizeProjectGallery } from '../lib/galleryItems';
 import { formatDate } from '../lib/helpers';
 import { normalizeCreditRoleList } from '../lib/projectCredits';
 import { usePublicContent } from '../lib/contentApi';
+import { detailBackAction } from '../lib/navigationHistory';
 import { supabase } from '../lib/supabaseClient';
 import { getPublicImageUrl } from '../lib/storage';
 
@@ -15,6 +16,8 @@ function isMissingCreditRolesColumn(error) {
 }
 
 export default function ProjectDetails() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { slug } = useParams();
   const [project, setProject] = useState(null);
   const [contributors, setContributors] = useState([]);
@@ -61,10 +64,11 @@ export default function ProjectDetails() {
   const cover = getPublicImageUrl(project.cover_image);
   const gallery = normalizeProjectGallery(project);
   const primaryContributor = contributors.find((creative) => creative.isPrimary) || contributors[0];
+  const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/projects'); if (action.delta) navigate(action.delta); else navigate(action.to); };
 
   return (
     <article className="page-shell py-20">
-      <Link to="/projects" className="fine-link site-hover-accent text-sm text-zinc-400">Back to projects</Link>
+      <button type="button" onClick={goBack} className="fine-link site-hover-accent text-sm text-zinc-400">Back</button>
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[0.92fr_1.08fr]' : 'lg:grid-cols-1'}`}>
         {cover && (
           <div className="overflow-hidden bg-zinc-900">

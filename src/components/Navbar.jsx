@@ -18,7 +18,7 @@ export default function Navbar() {
   const { content } = usePublicContent([]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-zinc-950/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-zinc-950/90 md:bg-zinc-950/75 md:backdrop-blur-xl">
       <nav className="page-shell flex min-h-16 items-center justify-between">
         <Link to="/" className="group flex items-center gap-3 font-medium tracking-wide">
           {content.logoUrl ? (

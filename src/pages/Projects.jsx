@@ -6,17 +6,18 @@ import ProjectGrid from '../components/ProjectGrid';
 import SearchBar from '../components/SearchBar';
 import { usePublicContent } from '../lib/contentApi';
 import { normalizeBranchQuery, PROJECT_BRANCHES, projectsForBranch } from '../lib/projectBranches';
-import { fetchPublicProjectSummaries } from '../lib/publicProjectData';
+import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
+import { shouldPushFilter } from '../lib/navigationHistory';
 
 export default function Projects() {
-  const [projects, setProjects] = useState([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState(() => readCachedPublicProjectSummaries() || []);
+  const [loading, setLoading] = useState(() => !readCachedPublicProjectSummaries());
   const [error, setError] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const { content } = usePublicContent([]);
   const featuredOnly = searchParams.get('featured') === '1';
   const selectedBranch = normalizeBranchQuery(searchParams.get('branch'));
+  const search = searchParams.get('search') || '';
 
   useEffect(() => {
     async function loadProjects() {
@@ -31,6 +32,11 @@ export default function Projects() {
     loadProjects();
   }, []);
 
+  useEffect(() => {
+    if (!searchParams.get('branch') || selectedBranch) return;
+    const next = new URLSearchParams(searchParams); next.delete('branch'); setSearchParams(next, { replace: true });
+  }, [searchParams, selectedBranch, setSearchParams]);
+
   const visible = useMemo(() => {
     const term = search.toLowerCase();
     return projectsForBranch(projects, selectedBranch).filter((project) => {
@@ -40,9 +46,16 @@ export default function Projects() {
   }, [featuredOnly, projects, search, selectedBranch]);
 
   function selectBranch(branch) {
+    if (!shouldPushFilter(selectedBranch, branch)) return;
     const next = new URLSearchParams(searchParams);
     if (branch) next.set('branch', branch); else next.delete('branch');
     setSearchParams(next);
+  }
+
+  function updateSearch(value) {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set('search', value); else next.delete('search');
+    setSearchParams(next, { replace: true });
   }
 
   return (
@@ -54,7 +67,7 @@ export default function Projects() {
         {featuredOnly && <Link to="/projects" className="site-hover-accent mt-5 inline-flex text-sm text-zinc-300">View all projects</Link>}
       </div>
       <div className="major-border-y mb-12 py-5">
-        <SearchBar value={search} onChange={setSearch} />
+        <SearchBar value={search} onChange={updateSearch} />
         <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3" aria-label="Filter projects by branch">
           <button type="button" onClick={() => selectBranch(null)} className={`border-b pb-1 text-sm transition ${!selectedBranch ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}>All Projects</button>
           {PROJECT_BRANCHES.map((branch) => <button key={branch.key} type="button" onClick={() => selectBranch(branch.key)} className={`border-b pb-1 text-sm transition ${selectedBranch === branch.key ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}>{branch.label}</button>)}

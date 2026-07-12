@@ -18,8 +18,9 @@ import { roleLabel, useAdminAccess } from '../../lib/adminAccess';
 import { formatDate } from '../../lib/helpers';
 import { copyText } from '../../lib/clipboard';
 import { supabase } from '../../lib/supabaseClient';
+import { buildTeamMemberPayload, canAssignTeamRole, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
 
-const roleOptions = ['super_admin', 'admin', 'editor', 'creative', 'viewer'];
+const roleOptions = TEAM_ROLES;
 const statusOptions = ['active', 'invited'];
 const teamFilters = ['all', 'active', 'disabled', 'invited'];
 const emptyFilterCopy = {
@@ -73,7 +74,7 @@ export default function AdminTeam() {
   const loadRequestRef = useRef(0);
 
   const isSuperAdmin = role === 'super_admin';
-  const availableRoleOptions = isSuperAdmin ? roleOptions : roleOptions.filter((option) => option !== 'super_admin');
+  const availableRoleOptions = isSuperAdmin ? roleOptions : [];
   const activeSuperAdminCount = useMemo(() => team.filter((member) => isSuperAdminMember(member) && member.status === 'active').length, [team]);
   const teamCounts = useMemo(() => ({
     active: team.filter((member) => member.status === 'active').length,
@@ -194,7 +195,7 @@ export default function AdminTeam() {
 
     try {
       const existing = team.find((member) => member.id === editingId);
-      if (!isSuperAdmin && form.role === 'super_admin') {
+      if (!canAssignTeamRole(role, form.role)) {
         throw new Error('Only a Super Admin can create or edit Super Admin accounts.');
       }
       if (!isSuperAdmin && isSuperAdminMember(existing)) {
@@ -213,15 +214,7 @@ export default function AdminTeam() {
         throw new Error('Use the PIN-protected Remove Access or Restore Access action to change access status.');
       }
 
-      const payload = {
-        email: form.email.trim().toLowerCase(),
-        display_name: form.display_name || null,
-        role: form.role,
-        status: form.status,
-        creative_member_id: form.creative_member_id || null,
-        invited_by: adminUser?.user_id || null,
-        updated_at: new Date().toISOString(),
-      };
+      const payload = buildTeamMemberPayload(form, adminUser?.user_id);
 
       const query = editingId
         ? supabase.from('admin_users').update(payload).eq('id', editingId).select(teamRecordSelect).single()
@@ -235,7 +228,12 @@ export default function AdminTeam() {
       setMessage(editingId ? 'Team member updated.' : 'Team invitation added.');
       resetForm();
     } catch (saveError) {
-      setError(saveError.message || 'Could not save this team member.');
+      const safeMessage = saveError.code === '23505'
+        ? 'A team member with this email already exists.'
+        : saveError.code === '23514'
+          ? 'The selected role or status is not supported by the current Team database setup.'
+          : saveError.message;
+      setError(safeMessage || 'Could not save this team member.');
     } finally {
       setSaving(false);
     }
@@ -324,7 +322,7 @@ export default function AdminTeam() {
         eyebrow="Team CMS"
         title="Team Management"
         description="Add team members, assign roles, link creative profiles, and control access to Lahat Liwa Collectives."
-        action={<AdminButton onClick={openAddMember} variant="primary"><Plus size={17} /> Add Member</AdminButton>}
+        action={isSuperAdmin && <AdminButton onClick={openAddMember} variant="primary"><Plus size={17} /> Add Member</AdminButton>}
       />
 
       {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
@@ -354,7 +352,7 @@ export default function AdminTeam() {
           <span>Role</span>
           <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none [color-scheme:dark] focus:border-amber-200/60">
             <option value="all">All roles</option>
-            {roleOptions.map((option) => <option key={option} value={option}>{roleLabel(option)}</option>)}
+            {Object.keys(TEAM_ROLE_LABELS).map((option) => <option key={option} value={option}>{TEAM_ROLE_LABELS[option]}</option>)}
           </select>
         </label>
       </section>
@@ -389,7 +387,7 @@ export default function AdminTeam() {
               {visibleTeam.map((member) => {
                 const currentAccount = member.user_id === adminUser?.user_id;
                 const protectedSuperAdmin = isSuperAdminMember(member) && member.status === 'active' && activeSuperAdminCount <= 1;
-                const canManageMember = isSuperAdmin || !isSuperAdminMember(member);
+                const canManageMember = isSuperAdmin && !isSuperAdminMember(member);
                 const canDisable = isSuperAdmin && member.status !== 'disabled' && !currentAccount && !protectedSuperAdmin;
                 const canRestore = isSuperAdmin && member.status === 'disabled';
                 const canDelete = isSuperAdmin && !currentAccount && !protectedSuperAdmin;
@@ -418,14 +416,14 @@ export default function AdminTeam() {
                       <p className="mt-1 text-xs text-zinc-600">Added {formatDate(member.created_at)}</p>
                     </div>
                   </div>
-                  <div className="grid grid-rows-[2.25rem_2.25rem] gap-1.5 border-t border-white/[0.05] pt-3 xl:w-full xl:self-stretch xl:border-l xl:border-t-0 xl:py-1 xl:pl-5">
-                    <AdminActionGroup className="min-h-9 xl:justify-start">
+                  <div className="grid min-w-0 gap-3 border-t border-white/[0.1] pt-3 xl:w-full xl:self-stretch xl:border-l xl:border-t-0 xl:py-1 xl:pl-5">
+                    <AdminActionGroup className="w-full min-w-0 gap-2 xl:justify-start">
                       {canManageMember && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>}
                       {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton to={`/admin/creatives?preview=${member.creative_member_id}`}><Eye size={14} /> Preview</AdminActionButton>}
                       {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton onClick={() => copyMemberProfile(member)}><Copy size={14} /> Copy link</AdminActionButton>}
                       {member.status !== 'disabled' && creatives.find((creative) => creative.id === member.creative_member_id)?.is_published && <AdminActionButton to={`/creatives/${creatives.find((creative) => creative.id === member.creative_member_id).slug}`}><ExternalLink size={14} /> Public</AdminActionButton>}
                     </AdminActionGroup>
-                    <AdminActionGroup className="min-h-9 xl:justify-start">
+                    <AdminActionGroup className="w-full min-w-0 gap-2 border-t border-red-300/10 pt-3 xl:justify-start">
                       {canDisable && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('remove_access', member)} variant="danger"><ShieldOff size={14} /> Remove Access</AdminActionButton>}
                       {canRestore && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('restore_access', member)}><RotateCcw size={14} /> Restore Access</AdminActionButton>}
                       {canDelete && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('permanent_delete', member)} variant="danger"><Trash2 size={14} /> Permanently Delete</AdminActionButton>}
@@ -451,7 +449,7 @@ export default function AdminTeam() {
           <div className="grid gap-5 sm:grid-cols-2">
             <AdminInput label="Email" type="email" required value={form.email} onChange={(value) => update('email', value)} />
             <AdminInput label="Display name" value={form.display_name} onChange={(value) => update('display_name', value)} />
-            <AdminSelect label="Role" value={form.role} options={formRoleOptions} onChange={(value) => update('role', value)} />
+            <label className="grid gap-2 text-sm text-zinc-300"><span>Role</span><select value={form.role} onChange={(event) => update('role', event.target.value)}>{formRoleOptions.map((option) => <option key={option} value={option}>{TEAM_ROLE_LABELS[option]}</option>)}</select>{form.role === 'super_admin' && <span className="text-xs leading-5 text-amber-200/80">Super Admin has full access, including protected member lifecycle actions.</span>}</label>
             <AdminSelect label="Status" value={form.status} options={formStatusOptions} onChange={(value) => update('status', value)} />
             <label className="grid gap-2 text-sm text-zinc-300 sm:col-span-2">
               <span>Linked creative profile</span>

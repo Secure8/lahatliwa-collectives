@@ -3,13 +3,33 @@ export const ORPHAN_SAFETY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export function normalizeStoragePath(value = '') {
   if (!value || typeof value !== 'string') return '';
-  if (!/^https?:\/\//i.test(value)) return value.replace(/^\/+/, '').split('?')[0];
+  if (!/^https?:\/\//i.test(value)) {
+    try { return decodeURIComponent(value.replace(/^\/+/, '').split('?')[0]); } catch { return ''; }
+  }
   try {
     const url = new URL(value);
     const marker = `/object/public/${PROJECT_MEDIA_BUCKET}/`;
     const index = url.pathname.indexOf(marker);
     return index < 0 ? '' : decodeURIComponent(url.pathname.slice(index + marker.length));
   } catch { return ''; }
+}
+
+export function collectReferencedStoragePaths(...sources) {
+  const paths = new Set();
+  function visit(value) {
+    if (typeof value === 'string') {
+      const looksLikeMedia = /^https?:\/\//i.test(value) || (value.includes('/') && /\.[a-z0-9]{2,5}(?:\?|$)/i.test(value));
+      if (looksLikeMedia) {
+        const path = normalizeStoragePath(value);
+        if (path) paths.add(path);
+      }
+      return;
+    }
+    if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === 'object') Object.values(value).forEach(visit);
+  }
+  sources.forEach(visit);
+  return paths;
 }
 
 export function collectProjectMediaPaths(project = {}) {

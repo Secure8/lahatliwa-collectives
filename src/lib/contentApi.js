@@ -3,6 +3,7 @@ import { defaultPageContent, defaultSiteContent } from '../data/siteContent';
 import { optimizeImageForUpload } from './imageCompression';
 import { supabase } from './supabaseClient';
 import { validateUploadFile } from './uploadLimits';
+import { collectReferencedStoragePaths, normalizeStoragePath } from './projectMediaCleanup';
 
 const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
@@ -288,12 +289,24 @@ export async function fetchMediaAssets(type = 'icon') {
 }
 
 export async function deleteMediaAsset(asset) {
-  const { error } = await supabase.from(MEDIA_TABLE).delete().eq('id', asset.id);
-  if (error) throw error;
-  if (asset.storage_path) {
-    const { error: storageError } = await supabase.storage.from(BUCKET).remove([asset.storage_path]);
-    if (storageError) throw new Error(`The media record was deleted, but its storage file could not be removed: ${storageError.message}`);
+  const path = normalizeStoragePath(asset.storage_path || asset.url);
+  if (path) {
+    const referenceQueries = await Promise.all([
+      supabase.from('projects').select('cover_image, gallery_images, gallery_items'),
+      supabase.from('creative_members').select('profile_image_url, cover_image'),
+      supabase.from(SETTINGS_TABLE).select('*'),
+      supabase.from(CONTENT_TABLE).select('content'),
+      supabase.from('service_branches').select('icon_url, image_url'),
+    ]);
+    const failedReferenceQuery = referenceQueries.find((result) => result.error);
+    if (failedReferenceQuery) throw new Error(`Media usage could not be verified, so nothing was deleted: ${failedReferenceQuery.error.message}`);
+    const references = collectReferencedStoragePaths(...referenceQueries.map((result) => result.data || []));
+    if (references.has(path)) throw new Error('This media file is still used by site content and cannot be deleted. Remove those references first.');
+    const { error: storageError } = await supabase.storage.from(BUCKET).remove([path]);
+    if (storageError) throw new Error(`The storage file could not be removed, so its media record was kept: ${storageError.message}`);
   }
+  const { error } = await supabase.from(MEDIA_TABLE).delete().eq('id', asset.id);
+  if (error) throw new Error(path ? `The storage file was removed, but the media record could not be deleted: ${error.message}` : error.message);
 }
 
 export async function uploadMediaAssetFile(file, folder = 'icons', { onStatus } = {}) {

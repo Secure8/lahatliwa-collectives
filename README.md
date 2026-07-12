@@ -185,14 +185,9 @@ The frontend only uses the anon key. Never add a service role key to `.env.local
 
 In Supabase Dashboard, open `Authentication -> Providers -> Email` and enable leaked password protection. Supabase uses HaveIBeenPwned/Pwned Passwords to help block compromised passwords.
 
-## Advanced Content Editor
+## Page Content Editor
 
-Page content editors use two editing modes:
-
-- Structured form fields for normal editing
-- A desktop JSON editor with syntax highlighting for advanced changes
-
-The JSON editor validates before saving. If JSON is invalid, the admin sees an error and the content is not saved.
+Page content is managed through structured admin form fields.
 
 ## Icons / Media
 

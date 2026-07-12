@@ -1,4 +1,4 @@
-import { Component, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminButton, AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
@@ -228,12 +228,10 @@ export default function ContentEditor() {
   const fallback = useMemo(() => getFallback(pageKey), [pageKey]);
   const draftKey = useMemo(() => `hevv-content-editor-draft-v3:${pageKey}`, [pageKey]);
   const [content, setContent] = useState(fallback);
-  const [jsonText, setJsonText] = useState(JSON.stringify(fallback, null, 2));
   const [loading, setLoading] = useState(true);
   const [draftReady, setDraftReady] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -261,11 +259,8 @@ export default function ContentEditor() {
         }
 
         const nextContent = buildInitialState(pageKey, remoteContent, draft?.content);
-        const nextJsonText = draft?.jsonText || JSON.stringify(nextContent, null, 2);
-
         if (!active) return;
         setContent(nextContent);
-        setJsonText(nextJsonText);
         setDraftReady(true);
         setDirty(Boolean(draft));
       } finally {
@@ -287,10 +282,10 @@ export default function ContentEditor() {
       return;
     }
     try {
-      window.localStorage.setItem(draftKey, JSON.stringify({ content, jsonText }));
+      window.localStorage.setItem(draftKey, JSON.stringify({ content }));
     } catch {
     }
-  }, [content, dirty, draftKey, draftReady, jsonText]);
+  }, [content, dirty, draftKey, draftReady]);
 
   useEffect(() => {
     if (!draftReady || !dirty) return undefined;
@@ -305,7 +300,6 @@ export default function ContentEditor() {
   function patch(updates) {
     setContent((current) => {
       const next = { ...current, ...updates };
-      setJsonText(JSON.stringify(next, null, 2));
       setMessage('');
       setError('');
       setFieldErrors((currentErrors) => {
@@ -325,7 +319,6 @@ export default function ContentEditor() {
   function patchServiceGroup(index, updates) {
     setContent((current) => {
       const next = updateGroup(current, index, updates);
-      setJsonText(JSON.stringify(next, null, 2));
       setMessage('');
       setError('');
       setDirty(true);
@@ -377,20 +370,6 @@ export default function ContentEditor() {
     }
   }
 
-  function applyJsonToForm() {
-    try {
-      const parsed = JSON.parse(jsonText);
-      setContent(parsed);
-      setJsonText(JSON.stringify(parsed, null, 2));
-      setDirty(true);
-      setMessage('Advanced JSON applied to the form.');
-      setError('');
-      setFieldErrors(validateContent(pageKey, parsed));
-    } catch (parseError) {
-      setError(parseError.message || 'Invalid JSON. Fix the JSON before applying it to the form.');
-    }
-  }
-
   async function save(event) {
     event.preventDefault();
     if (saving) return;
@@ -400,8 +379,7 @@ export default function ContentEditor() {
     setFieldErrors({});
 
     try {
-      const parsed = JSON.parse(jsonText);
-      const validationErrors = validateContent(pageKey, parsed);
+      const validationErrors = validateContent(pageKey, content);
       if (Object.keys(validationErrors).length > 0) {
         setFieldErrors(validationErrors);
         setError('Fix the highlighted fields before saving.');
@@ -409,10 +387,8 @@ export default function ContentEditor() {
         return;
       }
 
-      await updatePageContent(pageKey, parsed);
+      await updatePageContent(pageKey, content);
       skipNextDraftSave.current = true;
-      setContent(parsed);
-      setJsonText(JSON.stringify(parsed, null, 2));
       setDirty(false);
       setMessage('Page content saved.');
       try {
@@ -420,7 +396,7 @@ export default function ContentEditor() {
       } catch {
       }
     } catch (saveError) {
-      setError(saveError.message || 'Unable to save page content. Check that the JSON is valid.');
+      setError(saveError.message || 'Unable to save page content.');
     } finally {
       setSaving(false);
     }
@@ -430,7 +406,6 @@ export default function ContentEditor() {
     if (!window.confirm('Discard your unsaved changes and reload the saved page content?')) return;
     const next = fallback;
     setContent(next);
-    setJsonText(JSON.stringify(next, null, 2));
     setDirty(false);
     setFieldErrors({});
     setMessage('Unsaved changes discarded.');
@@ -473,7 +448,7 @@ export default function ContentEditor() {
           {error && <AdminNotice>{error}</AdminNotice>}
 
           <div className="grid gap-6">
-            <Section title="Content Fields" description="Edit the structured page fields below. The advanced editor stays closed unless you need the raw JSON.">
+            <Section title="Content Fields" description="Edit the structured page fields below.">
               <div className="grid gap-6">
                 <PageFields
                   pageKey={pageKey}
@@ -486,32 +461,6 @@ export default function ContentEditor() {
                   fieldErrors={fieldErrors}
                 />
               </div>
-            </Section>
-
-            <Section
-              title="Advanced JSON Editor"
-              description="Advanced edits are optional. The visual fields remain usable even if the editor fails to load."
-            >
-              {advancedOpen ? (
-                <div className="grid gap-4 border-t border-white/[0.07] pt-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm text-zinc-300">Raw page JSON</p>
-                    <div className="flex flex-wrap gap-3">
-                      <button type="button" onClick={applyJsonToForm} className="inline-flex h-10 items-center border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white">Apply JSON to Form</button>
-                      <button type="button" onClick={() => setAdvancedOpen(false)} className="inline-flex h-10 items-center border-b border-white/[0.08] px-2 text-sm text-zinc-500 transition hover:border-amber-200/35 hover:text-white">Close Advanced JSON Editor</button>
-                    </div>
-                  </div>
-                  <AdvancedEditorLoader jsonText={jsonText} onChange={(value) => { setJsonText(value); setMessage(''); setError(''); setDirty(true); }} />
-                </div>
-              ) : (
-                <div className="grid gap-4 border-t border-white/[0.07] pt-5">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-200">Advanced JSON editor</p>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">Closed by default so the page loads quickly. Open it only when you need to edit the raw page structure.</p>
-                  </div>
-                  <LineButton onClick={() => setAdvancedOpen(true)}>Open Advanced JSON Editor</LineButton>
-                </div>
-              )}
             </Section>
 
             <Section
@@ -661,107 +610,4 @@ function PageFields({ pageKey, content, patch, patchList, patchServiceGroup, upl
       </div>
     </>
   );
-}
-
-function AdvancedEditorLoader({ jsonText, onChange }) {
-  const [EditorComponent, setEditorComponent] = useState(null);
-  const [loadError, setLoadError] = useState('');
-  const [retryKey, setRetryKey] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    const slowTimer = window.setTimeout(() => {
-      if (active) {
-        setLoadError('Advanced editor failed to load. You can still use the standard fields.');
-      }
-    }, 15000);
-
-    setEditorComponent(null);
-    setLoadError('');
-
-    import('../../components/admin/AdvancedJsonEditor')
-      .then((module) => {
-        window.clearTimeout(slowTimer);
-        if (!active) return;
-        setEditorComponent(() => module.default);
-      })
-      .catch(() => {
-        window.clearTimeout(slowTimer);
-        if (!active) return;
-        setLoadError('Advanced editor failed to load. You can still use the standard fields.');
-      });
-
-    return () => {
-      active = false;
-      window.clearTimeout(slowTimer);
-    };
-  }, [retryKey]);
-
-  if (loadError) {
-    return (
-      <div className="grid min-h-64 place-items-center border-b border-white/[0.06] py-8 text-center">
-        <div className="max-w-sm">
-          <p className="text-sm font-medium text-zinc-200">{loadError}</p>
-          <p className="mt-2 text-xs leading-5 text-zinc-500">Your standard content fields are still active, and saving from the standard form will continue to work.</p>
-          <button
-            type="button"
-            onClick={() => setRetryKey((current) => current + 1)}
-            className="mt-4 inline-flex h-10 items-center border-b border-white/[0.12] px-2 text-xs text-zinc-300 transition hover:border-amber-200/40 hover:text-white"
-          >
-            Retry loading editor
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!EditorComponent) {
-    return (
-      <div className="grid h-[620px] place-items-center border-b border-white/[0.06] text-sm text-zinc-500">
-        Loading advanced JSON editor...
-      </div>
-    );
-  }
-
-  return (
-    <AdvancedEditorErrorBoundary key={retryKey} onRetry={() => setRetryKey((current) => current + 1)}>
-      <EditorComponent value={jsonText} onChange={onChange} />
-    </AdvancedEditorErrorBoundary>
-  );
-}
-
-class AdvancedEditorErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="grid min-h-64 place-items-center border-b border-white/[0.06] py-8 text-center">
-          <div className="max-w-sm">
-            <p className="text-sm font-medium text-zinc-200">Advanced editor failed to load. You can still use the standard fields.</p>
-            <p className="mt-2 text-xs leading-5 text-zinc-500">The structured fields are still available and safe to save.</p>
-            <button
-              type="button"
-              onClick={() => {
-                this.setState({ hasError: false });
-                this.props.onRetry?.();
-              }}
-              className="mt-4 inline-flex h-10 items-center border-b border-white/[0.12] px-2 text-xs text-zinc-300 transition hover:border-amber-200/40 hover:text-white"
-            >
-              Retry loading editor
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
 }

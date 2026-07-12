@@ -15,7 +15,6 @@
     "worker:status": "powershell -ExecutionPolicy Bypass -File scripts/get-storage-cleanup-worker-status.ps1"
   },
   "dependencies": {
-    "@monaco-editor/react": "^4.7.0",
     "@supabase/supabase-js": "^2.50.5",
     "@tailwindcss/vite": "^4.1.11",
     "clsx": "^2.1.1",

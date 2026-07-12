@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { assessDisposableIdentity, deleteIdentityLayers, IdentityDeletionError } from './memberDeletion.js';
+import { assessDisposableIdentity, deleteIdentityLayers, IdentityDeletionError, requireSuccessfulDependencyQueries } from './memberDeletion.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +23,29 @@ const knownLifecycleMessages = new Map([
 const incompleteDatabaseCodes = new Set(['PGRST202', '42P01', '42703', '42883']);
 
 const normalizeEmail = (value: unknown) => String(value || '').trim().toLowerCase();
+const STORAGE_BUCKET = 'project-media';
+
+async function countOwnedStorageObjects(admin: any, userId: string) {
+  const folders = ['']; const visited = new Set<string>(); let scanned = 0; let owned = 0;
+  while (folders.length) {
+    const folder = folders.shift() || '';
+    if (visited.has(folder)) continue;
+    visited.add(folder);
+    if (visited.size > 1000) throw new Error('Storage folder scan exceeded its safe limit.');
+    for (let offset = 0; ; offset += 100) {
+      const { data, error } = await admin.storage.from(STORAGE_BUCKET).list(folder, { limit: 100, offset, sortBy: { column: 'name', order: 'asc' } });
+      if (error) throw error;
+      for (const item of data || []) {
+        scanned += 1;
+        if (scanned > 10000) throw new Error('Storage ownership scan exceeded its safe object limit.');
+        if (!item.id && !item.metadata) folders.push(folder ? `${folder}/${item.name}` : item.name);
+        else if (item.owner_id === userId) owned += 1;
+      }
+      if ((data || []).length < 100) break;
+    }
+  }
+  return owned;
+}
 
 async function findAuthUserByEmail(admin: any, email: string) {
   for (let page = 1; page <= 10; page += 1) {
@@ -41,23 +64,24 @@ async function collectDependencies(admin: any, target: any, authUserId: string |
   if (authUserId) {
     checks.push(
       { label: 'other Team records', request: admin.from('admin_users').select('id', { count: 'exact', head: true }).neq('id', target.id).or(`user_id.eq.${authUserId},invited_by.eq.${authUserId}`) },
-      { label: 'projects', request: admin.from('projects').select('id', { count: 'exact', head: true }).or(`created_by.eq.${authUserId},updated_by.eq.${authUserId},owner_user_id.eq.${authUserId}`) },
+      { label: 'project ownership or attribution', request: admin.from('projects').select('id', { count: 'exact', head: true }).or(`created_by.eq.${authUserId},updated_by.eq.${authUserId},owner_user_id.eq.${authUserId}`) },
       { label: 'project access', request: admin.from('project_access').select('id', { count: 'exact', head: true }).or(`user_id.eq.${authUserId},granted_by.eq.${authUserId}`) },
-      { label: 'contributor requests', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).or(`requester_user_id.eq.${authUserId},reviewed_by.eq.${authUserId}`) },
-      { label: 'upload cleanup history', request: admin.from('storage_cleanup_jobs').select('id', { count: 'exact', head: true }).eq('created_by', authUserId) },
-      { label: 'member lifecycle history', request: admin.from('admin_member_lifecycle_snapshots').select('admin_user_id', { count: 'exact', head: true }).eq('removed_by', authUserId) },
+      { label: 'approved contributor activity', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).eq('requester_user_id', authUserId).eq('status', 'approved') },
+      { label: 'request reviews', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).eq('reviewed_by', authUserId) },
+      { label: 'storage cleanup or upload history', request: admin.from('storage_cleanup_jobs').select('id', { count: 'exact', head: true }).eq('created_by', authUserId) },
+      { label: 'lifecycle audit attribution', request: admin.from('admin_member_lifecycle_snapshots').select('admin_user_id', { count: 'exact', head: true }).eq('removed_by', authUserId) },
+      { label: 'owned Storage objects', request: countOwnedStorageObjects(admin, authUserId).then((count) => ({ count, error: null })).catch((error) => ({ count: 0, error })) },
     );
   }
   if (target.creative_member_id) {
     checks.push(
       { label: 'project credits', request: admin.from('project_creatives').select('project_id', { count: 'exact', head: true }).or(`creative_member_id.eq.${target.creative_member_id},creative_id.eq.${target.creative_member_id}`) },
-      { label: 'creative contributor activity', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).eq('creative_member_id', target.creative_member_id) },
+      { label: 'approved creative contributor activity', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).eq('creative_member_id', target.creative_member_id).eq('status', 'approved') },
+      { label: 'project inquiries', request: admin.from('project_inquiries').select('id', { count: 'exact', head: true }).eq('preferred_creative_id', target.creative_member_id) },
     );
   }
   const results = await Promise.all(checks.map(async ({ label, request }) => ({ label, ...(await request) })));
-  const failed = results.find((result) => result.error);
-  if (failed) throw failed.error;
-  return results.map(({ label, count }) => ({ label, count: Number(count || 0) }));
+  return requireSuccessfulDependencyQueries(results);
 }
 
 Deno.serve(async (req) => {
@@ -162,13 +186,45 @@ Deno.serve(async (req) => {
         if (authUser && normalizeEmail(authUser.email) !== normalizeEmail(target.email)) throw new Error('Auth email does not match Team identity.');
         const dependencies = await collectDependencies(admin, target, authUser?.id || null);
         const assessment = assessDisposableIdentity(target, authUser, dependencies);
-        if (!assessment.allowed) return fail(assessment.code, assessment.message, 409);
+        if (!assessment.allowed) return reply({ success: false, code: assessment.code, message: assessment.message, blockingCategories: assessment.categories }, 409);
+        const disposableRequestFilter = [
+          authUser?.id ? `requester_user_id.eq.${authUser.id}` : '',
+          target.creative_member_id ? `creative_member_id.eq.${target.creative_member_id}` : '',
+        ].filter(Boolean).join(',');
         const result = await deleteIdentityLayers({
           memberId: target.id,
           authUserId: authUser?.id || null,
+          cleanupDisposableRows: async () => {
+            if (disposableRequestFilter) {
+              const { error } = await admin.from('contributor_requests').delete().or(disposableRequestFilter).neq('status', 'approved');
+              if (error) throw error;
+            }
+            const { error: snapshotError } = await admin.from('admin_member_lifecycle_snapshots').delete().eq('admin_user_id', target.id);
+            if (snapshotError) throw snapshotError;
+          },
+          verifyNoOwnedStorage: async () => {
+            if (!authUser?.id) return;
+            if (await countOwnedStorageObjects(admin, authUser.id)) throw new Error('Owned Storage objects remain.');
+          },
           deleteAuthUser: async (id: string) => { const { error } = await admin.auth.admin.deleteUser(id, false); if (error) throw error; },
+          authIdentityExists: async () => Boolean(await findAuthUserByEmail(admin, normalizeEmail(target.email))),
           deleteTeamRow: async (id: string) => { const { error } = await admin.from('admin_users').delete().eq('id', id); if (error) throw error; },
-          teamRowExists: async (id: string) => { const { data, error } = await admin.from('admin_users').select('id').eq('id', id).maybeSingle(); if (error) throw error; return Boolean(data); },
+          deleteProfile: async () => {
+            if (!target.creative_member_id) return;
+            const { error } = await admin.from('creative_members').delete().eq('id', target.creative_member_id);
+            if (error) throw error;
+          },
+          verifyIdentityAbsent: async () => {
+            const checks = await Promise.all([
+              admin.from('admin_users').select('id', { count: 'exact', head: true }).eq('id', target.id),
+              admin.from('admin_users').select('id', { count: 'exact', head: true }).ilike('email', normalizeEmail(target.email)),
+              target.user_id ? admin.from('admin_users').select('id', { count: 'exact', head: true }).eq('user_id', target.user_id) : Promise.resolve({ count: 0, error: null }),
+              target.creative_member_id ? admin.from('creative_members').select('id', { count: 'exact', head: true }).eq('id', target.creative_member_id) : Promise.resolve({ count: 0, error: null }),
+            ]);
+            const failed = checks.find((check) => check.error);
+            if (failed?.error) throw failed.error;
+            return checks.every((check) => Number(check.count || 0) === 0);
+          },
         });
         return reply({ success: true, result });
       } catch (error) {

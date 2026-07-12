@@ -377,6 +377,7 @@ export default function AdminTeam() {
       setLifecycle(null);
       setMessage(action === 'remove_access' ? 'Member deactivated. Access was revoked while historical records were preserved.' : action === 'restore_access' ? 'Member reactivated and previous public visibility restored.' : 'Member deleted from both Auth and Team records.');
     } catch (lifecycleError) {
+      await loadTeam({ showLoading: false });
       setError(lifecycleError.message || 'The member action failed.');
     } finally {
       setUpdatingMemberId('');
@@ -462,7 +463,7 @@ export default function AdminTeam() {
                 const canManageMember = isSuperAdmin && !isSuperAdminMember(member);
                 const canDisable = isSuperAdmin && member.status === 'active' && !currentAccount && !protectedSuperAdmin;
                 const canRestore = isSuperAdmin && member.status === 'disabled';
-                const canDelete = isSuperAdmin && member.status === 'invited' && !member.user_id && !member.creative_member_id;
+                const canDelete = isSuperAdmin && !currentAccount && !isSuperAdminMember(member);
                 return (
                 <article key={member.id} className={`grid gap-4 border-b border-white/[0.06] px-4 py-4 last:border-b-0 sm:px-5 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-center xl:gap-6 ${updatingMemberId === member.id ? 'opacity-60' : ''}`}>
                   <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(8rem,0.65fr)_minmax(0,0.9fr)] md:items-center md:gap-6">
@@ -543,7 +544,7 @@ export default function AdminTeam() {
       {lifecycle && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="lifecycle-dialog-title">
         <AdminSurface as="form" onSubmit={runLifecycle} className="grid w-full max-w-lg gap-5 border-amber-200/25 bg-zinc-950/98 shadow-2xl">
           <div className="flex items-start justify-between gap-4 border-b border-amber-200/15 pb-4"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">PIN-protected action</p><h2 id="lifecycle-dialog-title" className="mt-2 text-xl font-semibold text-white">{lifecycle.action === 'permanent_delete' ? 'Delete member' : lifecycle.action === 'restore_access' ? 'Reactivate member' : 'Deactivate member'}</h2></div><button type="button" onClick={() => setLifecycle(null)} aria-label="Close lifecycle dialog" className="text-zinc-400 hover:text-white"><X size={20} /></button></div>
-          <p className="text-sm leading-6 text-zinc-300">{lifecycle.action === 'permanent_delete' ? 'This is allowed only for an untouched invitation with no account activity or references. Both Auth and Team records will be removed.' : lifecycle.action === 'restore_access' ? 'This restores access and visibility saved when the member was deactivated.' : 'This revokes application access while preserving profiles, credits, ownership, and history. It can be reversed.'}</p>
+          <p className="text-sm leading-6 text-zinc-300">{lifecycle.action === 'permanent_delete' ? 'Permanent deletion removes the member’s login account, profile, and eligible account records. This cannot be undone.' : lifecycle.action === 'restore_access' ? 'This restores access and visibility saved when the member was deactivated.' : 'This revokes application access while preserving profiles, credits, ownership, and history. It can be reversed.'}</p>
           {error && <AdminNotice>{error}</AdminNotice>}
           <AdminInput label="Super Admin PIN" type="password" required value={pin} onChange={setPin} />
           {lifecycle.action === 'permanent_delete' && <AdminInput label="Type DELETE to confirm" required value={confirmation} onChange={setConfirmation} />}

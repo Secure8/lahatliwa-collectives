@@ -19,6 +19,7 @@ import { formatDate } from '../../lib/helpers';
 import { copyText } from '../../lib/clipboard';
 import { supabase } from '../../lib/supabaseClient';
 import { buildTeamMemberPayload, canAssignTeamRole, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
+import { filterVisibleTeamMembers, removeDeletedTeamMember } from '../../lib/teamVisibility';
 
 const roleOptions = TEAM_ROLES;
 const teamFilters = ['all', 'active', 'disabled', 'invited'];
@@ -71,6 +72,7 @@ export default function AdminTeam() {
   const [confirmation, setConfirmation] = useState('');
   const mountedRef = useRef(true);
   const loadRequestRef = useRef(0);
+  const confirmedDeletedIdsRef = useRef(new Set());
 
   const isSuperAdmin = role === 'super_admin';
   const availableRoleOptions = isSuperAdmin ? roleOptions : [];
@@ -102,6 +104,7 @@ export default function AdminTeam() {
       supabase
         .from('admin_users')
         .select('id, user_id, email, display_name, avatar_url, role, status, creative_member_id, created_at, updated_at')
+        .neq('status', 'deleted')
         .order('created_at', { ascending: false }),
       supabase
         .from('creative_members')
@@ -112,7 +115,7 @@ export default function AdminTeam() {
 
     if (!mountedRef.current || requestId !== loadRequestRef.current) return;
     if (teamError) setLoadError(teamError.message || 'Unable to load team members.');
-    else setTeam(teamRows || []);
+    else setTeam(filterVisibleTeamMembers(teamRows, confirmedDeletedIdsRef.current));
     if (!teamError) setCreatives(creativeRows || []);
     if (showLoading) setLoading(false);
   }
@@ -353,6 +356,10 @@ export default function AdminTeam() {
           .order('display_order', { ascending: true, nullsFirst: false })
           .order('name', { ascending: true });
         if (restoredCreatives) setCreatives(restoredCreatives);
+      } else if (action === 'permanent_delete' && nextStatus === 'deleted') {
+        confirmedDeletedIdsRef.current.add(member.id);
+        setTeam((current) => removeDeletedTeamMember(current, member.id));
+        await loadTeam({ showLoading: false });
       } else {
         await loadTeam({ showLoading: false });
       }

@@ -20,16 +20,19 @@ export default function Projects() {
   const search = searchParams.get('search') || '';
 
   useEffect(() => {
+    let active = true;
     async function loadProjects() {
       setLoading(true);
       try {
-        setProjects(await fetchPublicProjectSummaries());
+        const rows = await fetchPublicProjectSummaries();
+        if (active) setProjects(rows);
       } catch (projectError) {
-        setError(projectError.message || 'Projects could not be loaded.');
+        if (active) setError(projectError.message || 'Projects could not be loaded.');
       }
-      setLoading(false);
+      if (active) setLoading(false);
     }
     loadProjects();
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {

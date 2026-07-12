@@ -12,6 +12,7 @@ export default function Creatives() {
   const { content } = usePublicContent([]);
 
   useEffect(() => {
+    let active = true;
     async function loadCreatives() {
       const { data, error: creativeError } = await supabase
         .from('creative_members')
@@ -21,11 +22,13 @@ export default function Creatives() {
         .order('display_order', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
 
+      if (!active) return;
       if (creativeError) setError(creativeError.message);
       else setCreatives(data || []);
       setLoading(false);
     }
     loadCreatives();
+    return () => { active = false; };
   }, []);
 
   return (

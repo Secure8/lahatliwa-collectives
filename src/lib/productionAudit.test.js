@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import test from 'node:test';
+import { cachedContentMatchesScope, publicContentScope } from './publicContentScope.js';
+import { safeExternalUrl, safeInternalPath } from './externalUrls.js';
+import { socialLinkMeta } from './socialLinks.js';
+
+const root = resolve(import.meta.dirname, '../..');
+
+test('public CMS cache identity is exact, stable, and page-specific', () => {
+  assert.equal(publicContentScope(['services', 'home', 'home']), 'home|services');
+  assert.notEqual(publicContentScope(['about']), publicContentScope(['contact']));
+  assert.equal(cachedContentMatchesScope({ scope: 'about', content: { about: {} } }, ['about']), true);
+  assert.equal(cachedContentMatchesScope({ scope: 'about', content: { about: {} } }, ['contact']), false);
+});
+
+test('unresolved public shell contains neutral status text, not marketing copy', () => {
+  const app = readFileSync(resolve(root, 'src/App.jsx'), 'utf8');
+  const unresolvedShell = app.slice(app.indexOf('if (!resolved)'), app.indexOf('return (\n    <>', app.indexOf('if (!resolved)')));
+  assert.match(unresolvedShell, /Loading site content/);
+  assert.doesNotMatch(unresolvedShell, /creative digital collective|Selected Projects|Need visuals/i);
+});
+
+test('favicon and manifest references resolve to square static assets', () => {
+  const html = readFileSync(resolve(root, 'index.html'), 'utf8');
+  const manifest = JSON.parse(readFileSync(resolve(root, 'public/site.webmanifest'), 'utf8'));
+  const expected = [
+    '/favicon.ico',
+    '/favicon-16x16.png',
+    '/favicon-32x32.png',
+    '/apple-touch-icon.png',
+    ...manifest.icons.map((icon) => icon.src),
+  ];
+  expected.forEach((asset) => assert.equal(existsSync(resolve(root, `public${asset}`)), true, `${asset} must exist`));
+  assert.doesNotMatch(html, /Vite App|React App|vite\.svg/i);
+  assert.match(html, /https:\/\/www\.lahatliwa\.studio\//);
+  assert.match(html, /social-card\.jpg/);
+});
+
+test('public destinations reject executable schemes and preserve valid links', () => {
+  assert.equal(safeExternalUrl('javascript:alert(1)'), '');
+  assert.equal(safeExternalUrl('data:text/html,test'), '');
+  assert.equal(safeExternalUrl('https://example.com/path?token=abc'), 'https://example.com/path?token=abc');
+  assert.equal(safeInternalPath('/projects?branch=studio'), '/projects?branch=studio');
+  assert.equal(safeInternalPath('//example.com'), '');
+  assert.equal(socialLinkMeta({ label: 'Email', href: 'mailto:hello@example.com' }).href, 'mailto:hello@example.com');
+});

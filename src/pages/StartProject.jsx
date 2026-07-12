@@ -103,6 +103,7 @@ export default function StartProject() {
   const { content } = usePublicContent([]);
 
   useEffect(() => {
+    let active = true;
     async function loadCreatives() {
       const { data } = await supabase
         .from('creative_members')
@@ -110,9 +111,10 @@ export default function StartProject() {
         .eq('is_published', true)
         .order('display_order', { ascending: true, nullsFirst: false })
         .order('name', { ascending: true });
-      setCreatives(data || []);
+      if (active) setCreatives(data || []);
     }
     loadCreatives();
+    return () => { active = false; };
   }, []);
 
   function update(name, value) {

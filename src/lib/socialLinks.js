@@ -1,3 +1,5 @@
+import { safeExternalUrl } from './externalUrls.js';
+
 const platformMatchers = [
   ['facebook', /(^|\.)facebook\.com$/],
   ['instagram', /(^|\.)instagram\.com$/],
@@ -14,7 +16,9 @@ export function socialLinkMeta(link = {}) {
   let href = String(link.href || '').trim();
   if (/^https?$/i.test(suppliedLabel) && /^\/\//.test(href)) href = `${suppliedLabel}:${href.replace(/\s+/g, '')}`;
   if (/^www\./i.test(href)) href = `https://${href}`;
-  if (href.startsWith('mailto:')) return { platform: 'email', label: suppliedLabel || 'Email' };
+  href = safeExternalUrl(href, { allowMailto: true });
+  if (!href) return { platform: 'website', label: suppliedLabel || 'Website', href: '' };
+  if (href.startsWith('mailto:')) return { platform: 'email', label: suppliedLabel || 'Email', href };
 
   let platform = 'website';
   try {

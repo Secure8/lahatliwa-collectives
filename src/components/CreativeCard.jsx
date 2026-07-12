@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { getPublicImageUrl } from '../lib/storage';
 import { publicLocationState } from '../lib/navigationHistory';
 import { useState } from 'react';
+import { preloadPublicRoute } from '../lib/publicRoutePreload';
 
 export default function CreativeCard({ creative }) {
   const location = useLocation();
@@ -14,7 +15,7 @@ export default function CreativeCard({ creative }) {
 
   return (
     <article id={`creative-${creative.id}`} className="group major-border-top flex h-full scroll-mt-24 flex-col pt-5">
-      <Link to={`/creatives/${creative.slug}`} state={linkState} className="block">
+      <Link to={`/creatives/${creative.slug}`} state={linkState} onPointerEnter={() => preloadPublicRoute('/creatives/:slug')} onFocus={() => preloadPublicRoute('/creatives/:slug')} className="block">
         {profileImage && !imageFailed ? (
           <img src={profileImage} alt={creative.name} loading="lazy" decoding="async" width="800" height="800" className="mx-auto aspect-square w-full max-w-48 rounded-full bg-zinc-900 object-cover opacity-90 transition duration-500 group-hover:scale-[1.01] group-hover:opacity-100" onError={() => setImageFailed(true)} />
         ) : (

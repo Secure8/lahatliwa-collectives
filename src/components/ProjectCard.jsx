@@ -7,6 +7,7 @@ import { branchForKey, projectBranchKey } from '../lib/projectBranches';
 import { projectCreditSummary } from '../lib/fairProjectExposure';
 import { publicLocationState } from '../lib/navigationHistory';
 import { useState } from 'react';
+import { preloadPublicRoute } from '../lib/publicRoutePreload';
 
 export default function ProjectCard({ project }) {
   const location = useLocation();
@@ -21,7 +22,7 @@ export default function ProjectCard({ project }) {
   return (
     <article id={`project-${project.id}`} className="group flex h-full scroll-mt-24 flex-col">
       {image && !imageFailed ? (
-        <Link to={`/projects/${project.slug}`} state={linkState} className="block overflow-hidden bg-zinc-900">
+        <Link to={`/projects/${project.slug}`} state={linkState} onPointerEnter={() => preloadPublicRoute('/projects/:slug')} onFocus={() => preloadPublicRoute('/projects/:slug')} className="block overflow-hidden bg-zinc-900">
           <img className="aspect-[4/3] h-full w-full object-cover opacity-90 transition duration-500 group-hover:scale-[1.02] group-hover:opacity-100" src={image} alt={project.title} loading="lazy" decoding="async" fetchPriority="low" sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) 50vw, 33vw" width="800" height="600" onError={() => setImageFailed(true)} />
         </Link>
       ) : (

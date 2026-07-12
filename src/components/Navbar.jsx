@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { usePublicContent } from '../lib/contentApi';
+import { preloadPublicRoute } from '../lib/publicRoutePreload';
 
 const links = [
   ['Home', '/'],
@@ -42,6 +43,8 @@ export default function Navbar() {
               key={href}
               to={href}
               onClick={avoidDuplicateNavigation(href)}
+              onPointerEnter={() => preloadPublicRoute(href)}
+              onFocus={() => preloadPublicRoute(href)}
               className={({ isActive }) =>
                 clsx(
                   'fine-link site-hover-accent px-3 py-2 text-sm transition',
@@ -60,7 +63,7 @@ export default function Navbar() {
       {open && (
         <div className="page-shell grid gap-1 pb-4 md:hidden">
           {links.map(([label, href]) => (
-            <NavLink key={href} to={href} onClick={avoidDuplicateNavigation(href)} className="border-b border-white/[0.06] py-3 text-zinc-200">
+            <NavLink key={href} to={href} onClick={avoidDuplicateNavigation(href)} onPointerDown={() => preloadPublicRoute(href)} className="border-b border-white/[0.06] py-3 text-zinc-200">
               {label}
             </NavLink>
           ))}

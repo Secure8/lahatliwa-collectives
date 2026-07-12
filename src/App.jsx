@@ -10,16 +10,18 @@ import { PublicContentProvider, usePublicContent } from './lib/contentApi';
 import PublicScrollRestoration from './components/PublicScrollRestoration';
 import PublicErrorBoundary from './components/PublicErrorBoundary';
 import { publicRouteBoundaryKey } from './lib/navigationHistory';
+import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
+import { applyPublicMetadata } from './lib/publicMetadata';
 
 const Login = lazy(() => import('./pages/admin/Login'));
-const About = lazy(() => import('./pages/About'));
-const Projects = lazy(() => import('./pages/Projects'));
-const ProjectDetails = lazy(() => import('./pages/ProjectDetails'));
-const Services = lazy(() => import('./pages/Services'));
-const Contact = lazy(() => import('./pages/Contact'));
-const Creatives = lazy(() => import('./pages/Creatives'));
-const CreativeDetails = lazy(() => import('./pages/CreativeDetails'));
-const StartProject = lazy(() => import('./pages/StartProject'));
+const About = lazy(loadAbout);
+const Projects = lazy(loadProjects);
+const ProjectDetails = lazy(loadProjectDetails);
+const Services = lazy(loadServices);
+const Contact = lazy(loadContact);
+const Creatives = lazy(loadCreatives);
+const CreativeDetails = lazy(loadCreativeDetails);
+const StartProject = lazy(loadStartProject);
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
@@ -37,14 +39,60 @@ const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
 const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
 
-function SiteDocumentTitle() {
+const routeMetadata = {
+  '/': ['Lahat Liwa Collectives', 'A creative digital collective building visuals, stories, and useful digital experiences.'],
+  '/about': ['About | Lahat Liwa Collectives', 'Meet Lahat Liwa Collectives and learn how its creative and digital branches work together.'],
+  '/projects': ['Projects | Lahat Liwa Collectives', 'Explore published photography, video, design, website, application, and digital projects.'],
+  '/services': ['Services | Lahat Liwa Collectives', 'Explore creative, social, digital, and practical technology services from Lahat Liwa Collectives.'],
+  '/creatives': ['Creatives | Lahat Liwa Collectives', 'Meet the creatives shaping the work of Lahat Liwa Collectives.'],
+  '/start-a-project': ['Start a Project | Lahat Liwa Collectives', 'Tell Lahat Liwa Collectives about your project, goals, timeline, and creative or digital needs.'],
+  '/contact': ['Contact | Lahat Liwa Collectives', 'Contact Lahat Liwa Collectives about creative work, digital builds, and practical support.'],
+};
+
+function SiteDocumentMetadata() {
   const { content } = usePublicContent([]);
+  const { pathname } = useLocation();
 
   useEffect(() => {
-    document.title = content.displayName || 'Lahat Liwa';
-  }, [content.displayName]);
+    const brand = content.displayName || 'Lahat Liwa Collectives';
+    const isProject = pathname.startsWith('/projects/');
+    const isCreative = pathname.startsWith('/creatives/');
+    const [configuredTitle, description] = routeMetadata[pathname]
+      || (isProject
+        ? [`Project | ${brand}`, 'View a published project from Lahat Liwa Collectives.']
+        : isCreative
+          ? [`Creative Profile | ${brand}`, 'View a published creative profile from Lahat Liwa Collectives.']
+          : [brand, content.tagline || routeMetadata['/'][1]]);
+    const title = pathname === '/' ? brand : configuredTitle;
+    applyPublicMetadata({ title, description, pathname, type: isProject || isCreative ? 'article' : 'website' });
+  }, [content.displayName, content.tagline, pathname]);
 
   return null;
+}
+
+function PublicSiteFrame() {
+  const location = useLocation();
+  const { loading, resolved, error } = usePublicContent([]);
+
+  if (!resolved) {
+    return (
+      <main className="min-h-screen bg-zinc-950 text-zinc-100">
+        <div className="page-shell flex min-h-screen items-center justify-center py-20">
+          {loading ? <LoadingState label="Loading site content" /> : <p className="max-w-md text-center text-sm leading-6 text-zinc-400">{error || 'Live site content is temporarily unavailable. Please try again.'}</p>}
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <>
+      <SiteDocumentMetadata />
+      <PublicScrollRestoration />
+      <Navbar />
+      <main className="min-h-[60vh] overflow-x-hidden"><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
+      <Footer />
+    </>
+  );
 }
 
 function PublicLayout() {
@@ -54,11 +102,7 @@ function PublicLayout() {
   const pageKeys = useMemo(() => contentArea === 'home' ? ['home', 'services'] : contentArea === 'shared' ? [] : [contentArea], [contentArea]);
   return (
     <PublicContentProvider pageKeys={pageKeys}>
-      <SiteDocumentTitle />
-      <PublicScrollRestoration />
-      <Navbar />
-      <main className="min-h-[60vh] overflow-x-hidden"><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
-      <Footer />
+      <PublicSiteFrame />
     </PublicContentProvider>
   );
 }

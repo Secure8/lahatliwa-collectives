@@ -39,6 +39,7 @@ export default function Home() {
   const visibleProjects = useMemo(() => fairProjectExposure(projectsForBranch(projects, selectedBranch), projectLimit), [projectLimit, projects, selectedBranch]);
 
   useEffect(() => {
+    let active = true;
     async function loadFeatured() {
       const [projectResult, { data: creativeRows }] = await Promise.allSettled([
         fetchPublicProjectSummaries(),
@@ -51,6 +52,7 @@ export default function Home() {
           .limit(3),
       ]).then((results) => [results[0], results[1].status === 'fulfilled' ? results[1].value : { data: [] }]);
 
+      if (!active) return;
       if (projectResult.status === 'fulfilled') {
         const rows = projectResult.value || [];
         setProjects(rows);
@@ -63,6 +65,7 @@ export default function Home() {
       setLoading(false);
     }
     loadFeatured();
+    return () => { active = false; };
   }, []);
 
   function selectHomeBranch(branchKey) {

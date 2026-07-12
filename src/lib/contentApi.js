@@ -4,22 +4,23 @@ import { optimizeImageForUpload } from './imageCompression';
 import { supabase } from './supabaseClient';
 import { validateUploadFile } from './uploadLimits';
 import { collectReferencedStoragePaths, normalizeStoragePath } from './projectMediaCleanup';
+import { cachedContentMatchesScope, publicContentScope } from './publicContentScope';
+import { safeExternalUrl } from './externalUrls';
 
 const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
 const MEDIA_TABLE = 'media_assets';
 const BUCKET = 'project-media';
 const UPLOAD_OPTIONS = { upsert: false, cacheControl: '31536000' };
-const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache-v2';
-const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache'];
+const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache-v3';
+const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache', 'hevv-public-content-cache-v2'];
 const PUBLIC_CONTENT_UPDATED_EVENT = 'hevv-public-content-updated';
 const ALL_PAGE_KEYS = ['home', 'about', 'services', 'contact'];
 const PUBLIC_CONTENT_MEMORY_TTL = 60 * 1000;
 const PublicContentContext = createContext(null);
 const OPTIONAL_SETTINGS_COLUMNS = new Set(['divider_line_color', 'show_hero_portrait']);
-let memoryPublicContent = null;
-let memoryPublicContentUpdatedAt = 0;
-let publicContentRequest = null;
+const memoryPublicContentByScope = new Map();
+const publicContentRequests = new Map();
 
 function validateFile(file, { allowedTypes, label }) {
   if (!file) return;
@@ -31,8 +32,7 @@ function validateFile(file, { allowedTypes, label }) {
 function normalizeExternalUrl(url = '') {
   const trimmed = url.trim();
   if (!trimmed) return '';
-  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('mailto:')) return trimmed;
-  return `https://${trimmed}`;
+  return safeExternalUrl(trimmed, { allowMailto: true }) || safeExternalUrl(`https://${trimmed}`, { allowMailto: true });
 }
 
 function toNullableString(value) {
@@ -338,24 +338,29 @@ export function mergePublicContent(settings = {}, pages = {}) {
   };
 }
 
-function readCachedPublicContent() {
+function readCachedPublicContent(pageKeys = ALL_PAGE_KEYS) {
   if (typeof window === 'undefined') return null;
-  if (memoryPublicContent) return memoryPublicContent;
+  const scope = publicContentScope(pageKeys);
+  const memoryEntry = memoryPublicContentByScope.get(scope);
+  if (memoryEntry) return memoryEntry.content;
   try {
     const raw = window.localStorage.getItem(PUBLIC_CONTENT_CACHE_KEY);
-    memoryPublicContent = raw ? JSON.parse(raw) : null;
-    return memoryPublicContent;
+    const cached = raw ? JSON.parse(raw) : null;
+    if (!cachedContentMatchesScope(cached, pageKeys)) return null;
+    memoryPublicContentByScope.set(scope, { content: cached.content, updatedAt: cached.updatedAt || 0 });
+    return cached.content;
   } catch {
     return null;
   }
 }
 
-function writeCachedPublicContent(content) {
-  memoryPublicContent = content;
-  memoryPublicContentUpdatedAt = Date.now();
+function writeCachedPublicContent(content, pageKeys = ALL_PAGE_KEYS) {
+  const scope = publicContentScope(pageKeys);
+  const updatedAt = Date.now();
+  memoryPublicContentByScope.set(scope, { content, updatedAt });
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(PUBLIC_CONTENT_CACHE_KEY, JSON.stringify(content));
+    window.localStorage.setItem(PUBLIC_CONTENT_CACHE_KEY, JSON.stringify({ scope, content, updatedAt }));
   } catch {
   }
 }
@@ -369,22 +374,33 @@ function notifyPublicContentChanged(content) {
 }
 
 export function syncPublicContentCache(settings = {}) {
-  const cached = readCachedPublicContent() || mergePublicContent();
-  const nextContent = mergePublicContent(settings, {
-    home: cached.home || {},
-    about: cached.about || {},
-    services: cached.servicesPage || {},
-    contact: cached.contactPage || {},
-  });
-  writeCachedPublicContent(nextContent);
+  let nextContent = mergePublicContent(settings);
+  for (const [scope, entry] of memoryPublicContentByScope.entries()) {
+    const cached = entry.content;
+    const scopedContent = mergePublicContent(settings, {
+      home: cached.home || {},
+      about: cached.about || {},
+      services: cached.servicesPage || {},
+      contact: cached.contactPage || {},
+    });
+    memoryPublicContentByScope.set(scope, { content: scopedContent, updatedAt: Date.now() });
+    nextContent = scopedContent;
+  }
+  const latestEntry = [...memoryPublicContentByScope.entries()].at(-1);
+  if (latestEntry) {
+    const [scope, entry] = latestEntry;
+    try {
+      window.localStorage.setItem(PUBLIC_CONTENT_CACHE_KEY, JSON.stringify({ scope, content: entry.content, updatedAt: entry.updatedAt }));
+    } catch {
+    }
+  }
   notifyPublicContentChanged(nextContent);
   return nextContent;
 }
 
 function clearCachedPublicContent() {
-  memoryPublicContent = null;
-  memoryPublicContentUpdatedAt = 0;
-  publicContentRequest = null;
+  memoryPublicContentByScope.clear();
+  publicContentRequests.clear();
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(PUBLIC_CONTENT_CACHE_KEY);
@@ -393,38 +409,32 @@ function clearCachedPublicContent() {
   }
 }
 
-function usesCompletePublicBundle(pageKeys) {
-  return pageKeys.length === ALL_PAGE_KEYS.length && ALL_PAGE_KEYS.every((key) => pageKeys.includes(key));
-}
-
 async function fetchPublicContentBundle(pageKeys) {
   const [settings, pageEntries] = await Promise.all([
-    fetchSiteSettings().catch(() => ({})),
-    Promise.all(pageKeys.map(async (key) => [key, await fetchPageContent(key).catch(() => null)])),
+    fetchSiteSettings(),
+    Promise.all(pageKeys.map(async (key) => [key, await fetchPageContent(key)])),
   ]);
   return mergePublicContent(settings, Object.fromEntries(pageEntries));
 }
 
 async function loadPublicContentBundle(pageKeys) {
-  const sharedBundle = usesCompletePublicBundle(pageKeys);
-  const memoryIsFresh = memoryPublicContent
-    && memoryPublicContentUpdatedAt
-    && Date.now() - memoryPublicContentUpdatedAt < PUBLIC_CONTENT_MEMORY_TTL;
+  const scope = publicContentScope(pageKeys);
+  const memoryEntry = memoryPublicContentByScope.get(scope);
+  const memoryIsFresh = memoryEntry?.updatedAt && Date.now() - memoryEntry.updatedAt < PUBLIC_CONTENT_MEMORY_TTL;
+  if (memoryIsFresh) return memoryEntry.content;
+  if (publicContentRequests.has(scope)) return publicContentRequests.get(scope);
 
-  if (sharedBundle && memoryIsFresh) return memoryPublicContent;
-  if (!sharedBundle) return fetchPublicContentBundle(pageKeys);
-  if (publicContentRequest) return publicContentRequest;
-
-  publicContentRequest = fetchPublicContentBundle(pageKeys);
+  const request = fetchPublicContentBundle(pageKeys);
+  publicContentRequests.set(scope, request);
   try {
-    return await publicContentRequest;
+    return await request;
   } finally {
-    publicContentRequest = null;
+    publicContentRequests.delete(scope);
   }
 }
 
-function readCurrentCachedContent() {
-  return readCachedPublicContent() || mergePublicContent();
+function readCurrentCachedContent(pageKeys) {
+  return readCachedPublicContent(pageKeys);
 }
 
 function themeStyle(content) {
@@ -438,20 +448,33 @@ function themeStyle(content) {
 }
 
 export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
-  const cached = useMemo(() => readCachedPublicContent(), []);
+  const scope = publicContentScope(pageKeys);
+  const cached = useMemo(() => readCachedPublicContent(pageKeys), [scope]);
   const [content, setContent] = useState(() => cached || mergePublicContent());
   const [loading, setLoading] = useState(!cached);
+  const [resolved, setResolved] = useState(Boolean(cached));
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let active = true;
     async function loadContent() {
+      const scopedCache = readCachedPublicContent(pageKeys);
+      if (scopedCache) {
+        setContent(scopedCache);
+        setResolved(true);
+      } else {
+        setLoading(true);
+        setResolved(false);
+      }
+      setError('');
       try {
         const nextContent = await loadPublicContentBundle(pageKeys);
         if (!active) return;
         setContent(nextContent);
-        writeCachedPublicContent(nextContent);
-      } catch {
-        if (active && !cached) setContent(mergePublicContent());
+        setResolved(true);
+        writeCachedPublicContent(nextContent, pageKeys);
+      } catch (loadError) {
+        if (active && !scopedCache) setError(loadError?.message || 'Live site content could not be loaded.');
       } finally {
         if (active) setLoading(false);
       }
@@ -459,13 +482,18 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
     loadContent();
 
     const handleCacheChange = () => {
-      const nextContent = readCurrentCachedContent();
-      setContent(nextContent);
-      setLoading(false);
+      const nextContent = readCurrentCachedContent(pageKeys);
+      if (nextContent) {
+        setContent(nextContent);
+        setResolved(true);
+        setLoading(false);
+        setError('');
+      }
     };
 
     const handleStorageChange = (event) => {
       if (event.key && event.key !== PUBLIC_CONTENT_CACHE_KEY) return;
+      memoryPublicContentByScope.delete(scope);
       handleCacheChange();
     };
 
@@ -476,9 +504,9 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
       window.removeEventListener(PUBLIC_CONTENT_UPDATED_EVENT, handleCacheChange);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [cached, pageKeys]);
+  }, [scope]);
 
-  const value = { content, loading };
+  const value = { content, loading, resolved, error };
 
   return createElement(
     PublicContentContext.Provider,
@@ -492,8 +520,9 @@ export function usePublicContent(pageKeys = []) {
   if (context) return context;
 
   const keys = useMemo(() => pageKeys, [pageKeys.join('|')]);
-  const [content, setContent] = useState(() => mergePublicContent());
-  const [loading, setLoading] = useState(true);
+  const cached = readCachedPublicContent(keys);
+  const [content, setContent] = useState(() => cached || mergePublicContent());
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     let active = true;
@@ -501,8 +530,8 @@ export function usePublicContent(pageKeys = []) {
       setLoading(true);
       try {
         const [settings, pageEntries] = await Promise.all([
-          fetchSiteSettings().catch(() => ({})),
-          Promise.all(keys.map(async (key) => [key, await fetchPageContent(key).catch(() => null)])),
+          fetchSiteSettings(),
+          Promise.all(keys.map(async (key) => [key, await fetchPageContent(key)])),
         ]);
         if (!active) return;
         setContent(mergePublicContent(settings, Object.fromEntries(pageEntries)));
@@ -513,13 +542,16 @@ export function usePublicContent(pageKeys = []) {
     loadContent();
 
     const handleCacheChange = () => {
-      const nextContent = readCurrentCachedContent();
-      setContent(nextContent);
-      setLoading(false);
+      const nextContent = readCurrentCachedContent(keys);
+      if (nextContent) {
+        setContent(nextContent);
+        setLoading(false);
+      }
     };
 
     const handleStorageChange = (event) => {
       if (event.key && event.key !== PUBLIC_CONTENT_CACHE_KEY) return;
+      memoryPublicContentByScope.delete(publicContentScope(keys));
       handleCacheChange();
     };
 

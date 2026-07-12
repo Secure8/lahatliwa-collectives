@@ -90,6 +90,7 @@ function SocialLink({ link }) {
     email: Mail,
     website: Globe2,
   }[platform] || Globe2;
+  if (!href) return null;
   const external = !href.startsWith('mailto:');
   return <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className="inline-flex items-center gap-2 border border-white/[0.12] px-3.5 py-2.5 text-sm text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]"><Icon size={16} /> {label}{external && <ExternalLink size={14} />}</a>;
 }

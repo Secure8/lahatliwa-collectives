@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
+import { safeExternalUrl, safeInternalPath } from '../lib/externalUrls';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -27,15 +28,17 @@ export default function Services() {
   const [branches, setBranches] = useState([]);
 
   useEffect(() => {
+    let active = true;
     async function loadBranches() {
       const { data } = await supabase
         .from('service_branches')
         .select('id, name, slug, description, included_services, icon_url, image_url, cta_label, cta_url, display_order')
         .eq('is_published', true)
         .order('display_order', { ascending: true, nullsFirst: false });
-      setBranches(data || []);
+      if (active) setBranches(data || []);
     }
     loadBranches();
+    return () => { active = false; };
   }, []);
 
   const serviceGroups = branches.length
@@ -77,10 +80,17 @@ export default function Services() {
             <div className="mt-6 grid gap-3">
               {(group.items || []).map((item) => <div key={item} className="border-b border-white/[0.06] pb-3 text-zinc-300">{item}</div>)}
             </div>
-            <Link to={group.ctaUrl || '/start-a-project'} className="site-hover-accent mt-6 inline-flex text-sm text-zinc-300">{group.ctaLabel || 'Start a project'}</Link>
+            <ServiceAction href={group.ctaUrl || '/start-a-project'} label={group.ctaLabel || 'Start a project'} />
           </section>
         );})}
       </div>
     </div>
   );
+}
+
+function ServiceAction({ href, label }) {
+  const internalPath = safeInternalPath(href);
+  if (internalPath) return <Link to={internalPath} className="site-hover-accent mt-6 inline-flex text-sm text-zinc-300">{label}</Link>;
+  const externalUrl = safeExternalUrl(href);
+  return externalUrl ? <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="site-hover-accent mt-6 inline-flex text-sm text-zinc-300">{label}</a> : null;
 }

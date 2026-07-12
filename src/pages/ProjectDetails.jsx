@@ -9,6 +9,8 @@ import { usePublicContent } from '../lib/contentApi';
 import { detailBackAction } from '../lib/navigationHistory';
 import { supabase } from '../lib/supabaseClient';
 import { getPublicImageUrl } from '../lib/storage';
+import { safeExternalUrl } from '../lib/externalUrls';
+import { applyPublicMetadata } from '../lib/publicMetadata';
 
 function isMissingCreditRolesColumn(error) {
   const message = `${error?.message || ''} ${error?.details || ''}`;
@@ -26,8 +28,14 @@ export default function ProjectDetails() {
   const { content } = usePublicContent([]);
 
   useEffect(() => {
+    let active = true;
     async function loadProject() {
-      const { data, error: projectError } = await supabase.from('projects').select('*').eq('slug', slug).eq('status', 'published').single();
+      setLoading(true);
+      setError('');
+      setProject(null);
+      setContributors([]);
+      const { data, error: projectError } = await supabase.from('projects').select('id, title, slug, category, description, cover_image, gallery_images, gallery_items, featured, project_date, tools, video_url, social_post_url, live_url, github_url').eq('slug', slug).eq('status', 'published').single();
+      if (!active) return;
       if (projectError) setError('Project not found or not published yet.');
       else {
         setProject(data);
@@ -45,6 +53,7 @@ export default function ProjectDetails() {
             .order('is_primary', { ascending: false })
             .order('display_order', { ascending: true, nullsFirst: false }));
         }
+        if (!active) return;
         setContributors((contributorRows || []).map((row) => row.creative_members ? {
           ...row.creative_members,
           creditRoles: normalizeCreditRoleList(row.credit_roles?.length
@@ -56,7 +65,19 @@ export default function ProjectDetails() {
       setLoading(false);
     }
     loadProject();
+    return () => { active = false; };
   }, [slug]);
+
+  useEffect(() => {
+    if (!project) return;
+    applyPublicMetadata({
+      title: `${project.title} | Lahat Liwa Collectives`,
+      description: String(project.description || 'View a published project from Lahat Liwa Collectives.').slice(0, 160),
+      pathname: `/projects/${project.slug}`,
+      type: 'article',
+      image: getPublicImageUrl(project.cover_image),
+    });
+  }, [project]);
 
   if (loading) return <div className="page-shell py-20"><LoadingState label="Loading project" /></div>;
   if (error) return <div className="page-shell py-20"><p className="major-border-y py-8 text-zinc-300">{error}</p></div>;
@@ -72,7 +93,7 @@ export default function ProjectDetails() {
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[0.92fr_1.08fr]' : 'lg:grid-cols-1'}`}>
         {cover && (
           <div className="overflow-hidden bg-zinc-900">
-            <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} decoding="async" fetchpriority="high" width="1200" height="900" />
+            <img className="aspect-[4/3] h-full w-full object-cover" src={cover} alt={project.title} decoding="async" fetchPriority="high" width="1200" height="900" />
           </div>
         )}
         <div>
@@ -86,7 +107,7 @@ export default function ProjectDetails() {
             {primaryContributor && (
               <p>Work by <Link to={`/creatives/${primaryContributor.slug}`} className="site-hover-accent text-zinc-200">{primaryContributor.name}</Link></p>
             )}
-            <p>Published under <span className="text-zinc-200">Lahat Liwa Collectives</span></p>
+            <p>Published under <span className="text-zinc-200">Lahat Liwa Collectivess</span></p>
           </div>
           <p className="mt-5 inline-flex items-center gap-2 text-sm" style={{ color: content.mutedTextColor }}><Calendar size={16} /> {formatDate(project.project_date)}</p>
           {project.tools?.length > 0 && (
@@ -141,12 +162,14 @@ function GalleryItem({ item, projectTitle }) {
   const mediaUrl = getGalleryItemMediaUrl(item);
   const thumbnailUrl = getGalleryItemThumbnailUrl(item);
   const youtubeId = item.type === 'youtube' ? getYouTubeVideoId(item.url) : '';
+  const externalUrl = safeExternalUrl(item.url);
 
   if (item.type === 'image') {
     return <img className="mb-5 h-auto w-full break-inside-avoid bg-zinc-900" src={mediaUrl} alt={item.title || `${projectTitle} gallery`} loading="lazy" decoding="async" />;
   }
 
   if (item.type === 'pdf') {
+    if (!safeExternalUrl(mediaUrl)) return null;
     return (
       <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="mb-5 flex min-h-40 break-inside-avoid items-center justify-center gap-3 border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
         <FileText size={22} /> Open PDF
@@ -158,8 +181,10 @@ function GalleryItem({ item, projectTitle }) {
     return <YouTubeGalleryItem item={item} youtubeId={youtubeId} thumbnailUrl={thumbnailUrl} />;
   }
 
+  if (!externalUrl) return null;
+
   return (
-    <a href={item.url} target="_blank" rel="noopener noreferrer" className="mb-5 block break-inside-avoid overflow-hidden border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)]">
+    <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="mb-5 block break-inside-avoid overflow-hidden border border-white/10 bg-zinc-900/70 text-zinc-200 transition hover:border-[var(--site-accent)]">
       {thumbnailUrl ? (
         <img src={thumbnailUrl} alt={item.title || item.platform} loading="lazy" decoding="async" width="800" height="600" className="aspect-[4/3] w-full object-cover" />
       ) : (
@@ -178,6 +203,7 @@ function GalleryItem({ item, projectTitle }) {
 function YouTubeGalleryItem({ item, youtubeId, thumbnailUrl }) {
   const [playerOpen, setPlayerOpen] = useState(false);
   const previewUrl = thumbnailUrl || `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
+  const youtubeUrl = safeExternalUrl(item.url);
 
   return (
     <div className="mb-5 break-inside-avoid overflow-hidden border border-white/10 bg-zinc-900/70">
@@ -203,9 +229,9 @@ function YouTubeGalleryItem({ item, youtubeId, thumbnailUrl }) {
       )}
       <ExternalGalleryCardContent item={item} compact />
       <div className="px-4 pb-4">
-        <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-[var(--site-accent)]">
+        {youtubeUrl && <a href={youtubeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-[var(--site-accent)]">
           Open on YouTube <ExternalLink size={15} />
-        </a>
+        </a>}
       </div>
     </div>
   );
@@ -225,9 +251,10 @@ function ExternalGalleryCardContent({ item, compact = false }) {
 }
 
 function Action({ href, icon: Icon, label, accentColor }) {
-  if (!href) return null;
+  const safeHref = safeExternalUrl(href);
+  if (!safeHref) return null;
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center justify-center gap-2 border px-3 py-3 text-center text-sm text-zinc-200 transition hover:opacity-80 sm:px-4" style={{ borderColor: `${accentColor}55`, color: accentColor }}>
+    <a href={safeHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center justify-center gap-2 border px-3 py-3 text-center text-sm text-zinc-200 transition hover:opacity-80 sm:px-4" style={{ borderColor: `${accentColor}55`, color: accentColor }}>
       <Icon size={17} /> {label}
     </a>
   );

@@ -1,5 +1,5 @@
 import { ArrowRight, Camera, Circle, Code2, Sparkles, Wrench } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CreativeCard from '../components/CreativeCard';
 import EmptyState from '../components/EmptyState';
@@ -8,11 +8,16 @@ import ProjectGrid from '../components/ProjectGrid';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
 import { createHeroBackgroundRender } from '../lib/heroBackground';
 import { supabase } from '../lib/supabaseClient';
+import { branchForKey, branchProjectsUrl, PROJECT_BRANCHES, projectBranchKey, projectsForBranch } from '../lib/projectBranches';
+import { fairProjectExposure } from '../lib/fairProjectExposure';
+import { fetchPublicProjectSummaries } from '../lib/publicProjectData';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
 export default function Home() {
   const [projects, setProjects] = useState([]);
+  const [selectedBranch, setSelectedBranch] = useState('studio');
+  const [projectError, setProjectError] = useState('');
   const [creatives, setCreatives] = useState([]);
   const [loading, setLoading] = useState(true);
   const { content } = usePublicContent(['home', 'services']);
@@ -27,18 +32,14 @@ export default function Home() {
   const showHeroPortrait = content.showHeroPortrait === true || content.show_hero_portrait === true;
   const hasPortrait = Boolean(content.heroImageUrl && showHeroPortrait);
   const servicePreview = (content.servicesPage?.groups || []).slice(0, 3);
+  const projectLimit = 6;
+  const selectedBranchInfo = branchForKey(selectedBranch) || PROJECT_BRANCHES[0];
+  const visibleProjects = useMemo(() => fairProjectExposure(projectsForBranch(projects, selectedBranch), projectLimit), [projectLimit, projects, selectedBranch]);
 
   useEffect(() => {
     async function loadFeatured() {
-      const [{ data, error }, { data: creativeRows }] = await Promise.all([
-        supabase
-        .from('projects')
-        .select('id, title, slug, category, description, cover_image, gallery_images, gallery_items, featured')
-        .eq('status', 'published')
-        .eq('featured', true)
-        .order('display_order', { ascending: true, nullsFirst: false })
-        .order('project_date', { ascending: false, nullsFirst: false })
-        .limit(3),
+      const [projectResult, { data: creativeRows }] = await Promise.allSettled([
+        fetchPublicProjectSummaries(),
         supabase
           .from('creative_members')
           .select('id, name, slug, role, short_bio, profile_image_url, skills, is_featured')
@@ -46,9 +47,16 @@ export default function Home() {
           .eq('is_featured', true)
           .order('display_order', { ascending: true, nullsFirst: false })
           .limit(3),
-      ]);
+      ]).then((results) => [results[0], results[1].status === 'fulfilled' ? results[1].value : { data: [] }]);
 
-      if (!error) setProjects(data || []);
+      if (projectResult.status === 'fulfilled') {
+        const rows = projectResult.value || [];
+        setProjects(rows);
+        if (!rows.some((project) => projectBranchKey(project.category) === 'studio')) {
+          const firstAvailable = PROJECT_BRANCHES.find((branch) => rows.some((project) => projectBranchKey(project.category) === branch.key));
+          if (firstAvailable) setSelectedBranch(firstAvailable.key);
+        }
+      } else setProjectError('Projects could not be loaded right now.');
       setCreatives(creativeRows || []);
       setLoading(false);
     }
@@ -88,15 +96,22 @@ export default function Home() {
       </div>
       </section>
 
-      <section className="page-shell major-border-top py-16">
-        <div className="mb-10 flex items-end justify-between gap-4">
+      <section className="page-shell major-border-top py-16" aria-labelledby="selected-work-heading">
+        <div className="mb-8 max-w-2xl">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Featured work</p>
-            <h2 className="mt-3 text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>{content.home.featuredHeading}</h2>
+            <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Selected work</p>
+            <h2 id="selected-work-heading" className="mt-3 text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>{content.home.featuredHeading}</h2>
+            <p className="mt-4 leading-7" style={{ color: content.secondaryTextColor }}>Explore projects across the four branches of Lahat Liwa.</p>
           </div>
-          <Link to="/projects?featured=1" className="fine-link site-hover-accent text-sm text-zinc-300">View all selected</Link>
         </div>
-        {loading ? <LoadingState label="Loading featured projects" /> : projects.length ? <ProjectGrid projects={projects} /> : <EmptyState title="No featured projects yet" message="Publish and feature projects from the admin dashboard." />}
+        <div className="mb-10 grid grid-cols-2 border-y border-white/[0.08] sm:grid-cols-4" role="tablist" aria-label="Project branches">
+          {PROJECT_BRANCHES.map((branch) => {
+            const active = selectedBranch === branch.key;
+            return <button key={branch.key} type="button" role="tab" aria-selected={active} onClick={() => setSelectedBranch(branch.key)} className={`min-w-0 border-b px-2 py-4 text-left transition sm:px-4 ${active ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
+          })}
+        </div>
+        {loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}
+        <Link to={branchProjectsUrl(selectedBranch)} className="fine-link site-hover-accent mt-9 inline-flex items-center gap-2 text-sm text-zinc-300">View all {selectedBranchInfo.label} projects <ArrowRight size={16} /></Link>
       </section>
 
       <section className="page-shell major-border-top py-16">

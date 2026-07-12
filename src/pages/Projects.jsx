@@ -5,30 +5,27 @@ import LoadingState from '../components/LoadingState';
 import ProjectGrid from '../components/ProjectGrid';
 import SearchBar from '../components/SearchBar';
 import { usePublicContent } from '../lib/contentApi';
-import { supabase } from '../lib/supabaseClient';
+import { normalizeBranchQuery, PROJECT_BRANCHES, projectsForBranch } from '../lib/projectBranches';
+import { fetchPublicProjectSummaries } from '../lib/publicProjectData';
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { content } = usePublicContent([]);
   const featuredOnly = searchParams.get('featured') === '1';
+  const selectedBranch = normalizeBranchQuery(searchParams.get('branch'));
 
   useEffect(() => {
     async function loadProjects() {
       setLoading(true);
-      const { data, error: projectError } = await supabase
-        .from('projects')
-        .select('id, title, slug, category, description, cover_image, gallery_images, gallery_items, featured, display_order, project_date')
-        .eq('status', 'published')
-        .order('featured', { ascending: false })
-        .order('display_order', { ascending: true, nullsFirst: false })
-        .order('project_date', { ascending: false, nullsFirst: false });
-
-      if (projectError) setError(projectError.message);
-      else setProjects(data || []);
+      try {
+        setProjects(await fetchPublicProjectSummaries());
+      } catch (projectError) {
+        setError(projectError.message || 'Projects could not be loaded.');
+      }
       setLoading(false);
     }
     loadProjects();
@@ -36,11 +33,17 @@ export default function Projects() {
 
   const visible = useMemo(() => {
     const term = search.toLowerCase();
-    return projects.filter((project) => {
+    return projectsForBranch(projects, selectedBranch).filter((project) => {
       const matchesSearch = !term || project.title.toLowerCase().includes(term) || (project.description || '').toLowerCase().includes(term);
       return matchesSearch && (!featuredOnly || project.featured);
     });
-  }, [featuredOnly, projects, search]);
+  }, [featuredOnly, projects, search, selectedBranch]);
+
+  function selectBranch(branch) {
+    const next = new URLSearchParams(searchParams);
+    if (branch) next.set('branch', branch); else next.delete('branch');
+    setSearchParams(next);
+  }
 
   return (
     <div className="page-shell py-20">
@@ -52,10 +55,14 @@ export default function Projects() {
       </div>
       <div className="major-border-y mb-12 py-5">
         <SearchBar value={search} onChange={setSearch} />
+        <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3" aria-label="Filter projects by branch">
+          <button type="button" onClick={() => selectBranch(null)} className={`border-b pb-1 text-sm transition ${!selectedBranch ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}>All Projects</button>
+          {PROJECT_BRANCHES.map((branch) => <button key={branch.key} type="button" onClick={() => selectBranch(branch.key)} className={`border-b pb-1 text-sm transition ${selectedBranch === branch.key ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}>{branch.label}</button>)}
+        </div>
       </div>
       {loading && <LoadingState label="Loading projects" />}
       {error && <div className="rounded-md border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
-      {!loading && !error && (visible.length ? <ProjectGrid projects={visible} /> : <EmptyState title="No projects found" message="Try another search term." />)}
+      {!loading && !error && (visible.length ? <ProjectGrid projects={visible} /> : <EmptyState title={selectedBranch ? 'Projects for this branch are being prepared.' : 'No projects found'} message={selectedBranch ? 'Explore another branch or view all current work.' : 'Try another search term.'} />)}
     </div>
   );
 }

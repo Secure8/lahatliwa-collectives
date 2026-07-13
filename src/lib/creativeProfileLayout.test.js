@@ -48,6 +48,7 @@ test('desktop profile rails frame the cover and content without entering mobile 
 
 test('creative profiles reveal immersive navigation from the desktop top edge', async () => {
   const navbar = await readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8');
+  const hero = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
   const details = await readFile(new URL('../pages/CreativeDetails.jsx', import.meta.url), 'utf8');
   assert.match(navbar, /immersiveProfile/);
   assert.match(navbar, /event\.clientY <= 140/);
@@ -56,6 +57,8 @@ test('creative profiles reveal immersive navigation from the desktop top edge', 
   assert.match(details, /event\.clientY <= 140/);
   assert.match(details, /fixed left-3 top-\[4\.5rem\]/);
   assert.match(details, /xl:pointer-events-none xl:-translate-y-2 xl:opacity-0/);
+  assert.match(hero, /<span>BROWSE THE PAGE<\/span>/);
+  assert.match(hero, /pointer-events-none.*hidden justify-center xl:flex/);
 });
 
 test('profile hero upload retains large-image quality limits', async () => {

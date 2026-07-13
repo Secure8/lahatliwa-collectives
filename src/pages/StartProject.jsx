@@ -211,7 +211,7 @@ export default function StartProject() {
               value={form.preferred_creative_id}
               disabled={Boolean(lockedCreative)}
               onChange={(event) => update('preferred_creative_id', event.target.value)}
-              className="min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.18] focus:border-[var(--project-accent)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="dark-select min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.18] focus:border-[var(--project-accent)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               <option value="">Let the collective decide</option>
               {creatives.map((creative) => <option key={creative.id} value={creative.id}>{creative.name}{creative.role ? ` - ${creative.role}` : ''}</option>)}
@@ -301,7 +301,7 @@ function Select({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.18] focus:border-[var(--project-accent)]"
+        className="dark-select min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.18] focus:border-[var(--project-accent)]"
       >
         {options.map((option) => <option key={option}>{option}</option>)}
       </select>

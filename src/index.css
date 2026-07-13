@@ -55,6 +55,19 @@ select {
   font: inherit;
 }
 
+.dark-select,
+.admin-shell select {
+  color-scheme: dark;
+}
+
+.dark-select option,
+.dark-select optgroup,
+.admin-shell select option,
+.admin-shell select optgroup {
+  background-color: #18181b;
+  color: #f4f4f5;
+}
+
 .page-shell {
   width: min(1120px, calc(100% - 24px));
   margin: 0 auto;

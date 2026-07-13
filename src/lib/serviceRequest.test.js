@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { branchKeyFromRecord, canonicalServiceKey, emptyInquiryDraft, inquiryUrl, mergeInquiryContext, referenceIsValid, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
+import { branchKeyFromRecord, branchMeta, canonicalServiceKey, emptyInquiryDraft, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
 
 test('canonical branch and inquiry routes preserve refresh-safe context', () => {
   assert.equal(branchKeyFromRecord({ slug: 'lahat-liwa-studio' }), 'studio');
@@ -49,6 +49,16 @@ test('broad service catalog is stable while legacy URLs and custom CMS categorie
   assert.equal(canonicalServiceKey('social', 'digital-marketing-support'), 'campaign');
   assert.equal(canonicalServiceKey('tech', 'virtual-assistance'), 'remote-assistance');
   assert.deepEqual(serviceCategoriesForBranch('studio', ['Photography', 'Photo Editing', 'Audio Production']).slice(-1)[0], { key: 'audio-production', name: 'Audio Production', custom: true });
+});
+
+test('branch descriptions are specific, stable, and replace known template copy without hiding intentional CMS wording', () => {
+  assert.equal(branchMeta('studio').description, 'Tell us what you need for your photo, video, editing, SDE, or highlights project. Share the occasion, preferred style, schedule, and expected output so we can match you with the right creative.');
+  assert.equal(branchMeta('tech').description, 'Describe the device, software, setup, or technical issue you need help with. Let us know what is happening, how urgent it is, and whether you prefer remote or on-site support.');
+  assert.equal(branchMeta('digital').description, 'Tell us what you want to build or improve, such as a website, app, system, prototype, or digital product. Share your goal, required features, target users, and preferred timeline.');
+  assert.equal(branchMeta('social').description, 'Tell us what you want to improve or achieve on social media. Share your platforms, content needs, campaign goals, posting support, and any challenges with your current online presence.');
+  assert.equal(branchMeta('general').description, 'Describe your project, question, or collaboration idea. Include the result you are aiming for, your preferred timeline, and any details that will help us direct your request to the right team.');
+  assert.equal(publicBranchDescription('social', 'Start a guided Liwa Social request and describe the exact outcome.'), branchMeta('social').description);
+  assert.equal(publicBranchDescription('studio', 'Custom audio and mixed-media support for community productions.'), 'Custom audio and mixed-media support for community productions.');
 });
 
 test('public reference format is strict and non-database-identifying', () => {

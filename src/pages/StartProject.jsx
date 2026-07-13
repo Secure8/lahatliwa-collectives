@@ -155,7 +155,7 @@ export default function StartProject() {
   }
 
   return <div className="page-shell py-16 sm:py-20" style={{ '--project-accent': content.accentColor, '--project-secondary': content.secondaryTextColor }}>
-    <PublicPageHeader eyebrow="Guided inquiry" title="Describe what you need, one step at a time." description="Choose a broad category and a creative or team, then share the details that will help us understand and match your request." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
+    <PublicPageHeader eyebrow="Project inquiry" title="Describe what you need, one step at a time." description="Choose the branch and broad category that best fit your request, then share the outcome, context, timeline, and support you need." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
 
     <StepProgress current={step} />
     <div className="grid gap-9 pt-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">

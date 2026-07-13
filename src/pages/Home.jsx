@@ -13,7 +13,7 @@ import { fairProjectExposure } from '../lib/fairProjectExposure';
 import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
 import { scrollPreservingNavigationState, shouldPushFilter } from '../lib/navigationHistory';
 import { AccentEyebrow } from '../components/PublicPageHeader';
-import { branchKeyFromRecord, branchMeta } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, publicBranchDescription } from '../lib/serviceRequest';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -154,9 +154,9 @@ export default function Home() {
             const Icon = iconMap[group.iconName] || Circle;
             const serviceLogoUrl = resolvePublicAssetUrl(group.serviceLogoUrl);
             const iconUrl = resolvePublicAssetUrl(group.customIconUrl || group.iconUrl);
-            const broadBranch = branchMeta(branchKeyFromRecord(group));
-            const legacyDescription = /(planning and shaping social content|photo and video coverage|first-version mindset|simple technical help)/i.test(group.description || '');
-            const description = legacyDescription ? broadBranch?.description : group.description || broadBranch?.description;
+            const branchKey = branchKeyFromRecord(group);
+            const broadBranch = branchMeta(branchKey);
+            const description = broadBranch ? publicBranchDescription(branchKey, group.description) : group.description;
             return (
             <div key={group.name} className="major-border-top pt-5">
               <div className="flex min-h-10 items-center gap-0.5">

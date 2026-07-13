@@ -46,7 +46,7 @@ const routeMetadata = {
   '/': ['Lahat Liwa Collectives', 'A creative digital collective building visuals, stories, and useful digital experiences.'],
   '/about': ['About | Lahat Liwa Collectives', 'Meet Lahat Liwa Collectives and learn how its creative and digital branches work together.'],
   '/projects': ['Projects | Lahat Liwa Collectives', 'Explore published photography, video, design, website, application, and digital projects.'],
-  '/services': ['Services | Lahat Liwa Collectives', 'Explore flexible creative, social-media, digital, and technical service categories from Lahat Liwa Collectives.'],
+  '/services': ['Services | Lahat Liwa Collectives', 'Explore support for photo and video projects, technical needs, digital products, social media, and multidisciplinary work.'],
   '/creatives': ['Creatives | Lahat Liwa Collectives', 'Meet the creatives shaping the work of Lahat Liwa Collectives.'],
   '/start-a-project': ['Start a Project | Lahat Liwa Collectives', 'Describe your requirements, goals, timeline, and preferred support for review by Lahat Liwa Collectives.'],
   '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Describe your requirements, goals, timeline, and preferred support for review by Lahat Liwa Collectives.'],

@@ -44,26 +44,26 @@ export const defaultSiteContent = {
   ],
   tools: ['React', 'Supabase', 'Vite', 'Tailwind CSS', 'Canva', 'Adobe tools', 'CapCut', 'Figma'],
   servicesIntro:
-    'Flexible creative, digital, social-media, and technical support shaped around each client’s goals, context, and requirements.',
+    'Choose the area that best matches your request, then share the result, context, and timeline that matter to you.',
   services: [
     {
       name: 'Liwa Social',
-      description: 'Flexible social-media support for planning, content, account management, campaigns, and online presence.',
+      description: 'Tell us what you want to improve or achieve on social media. Share your platforms, content needs, campaign goals, posting support, and any challenges with your current online presence.',
       items: ['Management', 'Content', 'Campaign', 'Strategy', 'Page Setup', 'Review & Consultation', 'Other Social Media Work'],
     },
     {
       name: 'Liwa Studio',
-      description: 'Flexible photo, video, editing, and visual-production support for projects, events, brands, and personal work.',
+      description: 'Tell us what you need for your photo, video, editing, SDE, or highlights project. Share the occasion, preferred style, schedule, and expected output so we can match you with the right creative.',
       items: ['Photo', 'Video', 'Same-Day Edit (SDE)', 'Highlights', 'Editing', 'Other Creative Work'],
     },
     {
       name: 'Liwa Digital',
-      description: 'Websites, applications, systems, interfaces, and other digital solutions shaped around the client’s goals.',
+      description: 'Tell us what you want to build or improve, such as a website, app, system, prototype, or digital product. Share your goal, required features, target users, and preferred timeline.',
       items: ['Website', 'App', 'System', 'Design & Prototype', 'Digital Product', 'Consultation', 'Other Digital Work'],
     },
     {
       name: 'Liwa Tech',
-      description: 'Practical technical support for devices, software, setup, troubleshooting, and digital workflows.',
+      description: 'Describe the device, software, setup, or technical issue you need help with. Let us know what is happening, how urgent it is, and whether you prefer remote or on-site support.',
       items: ['Consultation', 'Diagnostics', 'Remote Assistance', 'Setup', 'On-site Support', 'Other Technical Help'],
     },
   ],

@@ -1,13 +1,13 @@
 import { canonicalServiceKey, serviceCategoriesForBranch, serviceKey } from './serviceCatalog.js';
 
 export const SERVICE_BRANCHES = [
-  { key: 'studio', label: 'Liwa Studio', action: 'Request Creative Services', description: 'Flexible photo, video, editing, and visual-production support for projects, events, brands, and personal work.' },
-  { key: 'tech', label: 'Liwa Tech', action: 'Request Technical Support', description: 'Practical technical support for devices, software, setup, troubleshooting, and digital workflows.' },
-  { key: 'digital', label: 'Liwa Digital', action: 'Start a Digital Project', description: 'Websites, applications, systems, interfaces, and other digital solutions shaped around the client’s goals.' },
-  { key: 'social', label: 'Liwa Social', action: 'Start a Social Media Request', description: 'Flexible social-media support for planning, content, account management, campaigns, and online presence.' },
+  { key: 'studio', label: 'Liwa Studio', action: 'Request Creative Services', description: 'Tell us what you need for your photo, video, editing, SDE, or highlights project. Share the occasion, preferred style, schedule, and expected output so we can match you with the right creative.' },
+  { key: 'tech', label: 'Liwa Tech', action: 'Request Technical Support', description: 'Describe the device, software, setup, or technical issue you need help with. Let us know what is happening, how urgent it is, and whether you prefer remote or on-site support.' },
+  { key: 'digital', label: 'Liwa Digital', action: 'Start a Digital Project', description: 'Tell us what you want to build or improve, such as a website, app, system, prototype, or digital product. Share your goal, required features, target users, and preferred timeline.' },
+  { key: 'social', label: 'Liwa Social', action: 'Start a Social Media Request', description: 'Tell us what you want to improve or achieve on social media. Share your platforms, content needs, campaign goals, posting support, and any challenges with your current online presence.' },
 ];
 
-export const GENERAL_BRANCH = { key: 'general', label: 'General', action: 'Describe What You Need', description: 'General inquiries, multidisciplinary projects, partnerships, collaborations, and requests that are still taking shape.' };
+export const GENERAL_BRANCH = { key: 'general', label: 'General', action: 'Describe What You Need', description: 'Describe your project, question, or collaboration idea. Include the result you are aiming for, your preferred timeline, and any details that will help us direct your request to the right team.' };
 export const INQUIRY_STEPS = ['Service Category', 'Creative or Team', 'Project Details', 'Schedule and Contact', 'Review'];
 export const INQUIRY_DRAFT_KEY = 'lahat-liwa-inquiry-draft-v1';
 export const REFERENCE_PATTERN = /^LLC-\d{4}-[A-Z0-9]{6}$/;
@@ -29,6 +29,14 @@ export function branchKeyFromRecord(record = {}) {
 
 export function branchMeta(key) {
   return SERVICE_BRANCHES.find((branch) => branch.key === key) || (key === 'general' ? GENERAL_BRANCH : null);
+}
+
+const REPLACED_BRANCH_DESCRIPTION = /(start a guided .+ request|flexible photo, video, editing, and visual-production support|practical technical support for devices, software, setup, troubleshooting|websites, applications, systems, interfaces, and other digital solutions|flexible social-media support for planning, content, account management|planning and shaping social content|photo and video coverage|first-version mindset|simple technical help|everyday computer support)/i;
+
+export function publicBranchDescription(key, configuredDescription = '') {
+  const fallback = branchMeta(key)?.description || '';
+  const configured = String(configuredDescription || '').trim();
+  return !configured || REPLACED_BRANCH_DESCRIPTION.test(configured) ? fallback : configured;
 }
 
 export function inquiryUrl({ branch = '', service = '', creative = '' } = {}) {

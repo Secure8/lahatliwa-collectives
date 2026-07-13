@@ -60,6 +60,25 @@ select {
   margin: 0 auto;
 }
 
+.public-filter-scroll {
+  scrollbar-width: none;
+}
+
+.public-filter-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+[id^="creative-project-"] > a:first-child {
+  border-radius: 10px;
+}
+
+[aria-label="Tools and resources"] {
+  border-color: rgb(255 255 255 / 0.15);
+  background: rgb(0 0 0 / 0.16);
+  box-shadow: 0 10px 35px rgb(0 0 0 / 0.2);
+  backdrop-filter: blur(6px);
+}
+
 .fine-link {
   background-image: linear-gradient(currentColor, currentColor);
   background-position: 0 100%;

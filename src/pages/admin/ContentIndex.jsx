@@ -16,7 +16,7 @@ const pages = [
   {
     key: 'about',
     title: 'About',
-    description: 'About page heading, introduction, journey copy, and skills and tools lists.',
+    description: 'About page heading, introduction, and creative journey copy.',
     editorPath: '/admin/content/about',
     publicPath: '/about',
   },
@@ -49,7 +49,8 @@ function LineButton({ children, to, href, onClick, subtle = false, external = fa
   const classes = `inline-flex h-10 items-center gap-2 border-b px-2 text-sm transition ${subtle ? 'border-white/[0.08] text-zinc-400 hover:border-amber-200/35 hover:text-white' : 'border-white/[0.12] text-zinc-300 hover:border-amber-200/40 hover:text-white'}`;
 
   if (to) return <Link to={to} className={classes}>{children}</Link>;
-  if (href) return <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noreferrer noopener' : undefined} className={classes}>{children}</a>;
+  if (href && !external) return <Link to={href} className={classes}>{children}</Link>;
+  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes}>{children}</a>;
   return <button type="button" onClick={onClick} className={classes}>{children}</button>;
 }
 

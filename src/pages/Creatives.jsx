@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
 import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
+import PublicPageHeader from '../components/PublicPageHeader';
 
 export default function Creatives() {
   const [creatives, setCreatives] = useState([]);
@@ -33,13 +34,10 @@ export default function Creatives() {
 
   return (
     <div className="page-shell py-20">
-      <div className="mb-12 max-w-3xl">
-        <p className="text-xs font-medium uppercase tracking-[0.28em]" style={{ color: content.accentColor }}>Creatives</p>
-        <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.primaryTextColor }}>The people shaping Lahat Liwa Collectives.</h1>
-        <p className="mt-5 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>A growing circle of creatives working across visuals, social content, websites, editing, and digital support.</p>
-      </div>
+      <PublicPageHeader eyebrow="Creative directory" title="The people shaping Lahat Liwa Collectives." description="A growing circle of creatives working across visuals, social content, websites, editing, and digital support." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} aside={<><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Published profiles</p><p className="mt-2 text-2xl font-medium text-white">{creatives.length}</p></>} />
+      <div className="pt-12">
       {loading && <LoadingState label="Loading creatives" />}
-      {error && <div className="rounded-md border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</div>}
+      {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}
       {!loading && !error && (
         creatives.length ? (
           <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
@@ -47,6 +45,7 @@ export default function Creatives() {
           </div>
         ) : <EmptyState title="No creatives yet" message="Published creative profiles will appear here." />
       )}
+      </div>
     </div>
   );
 }

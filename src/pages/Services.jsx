@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 import { safeExternalUrl, safeInternalPath } from '../lib/externalUrls';
+import PublicPageHeader from '../components/PublicPageHeader';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -59,18 +60,14 @@ export default function Services() {
 
   return (
     <div className="page-shell py-20">
-      <div className="max-w-3xl">
-        <p className="text-xs font-medium uppercase tracking-[0.28em]" style={{ color: content.accentColor }}>Services</p>
-        <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.servicesPage.headingColor || content.primaryTextColor }}>Service branches for practical digital work.</h1>
-        <p className="mt-6 text-lg leading-8" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>Lahat Liwa Collectives works across studio, social, web, and creative production for teams, events, creators, and growing ideas.</p>
-      </div>
+      <PublicPageHeader eyebrow="Services" title="Service branches for practical digital work." description="Lahat Liwa Collectives works across studio, social, web, and creative production for teams, events, creators, and growing ideas." accentColor={content.accentColor} titleColor={content.servicesPage.headingColor || content.primaryTextColor} bodyColor={content.servicesPage.bodyTextColor || content.secondaryTextColor} />
       <div className="mt-14 grid gap-10 md:grid-cols-2">
         {serviceGroups.map((group) => {
           const Icon = iconMap[group.iconName] || Circle;
           const serviceLogoUrl = resolvePublicAssetUrl(group.serviceLogoUrl);
           const iconUrl = resolvePublicAssetUrl(group.customIconUrl || group.iconUrl);
           return (
-          <section key={group.name} className="major-border-top pt-6">
+          <section key={group.name} className="group relative border-t border-white/[0.09] pt-6 after:absolute after:left-0 after:top-[-1px] after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.75)] after:transition-all after:duration-500 hover:after:w-20">
             <div className="mb-5 flex min-h-8 items-center gap-0.5">
               {serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} loading="lazy" decoding="async" width="96" height="32" className="h-8 max-w-24 object-contain" />}
               {iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />}

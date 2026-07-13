@@ -51,7 +51,8 @@ function lineButtonClasses({ subtle = false, disabled = false } = {}) {
 function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false, type = 'button' }) {
   const classes = lineButtonClasses({ subtle, disabled });
   if (to) return <Link to={to} className={classes}>{children}</Link>;
-  if (href) return <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noreferrer noopener' : undefined} className={classes}>{children}</a>;
+  if (href && !external) return <Link to={href} className={classes}>{children}</Link>;
+  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes}>{children}</a>;
   return <button type={type} onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
 }
 

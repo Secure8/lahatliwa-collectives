@@ -25,10 +25,10 @@ export const UPLOAD_LIMITS = Object.freeze({
     message: 'Thumbnails must be 300 KB or smaller. Please compress this file before uploading.',
   }),
   creativeProfile: Object.freeze({
-    maxBytes: 300 * KB,
-    maxDimension: 800,
+    maxBytes: 1.5 * MB,
+    maxDimension: 2200,
     compressImage: true,
-    message: 'Profile photos must be 300 KB or smaller. Please compress this file before uploading.',
+    message: 'Profile hero images must be 1.5 MB or smaller. Please choose a smaller image if optimization cannot reach that size.',
   }),
   creativeCover: Object.freeze({
     maxBytes: 1 * MB,

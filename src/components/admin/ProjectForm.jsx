@@ -722,7 +722,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                 {form.gallery_images.map((file) => (
                   <div key={file} className="relative">
                     {isPdfFile(file)
-                      ? <a href={getPublicImageUrl(file)} target="_blank" rel="noreferrer" className="grid h-20 w-24 place-items-center rounded-md bg-white/[0.05] pr-7 text-xs text-zinc-300 ring-1 ring-white/[0.07]">PDF</a>
+                      ? <a href={getPublicImageUrl(file)} target="_blank" rel="noreferrer noopener" className="grid h-20 w-24 place-items-center rounded-md bg-white/[0.05] pr-7 text-xs text-zinc-300 ring-1 ring-white/[0.07]">PDF</a>
                       : <img src={getPublicImageUrl(file)} alt="" className="h-20 w-24 object-cover" />}
                     <button
                       type="button"

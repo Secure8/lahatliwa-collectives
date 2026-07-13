@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import CreativeProfileView from '../../components/CreativeProfileView';
 import { AdminButton, AdminNotice, AdminPageHeader, AdminStatusBadge } from '../../components/admin/AdminUI';
@@ -30,6 +31,7 @@ import { uploadSiteAsset } from '../../lib/contentApi';
 import { parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { socialLinkMeta, socialLinksFromText } from '../../lib/socialLinks';
+import { isResourceLink, resourceLink, resourceName } from '../../lib/profileResources';
 import { supabase } from '../../lib/supabaseClient';
 
 const lineInput = 'w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60';
@@ -157,7 +159,7 @@ function InlineActionButton({ children, onClick, href, disabled = false, subtle 
   const classes = `inline-flex h-10 items-center gap-2 border-b px-2 text-sm transition ${subtle ? 'border-white/[0.08] text-zinc-400 hover:border-amber-200/35 hover:text-white' : 'border-white/[0.12] text-zinc-300 hover:border-amber-200/40 hover:text-white'} disabled:cursor-not-allowed disabled:opacity-50`;
 
   if (href) {
-    return <a href={href} className={classes}>{children}</a>;
+    return href.startsWith('/') ? <Link to={href} className={classes}>{children}</Link> : <a href={href} className={classes}>{children}</a>;
   }
 
   return <button type="button" onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
@@ -235,6 +237,7 @@ export default function MyProfile() {
   const socialRows = Array.isArray(form.social_links)
     ? form.social_links
     : socialLinksFromText(form.social_links || '').map(normalizeSocialRow);
+  const resourceRows = socialRows.map((link, index) => ({ link, index })).filter(({ link }) => isResourceLink(link));
   const previewProfile = profile ? {
     ...profile,
     ...form,
@@ -292,6 +295,10 @@ export default function MyProfile() {
 
   function addSocialRow() {
     update('social_links', [...socialRows, { label: '', href: '' }]);
+  }
+
+  function addResourceRow() {
+    update('social_links', [...socialRows, resourceLink('', '')]);
   }
 
   function removeSocialRow(index) {
@@ -628,14 +635,14 @@ export default function MyProfile() {
 
         <ProfileSection
           title="Profile Media"
-          description="Profile photos stay circular. Cover photos stay sharp-edged and wide, with the existing compression rules still applied."
+          description="Your profile image is the main artwork in your public hero. Use a sharp, high-resolution image with enough room for responsive cropping."
         >
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-8">
             <div className="grid content-start gap-3">
-              <p className="text-sm text-zinc-400">Profile photo</p>
-              <div className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/[0.04]">
+              <p className="text-sm text-zinc-400">Profile hero image</p>
+              <div className="grid aspect-video w-full max-w-2xl place-items-center overflow-hidden rounded-[10px] bg-white/[0.04]">
                 {form.profile_image_url ? (
-                  <img src={form.profile_image_url} alt={`${form.name || 'Profile'} avatar preview`} className="h-full w-full object-cover" />
+                  <img src={form.profile_image_url} alt={`${form.name || 'Profile'} hero preview`} className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-3xl text-zinc-600">{(form.name || 'L').slice(0, 1)}</span>
                 )}
@@ -666,46 +673,10 @@ export default function MyProfile() {
                   </AdminButton>
                 )}
               </div>
-              <p className="text-xs text-zinc-600">Recommended: square image, JPEG/PNG/WebP. Optimized to the profile media preset.</p>
+              <p className="text-xs leading-5 text-zinc-600">This image is used as your public profile hero. Choose a sharp, high-resolution portrait or campaign image with enough space around the subject for responsive cropping.</p>
               {uploadingKind === 'profile' && uploadMessage && <p className="text-xs text-amber-200">{uploadMessage}</p>}
             </div>
 
-            <div className="grid content-start gap-3">
-              <p className="text-sm text-zinc-400">Cover photo</p>
-              {form.cover_image ? (
-                <img src={form.cover_image} alt={`${form.name || 'Profile'} cover preview`} className="aspect-[16/6] w-full bg-zinc-900 object-cover" />
-              ) : (
-                <div className="grid aspect-[16/6] w-full place-items-center bg-white/[0.025] text-sm text-zinc-600">No cover photo</div>
-              )}
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="inline-flex h-10 cursor-pointer items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
-                  <ImagePlus size={15} />
-                  {uploadingKind === 'cover' ? 'Uploading...' : form.cover_image ? 'Replace cover' : 'Upload cover'}
-                  <input
-                    className="sr-only"
-                    disabled={Boolean(uploadingKind) || saving}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(event) => {
-                      uploadImage(event.target.files?.[0], 'cover');
-                      event.target.value = '';
-                    }}
-                  />
-                </label>
-                {form.cover_image && (
-                  <AdminButton
-                    type="button"
-                    variant="ghost"
-                    disabled={Boolean(uploadingKind) || saving}
-                    onClick={() => removeImage('cover_image', 'cover photo')}
-                  >
-                    <Trash2 size={15} /> Remove
-                  </AdminButton>
-                )}
-              </div>
-              <p className="text-xs text-zinc-600">Recommended: wide banner image, 1800px max dimension, JPEG/PNG/WebP, optimized to the cover preset.</p>
-              {uploadingKind === 'cover' && uploadMessage && <p className="text-xs text-amber-200">{uploadMessage}</p>}
-            </div>
           </div>
         </ProfileSection>
 
@@ -767,11 +738,27 @@ export default function MyProfile() {
         </ProfileSection>
 
         <ProfileSection
+          title="Tools and Resources"
+          description="Add the apps, platforms, references, or resources you use. Their website icon appears as a clickable glowing app in your public profile dock."
+        >
+          <div className="grid gap-4">
+            {resourceRows.map(({ link, index }) => <div key={index} className="grid gap-3 border-b border-white/[0.06] pb-4 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto] md:items-end">
+              <label className="grid gap-1.5 text-sm text-zinc-300"><span className="text-xs uppercase tracking-[0.18em] text-zinc-500">Tool or resource</span><input value={resourceName(link) === 'Resource' ? '' : resourceName(link)} onChange={(event) => updateSocialRow(index, resourceLink(event.target.value, link.href))} placeholder="Canva" className={lineInput} /></label>
+              <label className="grid gap-1.5 text-sm text-zinc-300"><span className="text-xs uppercase tracking-[0.18em] text-zinc-500">Website URL</span><input value={link.href || ''} onChange={(event) => updateSocialRow(index, resourceLink(resourceName(link) === 'Resource' ? '' : resourceName(link), event.target.value))} placeholder="https://www.canva.com" className={lineInput} /></label>
+              <button type="button" onClick={() => removeSocialRow(index)} className="grid h-10 w-10 place-items-center border-b border-white/[0.12] text-zinc-500 transition hover:border-red-300/35 hover:text-red-100" aria-label={`Remove ${resourceName(link)}`}><Trash2 size={15} /></button>
+            </div>)}
+            {resourceRows.length === 0 && <p className="text-xs text-zinc-600">No tools or resources added yet.</p>}
+            <button type="button" onClick={addResourceRow} className="inline-flex h-10 w-fit items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white"><Plus size={15} /> Add tool or resource</button>
+          </div>
+        </ProfileSection>
+
+        <ProfileSection
           title="Social Links"
           description="Each row keeps the existing platform detection and normalizes safe URL spacing before save."
         >
           <div className="grid gap-4">
             {socialRows.map((link, index) => {
+              if (isResourceLink(link)) return null;
               const meta = socialLinkMeta(link);
               const Icon = socialIcons[meta.platform] || Globe2;
               return (

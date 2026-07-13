@@ -12,6 +12,7 @@ import { branchForKey, branchProjectsUrl, normalizeBranchQuery, PROJECT_BRANCHES
 import { fairProjectExposure } from '../lib/fairProjectExposure';
 import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
 import { scrollPreservingNavigationState, shouldPushFilter } from '../lib/navigationHistory';
+import { AccentEyebrow } from '../components/PublicPageHeader';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -87,11 +88,11 @@ export default function Home() {
         {!homeBg && <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(120,113,108,0.12),transparent_45%),linear-gradient(180deg,#101012,#09090b)]" aria-hidden="true" />}
       <div className={`page-shell relative grid min-h-[calc(100vh-4rem)] items-center gap-10 py-16 ${hasPortrait ? (heroBackground.mode === 'split-image' ? 'lg:grid-cols-[0.95fr_1.05fr]' : 'lg:grid-cols-[1.1fr_0.7fr]') : 'lg:grid-cols-1'} lg:gap-14 lg:py-20`}>
         <div className="max-w-2xl">
-          <p className="text-xs font-medium uppercase tracking-[0.28em]" style={{ color: content.home.accentTextColor || content.accentColor }}>{content.home.heroEyebrow || content.hero.eyebrow}</p>
+          <AccentEyebrow color={content.home.accentTextColor || content.accentColor}>{content.home.heroEyebrow || content.hero.eyebrow}</AccentEyebrow>
           <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{content.home.heroTitle}</h1>
           <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'A creative digital collective building visuals, stories, and digital experiences across photography, editing, social media, content, and web projects.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/start-a-project" className="inline-flex items-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
+            <Link to="/start-a-project" className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
               Start a Project <ArrowRight size={18} />
             </Link>
             <Link to="/projects" className="fine-link px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
@@ -101,8 +102,8 @@ export default function Home() {
           <p className="mt-8 max-w-xl text-sm leading-6" style={{ color: content.mutedTextColor }}>{content.tagline}</p>
         </div>
         {hasPortrait && (
-          <div className="relative mx-auto w-full max-w-sm overflow-hidden bg-zinc-900/70 shadow-[0_24px_60px_rgba(0,0,0,0.2)] lg:ml-auto">
-            <img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchPriority="high" sizes="(max-width: 1023px) min(100vw - 2rem, 384px), 384px" width="800" height="1000" className="aspect-[4/5] w-full object-cover" />
+          <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-[10px] border border-white/10 bg-zinc-900/70 shadow-[0_24px_60px_rgba(0,0,0,0.2)] lg:ml-auto">
+            <img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchpriority="high" sizes="(max-width: 1023px) min(100vw - 2rem, 384px), 384px" width="800" height="1000" className="aspect-[4/5] w-full object-cover" />
           </div>
         )}
       </div>
@@ -122,7 +123,7 @@ export default function Home() {
             return <button key={branch.key} type="button" role="tab" aria-selected={active} onClick={() => selectHomeBranch(branch.key)} className={`min-w-0 border-b px-2 py-4 text-left transition sm:px-4 ${active ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
           })}
         </div>
-        <div className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
+        <div className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} variant="editorial" /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
         <Link to={branchProjectsUrl(selectedBranch)} className="fine-link site-hover-accent mt-9 inline-flex items-center gap-2 text-sm text-zinc-300">View all {selectedBranchInfo.label} projects <ArrowRight size={16} /></Link>
       </section>
 
@@ -172,7 +173,7 @@ export default function Home() {
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Need visuals, content, a website, or digital support?</h2>
             <p className="mt-4 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>Tell the collective what you are planning and we will review the best next step.</p>
           </div>
-          <Link to="/start-a-project" className="inline-flex w-fit items-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:opacity-90" style={{ backgroundColor: content.accentColor }}>
+          <Link to="/start-a-project" className="inline-flex min-h-11 w-fit items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
             Send inquiry <ArrowRight size={18} />
           </Link>
         </div>

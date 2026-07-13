@@ -18,6 +18,8 @@
     "test:navigation-history": "node --test src/lib/navigationHistory.test.js",
     "test:scroll-restoration": "node --test src/lib/scrollRestoration.test.js",
     "test:public-images": "node --test src/lib/publicImages.test.js",
+    "test:creative-profile": "node --test src/lib/creativeProfileLayout.test.js",
+    "test:profile-resources": "node --test src/lib/profileResources.test.js",
     "test:query-navigation": "node --test src/lib/queryNavigation.test.js",
     "test:production-audit": "node --test src/lib/productionAudit.test.js",
     "test:auth-redirects": "node --test src/lib/authRedirects.test.js",

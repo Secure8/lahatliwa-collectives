@@ -30,9 +30,9 @@ export default function CreativeDetails() {
         return;
       }
       setCreative(data);
-      const { data: links } = await supabase.from('project_creatives').select('projects(id, title, slug, category, cover_image, status)').eq('creative_id', data.id).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false });
+      const { data: links } = await supabase.from('project_creatives').select('credit_roles, contribution_role, role, projects(id, title, slug, category, cover_image, status)').eq('creative_id', data.id).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false });
       if (!active) return;
-      setProjects((links || []).map((link) => link.projects).filter((project) => project?.status === 'published'));
+      setProjects((links || []).map((link) => link.projects ? ({ ...link.projects, credit_roles: link.credit_roles, contribution_role: link.contribution_role, role: link.role }) : null).filter((project) => project?.status === 'published'));
       setLoading(false);
     }
     loadCreative();
@@ -54,5 +54,5 @@ export default function CreativeDetails() {
   if (error || !creative) return <div className="page-shell py-20"><p className="major-border-y py-8 text-zinc-300">{error || 'Creative profile not found.'}</p></div>;
 
   const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/creatives'); if (action.delta) navigate(action.delta); else navigate(action.to); };
-  return <article className="page-shell py-14 sm:py-20"><button type="button" onClick={goBack} className="fine-link site-hover-accent text-sm text-zinc-400">Back</button><div className="mt-10"><CreativeProfileView creative={creative} projects={projects} /></div></article>;
+  return <article className="mx-auto w-[min(1360px,calc(100%-24px))] pb-12 pt-4 sm:pb-16 sm:pt-5 lg:pt-7"><button type="button" onClick={goBack} className="fine-link min-h-11 text-sm text-zinc-400">Back</button><div className="mt-3 sm:mt-4"><CreativeProfileView creative={creative} projects={projects} /></div></article>;
 }

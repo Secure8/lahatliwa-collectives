@@ -1,7 +1,9 @@
 import { ArrowRight, CheckCircle2, Clock3, MessageSquare, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
+import PublicPageHeader from '../components/PublicPageHeader';
 
 const projectTypes = [
   'Website development',
@@ -95,11 +97,14 @@ function isRlsError(submitError) {
 }
 
 export default function StartProject() {
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState(emptyInquiry);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [creatives, setCreatives] = useState([]);
+  const requestedCreativeId = searchParams.get('creative') || '';
+  const lockedCreative = creatives.find((creative) => creative.id === requestedCreativeId) || null;
   const { content } = usePublicContent([]);
 
   useEffect(() => {
@@ -111,11 +116,16 @@ export default function StartProject() {
         .eq('is_published', true)
         .order('display_order', { ascending: true, nullsFirst: false })
         .order('name', { ascending: true });
-      if (active) setCreatives(data || []);
+      if (active) {
+        const rows = data || [];
+        setCreatives(rows);
+        const preferredId = searchParams.get('creative');
+        if (preferredId && rows.some((creative) => creative.id === preferredId)) setForm((current) => ({ ...current, preferred_creative_id: preferredId }));
+      }
     }
     loadCreatives();
     return () => { active = false; };
-  }, []);
+  }, [searchParams]);
 
   function update(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -126,7 +136,7 @@ export default function StartProject() {
     setMessage('');
     setError('');
 
-    const payload = normalizeInquiry(form);
+    const payload = { ...normalizeInquiry(form), preferred_creative_id: lockedCreative?.id || normalizeInquiry(form).preferred_creative_id };
     const formError = validationError(payload, new Set(creatives.map((creative) => creative.id)));
     if (formError) {
       setError(formError);
@@ -159,27 +169,9 @@ export default function StartProject() {
         '--project-muted': content.mutedTextColor,
       }}
     >
-      <section className="mb-12 max-w-3xl">
-        <p className="text-xs font-medium uppercase tracking-[0.28em]" style={{ color: content.accentColor }}>Start a project</p>
-        <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.primaryTextColor }}>Tell us what you are building next.</h1>
-        <p className="mt-5 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>
-          Whether it is a website, social media project, visual campaign, photo/video work, or digital content system, tell us what you need and we will help shape the next step.
-        </p>
-        <div className="mt-8 grid gap-4 text-sm sm:grid-cols-3">
-          {[
-            ['01', 'Clear project context'],
-            ['02', 'Creative and technical fit'],
-            ['03', 'Practical next steps'],
-          ].map(([number, label]) => (
-            <div key={label} className="border-t border-white/[0.08] pt-4">
-              <span className="block text-xs font-medium" style={{ color: content.accentColor }}>{number}</span>
-              <span className="mt-2 block" style={{ color: content.secondaryTextColor }}>{label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      <PublicPageHeader eyebrow="Start a project" title="Tell us what you are building next." description="Whether it is a website, social media project, visual campaign, photo/video work, or digital content system, tell us what you need and we will help shape the next step." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
 
-      <section className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
+      <section className="grid gap-10 pt-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14 lg:pt-12">
         <form onSubmit={submit} className="major-border-y grid gap-8 py-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -217,19 +209,21 @@ export default function StartProject() {
             <span className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: content.secondaryTextColor }}>Preferred creative</span>
             <select
               value={form.preferred_creative_id}
+              disabled={Boolean(lockedCreative)}
               onChange={(event) => update('preferred_creative_id', event.target.value)}
-              className="min-h-12 w-full rounded-md border border-white/[0.08] bg-zinc-950/70 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.14] focus:border-[var(--project-accent)]"
+              className="min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.18] focus:border-[var(--project-accent)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               <option value="">Let the collective decide</option>
               {creatives.map((creative) => <option key={creative.id} value={creative.id}>{creative.name}{creative.role ? ` - ${creative.role}` : ''}</option>)}
             </select>
+            {lockedCreative && <span className="text-xs text-amber-200/80">Locked to {lockedCreative.name} from the creative profile you selected.</span>}
           </label>}
 
           <label className="grid gap-2">
             <span className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: content.secondaryTextColor }}>Message / details</span>
             <textarea
               required
-              className="min-h-44 w-full resize-y rounded-md border border-white/[0.08] bg-zinc-950/70 px-4 py-4 text-sm leading-7 text-white outline-none transition duration-200 placeholder:text-zinc-600 hover:border-white/[0.14] focus:border-[var(--project-accent)]"
+              className="min-h-44 w-full resize-y rounded-sm border border-white/[0.1] bg-black/20 px-4 py-4 text-sm leading-7 text-white outline-none transition duration-200 placeholder:text-zinc-600 hover:border-white/[0.18] focus:border-[var(--project-accent)]"
               value={form.message}
               onChange={(event) => update('message', event.target.value)}
               placeholder="Tell us what you want to create, what already exists, your goals, references, audience, timeline, and any details that would help us understand the project."
@@ -239,7 +233,7 @@ export default function StartProject() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <button
               disabled={saving}
-              className="group inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-semibold text-zinc-950 transition duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+              className="group inline-flex min-h-12 w-full items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-zinc-950 transition duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
               style={{ backgroundColor: content.accentColor }}
             >
               <Send size={17} /> {saving ? 'Sending inquiry...' : 'Send inquiry'}
@@ -294,7 +288,7 @@ function Field({ label, value, onChange, type = 'text', required = false }) {
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-12 w-full rounded-md border border-white/[0.08] bg-zinc-950/70 px-3.5 py-3 text-sm text-white outline-none transition duration-200 placeholder:text-zinc-600 hover:border-white/[0.14] focus:border-[var(--project-accent)]"
+        className="min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 placeholder:text-zinc-600 hover:border-white/[0.18] focus:border-[var(--project-accent)]"
       />
     </label>
   );
@@ -307,7 +301,7 @@ function Select({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-12 w-full rounded-md border border-white/[0.08] bg-zinc-950/70 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.14] focus:border-[var(--project-accent)]"
+        className="min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.18] focus:border-[var(--project-accent)]"
       >
         {options.map((option) => <option key={option}>{option}</option>)}
       </select>

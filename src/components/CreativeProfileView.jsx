@@ -1,104 +1,68 @@
-import { Check, Copy, Dribbble, ExternalLink, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, Twitter, Youtube } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowRight, Dribbble, ExternalLink, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, Twitter, Youtube } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { copyText } from '../lib/clipboard';
-import { usePublicContent } from '../lib/contentApi';
+import CreativeHero from './CreativeHero';
 import { getPublicImageUrl } from '../lib/storage';
 import { socialLinkMeta } from '../lib/socialLinks';
 import { publicLocationState } from '../lib/navigationHistory';
+import { projectLayout } from '../lib/creativeProfileLayout';
+import { isResourceLink } from '../lib/profileResources';
 
 export default function CreativeProfileView({ creative, projects = [], adminPreview = false }) {
   const location = useLocation();
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState('');
-  const [coverFailed, setCoverFailed] = useState(false);
-  const [profileFailed, setProfileFailed] = useState(false);
-  const { content } = usePublicContent([]);
-  const skills = Array.isArray(creative.skills) ? creative.skills : [];
-  const socialLinks = Array.isArray(creative.social_links) ? creative.social_links : [];
-  const bio = adminPreview ? creative.short_bio || creative.full_bio : creative.full_bio || creative.short_bio;
-  const coverImage = getPublicImageUrl(creative.cover_image);
-  const profileImage = getPublicImageUrl(creative.profile_image_url);
+  const skills = Array.isArray(creative.skills) ? creative.skills.filter(Boolean) : [];
+  const allLinks = Array.isArray(creative.social_links) ? creative.social_links : [];
+  const resources = allLinks.filter(isResourceLink);
+  const socials = allLinks.filter((item) => !isResourceLink(item)).map(socialLinkMeta).filter((item) => item.href);
+  const bio = creative.full_bio || creative.short_bio;
+  return <article className="min-w-0 overflow-hidden">
+    {adminPreview && <p className="mb-4 text-xs uppercase tracking-[0.2em] text-amber-200">Admin preview</p>}
+    <CreativeHero creative={creative} projectCount={projects.length} socials={socials} resources={resources} adminPreview={adminPreview} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
-  async function copyProfileLink() {
-    try {
-      await copyText(`${window.location.origin}/creatives/${creative.slug}`);
-      setCopied(true);
-      setCopyError('');
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopyError('Profile link could not be copied.');
-    }
-  }
+    <div className="mx-auto w-full max-w-[1120px]">
+    {!adminPreview && (projects.length || bio || skills.length) > 0 && <nav aria-label="Profile sections" className="public-filter-scroll flex min-w-0 gap-7 overflow-x-auto border-b border-white/[0.09] py-4 text-xs uppercase tracking-[0.16em] text-zinc-500">
+      {projects.length > 0 && <a href="#work" className="min-h-11 content-center border-b border-orange-300 text-white">Selected work</a>}
+      {bio && <a href="#about" className="min-h-11 content-center transition hover:text-white">About</a>}
+      {skills.length > 0 && <a href="#skills" className="min-h-11 content-center transition hover:text-white">Capabilities</a>}
+      <a href="#contact" className="min-h-11 content-center transition hover:text-white">Contact</a>
+    </nav>}
 
-  return (
-    <article className="min-w-0">
-      {adminPreview && <p className="mb-6 text-xs font-medium uppercase tracking-[0.2em] text-amber-200">Admin preview</p>}
-      <div className={`relative overflow-hidden bg-zinc-900 ${adminPreview ? 'h-36 sm:h-44 md:h-52' : 'h-44 sm:h-56 md:h-64'}`}>
-        {coverImage && !coverFailed ? (
-          <img src={coverImage} alt="" decoding="async" fetchPriority="high" sizes="100vw" width="1800" height="720" className="h-full w-full object-cover" onError={() => setCoverFailed(true)} />
-        ) : <div className="h-full w-full bg-zinc-900" />}
-        <div className="absolute inset-0 bg-black/15" />
+    {!adminPreview && <section id="work" className="scroll-mt-24 py-8 sm:py-10">
+      <SectionHeading number="01" eyebrow="Selected work" title="Portfolio" detail={`${projects.length} published ${projects.length === 1 ? 'project' : 'projects'}`} />
+      {projects.length ? <div className="mx-auto mt-7 grid max-w-[1040px] gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-12">{projects.map((project, index) => <ProfileProject key={project.id} project={project} layout={projectLayout(index, projects.length)} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div> : <div className="mt-7 border-y border-white/[0.08] py-8"><p className="text-sm text-zinc-400">Work in progress.</p><p className="mt-2 text-sm text-zinc-600">Published credited projects will appear here.</p></div>}
+    </section>}
+
+    {bio && <section id="about" className="scroll-mt-24 border-t border-white/[0.09] py-8 sm:py-10">
+      <SectionHeading number="02" eyebrow="About" title="Creative perspective" />
+      <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-12">
+        <div className="max-w-[44rem] whitespace-pre-line text-base leading-7 text-zinc-200 sm:text-lg sm:leading-8">{bio}</div>
+        <dl className="self-start border-t border-orange-300/70 text-sm">
+          <Fact label="Discipline" value={creative.role} />
+          {creative.availability_status && <Fact label="Availability" value={creative.availability_status} />}
+          {creative.location && <Fact label="Location" value={creative.location} />}
+          <Fact label="Selected work" value={`${projects.length} published`} />
+        </dl>
       </div>
-      <section className="grid gap-7 border-b border-white/[0.08] pb-10 md:grid-cols-[10rem_minmax(0,1fr)] md:items-start md:gap-10">
-        <div className="relative z-10 -mt-14 flex justify-center md:-mt-16 md:justify-start">
-          {profileImage && !profileFailed ? (
-            <img src={profileImage} alt={creative.name} decoding="async" fetchPriority="high" sizes="(max-width: 639px) 128px, 160px" width="240" height="240" className={`${adminPreview ? 'h-28 w-28 sm:h-36 sm:w-36' : 'h-32 w-32 sm:h-40 sm:w-40'} rounded-full bg-zinc-900 object-cover ring-4 ring-zinc-950`} onError={() => setProfileFailed(true)} />
-          ) : (
-            <div className={`${adminPreview ? 'h-28 w-28 text-4xl sm:h-36 sm:w-36' : 'h-32 w-32 text-5xl sm:h-40 sm:w-40'} grid place-items-center rounded-full bg-zinc-900 font-semibold text-zinc-600 ring-4 ring-zinc-950`}>{creative.name?.slice(0, 1)}</div>
-          )}
-        </div>
-        <div className="min-w-0 pt-2 text-center md:pt-7 md:text-left">
-          <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.accentColor }}>{creative.role}</p>
-          <h1 className="mt-3 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.primaryTextColor }}>{creative.name}</h1>
-          {creative.availability_status && <p className="mt-3 text-sm text-zinc-400">{creative.availability_status}</p>}
-          {bio && <p className={`mt-5 max-w-3xl ${adminPreview ? 'text-sm leading-6 sm:text-base sm:leading-7' : 'text-base leading-7 sm:text-lg sm:leading-8'}`} style={{ color: content.secondaryTextColor }}>{bio}</p>}
-          <div className="mt-6 flex flex-wrap justify-center gap-2 md:justify-start">
-            <button type="button" onClick={copyProfileLink} className="inline-flex items-center gap-2 border border-white/[0.12] px-3.5 py-2.5 text-sm text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]">
-              {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? 'Profile link copied' : 'Copy profile link'}
-            </button>
-            {socialLinks.map((link) => <SocialLink key={`${link.label}-${link.href}`} link={link} />)}
-          </div>
-          {copyError && <p className="mt-3 text-sm text-red-200">{copyError}</p>}
-        </div>
-      </section>
+    </section>}
 
-      <section className={`grid items-start gap-4 border-b border-white/[0.07] pt-5 ${adminPreview ? 'pb-4' : 'pb-5'} sm:grid-cols-[9rem_minmax(0,1fr)]`}>
-        {!adminPreview && <div className="text-center sm:text-left"><span className="block text-2xl font-medium text-white">{projects.length}</span><span className="text-xs uppercase tracking-[0.16em] text-zinc-500">Published works</span></div>}
-        {skills.length > 0 && <div className={`flex flex-wrap justify-center gap-x-4 gap-y-2 self-start sm:justify-start ${adminPreview ? 'sm:col-span-2' : ''}`}>{skills.map((skill) => <span key={skill} className="border-b border-white/[0.12] pb-1 text-sm text-zinc-400">{skill}</span>)}</div>}
-      </section>
+    {skills.length > 0 && <section id="skills" className="scroll-mt-24 border-t border-white/[0.09] bg-white/[0.018] px-4 py-8 sm:px-5 sm:py-10">
+      <SectionHeading number="03" eyebrow="Capabilities" title="Selected disciplines" detail={`${skills.length} capabilities`} />
+      <ol className="mt-7 grid border-t border-white/[0.1] sm:grid-cols-2 lg:grid-cols-3">{skills.map((skill, index) => <li key={skill} className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] gap-2 border-b border-white/[0.09] py-3.5 sm:pr-5"><span className="text-[11px] text-orange-300">{String(index + 1).padStart(2, '0')}</span><span className="[overflow-wrap:anywhere] text-sm text-zinc-200">{skill}</span></li>)}</ol>
+    </section>}
 
-      {!adminPreview && <section className="pt-10">
-        <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Selected work</p><h2 className="mt-2 text-2xl font-medium" style={{ color: content.primaryTextColor }}>Works by {creative.name}</h2></div><p className="text-sm text-zinc-500">Published under Lahat Liwa Collectives</p></div>
-        {projects.length ? <div className="mt-7 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">{projects.map((project) => <ProfileProject key={project.id} project={project} adminPreview={adminPreview} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div> : <p className="mt-7 border-t border-white/[0.07] pt-6 text-sm text-zinc-500">{adminPreview ? 'No linked projects yet.' : 'Credited works will appear here when they are published.'}</p>}
-      </section>}
-    </article>
-  );
+    {!adminPreview && <footer id="contact" className="scroll-mt-24 border-t border-orange-300/60 py-8 sm:py-10">
+      <p className="text-xs uppercase tracking-[0.2em] text-orange-300">04 / Collaboration</p>
+      <div className="mt-5 grid gap-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div><h2 className="max-w-2xl text-[clamp(1.85rem,3.5vw,3.25rem)] font-medium leading-[1.05] tracking-[-0.035em] text-white">Create something meaningful together.</h2>{creative.availability_status && <p className="mt-3 text-sm text-zinc-400">{creative.availability_status}</p>}</div>
+        <div className="flex flex-wrap gap-4"><Link to={`/start-a-project?creative=${creative.id}`} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">Start a project <ArrowRight size={16} /></Link><Link to="/creatives" className="inline-flex min-h-11 items-center border-b border-white/20 text-sm text-zinc-300 hover:text-white">Explore creatives</Link></div>
+      </div>
+    </footer>}
+    </div>
+  </article>;
 }
 
-function SocialLink({ link }) {
-  const { platform, label, href } = socialLinkMeta(link);
-  const Icon = {
-    facebook: Facebook,
-    instagram: Instagram,
-    linkedin: Linkedin,
-    youtube: Youtube,
-    twitter: Twitter,
-    github: Github,
-    dribbble: Dribbble,
-    tiktok: Music2,
-    email: Mail,
-    website: Globe2,
-  }[platform] || Globe2;
-  if (!href) return null;
-  const external = !href.startsWith('mailto:');
-  return <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className="inline-flex items-center gap-2 border border-white/[0.12] px-3.5 py-2.5 text-sm text-zinc-200 transition hover:border-[var(--site-accent)] hover:text-[var(--site-accent)]"><Icon size={16} /> {label}{external && <ExternalLink size={14} />}</a>;
+function SectionHeading({ number, eyebrow, title, detail }) {
+  return <div className="grid gap-3 border-l border-orange-300/70 pl-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"><div><p className="text-[11px] uppercase tracking-[0.18em] text-orange-300">{number} / {eyebrow}</p><h2 className="mt-2 text-[clamp(1.7rem,3vw,2.65rem)] font-medium leading-none tracking-[-0.03em] text-white">{title}</h2></div>{detail && <p className="text-[11px] uppercase tracking-[0.13em] text-zinc-600">{detail}</p>}</div>;
 }
-
-function ProfileProject({ project, adminPreview, linkState }) {
-  const image = getPublicImageUrl(project.cover_image);
-  const content = <><p className="text-xs uppercase tracking-[0.16em] text-zinc-500">{project.category}{adminPreview && project.status !== 'published' ? ` / ${project.status}` : ''}</p><h3 className="mt-1 text-lg font-medium text-white transition group-hover:text-[var(--site-accent)]">{project.title}</h3></>;
-  const imageContent = image ? <img src={image} alt={project.title} loading="lazy" decoding="async" sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) 50vw, 33vw" width="800" height="600" className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:opacity-85" /> : <div className="grid aspect-[4/3] place-items-center px-5 text-center text-sm text-zinc-500">Open project</div>;
-  if (adminPreview && project.status !== 'published') return <article className="group"><div className="block bg-zinc-900">{imageContent}</div><div className="mt-3">{content}</div></article>;
-  return <article id={`creative-project-${project.id}`} className="group scroll-mt-24"><Link to={`/projects/${project.slug}`} state={linkState} className="block bg-zinc-900">{imageContent}</Link><Link to={`/projects/${project.slug}`} state={linkState} className="mt-3 block">{content}</Link></article>;
-}
+function Fact({ label, value }) { return <div className="border-b border-white/[0.09] py-4"><dt className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">{label}</dt><dd className="mt-1 text-zinc-300">{value}</dd></div>; }
+function SocialLink({ item }) { const icons={facebook:Facebook,instagram:Instagram,linkedin:Linkedin,youtube:Youtube,twitter:Twitter,github:Github,dribbble:Dribbble,tiktok:Music2,email:Mail,website:Globe2}; const Icon=icons[item.platform]||Globe2; const external=!item.href.startsWith('mailto:'); return <a href={item.href} target={external?'_blank':undefined} rel={external?'noopener noreferrer':undefined} aria-label={`${item.label}${external?' (opens in a new tab)':''}`} title={item.label} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-white/10 bg-zinc-900/90 text-zinc-200 transition hover:-translate-y-1 hover:border-orange-200/50 hover:text-orange-200 hover:shadow-[0_0_18px_rgba(251,146,60,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 motion-reduce:transform-none"><Icon size={18}/></a>; }
+function ProfileProject({project,layout,linkState}) { const image=getPublicImageUrl(project.cover_image); const roles=[...(project.credit_roles||[]),project.contribution_role,project.role].filter(Boolean); const span={feature:'sm:col-span-2 lg:col-span-12',half:'lg:col-span-6','offset-large':'lg:col-span-7','offset-small':'lg:col-span-5',cinematic:'sm:col-span-2 lg:col-span-12'}[layout]||'lg:col-span-6'; const ratio=['feature','cinematic'].includes(layout)?'aspect-[16/9]':'aspect-[4/3]'; return <article id={`creative-project-${project.id}`} className={`group min-w-0 scroll-mt-24 ${span}`}><Link to={`/projects/${project.slug}`} state={linkState} className="relative block overflow-hidden bg-zinc-900 transition duration-500 after:pointer-events-none after:absolute after:inset-0 after:border after:border-transparent after:transition after:duration-500 hover:shadow-[0_16px_55px_-28px_rgba(251,146,60,0.5)] hover:after:border-orange-300/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 motion-reduce:transition-none">{image?<img src={image} alt={project.title} loading="lazy" decoding="async" width="1400" height="875" sizes={['feature','cinematic'].includes(layout)?'(max-width: 767px) calc(100vw - 24px), 70vw':'(max-width: 639px) calc(100vw - 24px), 44vw'} className={`${ratio} w-full object-cover transition duration-500 motion-reduce:transition-none group-hover:scale-[1.015]`}/>:<div className={`grid ${ratio} place-items-center text-sm text-zinc-600`}>Project image unavailable</div>}</Link><div className="relative grid border-b border-white/[0.09] pb-5 pt-3.5 after:absolute after:bottom-[-1px] after:left-0 after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.8)] after:transition-all after:duration-500 group-hover:after:w-24 motion-reduce:after:transition-none sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4"><div><p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.17em] text-orange-300"><span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.9)]" aria-hidden="true" />{project.category}</p><h3 className="mt-2 [overflow-wrap:anywhere] text-lg font-medium text-white">{project.title}</h3>{roles.length>0&&<p className="mt-1.5 text-xs text-zinc-500">{[...new Set(roles)].join(' · ')}</p>}</div><Link to={`/projects/${project.slug}`} state={linkState} className="mt-2 inline-flex min-h-10 items-center gap-2 self-end text-sm text-zinc-300 transition group-hover:text-orange-200 sm:mt-0">View project <ExternalLink size={14}/></Link></div></article>; }

@@ -16,7 +16,7 @@ const pageMeta = {
   about: {
     title: 'Edit About Page',
     publicPath: '/about',
-    helper: 'Update the About page heading, introduction, story copy, and supporting lists.',
+    helper: 'Update the About page heading, introduction, and creative journey copy.',
   },
   services: {
     title: 'Edit Services Page',
@@ -36,7 +36,8 @@ const lineTextarea = `${lineInput} min-h-28 resize-y leading-6`;
 function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false }) {
   const classes = `inline-flex h-10 items-center gap-2 border-b px-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${subtle ? 'border-white/[0.08] text-zinc-400 hover:border-amber-200/35 hover:text-white' : 'border-white/[0.12] text-zinc-300 hover:border-amber-200/40 hover:text-white'}`;
   if (to) return <Link to={to} className={classes}>{children}</Link>;
-  if (href) return <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noreferrer noopener' : undefined} className={classes}>{children}</a>;
+  if (href && !external) return <Link to={href} className={classes}>{children}</Link>;
+  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes}>{children}</a>;
   return <button type="button" onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
 }
 
@@ -312,10 +313,6 @@ export default function ContentEditor() {
     });
   }
 
-  function patchList(key, value) {
-    patch({ [key]: parseListText(value) });
-  }
-
   function patchServiceGroup(index, updates) {
     setContent((current) => {
       const next = updateGroup(current, index, updates);
@@ -454,7 +451,6 @@ export default function ContentEditor() {
                   pageKey={pageKey}
                   content={content}
                   patch={patch}
-                  patchList={patchList}
                   patchServiceGroup={patchServiceGroup}
                   uploadHomeBackground={uploadHomeBackground}
                   uploadServiceLogo={uploadServiceLogo}
@@ -481,7 +477,7 @@ export default function ContentEditor() {
   );
 }
 
-function PageFields({ pageKey, content, patch, patchList, patchServiceGroup, uploadHomeBackground, uploadServiceLogo, fieldErrors }) {
+function PageFields({ pageKey, content, patch, patchServiceGroup, uploadHomeBackground, uploadServiceLogo, fieldErrors }) {
   if (pageKey === 'home') {
     return (
       <>
@@ -527,10 +523,6 @@ function PageFields({ pageKey, content, patch, patchList, patchServiceGroup, upl
         <Field label="Page title" value={content.title || ''} onChange={(value) => patch({ title: value })} error={fieldErrors.title} hint="Main heading shown on the About page." required />
         <Textarea label="Introduction" value={content.intro || ''} onChange={(value) => patch({ intro: value })} error={fieldErrors.intro} hint="Keep this concise for better page balance." rows={4} />
         <Textarea label="Creative journey" value={content.journey || ''} onChange={(value) => patch({ journey: value })} error={fieldErrors.journey} hint="Longer story text shown lower on the About page." rows={6} />
-        <div className="grid gap-6 md:grid-cols-2">
-          <Textarea label="Skills, comma-separated" value={listText(content.skills)} onChange={(value) => patchList('skills', value)} hint="Used for the public About page skills list." rows={4} />
-          <Textarea label="Tools, comma-separated" value={listText(content.tools)} onChange={(value) => patchList('tools', value)} hint="Used for the public About page tools list." rows={4} />
-        </div>
         <div className="grid gap-6 md:grid-cols-3">
           <ColorField label="Heading color" value={content.headingColor || ''} onChange={(value) => patch({ headingColor: value })} />
           <ColorField label="Body text color" value={content.bodyTextColor || ''} onChange={(value) => patch({ bodyTextColor: value })} />

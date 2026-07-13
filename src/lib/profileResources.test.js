@@ -22,6 +22,8 @@ test('unsafe resource URLs never become clickable', () => {
 test('profile inquiry actions preselect the current creative', async () => {
   const hero = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
   const inquiry = await readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8');
-  assert.match(hero, /start-a-project\?creative=\$\{creative\.id\}/);
-  assert.match(inquiry, /preferred_creative_id: preferredId/);
+  const edge = await readFile(new URL('../../supabase/functions/submit-service-request/index.ts', import.meta.url), 'utf8');
+  assert.match(hero, /inquiryUrl\(\{ creative: creative\.slug \}\)/);
+  assert.match(inquiry, /creative: searchParams\.get\('creative'\)/);
+  assert.match(edge, /preferred_creative_id: creative\?\.id \|\| null/);
 });

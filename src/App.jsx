@@ -10,7 +10,7 @@ import { PublicContentProvider, usePublicContent } from './lib/contentApi';
 import PublicScrollRestoration from './components/PublicScrollRestoration';
 import PublicErrorBoundary from './components/PublicErrorBoundary';
 import { publicRouteBoundaryKey } from './lib/navigationHistory';
-import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
+import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadInquiryConfirmation, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
 import { applyPublicMetadata } from './lib/publicMetadata';
 
 const Login = lazy(() => import('./pages/admin/Login'));
@@ -24,6 +24,7 @@ const Contact = lazy(loadContact);
 const Creatives = lazy(loadCreatives);
 const CreativeDetails = lazy(loadCreativeDetails);
 const StartProject = lazy(loadStartProject);
+const InquiryConfirmation = lazy(loadInquiryConfirmation);
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
@@ -48,6 +49,7 @@ const routeMetadata = {
   '/services': ['Services | Lahat Liwa Collectives', 'Explore creative, social, digital, and practical technology services from Lahat Liwa Collectives.'],
   '/creatives': ['Creatives | Lahat Liwa Collectives', 'Meet the creatives shaping the work of Lahat Liwa Collectives.'],
   '/start-a-project': ['Start a Project | Lahat Liwa Collectives', 'Tell Lahat Liwa Collectives about your project, goals, timeline, and creative or digital needs.'],
+  '/inquiry': ['Start a Project | Lahat Liwa Collectives', 'Tell Lahat Liwa Collectives about your project, goals, timeline, and creative or digital needs.'],
   '/contact': ['Contact | Lahat Liwa Collectives', 'Contact Lahat Liwa Collectives about creative work, digital builds, and practical support.'],
 };
 
@@ -100,7 +102,7 @@ function PublicSiteFrame() {
 function PublicLayout() {
   const location = useLocation();
   const { pathname } = location;
-  const contentArea = pathname === '/' ? 'home' : pathname === '/about' ? 'about' : pathname === '/services' ? 'services' : pathname === '/contact' ? 'contact' : 'shared';
+  const contentArea = pathname === '/' ? 'home' : pathname === '/about' ? 'about' : pathname.startsWith('/services') ? 'services' : pathname === '/contact' ? 'contact' : 'shared';
   const pageKeys = useMemo(() => contentArea === 'home' ? ['home', 'services'] : contentArea === 'shared' ? [] : [contentArea], [contentArea]);
   return (
     <PublicContentProvider pageKeys={pageKeys}>
@@ -126,9 +128,12 @@ export default function App() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:slug" element={<ProjectDetails />} />
         <Route path="/services" element={<Services />} />
+        <Route path="/services/:branch" element={<Services />} />
         <Route path="/creatives" element={<Creatives />} />
         <Route path="/creatives/:slug" element={<CreativeDetails />} />
         <Route path="/start-a-project" element={<StartProject />} />
+        <Route path="/inquiry" element={<StartProject />} />
+        <Route path="/inquiry/confirmation/:reference" element={<InquiryConfirmation />} />
         <Route path="/contact" element={<Contact />} />
       </Route>
       <Route path="/set-password" element={<AdminSuspense><SetPassword /></AdminSuspense>} />

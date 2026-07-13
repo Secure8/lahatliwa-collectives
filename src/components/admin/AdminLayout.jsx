@@ -16,7 +16,7 @@ const links = [
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
     ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
     ['Services', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
-    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
+    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative'].includes(role)],
     ['Team', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Website', [
@@ -32,11 +32,24 @@ export default function AdminLayout({ children }) {
   const navigate = useNavigate();
   const sidebarNavRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadInquiries, setUnreadInquiries] = useState(0);
   const { content } = usePublicContent([]);
   const access = useAdminAccess();
   const visibleGroups = links
     .map(([group, groupLinks]) => [group, groupLinks.filter(([, , , canShow]) => canShow(access))])
     .filter(([, groupLinks]) => groupLinks.length > 0);
+
+  useEffect(() => {
+    if (!['super_admin', 'admin', 'editor', 'creative'].includes(access.role)) return undefined;
+    let active = true;
+    const loadCount = async () => {
+      const { count, error } = await supabase.from('project_inquiries').select('id', { count: 'exact', head: true }).eq('unread', true).is('archived_at', null);
+      if (active && !error) setUnreadInquiries(count || 0);
+    };
+    loadCount();
+    const timer = window.setInterval(loadCount, 60000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [access.role]);
 
   useEffect(() => {
     document.documentElement.classList.add('admin-mode');
@@ -107,7 +120,7 @@ export default function AdminLayout({ children }) {
                 <p className="px-3 text-[0.66rem] font-medium uppercase tracking-[0.22em] text-zinc-600">{group}</p>
                 <div className="mt-2 grid gap-1">
                   {groupLinks.map(([label, href, Icon]) => (
-                    <AdminNavLink key={href} label={label} href={href} Icon={Icon} onBeforeNavigate={rememberSidebarScroll} />
+                    <AdminNavLink key={href} label={label} href={href} Icon={Icon} badge={href === '/admin/inquiries' ? unreadInquiries : 0} onBeforeNavigate={rememberSidebarScroll} />
                   ))}
                 </div>
               </div>
@@ -131,7 +144,7 @@ export default function AdminLayout({ children }) {
         </div>
         {mobileOpen && <div className="fixed inset-x-0 bottom-0 top-[65px] z-40 grid grid-rows-[1fr_auto] border-t border-white/[0.08] bg-zinc-950 p-4 lg:hidden">
           <nav className="admin-sidebar-scroll min-h-0 overflow-y-auto" aria-label="Admin navigation">
-            {visibleGroups.map(([group, groupLinks]) => <div key={group} className="mb-5"><p className="mb-2 text-[0.66rem] uppercase tracking-[0.2em] text-zinc-600">{group}</p><div className="grid">{groupLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} onClick={() => setMobileOpen(false)} className={({ isActive }) => clsx('flex items-center gap-3 border-b border-white/[0.07] px-1 py-3 text-sm', isActive ? 'text-amber-100' : 'text-zinc-400')}><Icon size={16} /><span>{label}</span><span className="sr-only">{label} page</span></NavLink>)}</div></div>)}
+            {visibleGroups.map(([group, groupLinks]) => <div key={group} className="mb-5"><p className="mb-2 text-[0.66rem] uppercase tracking-[0.2em] text-zinc-600">{group}</p><div className="grid">{groupLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} onClick={() => setMobileOpen(false)} className={({ isActive }) => clsx('flex items-center gap-3 border-b border-white/[0.07] px-1 py-3 text-sm', isActive ? 'text-amber-100' : 'text-zinc-400')}><Icon size={16} /><span>{label}</span>{href === '/admin/inquiries' && unreadInquiries > 0 && <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-zinc-950" aria-label={`${unreadInquiries} unread inquiries`}>{unreadInquiries > 99 ? '99+' : unreadInquiries}</span>}<span className="sr-only">{label} page</span></NavLink>)}</div></div>)}
           </nav>
           <div className="-mx-4 grid grid-cols-2 gap-3 border-t border-white/[0.1] bg-zinc-900/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-16px_40px_rgba(0,0,0,0.32)]"><Link to="/" onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100"><ExternalLink size={16} /> View site</Link><button type="button" onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/[0.14] bg-white/[0.06] px-3 text-sm font-medium text-zinc-100 transition hover:border-red-200/30 hover:bg-red-300/[0.08] hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><LogOut size={16} /> Logout</button></div>
         </div>}
@@ -143,7 +156,7 @@ export default function AdminLayout({ children }) {
   );
 }
 
-function AdminNavLink({ label, href, Icon, onBeforeNavigate }) {
+function AdminNavLink({ label, href, Icon, badge = 0, onBeforeNavigate }) {
   return (
     <NavLink
       to={href}
@@ -165,6 +178,7 @@ function AdminNavLink({ label, href, Icon, onBeforeNavigate }) {
         <Icon size={16} />
       </span>
       {label}
+      {badge > 0 && <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-zinc-950" aria-label={`${badge} unread inquiries`}>{badge > 99 ? '99+' : badge}</span>}
     </NavLink>
   );
 }

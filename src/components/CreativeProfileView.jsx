@@ -6,6 +6,7 @@ import { socialLinkMeta } from '../lib/socialLinks';
 import { publicLocationState } from '../lib/navigationHistory';
 import { projectLayout } from '../lib/creativeProfileLayout';
 import { isResourceLink } from '../lib/profileResources';
+import { inquiryUrl } from '../lib/serviceRequest';
 
 export default function CreativeProfileView({ creative, projects = [], adminPreview = false }) {
   const location = useLocation();
@@ -54,7 +55,7 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
       <p className="text-xs uppercase tracking-[0.2em] text-orange-300">04 / Collaboration</p>
       <div className="mt-5 grid gap-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div><h2 className="max-w-2xl text-[clamp(1.85rem,3.5vw,3.25rem)] font-medium leading-[1.05] tracking-[-0.035em] text-white">Create something meaningful together.</h2>{creative.availability_status && <p className="mt-3 text-sm text-zinc-400">{creative.availability_status}</p>}</div>
-        <div className="flex flex-wrap gap-4"><Link to={`/start-a-project?creative=${creative.id}`} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">Start a project <ArrowRight size={16} /></Link><Link to="/creatives" className="inline-flex min-h-11 items-center border-b border-white/20 text-sm text-zinc-300 hover:text-white">Explore creatives</Link></div>
+        <div className="flex flex-wrap gap-4"><Link to={inquiryUrl({ creative: creative.slug })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">Start a project <ArrowRight size={16} /></Link><Link to="/creatives" className="inline-flex min-h-11 items-center border-b border-white/20 text-sm text-zinc-300 hover:text-white">Explore creatives</Link></div>
       </div>
     </footer>}
     </div>

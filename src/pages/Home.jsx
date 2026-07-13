@@ -92,7 +92,7 @@ export default function Home() {
           <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{content.home.heroTitle}</h1>
           <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'A creative digital collective building visuals, stories, and digital experiences across photography, editing, social media, content, and web projects.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/start-a-project" className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
+            <Link to="/inquiry" className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
               Start a Project <ArrowRight size={18} />
             </Link>
             <Link to="/projects" className="fine-link px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
@@ -173,7 +173,7 @@ export default function Home() {
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Need visuals, content, a website, or digital support?</h2>
             <p className="mt-4 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>Tell the collective what you are planning and we will review the best next step.</p>
           </div>
-          <Link to="/start-a-project" className="inline-flex min-h-11 w-fit items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
+          <Link to="/inquiry" className="inline-flex min-h-11 w-fit items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
             Send inquiry <ArrowRight size={18} />
           </Link>
         </div>

@@ -10,7 +10,7 @@ import { parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { supabase } from '../../lib/supabaseClient';
 
-const emptyBranch={name:'',slug:'',description:'',included_services:'',icon_url:'',cta_label:'Start a project',cta_url:'/start-a-project',display_order:'',is_published:true};
+const emptyBranch={name:'',slug:'',description:'',included_services:'',icon_url:'',cta_label:'Start a project',cta_url:'/inquiry',display_order:'',is_published:true};
 const lineInput='w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60';
 function Field({label,value,onChange,type='text',required=false,onBlur}){return <label className="grid gap-1.5 text-sm text-zinc-400"><span>{label}</span><input className={lineInput} type={type} required={required} value={value} onChange={(e)=>onChange(e.target.value)} onBlur={onBlur}/></label>;}
 function TextArea({label,value,onChange,rows=5,hint}){return <label className="grid gap-1.5 text-sm text-zinc-400"><span>{label}</span><textarea className={`${lineInput} resize-y leading-6`} rows={rows} value={value} onChange={(e)=>onChange(e.target.value)}/>{hint&&<span className="text-xs text-zinc-600">{hint}</span>}</label>;}

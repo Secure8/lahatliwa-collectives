@@ -1,323 +1,237 @@
-import { ArrowRight, CheckCircle2, Clock3, MessageSquare, Send } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { usePublicContent } from '../lib/contentApi';
-import { supabase } from '../lib/supabaseClient';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, CircleAlert, Send, ShieldAlert, UserRound } from 'lucide-react';
+import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import PublicPageHeader from '../components/PublicPageHeader';
+import { usePublicContent } from '../lib/contentApi';
+import { branchKeyFromRecord, branchMeta, emptyInquiryDraft, INQUIRY_DRAFT_KEY, INQUIRY_STEPS, mergeInquiryContext, safeInquiryDraft, SERVICE_BRANCHES, slugifyService, validateInquiryStep } from '../lib/serviceRequest';
+import { supabase } from '../lib/supabaseClient';
 
-const projectTypes = [
-  'Website development',
-  'Social media management',
-  'Photography',
-  'Photo editing',
-  'Video shoot/editing',
-  'Content planning',
-  'Digital marketing support',
-  'Branding/visuals',
-  'Other',
-];
+const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
+const contactMethods = ['Email', 'Phone', 'Facebook / Messenger', 'WhatsApp', 'Other'];
 
-const budgetRanges = ['Not sure yet', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
-
-const processSteps = [
-  {
-    title: 'Send inquiry',
-    description: 'Share the goal, scope, and direction you have in mind.',
-  },
-  {
-    title: 'We review',
-    description: 'The collective checks the fit, timeline, and best next move.',
-  },
-  {
-    title: 'Discuss direction',
-    description: 'We align on creative, technical, budget, and delivery details.',
-  },
-  {
-    title: 'Start building',
-    description: 'Once everything is clear, we move into production together.',
-  },
-];
-
-const serviceTags = ['Websites', 'Social media', 'Photo/video', 'Campaigns', 'Content systems', 'Visual direction'];
-const inquiryLimits = {
-  name: [2, 120],
-  email_or_contact: [3, 200],
-  project_type: [2, 120],
-  message: [10, 5000],
-  organization: [0, 160],
-  budget_range: [0, 120],
-  preferred_contact: [0, 120],
-};
-
-const emptyInquiry = {
-  name: '',
-  email_or_contact: '',
-  organization: '',
-  project_type: projectTypes[0],
-  budget_range: budgetRanges[0],
-  deadline: '',
-  preferred_contact: '',
-  preferred_creative_id: '',
-  message: '',
-};
-
-function normalizeInquiry(form) {
-  return {
-    name: form.name.trim(),
-    email_or_contact: form.email_or_contact.trim(),
-    organization: form.organization.trim() || null,
-    project_type: form.project_type.trim(),
-    budget_range: form.budget_range.trim() || null,
-    deadline: form.deadline || null,
-    preferred_contact: form.preferred_contact.trim() || null,
-    preferred_creative_id: form.preferred_creative_id || null,
-    message: form.message.trim(),
-  };
+function readDraft(context) {
+  try {
+    const stored = safeInquiryDraft(JSON.parse(window.sessionStorage.getItem(INQUIRY_DRAFT_KEY) || 'null'));
+    return mergeInquiryContext(stored || emptyInquiryDraft(), context);
+  } catch {
+    return emptyInquiryDraft(context);
+  }
 }
 
-function validationError(payload, publishedCreativeIds) {
-  if (payload.name.length < inquiryLimits.name[0]) return 'Please enter your name.';
-  if (payload.name.length > inquiryLimits.name[1]) return 'Your name is too long.';
-  if (payload.email_or_contact.length < inquiryLimits.email_or_contact[0]) return 'Please enter your email or contact details.';
-  if (payload.email_or_contact.length > inquiryLimits.email_or_contact[1]) return 'Your email or contact details are too long.';
-  if (payload.project_type.length < inquiryLimits.project_type[0]) return 'Please choose a project type.';
-  if (payload.project_type.length > inquiryLimits.project_type[1]) return 'Your project type is too long.';
-  if (payload.message.length < inquiryLimits.message[0]) return 'Please describe your project in at least 10 characters.';
-  if (payload.message.length > inquiryLimits.message[1]) return 'Your project description is too long.';
-  if (payload.organization?.length > inquiryLimits.organization[1]) return 'Your organization name is too long.';
-  if (payload.budget_range?.length > inquiryLimits.budget_range[1]) return 'Your budget range is too long.';
-  if (payload.preferred_contact?.length > inquiryLimits.preferred_contact[1]) return 'Your preferred contact details are too long.';
-  if (payload.preferred_creative_id && !publishedCreativeIds.has(payload.preferred_creative_id)) return 'Please choose an available creative or select no preference.';
-  return '';
-}
-
-function isRlsError(submitError) {
-  const message = `${submitError?.message || ''} ${submitError?.details || ''}`.toLowerCase();
-  return submitError?.code === '42501' || message.includes('row-level security');
+async function functionErrorMessage(error) {
+  if (error instanceof FunctionsHttpError) {
+    const response = error.context;
+    try {
+      const payload = await response.clone().json();
+      return payload.message || payload.error || 'The request could not be submitted.';
+    } catch {
+      try { return (await response.text()) || 'The request could not be submitted.'; } catch { return 'The request could not be submitted.'; }
+    }
+  }
+  if (error instanceof FunctionsFetchError) return 'The inquiry service could not be reached. Check your connection and try again.';
+  if (error instanceof FunctionsRelayError) return 'The inquiry service is temporarily unavailable. Please try again.';
+  return error?.message || 'The request could not be submitted.';
 }
 
 export default function StartProject() {
   const [searchParams] = useSearchParams();
-  const [form, setForm] = useState(emptyInquiry);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [creatives, setCreatives] = useState([]);
-  const requestedCreativeId = searchParams.get('creative') || '';
-  const lockedCreative = creatives.find((creative) => creative.id === requestedCreativeId) || null;
+  const location = useLocation();
+  const navigate = useNavigate();
   const { content } = usePublicContent([]);
+  const queryContext = useMemo(() => ({ branch: searchParams.get('branch') || '', service: searchParams.get('service') || '', creative: searchParams.get('creative') || '' }), [searchParams]);
+  const [draft, setDraft] = useState(() => readDraft(queryContext));
+  const [step, setStep] = useState(0);
+  const [branches, setBranches] = useState([]);
+  const [creatives, setCreatives] = useState([]);
+  const [loadingChoices, setLoadingChoices] = useState(true);
+  const [choiceLoadError, setChoiceLoadError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [notice, setNotice] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let active = true;
-    async function loadCreatives() {
-      const { data } = await supabase
-        .from('creative_members')
-        .select('id, name, role')
-        .eq('is_published', true)
-        .order('display_order', { ascending: true, nullsFirst: false })
-        .order('name', { ascending: true });
-      if (active) {
-        const rows = data || [];
-        setCreatives(rows);
-        const preferredId = searchParams.get('creative');
-        if (preferredId && rows.some((creative) => creative.id === preferredId)) setForm((current) => ({ ...current, preferred_creative_id: preferredId }));
-      }
-    }
-    loadCreatives();
+    Promise.all([
+      supabase.from('service_branches').select('name, slug, included_services').eq('is_published', true).order('display_order', { ascending: true, nullsFirst: false }),
+      supabase.rpc('list_eligible_inquiry_creatives'),
+    ]).then(([branchResult, creativeResult]) => {
+      if (!active) return;
+      setBranches(branchResult.data || []);
+      setCreatives(creativeResult.data || []);
+      if (branchResult.error || creativeResult.error) setChoiceLoadError('Some current service choices could not be verified. Unavailable options have been hidden for safety.');
+      setLoadingChoices(false);
+    });
     return () => { active = false; };
-  }, [searchParams]);
+  }, []);
 
-  function update(name, value) {
-    setForm((current) => ({ ...current, [name]: value }));
+  useEffect(() => {
+    if (loadingChoices) return;
+    const requestedBranch = queryContext.branch;
+    const requestedService = slugifyService(queryContext.service);
+    const requestedCreative = String(queryContext.creative || '').toLowerCase();
+    let contextNotice = '';
+    setDraft((current) => {
+      const next = { ...current };
+      if (next.branch && next.branch !== 'general' && !branches.some((item) => branchKeyFromRecord(item) === next.branch)) {
+        next.branch = '';
+        next.serviceKey = '';
+        contextNotice = 'A saved service choice is no longer available. Choose a current service below.';
+      }
+      if (requestedBranch) {
+        const branchAvailable = requestedBranch === 'general' || branches.some((item) => branchKeyFromRecord(item) === requestedBranch);
+        if (branchMeta(requestedBranch) && branchAvailable) next.branch = requestedBranch;
+        else { next.branch = ''; next.serviceKey = ''; contextNotice = 'The requested service branch is unavailable. Choose one below.'; }
+      }
+      const available = servicesForBranch(next.branch, branches);
+      if (requestedService) {
+        if (available.some((service) => service.key === requestedService)) next.serviceKey = requestedService;
+        else { next.serviceKey = ''; contextNotice = 'The requested service is unavailable. Choose an available service.'; }
+      }
+      if (requestedCreative) {
+        const creative = creatives.find((item) => item.slug === requestedCreative || item.id === requestedCreative);
+        if (creative) next.creativeSlug = creative.slug;
+        else { next.creativeSlug = ''; contextNotice = 'The requested creative is unavailable. You can choose another creative or the general team.'; }
+      }
+      return next;
+    });
+    setNotice(contextNotice);
+  }, [branches, creatives, loadingChoices, queryContext]);
+
+  useEffect(() => {
+    try { window.sessionStorage.setItem(INQUIRY_DRAFT_KEY, JSON.stringify(draft)); } catch { }
+  }, [draft]);
+
+  const availableServices = useMemo(() => servicesForBranch(draft.branch, branches), [branches, draft.branch]);
+  const selectedBranch = branchMeta(draft.branch);
+  const selectedService = availableServices.find((service) => service.key === draft.serviceKey) || null;
+  const selectedCreative = creatives.find((creative) => creative.slug === draft.creativeSlug) || null;
+
+  function update(key, value) {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setErrors((current) => { const next = { ...current }; delete next[key]; return next; });
   }
 
-  async function submit(event) {
-    event.preventDefault();
-    setMessage('');
-    setError('');
+  function updateBranchDetails(key, value) {
+    setDraft((current) => ({ ...current, branchDetails: { ...current.branchDetails, [key]: value } }));
+    setErrors((current) => {
+      const next = { ...current };
+      delete next[key];
+      if (key === 'eventType' || key === 'deliverables') delete next.studioDetails;
+      return next;
+    });
+  }
 
-    const payload = { ...normalizeInquiry(form), preferred_creative_id: lockedCreative?.id || normalizeInquiry(form).preferred_creative_id };
-    const formError = validationError(payload, new Set(creatives.map((creative) => creative.id)));
-    if (formError) {
-      setError(formError);
+  function goNext() {
+    const nextErrors = validateInquiryStep(step, draft, availableServices, creatives);
+    if (Object.keys(nextErrors).length) { setErrors(nextErrors); return; }
+    setErrors({}); setNotice(''); setStep((current) => Math.min(current + 1, INQUIRY_STEPS.length - 1)); window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function goBack() { setErrors({}); setNotice(''); setStep((current) => Math.max(current - 1, 0)); window.scrollTo({ top: 0, behavior: 'auto' }); }
+
+  async function submit() {
+    if (submitting) return;
+    const validationByStep = [0, 1, 2, 3].map((index) => validateInquiryStep(index, draft, availableServices, creatives));
+    const finalErrors = Object.assign({}, ...validationByStep);
+    if (Object.keys(finalErrors).length) {
+      setErrors(finalErrors);
+      setStep(Math.max(0, validationByStep.findIndex((result) => Object.keys(result).length > 0)));
       return;
     }
-
-    setSaving(true);
-
+    setSubmitting(true); setNotice(''); setErrors({});
     try {
-      const { error: inquiryError } = await supabase.from('project_inquiries').insert(payload);
-      if (inquiryError) throw inquiryError;
-      setForm(emptyInquiry);
-      setMessage('Inquiry sent. We will review it and get back to you soon.');
+      const { data, error } = await supabase.functions.invoke('submit-service-request', {
+        body: { action: 'submit', request: { ...draft, serviceKey: draft.branch === 'general' ? 'general-inquiry' : draft.serviceKey }, sourcePath: `${location.pathname}${location.search}` },
+      });
+      if (error) throw error;
+      if (!data?.success || !data.reference) throw new Error(data?.message || 'The inquiry could not be submitted.');
+      const confirmation = { reference: data.reference, branch: selectedBranch?.label || 'General inquiry', service: selectedService?.name || 'General inquiry', creative: selectedCreative?.name || '', submittedAt: data.submittedAt || new Date().toISOString() };
+      try {
+        window.sessionStorage.removeItem(INQUIRY_DRAFT_KEY);
+        window.sessionStorage.setItem(`lahat-liwa-inquiry-confirmation:${data.reference}`, JSON.stringify(confirmation));
+      } catch { }
+      navigate(`/inquiry/confirmation/${data.reference}`, { replace: true, state: confirmation });
     } catch (submitError) {
-      setError(isRlsError(submitError)
-        ? 'Please check the form details and try again.'
-        : submitError.message || 'Inquiry could not be sent right now. Please try again later.');
+      setNotice(await functionErrorMessage(submitError));
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   }
 
-  return (
-    <div
-      className="page-shell py-20"
-      style={{
-        '--project-accent': content.accentColor,
-        '--project-primary': content.primaryTextColor,
-        '--project-secondary': content.secondaryTextColor,
-        '--project-muted': content.mutedTextColor,
-      }}
-    >
-      <PublicPageHeader eyebrow="Start a project" title="Tell us what you are building next." description="Whether it is a website, social media project, visual campaign, photo/video work, or digital content system, tell us what you need and we will help shape the next step." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
+  return <div className="page-shell py-16 sm:py-20" style={{ '--project-accent': content.accentColor, '--project-secondary': content.secondaryTextColor }}>
+    <PublicPageHeader eyebrow="Guided inquiry" title="Build a clear request, one step at a time." description="Choose a service and creative, share the essentials, then review everything before it reaches the team." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
 
-      <section className="grid gap-10 pt-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14 lg:pt-12">
-        <form onSubmit={submit} className="major-border-y grid gap-8 py-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.24em]" style={{ color: content.accentColor }}>Project inquiry</p>
-              <h2 className="mt-3 text-2xl font-medium" style={{ color: content.primaryTextColor }}>Share the essentials.</h2>
-            </div>
-            <p className="max-w-xs text-sm leading-6" style={{ color: content.mutedTextColor }}>Required fields are marked by the browser when empty.</p>
-          </div>
+    <StepProgress current={step} />
+    <div className="grid gap-9 pt-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">
+      <main aria-live="polite" className="min-w-0 border-y border-white/[0.09] py-7">
+        <div className="mb-7 flex items-start justify-between gap-5"><div><p className="text-[10px] uppercase tracking-[0.2em] text-orange-300">Step {step + 1} of {INQUIRY_STEPS.length}</p><h1 className="mt-2 text-2xl font-medium text-white">{INQUIRY_STEPS[step]}</h1></div>{step > 0 && <button type="button" onClick={goBack} className="inline-flex min-h-10 items-center gap-2 border-b border-white/[0.12] text-sm text-zinc-400 hover:text-white"><ArrowLeft size={15} />Back</button>}</div>
+        {(notice || choiceLoadError) && <div role="alert" className="mb-6 flex items-start gap-3 border-y border-amber-300/20 bg-amber-300/[0.05] px-3 py-3 text-sm leading-6 text-amber-100"><CircleAlert size={17} className="mt-0.5 shrink-0" />{notice || choiceLoadError}</div>}
+        {Object.keys(errors).length > 0 && <div role="alert" className="mb-6 border-y border-red-300/20 bg-red-300/[0.04] px-3 py-3 text-sm text-red-100"><p className="font-medium">Check the highlighted information.</p><ul className="mt-2 list-disc space-y-1 pl-5">{Object.values(errors).map((error) => <li key={error}>{error}</li>)}</ul></div>}
 
-          {message && (
-            <StatusMessage tone="success" icon={<CheckCircle2 size={18} />}>
-              {message}
-            </StatusMessage>
-          )}
-          {error && (
-            <StatusMessage tone="error" icon={<MessageSquare size={18} />}>
-              {error}
-            </StatusMessage>
-          )}
+        {step === 0 && <ServiceStep draft={draft} branches={branches} availableServices={availableServices} update={update} loading={loadingChoices} />}
+        {step === 1 && <CreativeStep creatives={creatives} selected={draft.creativeSlug} update={update} loading={loadingChoices} error={errors.creativeSlug} />}
+        {step === 2 && <DetailsStep draft={draft} update={update} updateBranchDetails={updateBranchDetails} errors={errors} />}
+        {step === 3 && <ContactStep draft={draft} update={update} errors={errors} />}
+        {step === 4 && <ReviewStep draft={draft} branch={selectedBranch} service={selectedService} creative={selectedCreative} />}
 
-          <div className="grid gap-5 md:grid-cols-2">
-            <Field label="Name" required value={form.name} onChange={(value) => update('name', value)} />
-            <Field label="Email or contact link" required value={form.email_or_contact} onChange={(value) => update('email_or_contact', value)} />
-            <Field label="Business / organization" value={form.organization} onChange={(value) => update('organization', value)} />
-            <Field label="Preferred contact" value={form.preferred_contact} onChange={(value) => update('preferred_contact', value)} />
-          </div>
+        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-white/[0.08] pt-6 sm:flex-row sm:items-center sm:justify-end">
+          {step < INQUIRY_STEPS.length - 1 ? <button type="button" onClick={goNext} className="inline-flex min-h-12 items-center justify-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">Continue<ArrowRight size={16} /></button> : <button type="button" onClick={submit} disabled={submitting} className="inline-flex min-h-12 items-center justify-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200 disabled:cursor-not-allowed disabled:opacity-60"><Send size={16} />{submitting ? 'Submitting securely...' : 'Submit request'}</button>}
+        </div>
+      </main>
 
-          <div className="grid gap-5 md:grid-cols-3">
-            <Select label="Project type" value={form.project_type} options={projectTypes} onChange={(value) => update('project_type', value)} />
-            <Select label="Budget range" value={form.budget_range} options={budgetRanges} onChange={(value) => update('budget_range', value)} />
-            <Field label="Deadline / target date" type="date" value={form.deadline} onChange={(value) => update('deadline', value)} />
-          </div>
-
-          {creatives.length > 0 && <label className="grid gap-2">
-            <span className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: content.secondaryTextColor }}>Preferred creative</span>
-            <select
-              value={form.preferred_creative_id}
-              disabled={Boolean(lockedCreative)}
-              onChange={(event) => update('preferred_creative_id', event.target.value)}
-              className="dark-select min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.18] focus:border-[var(--project-accent)] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <option value="">Let the collective decide</option>
-              {creatives.map((creative) => <option key={creative.id} value={creative.id}>{creative.name}{creative.role ? ` - ${creative.role}` : ''}</option>)}
-            </select>
-            {lockedCreative && <span className="text-xs text-amber-200/80">Locked to {lockedCreative.name} from the creative profile you selected.</span>}
-          </label>}
-
-          <label className="grid gap-2">
-            <span className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: content.secondaryTextColor }}>Message / details</span>
-            <textarea
-              required
-              className="min-h-44 w-full resize-y rounded-sm border border-white/[0.1] bg-black/20 px-4 py-4 text-sm leading-7 text-white outline-none transition duration-200 placeholder:text-zinc-600 hover:border-white/[0.18] focus:border-[var(--project-accent)]"
-              value={form.message}
-              onChange={(event) => update('message', event.target.value)}
-              placeholder="Tell us what you want to create, what already exists, your goals, references, audience, timeline, and any details that would help us understand the project."
-            />
-          </label>
-
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              disabled={saving}
-              className="group inline-flex min-h-12 w-full items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-zinc-950 transition duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
-              style={{ backgroundColor: content.accentColor }}
-            >
-              <Send size={17} /> {saving ? 'Sending inquiry...' : 'Send inquiry'}
-              {!saving && <ArrowRight className="transition duration-200 group-hover:translate-x-0.5" size={17} />}
-            </button>
-            <p className="text-sm leading-6" style={{ color: content.mutedTextColor }}>We review inquiries before recommending the best path forward.</p>
-          </div>
-        </form>
-
-        <aside className="grid h-fit gap-8 lg:sticky lg:top-24">
-          <section className="major-border-y py-6">
-            <div className="flex items-center gap-3">
-              <Clock3 size={18} style={{ color: content.accentColor }} />
-              <h2 className="text-xl font-medium" style={{ color: content.primaryTextColor }}>What happens next</h2>
-            </div>
-            <div className="mt-6 grid gap-5">
-              {processSteps.map((step, index) => (
-                <div key={step.title} className="grid grid-cols-[2rem_1fr] gap-4">
-                  <div className="pt-1 text-xs font-medium" style={{ color: content.accentColor }}>{String(index + 1).padStart(2, '0')}</div>
-                  <div className="border-b border-white/[0.06] pb-5">
-                    <h3 className="font-medium" style={{ color: content.primaryTextColor }}>{step.title}</h3>
-                    <p className="mt-2 text-sm leading-6" style={{ color: content.secondaryTextColor }}>{step.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <p className="text-xs font-medium uppercase tracking-[0.24em]" style={{ color: content.accentColor }}>Available work</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {serviceTags.map((tag) => (
-                <span key={tag} className="border-b border-white/[0.08] px-0 py-2 text-xs" style={{ color: content.secondaryTextColor }}>{tag}</span>
-              ))}
-            </div>
-            <p className="mt-5 text-sm leading-6" style={{ color: content.mutedTextColor }}>
-              Not sure where your idea fits? Choose the closest project type and describe the direction in your message.
-            </p>
-          </section>
-        </aside>
-      </section>
+      <aside className="h-fit border-t border-white/[0.09] pt-5 lg:sticky lg:top-24"><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">Request summary</p><SummaryLine label="Branch" value={selectedBranch?.label} /><SummaryLine label="Service" value={selectedService?.name || (draft.branch === 'general' ? 'General inquiry' : '')} /><SummaryLine label="Creative" value={selectedCreative?.name || 'General team'} /><p className="mt-5 text-xs leading-6 text-zinc-600">Submitting this form sends a request for review. It does not confirm availability, pricing, a booking, or a meeting.</p></aside>
     </div>
-  );
+  </div>;
 }
 
-function Field({ label, value, onChange, type = 'text', required = false }) {
-  return (
-    <label className="grid gap-2">
-      <span className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--project-secondary)' }}>{label}</span>
-      <input
-        required={required}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 placeholder:text-zinc-600 hover:border-white/[0.18] focus:border-[var(--project-accent)]"
-      />
-    </label>
-  );
+function servicesForBranch(branch, rows) {
+  if (branch === 'general') return [{ key: 'general-inquiry', name: 'General inquiry' }];
+  const row = rows.find((item) => branchKeyFromRecord(item) === branch);
+  return (row?.included_services || []).filter(Boolean).map((name) => ({ name, key: slugifyService(name) }));
 }
 
-function Select({ label, value, options, onChange }) {
-  return (
-    <label className="grid gap-2">
-      <span className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--project-secondary)' }}>{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="dark-select min-h-12 w-full rounded-sm border border-white/[0.1] bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition duration-200 hover:border-white/[0.18] focus:border-[var(--project-accent)]"
-      >
-        {options.map((option) => <option key={option}>{option}</option>)}
-      </select>
-    </label>
-  );
+function StepProgress({ current }) {
+  return <ol className="public-filter-scroll mt-10 flex min-w-0 gap-0 overflow-x-auto border-y border-white/[0.08]" aria-label="Inquiry progress">{INQUIRY_STEPS.map((label, index) => <li key={label} aria-current={index === current ? 'step' : undefined} className={`flex min-h-14 min-w-[9rem] flex-1 items-center gap-2 border-b px-3 text-xs ${index === current ? 'border-orange-300 text-white' : index < current ? 'border-emerald-300/40 text-emerald-100' : 'border-transparent text-zinc-600'}`}>{index < current ? <Check size={14} /> : <span>{String(index + 1).padStart(2, '0')}</span>}<span>{label}</span></li>)}</ol>;
 }
 
-function StatusMessage({ children, icon, tone }) {
-  const toneClasses = tone === 'success'
-    ? 'border-emerald-400/20 bg-emerald-500/[0.08] text-emerald-100'
-    : 'border-red-400/20 bg-red-500/[0.08] text-red-100';
-
-  return (
-    <div className={`flex items-start gap-3 rounded-md border px-4 py-3 text-sm leading-6 ${toneClasses}`}>
-      <span className="mt-0.5 shrink-0">{icon}</span>
-      <span>{children}</span>
-    </div>
-  );
+function ServiceStep({ draft, branches, availableServices, update, loading }) {
+  if (loading) return <p className="py-8 text-sm text-zinc-500">Loading available services...</p>;
+  const availableKeys = new Set(branches.map(branchKeyFromRecord));
+  return <div className="grid gap-8"><fieldset><legend className="text-sm font-medium text-zinc-200">Choose a branch</legend><div className="mt-4 grid gap-3 sm:grid-cols-2">{[...SERVICE_BRANCHES.filter((branch) => availableKeys.has(branch.key)), branchMeta('general')].map((branch) => <ChoiceButton key={branch.key} selected={draft.branch === branch.key} onClick={() => { update('branch', branch.key); update('serviceKey', ''); }} title={branch.label} detail={branch.description} />)}</div></fieldset>{draft.branch && draft.branch !== 'general' && <fieldset><legend className="text-sm font-medium text-zinc-200">Choose a service</legend><div className="mt-4 grid gap-2 sm:grid-cols-2">{availableServices.map((service) => <ChoiceButton key={service.key} selected={draft.serviceKey === service.key} onClick={() => update('serviceKey', service.key)} title={service.name} compact />)}</div></fieldset>}</div>;
 }
+
+function CreativeStep({ creatives, selected, update, loading, error }) {
+  return <fieldset><legend className="text-sm font-medium text-zinc-200">Who should receive this request?</legend><p className="mt-2 text-sm leading-6 text-zinc-500">Choose an eligible public creative or let the collective assign the best person.</p><div className="mt-5 grid gap-3 sm:grid-cols-2"><ChoiceButton selected={!selected} onClick={() => update('creativeSlug', '')} title="General team" detail="Let the collective review and assign the request." icon={<UserRound size={17} />} />{!loading && creatives.map((creative) => <ChoiceButton key={creative.id} selected={selected === creative.slug} onClick={() => update('creativeSlug', creative.slug)} title={creative.name} detail={creative.role} image={creative.profile_image_url} />)}</div>{error && <p className="mt-3 text-sm text-red-200">{error}</p>}</fieldset>;
+}
+
+function DetailsStep({ draft, update, updateBranchDetails, errors }) {
+  return <div className="grid gap-6"><Field label="Project summary" value={draft.summary} onChange={(value) => update('summary', value)} error={errors.summary} maxLength={160} placeholder="A short description of the outcome you need" /><TextArea label="Detailed request" value={draft.details} onChange={(value) => update('details', value)} error={errors.details} maxLength={5000} placeholder="Share the goal, scope, existing assets, expected output, and anything that would help the team understand the work." /><BranchFields branch={draft.branch} details={draft.branchDetails} update={updateBranchDetails} errors={errors} /><label className="sr-only" aria-hidden="true">Company website<input tabIndex="-1" autoComplete="off" value={draft.honeypot} onChange={(event) => update('honeypot', event.target.value)} /></label></div>;
+}
+
+function BranchFields({ branch, details, update, errors }) {
+  if (branch === 'tech') return <div className="grid gap-5"><div className="flex items-start gap-3 border-y border-red-300/20 bg-red-300/[0.04] px-3 py-3 text-sm leading-6 text-red-100"><ShieldAlert size={18} className="mt-0.5 shrink-0" /><span>Never submit passwords, one-time codes, banking details, confidential files, or access credentials. For home visits, provide only a general location until the team confirms arrangements.</span></div><Field label="Device or platform" value={details.device || ''} onChange={(value) => update('device', value)} error={errors.device} /><Field label="Issue category" value={details.issueCategory || ''} onChange={(value) => update('issueCategory', value)} /><Select label="Support mode" value={details.supportMode || ''} onChange={(value) => update('supportMode', value)} options={['', 'Virtual assistance', 'Consultation', 'Drop-off', 'Home visit']} /></div>;
+  if (branch === 'studio') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Event or project type" value={details.eventType || ''} onChange={(value) => update('eventType', value)} error={errors.studioDetails} /><Field label="Estimated duration" value={details.duration || ''} onChange={(value) => update('duration', value)} /><Field label="Expected deliverables" value={details.deliverables || ''} onChange={(value) => update('deliverables', value)} className="sm:col-span-2" /><Field label="Existing files or assets" value={details.existingAssets || ''} onChange={(value) => update('existingAssets', value)} className="sm:col-span-2" /></div>;
+  if (branch === 'digital') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Project goal" value={details.projectGoal || ''} onChange={(value) => update('projectGoal', value)} error={errors.projectGoal} /><Field label="Target users" value={details.targetUsers || ''} onChange={(value) => update('targetUsers', value)} /><Field label="Required features" value={details.features || ''} onChange={(value) => update('features', value)} className="sm:col-span-2" /><Field label="Existing website or system" value={details.existingSystem || ''} onChange={(value) => update('existingSystem', value)} className="sm:col-span-2" /><CheckField label="Request a meeting" checked={Boolean(details.meetingRequested)} onChange={(value) => update('meetingRequested', value)} /></div>;
+  if (branch === 'social') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Platforms" value={details.platforms || ''} onChange={(value) => update('platforms', value)} error={errors.platforms} /><Field label="Campaign or account goal" value={details.campaignGoal || ''} onChange={(value) => update('campaignGoal', value)} /><Field label="Posting needs or frequency" value={details.postingNeeds || ''} onChange={(value) => update('postingNeeds', value)} /><Field label="Available brand assets" value={details.brandAssets || ''} onChange={(value) => update('brandAssets', value)} /><Field label="Campaign dates" value={details.campaignDates || ''} onChange={(value) => update('campaignDates', value)} /><Field label="Preferred arrangement" value={details.arrangement || ''} onChange={(value) => update('arrangement', value)} /></div>;
+  return null;
+}
+
+function ContactStep({ draft, update, errors }) {
+  return <div className="grid gap-5 sm:grid-cols-2"><Field label="Client or organization contact" value={draft.clientName} onChange={(value) => update('clientName', value)} error={errors.clientName} /><Field label="Organization (optional)" value={draft.organization} onChange={(value) => update('organization', value)} /><Field label="Email" type="email" value={draft.clientEmail} onChange={(value) => update('clientEmail', value)} error={errors.clientEmail} /><Field label="Phone or messaging contact (optional)" value={draft.clientPhone} onChange={(value) => update('clientPhone', value)} /><Select label="Preferred communication" value={draft.preferredContactMethod} onChange={(value) => update('preferredContactMethod', value)} options={contactMethods} /><Field label="Preferred date or timeline" value={draft.preferredSchedule} onChange={(value) => update('preferredSchedule', value)} placeholder="Preferred date, range, or timing" /><Select label="Service mode (optional)" value={draft.serviceMode} onChange={(value) => update('serviceMode', value)} options={['', 'Remote', 'On-site', 'Hybrid', 'To be discussed']} /><Field label="General location (optional)" value={draft.generalLocation} onChange={(value) => update('generalLocation', value)} placeholder="City or general area only" /><Select label="Approximate budget (optional)" value={draft.budgetRange} onChange={(value) => update('budgetRange', value)} options={budgetRanges} className="sm:col-span-2" /><CheckField label="I consent to being contacted about this request." checked={draft.consent} onChange={(value) => update('consent', value)} error={errors.consent} className="sm:col-span-2" /></div>;
+}
+
+function ReviewStep({ draft, branch, service, creative }) {
+  return <div className="grid gap-6"><div className="grid gap-4 sm:grid-cols-2"><ReviewItem label="Branch" value={branch?.label} /><ReviewItem label="Service" value={service?.name || 'General inquiry'} /><ReviewItem label="Creative" value={creative ? `${creative.name} — ${creative.role}` : 'General team'} /><ReviewItem label="Preferred contact" value={`${draft.preferredContactMethod}${draft.clientPhone ? ` · ${draft.clientPhone}` : ''}`} /><ReviewItem label="Schedule" value={draft.preferredSchedule || 'To be discussed'} /><ReviewItem label="Service mode" value={draft.serviceMode || 'To be discussed'} /></div><div className="border-t border-white/[0.08] pt-5"><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">Summary</p><p className="mt-2 text-lg text-white">{draft.summary}</p><p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-zinc-400">{draft.details}</p></div><div className="flex items-start gap-3 border-y border-white/[0.08] py-4 text-xs leading-6 text-zinc-500"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-emerald-300" /><span>Your request will be saved before notification delivery is attempted. Submission does not confirm a booking, meeting, final price, or availability.</span></div></div>;
+}
+
+function ChoiceButton({ selected, onClick, title, detail, image, icon, compact = false }) {
+  return <button type="button" aria-pressed={selected} onClick={onClick} className={`group min-w-0 border px-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${compact ? 'min-h-14 py-3' : 'min-h-24 py-4'} ${selected ? 'border-orange-300/60 bg-orange-300/[0.08]' : 'border-white/[0.09] bg-white/[0.018] hover:border-white/[0.18]'}`}><div className="flex items-start gap-3">{image ? <img src={image} alt="" width="40" height="40" className="h-10 w-10 shrink-0 rounded-full object-cover" /> : icon ? <span className="mt-0.5 text-orange-200">{icon}</span> : null}<div className="min-w-0 flex-1"><span className="block font-medium text-white">{title}</span>{detail && <span className="mt-1 block text-xs leading-5 text-zinc-500">{detail}</span>}</div>{selected && <Check size={16} className="shrink-0 text-orange-300" />}</div></button>;
+}
+
+function Field({ label, value, onChange, error, type = 'text', maxLength = 240, placeholder = '', className = '' }) { return <label className={`grid gap-2 text-sm text-zinc-300 ${className}`}><span>{label}</span><input type={type} value={value} maxLength={maxLength} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className="min-h-12 w-full rounded-sm border border-white/[0.11] bg-black/20 px-3.5 text-white outline-none placeholder:text-zinc-700 hover:border-white/[0.2] focus:border-orange-300/60 aria-[invalid=true]:border-red-300/60" />{error && <span className="text-xs text-red-200">{error}</span>}</label>; }
+function TextArea({ label, value, onChange, error, maxLength, placeholder }) { return <label className="grid gap-2 text-sm text-zinc-300"><span>{label}</span><textarea value={value} maxLength={maxLength} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className="min-h-40 w-full resize-y rounded-sm border border-white/[0.11] bg-black/20 px-3.5 py-3 text-white outline-none placeholder:text-zinc-700 hover:border-white/[0.2] focus:border-orange-300/60 aria-[invalid=true]:border-red-300/60" />{error && <span className="text-xs text-red-200">{error}</span>}</label>; }
+function Select({ label, value, onChange, options, className = '' }) { return <label className={`grid gap-2 text-sm text-zinc-300 ${className}`}><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="dark-select min-h-12 w-full rounded-sm border border-white/[0.11] bg-black/20 px-3.5 text-white outline-none hover:border-white/[0.2] focus:border-orange-300/60">{options.map((option) => <option key={option || 'empty'} value={option}>{option || 'Choose an option'}</option>)}</select></label>; }
+function CheckField({ label, checked, onChange, error, className = '' }) { return <label className={`flex min-h-12 items-start gap-3 border-y border-white/[0.08] py-3 text-sm text-zinc-300 ${className}`}><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-0.5 h-4 w-4 accent-orange-300" /><span>{label}{error && <span className="mt-1 block text-xs text-red-200">{error}</span>}</span></label>; }
+function SummaryLine({ label, value }) { return <div className="border-b border-white/[0.07] py-4"><p className="text-[10px] uppercase tracking-[0.16em] text-zinc-700">{label}</p><p className="mt-1 text-sm text-zinc-300">{value || 'Not selected'}</p></div>; }
+function ReviewItem({ label, value }) { return <div className="border-t border-white/[0.08] pt-3"><p className="text-[10px] uppercase tracking-[0.16em] text-zinc-600">{label}</p><p className="mt-2 text-sm text-zinc-300">{value || 'Not specified'}</p></div>; }

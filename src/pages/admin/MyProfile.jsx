@@ -85,6 +85,7 @@ function formFromProfile(profile) {
     is_published: profile.is_published !== false,
     is_featured: profile.is_featured === true,
     display_order: profile.display_order ?? '',
+    notification_email: profile.notification_email || '',
   };
 }
 
@@ -103,6 +104,7 @@ function formSignature(form) {
     is_published: form.is_published === true,
     is_featured: form.is_featured === true,
     display_order: form.display_order ?? '',
+    notification_email: form.notification_email || '',
   });
 }
 
@@ -192,16 +194,15 @@ export default function MyProfile() {
       }
 
       setLoading(true);
-      const { data, error } = await supabase
-        .from('creative_members')
-        .select('*')
-        .eq('id', adminUser.creative_member_id)
-        .maybeSingle();
+      const [{ data, error }, { data: preference, error: preferenceError }] = await Promise.all([
+        supabase.from('creative_members').select('*').eq('id', adminUser.creative_member_id).maybeSingle(),
+        supabase.from('creative_notification_preferences').select('notification_email').eq('creative_member_id', adminUser.creative_member_id).maybeSingle(),
+      ]);
 
       if (cancelled) return;
 
-      if (error) {
-        setFlash({ tone: 'error', text: error.message });
+      if (error || preferenceError) {
+        setFlash({ tone: 'error', text: (error || preferenceError).message });
         setProfile(false);
         setLoading(false);
         return;
@@ -213,8 +214,9 @@ export default function MyProfile() {
         return;
       }
 
-      const nextForm = formFromProfile(data);
-      setProfile(data);
+      const loadedProfile = { ...data, notification_email: preference?.notification_email || user?.email || '' };
+      const nextForm = formFromProfile(loadedProfile);
+      setProfile(loadedProfile);
       setForm(nextForm);
       setSavedSignature(formSignature(nextForm));
       setFieldErrors({});
@@ -227,7 +229,7 @@ export default function MyProfile() {
     return () => {
       cancelled = true;
     };
-  }, [adminUser?.creative_member_id]);
+  }, [adminUser?.creative_member_id, user?.email]);
 
   const isDirty = profile && savedSignature && formSignature(form) !== savedSignature;
   const publicSlug = profile?.slug || '';
@@ -330,6 +332,7 @@ export default function MyProfile() {
     const nextShortBio = (form.short_bio || '').trim();
     const nextFullBio = (form.full_bio || '').trim();
     const nextAvailability = (form.availability_status || '').trim();
+    const nextNotificationEmail = (form.notification_email || '').trim().toLowerCase();
     const nextSkills = Array.from(new Set((Array.isArray(form.skills) ? form.skills : parseList(form.skills))
       .map((skill) => skill.trim().replace(/\s+/g, ' '))
       .filter(Boolean)
@@ -344,6 +347,7 @@ export default function MyProfile() {
     if (!nextRole) nextFieldErrors.role = 'Role / title is required.';
     if (!nextSlug) nextFieldErrors.slug = 'A public slug is required.';
     if (invalidSocialIndex !== -1) nextFieldErrors.social_links = 'Each social link needs a complete URL such as https://example.com.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextNotificationEmail)) nextFieldErrors.notification_email = 'Enter a valid private notification email.';
 
     if (Object.keys(nextFieldErrors).length > 0) {
       setFieldErrors(nextFieldErrors);
@@ -404,8 +408,16 @@ export default function MyProfile() {
       return;
     }
 
-    const nextForm = formFromProfile(data);
-    setProfile(data);
+    const { error: preferenceSaveError } = await supabase.from('creative_notification_preferences').upsert({ creative_member_id: profile.id, notification_email: nextNotificationEmail, updated_at: new Date().toISOString() }, { onConflict: 'creative_member_id' });
+    if (preferenceSaveError) {
+      setFlash({ tone: 'error', text: `Profile saved, but the private inquiry notification email could not be saved: ${preferenceSaveError.message}` });
+      setSaving(false);
+      return;
+    }
+
+    const savedProfile = { ...data, notification_email: nextNotificationEmail };
+    const nextForm = formFromProfile(savedProfile);
+    setProfile(savedProfile);
     setForm(nextForm);
     setSavedSignature(formSignature(nextForm));
     setSkillDraft('');
@@ -445,8 +457,8 @@ export default function MyProfile() {
 
       if (error) throw error;
 
-      const nextForm = formFromProfile(data);
-      setProfile(data);
+      const nextForm = formFromProfile({ ...data, notification_email: form.notification_email });
+      setProfile({ ...data, notification_email: form.notification_email });
       setForm((current) => ({ ...current, [field]: url }));
       setSavedSignature(formSignature(nextForm));
       setFlash({ tone: 'success', text: isCover ? 'Cover photo updated.' : 'Profile photo updated.' });
@@ -472,8 +484,8 @@ export default function MyProfile() {
 
       if (error) throw error;
 
-      const nextForm = formFromProfile(data);
-      setProfile(data);
+      const nextForm = formFromProfile({ ...data, notification_email: form.notification_email });
+      setProfile({ ...data, notification_email: form.notification_email });
       setForm(nextForm);
       setSavedSignature(formSignature(nextForm));
       setFlash({ tone: 'success', text: `${label[0].toUpperCase()}${label.slice(1)} removed.` });
@@ -820,6 +832,24 @@ export default function MyProfile() {
             >
               <Plus size={15} /> Add social link
             </button>
+          </div>
+        </ProfileSection>
+
+        <ProfileSection
+          title="Inquiry Notifications"
+          description="This private address receives project requests when a client selects your public profile. It is never included in public profile data."
+        >
+          <div className="max-w-xl">
+            <ProfileField
+              label="Private notification email"
+              type="email"
+              required
+              value={form.notification_email || ''}
+              onChange={(value) => update('notification_email', value)}
+              error={fieldErrors.notification_email}
+              placeholder="name@example.com"
+              hint={`Defaults to your authenticated account email${user?.email ? ` (${user.email})` : ''}.`}
+            />
           </div>
         </ProfileSection>
 

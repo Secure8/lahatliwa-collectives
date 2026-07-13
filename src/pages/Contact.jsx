@@ -1,4 +1,5 @@
-import { Facebook, Github, Globe, Instagram, Linkedin, Mail, Music2, Youtube } from 'lucide-react';
+import { ArrowRight, Facebook, Github, Globe, Instagram, Linkedin, Mail, Music2, Youtube } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { usePublicContent } from '../lib/contentApi';
 import PublicPageHeader from '../components/PublicPageHeader';
 
@@ -23,9 +24,7 @@ export default function Contact() {
       <section className="grid gap-12 pt-10 lg:grid-cols-[1fr_0.72fr] lg:pt-12">
         <div>
           <p className="max-w-lg text-sm leading-7 text-zinc-400">Start with a short note. Share the work, timing, and where you would like the conversation to continue.</p>
-          {hasEmail && <a href={`mailto:${content.email}`} className="mt-7 inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.contactPage.accentColor || content.accentColor }}>
-            <Mail size={18} /> {content.contactPage.ctaText}
-          </a>}
+          <div className="mt-7 flex flex-wrap gap-4"><Link to="/inquiry" className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.contactPage.accentColor || content.accentColor }}>Start a guided inquiry <ArrowRight size={17} /></Link>{hasEmail && <a href={`mailto:${content.email}`} className="inline-flex min-h-11 items-center gap-2 border-b border-white/[0.15] text-sm text-zinc-300 hover:text-white"><Mail size={17} /> {content.contactPage.ctaText}</a>}</div>
           {content.contactPage.notes && <p className="mt-5 max-w-xl text-sm leading-6 text-zinc-500">{content.contactPage.notes}</p>}
         </div>
         {hasLinks && <div className="border-y border-white/[0.09] py-6">

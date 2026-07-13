@@ -18,8 +18,6 @@ export function eligibleProjectCredits(project) {
       || String(a.id).localeCompare(String(b.id)));
 }
 
-// Multi-credit projects use the primary credit when present. Otherwise the currently
-// least-exposed eligible credit wins, with stable credit order as the tie-breaker.
 export function fairProjectExposure(projects, limit = Number.POSITIVE_INFINITY) {
   const editorial = [...(projects || [])].sort(compareEditorialPriority);
   const assignedCounts = new Map();

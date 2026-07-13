@@ -635,48 +635,64 @@ export default function MyProfile() {
 
         <ProfileSection
           title="Profile Media"
-          description="Your profile image is the main artwork in your public hero. Use a sharp, high-resolution image with enough room for responsive cropping."
+          description="Your cover photo fills the public hero background. Your profile photo appears as a compact circular portrait above the Creative portfolio label."
         >
-          <div className="grid gap-8">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(14rem,0.5fr)]">
             <div className="grid content-start gap-3">
-              <p className="text-sm text-zinc-400">Profile hero image</p>
-              <div className="grid aspect-video w-full max-w-2xl place-items-center overflow-hidden rounded-[10px] bg-white/[0.04]">
-                {form.profile_image_url ? (
-                  <img src={form.profile_image_url} alt={`${form.name || 'Profile'} hero preview`} className="h-full w-full object-cover" />
+              <p className="text-sm text-zinc-400">Cover photo</p>
+              <div className="grid aspect-video w-full place-items-center overflow-hidden rounded-[10px] bg-white/[0.04]">
+                {form.cover_image ? (
+                  <img src={form.cover_image} alt={`${form.name || 'Profile'} cover preview`} className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-3xl text-zinc-600">{(form.name || 'L').slice(0, 1)}</span>
+                  <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_70%_20%,rgba(246,213,139,0.1),transparent_38%),linear-gradient(135deg,#18181b,#0f0f11)] px-6 text-center text-sm text-zinc-600">No cover photo yet</div>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <label className="inline-flex h-10 cursor-pointer items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
                   <ImagePlus size={15} />
-                  {uploadingKind === 'profile' ? 'Uploading...' : form.profile_image_url ? 'Replace photo' : 'Upload photo'}
+                  {uploadingKind === 'cover' ? 'Uploading...' : form.cover_image ? 'Replace cover' : 'Upload cover'}
                   <input
                     className="sr-only"
                     disabled={Boolean(uploadingKind) || saving}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     onChange={(event) => {
-                      uploadImage(event.target.files?.[0], 'profile');
+                      uploadImage(event.target.files?.[0], 'cover');
                       event.target.value = '';
                     }}
                   />
                 </label>
-                {form.profile_image_url && (
+                {form.cover_image && (
                   <AdminButton
                     type="button"
                     variant="ghost"
                     disabled={Boolean(uploadingKind) || saving}
-                    onClick={() => removeImage('profile_image_url', 'profile photo')}
+                    onClick={() => removeImage('cover_image', 'cover photo')}
                   >
                     <Trash2 size={15} /> Remove
                   </AdminButton>
                 )}
               </div>
-              <p className="text-xs leading-5 text-zinc-600">This image is used as your public profile hero. Choose a sharp, high-resolution portrait or campaign image with enough space around the subject for responsive cropping.</p>
-              {uploadingKind === 'profile' && uploadMessage && <p className="text-xs text-amber-200">{uploadMessage}</p>}
+              <p className="text-xs leading-5 text-zinc-600">Use a landscape campaign image with enough space around the subject for wide desktop and tighter mobile cropping.</p>
+              {uploadingKind === 'cover' && uploadMessage && <p className="text-xs text-amber-200">{uploadMessage}</p>}
             </div>
 
+            <div className="grid content-start gap-3">
+              <p className="text-sm text-zinc-400">Profile photo</p>
+              <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-full border border-white/[0.1] bg-white/[0.04]">
+                {form.profile_image_url ? <img src={form.profile_image_url} alt={`${form.name || 'Profile'} portrait preview`} className="h-full w-full object-cover" /> : <span className="text-3xl text-zinc-600">{(form.name || 'L').slice(0, 1)}</span>}
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex h-10 cursor-pointer items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">
+                  <ImagePlus size={15} />
+                  {uploadingKind === 'profile' ? 'Uploading...' : form.profile_image_url ? 'Replace photo' : 'Upload photo'}
+                  <input className="sr-only" disabled={Boolean(uploadingKind) || saving} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { uploadImage(event.target.files?.[0], 'profile'); event.target.value = ''; }} />
+                </label>
+                {form.profile_image_url && <AdminButton type="button" variant="ghost" disabled={Boolean(uploadingKind) || saving} onClick={() => removeImage('profile_image_url', 'profile photo')}><Trash2 size={15} /> Remove</AdminButton>}
+              </div>
+              <p className="text-xs leading-5 text-zinc-600">A square portrait works best. It appears as a small circle in the public hero.</p>
+              {uploadingKind === 'profile' && uploadMessage && <p className="text-xs text-amber-200">{uploadMessage}</p>}
+            </div>
           </div>
         </ProfileSection>
 

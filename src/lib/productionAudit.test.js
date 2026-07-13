@@ -22,6 +22,13 @@ test('unresolved public shell contains neutral status text, not marketing copy',
   assert.doesNotMatch(unresolvedShell, /creative digital collective|Selected Projects|Need visuals/i);
 });
 
+test('public content scope changes cannot paint stale fallback copy', () => {
+  const contentApi = readFileSync(resolve(root, 'src/lib/contentApi.js'), 'utf8');
+  assert.match(contentApi, /contentScope === scope/);
+  assert.match(contentApi, /resolved: Boolean\(cached\)/);
+  assert.match(contentApi, /setContentScope\(scope\)/);
+});
+
 test('favicon and manifest references resolve to square static assets', () => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
   const manifest = JSON.parse(readFileSync(resolve(root, 'public/site.webmanifest'), 'utf8'));
@@ -45,4 +52,17 @@ test('public destinations reject executable schemes and preserve valid links', (
   assert.equal(safeInternalPath('/projects?branch=studio'), '/projects?branch=studio');
   assert.equal(safeInternalPath('//example.com'), '');
   assert.equal(socialLinkMeta({ label: 'Email', href: 'mailto:hello@example.com' }).href, 'mailto:hello@example.com');
+});
+
+test('public image priorities match the installed React runtime and loading placeholders remain steady', () => {
+  const publicSources = [
+    'src/components/CreativeHero.jsx',
+    'src/components/ProjectCard.jsx',
+    'src/pages/Home.jsx',
+    'src/pages/ProjectDetails.jsx',
+  ].map((file) => readFileSync(resolve(root, file), 'utf8')).join('\n');
+  const loadingState = readFileSync(resolve(root, 'src/components/LoadingState.jsx'), 'utf8');
+  assert.doesNotMatch(publicSources, /fetchPriority=/);
+  assert.match(publicSources, /fetchpriority=/);
+  assert.doesNotMatch(loadingState, /animate-pulse/);
 });

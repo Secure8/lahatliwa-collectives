@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import CreativeProfileView from '../components/CreativeProfileView';
 import LoadingState from '../components/LoadingState';
@@ -10,6 +11,7 @@ import { getPublicImageUrl } from '../lib/storage';
 export default function CreativeDetails() {
   const location = useLocation(); const navigate = useNavigate();
   const { slug } = useParams();
+  const [topControlsVisible, setTopControlsVisible] = useState(false);
   const [creative, setCreative] = useState(null);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,9 +52,17 @@ export default function CreativeDetails() {
     });
   }, [creative]);
 
+  useEffect(() => {
+    const revealFromTopEdge = (event) => {
+      if (event.pointerType === 'mouse') setTopControlsVisible(event.clientY <= 140);
+    };
+    window.addEventListener('pointermove', revealFromTopEdge, { passive: true });
+    return () => window.removeEventListener('pointermove', revealFromTopEdge);
+  }, []);
+
   if (loading) return <div className="page-shell py-20"><LoadingState label="Loading creative" /></div>;
   if (error || !creative) return <div className="page-shell py-20"><p className="major-border-y py-8 text-zinc-300">{error || 'Creative profile not found.'}</p></div>;
 
   const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/creatives'); if (action.delta) navigate(action.delta); else navigate(action.to); };
-  return <article className="mx-auto w-[min(1360px,calc(100%-24px))] pb-12 pt-4 sm:pb-16 sm:pt-5 lg:pt-7"><button type="button" onClick={goBack} className="fine-link min-h-11 text-sm text-zinc-400">Back</button><div className="mt-3 sm:mt-4"><CreativeProfileView creative={creative} projects={projects} /></div></article>;
+  return <article className="mx-auto w-[min(1360px,calc(100%-24px))] pb-12 pt-1 sm:pb-16"><button type="button" onClick={goBack} onFocus={() => setTopControlsVisible(true)} onBlur={() => setTopControlsVisible(false)} className={`group fixed left-3 top-[4.5rem] z-40 inline-flex min-h-10 items-center gap-2 border-b border-white/15 bg-zinc-950/75 px-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-300 backdrop-blur-sm transition hover:border-orange-300/60 hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 xl:left-[max(0.75rem,calc((100vw-1360px)/2))] xl:transition-[transform,opacity] xl:duration-300 xl:ease-out motion-reduce:transition-none ${topControlsVisible ? 'xl:translate-y-0 xl:opacity-100' : 'xl:pointer-events-none xl:-translate-y-2 xl:opacity-0'}`}><ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5 motion-reduce:transform-none" />Back</button><div className="relative mt-1"><CreativeProfileView creative={creative} projects={projects} /></div></article>;
 }

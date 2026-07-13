@@ -450,6 +450,7 @@ function themeStyle(content) {
 export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
   const scope = publicContentScope(pageKeys);
   const cached = useMemo(() => readCachedPublicContent(pageKeys), [scope]);
+  const [contentScope, setContentScope] = useState(scope);
   const [content, setContent] = useState(() => cached || mergePublicContent());
   const [loading, setLoading] = useState(!cached);
   const [resolved, setResolved] = useState(Boolean(cached));
@@ -466,6 +467,7 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
         setLoading(true);
         setResolved(false);
       }
+      setContentScope(scope);
       setError('');
       try {
         const nextContent = await loadPublicContentBundle(pageKeys);
@@ -506,7 +508,14 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
     };
   }, [scope]);
 
-  const value = { content, loading, resolved, error };
+  const value = contentScope === scope
+    ? { content, loading, resolved, error }
+    : {
+        content: cached || mergePublicContent(),
+        loading: !cached,
+        resolved: Boolean(cached),
+        error: '',
+      };
 
   return createElement(
     PublicContentContext.Provider,

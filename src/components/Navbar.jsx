@@ -1,5 +1,5 @@
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { usePublicContent } from '../lib/contentApi';
@@ -16,8 +16,22 @@ const links = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [immersiveVisible, setImmersiveVisible] = useState(false);
   const location = useLocation();
   const { content } = usePublicContent([]);
+  const immersiveProfile = /^\/creatives\/[^/]+\/?$/.test(location.pathname);
+
+  useEffect(() => {
+    if (!immersiveProfile) {
+      setImmersiveVisible(false);
+      return undefined;
+    }
+    const revealFromTopEdge = (event) => {
+      if (event.pointerType === 'mouse') setImmersiveVisible(event.clientY <= 140);
+    };
+    window.addEventListener('pointermove', revealFromTopEdge, { passive: true });
+    return () => window.removeEventListener('pointermove', revealFromTopEdge);
+  }, [immersiveProfile]);
 
   function avoidDuplicateNavigation(href) {
     return (event) => {
@@ -27,7 +41,15 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-zinc-950/90 shadow-[0_10px_35px_rgba(0,0,0,0.12)] xl:bg-zinc-950/75 xl:backdrop-blur-xl">
+    <header
+      onFocusCapture={() => immersiveProfile && setImmersiveVisible(true)}
+      onBlurCapture={(event) => immersiveProfile && !event.currentTarget.contains(event.relatedTarget) && setImmersiveVisible(false)}
+      className={clsx(
+        'top-0 border-b border-white/[0.08] bg-zinc-950/90 shadow-[0_10px_35px_rgba(0,0,0,0.12)] xl:bg-zinc-950/75 xl:backdrop-blur-xl',
+        immersiveProfile ? 'fixed inset-x-0 z-50 xl:transition-[transform,opacity] xl:duration-300 xl:ease-out motion-reduce:transition-none' : 'sticky z-40',
+        immersiveProfile && (immersiveVisible ? 'xl:translate-y-0 xl:opacity-100' : 'xl:pointer-events-none xl:-translate-y-full xl:opacity-0'),
+      )}
+    >
       <nav className="page-shell flex min-h-16 items-center justify-between">
         <Link to="/" onClick={avoidDuplicateNavigation('/')} className="group flex items-center gap-3 font-medium tracking-wide">
           {content.logoUrl ? (

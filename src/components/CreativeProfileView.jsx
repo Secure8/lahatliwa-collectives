@@ -14,7 +14,8 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
   const resources = allLinks.filter(isResourceLink);
   const socials = allLinks.filter((item) => !isResourceLink(item)).map(socialLinkMeta).filter((item) => item.href);
   const bio = creative.full_bio || creative.short_bio;
-  return <article className="min-w-0 overflow-hidden">
+  return <article className="relative isolate min-w-0 overflow-hidden">
+    {!adminPreview && <ProfileRails />}
     {adminPreview && <p className="mb-4 text-xs uppercase tracking-[0.2em] text-amber-200">Admin preview</p>}
     <CreativeHero creative={creative} projectCount={projects.length} socials={socials} resources={resources} adminPreview={adminPreview} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
@@ -62,6 +63,16 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
 
 function SectionHeading({ number, eyebrow, title, detail }) {
   return <div className="grid gap-3 border-l border-orange-300/70 pl-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"><div><p className="text-[11px] uppercase tracking-[0.18em] text-orange-300">{number} / {eyebrow}</p><h2 className="mt-2 text-[clamp(1.7rem,3vw,2.65rem)] font-medium leading-none tracking-[-0.03em] text-white">{title}</h2></div>{detail && <p className="text-[11px] uppercase tracking-[0.13em] text-zinc-600">{detail}</p>}</div>;
+}
+function ProfileRails() {
+  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 hidden xl:block">
+    <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-orange-200/40 via-orange-300/10 to-orange-200/40 shadow-[0_0_5px_rgba(251,146,60,0.3)]" />
+    <span className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-orange-200/45 via-orange-300/10 to-orange-200/35 shadow-[0_0_5px_rgba(251,146,60,0.4)]" />
+    <span className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-orange-200/45 via-orange-300/10 to-orange-200/35 shadow-[0_0_5px_rgba(251,146,60,0.4)]" />
+    <span className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-orange-200/40 via-orange-300/10 to-orange-200/40 shadow-[0_0_5px_rgba(251,146,60,0.3)]" />
+    <span className="absolute bottom-0 left-0 h-1 w-1 -translate-x-[1.5px] translate-y-[1.5px] rounded-full bg-orange-200/80 shadow-[0_0_6px_rgba(251,146,60,0.65)]" />
+    <span className="absolute bottom-0 right-0 h-1 w-1 translate-x-[1.5px] translate-y-[1.5px] rounded-full bg-orange-200/80 shadow-[0_0_6px_rgba(251,146,60,0.65)]" />
+  </div>;
 }
 function Fact({ label, value }) { return <div className="border-b border-white/[0.09] py-4"><dt className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">{label}</dt><dd className="mt-1 text-zinc-300">{value}</dd></div>; }
 function SocialLink({ item }) { const icons={facebook:Facebook,instagram:Instagram,linkedin:Linkedin,youtube:Youtube,twitter:Twitter,github:Github,dribbble:Dribbble,tiktok:Music2,email:Mail,website:Globe2}; const Icon=icons[item.platform]||Globe2; const external=!item.href.startsWith('mailto:'); return <a href={item.href} target={external?'_blank':undefined} rel={external?'noopener noreferrer':undefined} aria-label={`${item.label}${external?' (opens in a new tab)':''}`} title={item.label} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-white/10 bg-zinc-900/90 text-zinc-200 transition hover:-translate-y-1 hover:border-orange-200/50 hover:text-orange-200 hover:shadow-[0_0_18px_rgba(251,146,60,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 motion-reduce:transform-none"><Icon size={18}/></a>; }

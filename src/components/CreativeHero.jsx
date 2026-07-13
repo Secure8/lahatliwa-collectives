@@ -5,20 +5,21 @@ import { getPublicImageUrl } from '../lib/storage';
 import { resourceMeta } from '../lib/profileResources';
 
 export default function CreativeHero({ creative, projectCount, socials, resources = [], renderSocial, adminPreview = false }) {
-  const [failed, setFailed] = useState(false);
-  const image = getPublicImageUrl(creative.profile_image_url);
+  const profileImage = getPublicImageUrl(creative.profile_image_url);
+  const coverImage = getPublicImageUrl(creative.cover_image) || profileImage;
   const intro = creative.short_bio || creative.full_bio;
   return (
-    <header className="relative isolate flex min-h-[48rem] w-full flex-col overflow-hidden rounded-[10px] bg-zinc-900 sm:aspect-[4/3] sm:min-h-[42rem] lg:aspect-video lg:min-h-[32.5rem] lg:max-h-[45rem]">
-      {image && !failed ? (
-        <img src={image} alt={`${creative.name} portrait`} loading={adminPreview ? 'lazy' : 'eager'} fetchpriority={adminPreview ? 'auto' : 'high'} decoding="async" width="1920" height="1080" sizes="(max-width: 1439px) calc(100vw - 24px), 1360px" className="absolute inset-0 h-full w-full object-cover object-center" onError={() => setFailed(true)} />
-      ) : (
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(246,213,139,0.14),transparent_34%),linear-gradient(135deg,#27272a,#09090b)]" />
-      )}
+    <header className="relative isolate flex min-h-[63rem] w-full flex-col overflow-hidden rounded-[10px] bg-zinc-900 min-[341px]:min-h-[61rem] min-[381px]:min-h-[60rem] sm:aspect-[4/3] sm:min-h-[54rem] lg:aspect-video lg:min-h-[32.5rem] lg:max-h-[45rem]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(246,213,139,0.14),transparent_34%),linear-gradient(135deg,#27272a,#09090b)]" />
+      {coverImage && <SmoothImage key={`cover-${coverImage}`} src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} fetchpriority={adminPreview ? 'auto' : 'high'} decoding="async" width="1920" height="1080" sizes="(max-width: 1439px) calc(100vw - 24px), 1360px" className="absolute inset-0 h-full w-full object-cover object-center" />}
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,6,0.94)_0%,rgba(5,5,6,0.58)_30%,rgba(5,5,6,0.02)_57%,rgba(5,5,6,0.82)_100%),linear-gradient(0deg,rgba(5,5,6,0.78)_0%,transparent_58%)]" />
-      <div className="relative z-10 flex min-w-0 flex-1 items-center px-5 pb-72 pt-10 sm:px-9 sm:pb-40 lg:w-[48%] lg:translate-y-10 lg:px-12 lg:pb-10">
+      <div className="relative z-10 flex min-w-0 flex-1 items-center px-5 pb-72 pt-28 sm:px-9 sm:pb-40 sm:pt-10 lg:w-[48%] lg:translate-y-10 lg:px-12 lg:pb-10">
         <div className="max-w-[34rem]">
-        <p className="inline-flex border border-white/20 bg-black/20 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-100 backdrop-blur-sm">Creative portfolio</p>
+        <div className="relative grid h-40 w-40 place-items-center overflow-hidden rounded-full border border-white/25 bg-zinc-900/85 shadow-[0_10px_28px_rgba(0,0,0,0.35)]">
+          <span aria-hidden="true" className="text-3xl font-semibold text-orange-200">{creative.name?.slice(0, 1) || 'L'}</span>
+          {profileImage && <SmoothImage key={`profile-${profileImage}`} src={profileImage} alt={`${creative.name} profile`} loading={adminPreview ? 'lazy' : 'eager'} fetchpriority="auto" decoding="async" width="320" height="320" sizes="160px" className="absolute inset-0 h-full w-full object-cover" />}
+        </div>
+        <p className="mt-3 inline-flex w-40 whitespace-nowrap justify-center border border-white/20 bg-black/20 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-100 backdrop-blur-sm">Creative portfolio</p>
         <h1 className="mt-4 max-w-3xl [overflow-wrap:anywhere] text-[clamp(2.5rem,5.6vw,5.7rem)] font-semibold leading-[0.94] tracking-[-0.045em] text-white">{creative.name}</h1>
         <div className="mt-4 max-w-2xl border-l-2 border-orange-300 pl-3 sm:pl-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-orange-300">Lahat Liwa</p>
@@ -52,6 +53,12 @@ export default function CreativeHero({ creative, projectCount, socials, resource
   );
 }
 
+function SmoothImage({ className = '', ...props }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return <img {...props} className={className} onError={() => setFailed(true)} />;
+}
+
 function SeparatedTitle({ value }) {
   const titles = String(value || 'Creative').split(/\s*\/\s*/).filter(Boolean);
   return <>{titles.map((title, index) => <Fragment key={`${title}-${index}`}>{index > 0 && <span className="mx-1.5 font-normal text-orange-300/90">/</span>}<span>{title}</span></Fragment>)}</>;
@@ -61,7 +68,7 @@ function ResourceDock({ resources, mobile = false }) {
   const position = mobile
     ? 'mb-2 flex w-full items-end'
     : 'absolute bottom-4 left-1/2 z-20 hidden max-w-[46%] -translate-x-1/2 items-end lg:flex';
-  return <div className={`${position} gap-2 overflow-x-auto rounded-xl border border-white/15 bg-black/55 px-3 py-2 shadow-[0_10px_35px_rgba(0,0,0,0.35)] backdrop-blur-md`} aria-label={mobile ? 'Mobile tools and resources' : 'Tools and resources'}>{resources.slice(0, 10).map((resource) => { const meta = resourceMeta(resource); if (!meta.href) return null; return <a key={`${meta.name}-${meta.href}`} href={meta.href} target="_blank" rel="noopener noreferrer" aria-label={`${meta.name} (opens in a new tab)`} title={meta.name} className="group grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-white/10 bg-zinc-900/90 transition hover:-translate-y-1 hover:border-orange-200/50 hover:shadow-[0_0_18px_rgba(251,146,60,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 motion-reduce:transform-none"><ResourceIcon meta={meta} /></a>; })}</div>;
+  return <div className={`public-filter-scroll ${position} gap-2 overflow-x-auto rounded-xl border border-white/15 bg-black/55 px-3 py-2 shadow-[0_10px_35px_rgba(0,0,0,0.35)] backdrop-blur-md`} aria-label={mobile ? 'Mobile tools and resources' : 'Tools and resources'}>{resources.slice(0, 10).map((resource) => { const meta = resourceMeta(resource); if (!meta.href) return null; return <a key={`${meta.name}-${meta.href}`} href={meta.href} target="_blank" rel="noopener noreferrer" aria-label={`${meta.name} (opens in a new tab)`} title={meta.name} className="group grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-white/10 bg-zinc-900/90 transition hover:-translate-y-1 hover:border-orange-200/50 hover:shadow-[0_0_18px_rgba(251,146,60,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 motion-reduce:transform-none"><ResourceIcon meta={meta} /></a>; })}</div>;
 }
 
 function ResourceIcon({ meta }) {

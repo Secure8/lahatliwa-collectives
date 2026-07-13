@@ -95,7 +95,7 @@ export default function Projects() {
       <section className="pt-10 sm:pt-12" aria-live="polite">
         {loading && <LoadingState label="Loading projects" />}
         {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}
-        {!loading && !error && (visible.length ? <ProjectGrid projects={visible} variant="editorial" /> : <EmptyState title={selectedBranch ? 'Projects for this branch are being prepared.' : 'No projects found'} message={selectedBranch ? 'Explore another branch or view all current work.' : 'Try another search term.'} />)}
+        {!loading && !error && (visible.length ? <ProjectGrid projects={visible} /> : <EmptyState title={selectedBranch ? 'Projects for this branch are being prepared.' : 'No projects found'} message={selectedBranch ? 'Explore another branch or view all current work.' : 'Try another search term.'} />)}
       </section>
     </main>
   );

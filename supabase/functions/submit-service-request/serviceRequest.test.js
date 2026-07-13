@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { branchKey, generateReference, notificationOutcome, notificationPlan, REFERENCE_PATTERN, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
+import { branchKey, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
 
 function validRequest(overrides = {}) {
   return { branch: 'studio', serviceKey: 'photography', clientName: 'Client Name', clientEmail: 'client@example.com', preferredContactMethod: 'Email', summary: 'Campaign portraits', details: 'We need a portrait campaign with edited images.', consent: true, idempotencyKey: '123e4567-e89b-42d3-a456-426614174000', branchDetails: { eventType: 'Portrait campaign' }, ...overrides };
@@ -28,11 +28,76 @@ test('reference generation is non-sequential and excludes ambiguous characters',
   assert.notEqual(first, second);
 });
 
-test('general and creative notification routing never exposes addresses as public data', () => {
-  assert.deepEqual(notificationPlan({ hasCreative: false, creativeEmail: '', adminEmail: 'team@example.com', clientEmail: 'client@example.com' }).map((item) => item.key), ['admin', 'client']);
-  assert.deepEqual(notificationPlan({ hasCreative: true, creativeEmail: 'creative@example.com', adminEmail: 'team@example.com', clientEmail: 'client@example.com' }).map((item) => item.key), ['admin', 'creative', 'client']);
-  assert.equal(notificationOutcome({ admin: 'sent', client: 'sent', creative: 'unavailable' }, true), 'sent');
-  assert.equal(notificationOutcome({ admin: 'sent', client: 'failed', creative: 'sent' }, true), 'partially_sent');
+test('successful creative delivery emails only the selected creative and client', async () => {
+  const deliveries = [];
+  const result = await deliverNotificationPlan({
+    hasCreative: true,
+    creativeEmail: 'creative@example.com',
+    adminEmail: 'team@example.com',
+    clientEmail: 'client@example.com',
+    send: async (item) => deliveries.push(item),
+  });
+  assert.deepEqual(deliveries, [
+    { key: 'creative', recipient: 'creative@example.com' },
+    { key: 'client', recipient: 'client@example.com' },
+  ]);
+  assert.equal(deliveries.some((item) => item.recipient === 'team@example.com'), false);
+  assert.equal(result.nextState.client, 'sent');
+  assert.equal(result.notificationStatus, 'sent');
+});
+
+test('general inquiries email the administrative inbox and client', async () => {
+  const deliveries = [];
+  const result = await deliverNotificationPlan({
+    hasCreative: false,
+    creativeEmail: '',
+    adminEmail: 'team@example.com',
+    clientEmail: 'client@example.com',
+    send: async (item) => deliveries.push(item),
+  });
+  assert.deepEqual(deliveries.map((item) => item.key), ['admin', 'client']);
+  assert.equal(result.notificationStatus, 'sent');
+});
+
+test('failed creative delivery falls back to the administrative inbox and still confirms the client', async () => {
+  const deliveries = [];
+  const result = await deliverNotificationPlan({
+    hasCreative: true,
+    creativeEmail: 'creative@example.com',
+    adminEmail: 'team@example.com',
+    clientEmail: 'client@example.com',
+    send: async (item) => {
+      deliveries.push(item);
+      if (item.key === 'creative') throw new Error('provider rejected creative delivery');
+    },
+  });
+  assert.deepEqual(deliveries.map((item) => item.key), ['creative', 'admin_fallback', 'client']);
+  assert.equal(result.nextState.creative, 'failed');
+  assert.equal(result.nextState.admin_fallback, 'sent');
+  assert.equal(result.nextState.client, 'sent');
+  assert.equal(result.notificationStatus, 'partially_sent');
+});
+
+test('missing creative email falls back safely without attempting direct delivery', async () => {
+  const deliveries = [];
+  const result = await deliverNotificationPlan({
+    hasCreative: true,
+    creativeEmail: '',
+    adminEmail: 'team@example.com',
+    clientEmail: 'client@example.com',
+    send: async (item) => deliveries.push(item),
+  });
+  assert.deepEqual(deliveries.map((item) => item.key), ['admin_fallback', 'client']);
+  assert.equal(result.nextState.creative, 'unavailable');
+  assert.equal(result.nextState.admin_fallback, 'sent');
+  assert.equal(result.nextState.client, 'sent');
+  assert.equal(result.notificationStatus, 'partially_sent');
+});
+
+test('notification outcomes distinguish normal delivery, fallback, and failure', () => {
+  assert.equal(notificationOutcome({ creative: 'sent', client: 'sent' }, true), 'sent');
+  assert.equal(notificationOutcome({ creative: 'failed', admin_fallback: 'sent', client: 'sent' }, true), 'partially_sent');
+  assert.equal(notificationOutcome({ admin: 'sent', client: 'failed' }, false), 'partially_sent');
   assert.equal(notificationOutcome({ admin: 'failed', client: 'failed' }, false), 'failed');
 });
 

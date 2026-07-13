@@ -74,21 +74,46 @@ export function safeBranchDetails(value = {}) {
   return output;
 }
 
-export function notificationPlan({ hasCreative, creativeEmail, adminEmail, clientEmail }) {
-  return [
-    { key: 'admin', recipient: adminEmail, required: true },
-    ...(hasCreative ? [{ key: 'creative', recipient: creativeEmail || '', required: Boolean(creativeEmail) }] : []),
-    { key: 'client', recipient: clientEmail, required: true },
-  ];
+export function notificationOutcome(state, hasCreative) {
+  const internalSent = hasCreative
+    ? state.creative === 'sent' || state.admin_fallback === 'sent'
+    : state.admin === 'sent';
+  const clientSent = state.client === 'sent';
+  const usedFallback = hasCreative && state.creative !== 'sent' && state.admin_fallback === 'sent';
+  if (internalSent && clientSent) return usedFallback ? 'partially_sent' : 'sent';
+  if (internalSent || clientSent) return 'partially_sent';
+  return 'failed';
 }
 
-export function notificationOutcome(state, hasCreative) {
-  const required = ['admin', 'client'];
-  if (hasCreative && state.creative !== 'unavailable') required.push('creative');
-  const sent = required.filter((key) => state[key] === 'sent').length;
-  if (sent === required.length) return 'sent';
-  if (sent > 0) return 'partially_sent';
-  return 'failed';
+export async function deliverNotificationPlan({ hasCreative, creativeEmail, adminEmail, clientEmail, state = {}, send }) {
+  const nextState = { ...state };
+  const failures = [];
+
+  async function attempt(key, recipient) {
+    if (!recipient || nextState[key] === 'sent') return;
+    try {
+      await send({ key, recipient });
+      nextState[key] = 'sent';
+    } catch (error) {
+      nextState[key] = 'failed';
+      failures.push(`${key}: ${error instanceof Error ? error.message : 'delivery failed'}`);
+    }
+  }
+
+  if (hasCreative) {
+    if (creativeEmail) await attempt('creative', creativeEmail);
+    else if (nextState.creative !== 'sent') nextState.creative = 'unavailable';
+    if (nextState.creative !== 'sent') await attempt('admin_fallback', adminEmail);
+  } else {
+    await attempt('admin', adminEmail);
+  }
+  await attempt('client', clientEmail);
+
+  return {
+    nextState,
+    failures,
+    notificationStatus: notificationOutcome(nextState, hasCreative),
+  };
 }
 
 export function escapeHtml(value = '') {

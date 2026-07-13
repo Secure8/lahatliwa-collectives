@@ -74,8 +74,22 @@ test('server saves and de-duplicates before attempting notification delivery', a
   const edge = await readFile(new URL('../../supabase/functions/submit-service-request/index.ts', import.meta.url), 'utf8');
   const duplicateCheck = edge.indexOf(".eq('idempotency_key', normalized.idempotencyKey)");
   const insert = edge.indexOf(".insert(payload)");
-  const delivery = edge.indexOf('deliverNotifications(admin, inquiry, creative, emailConfig)', insert);
+  const addressResolution = edge.indexOf('resolveCreativeNotificationEmail(admin, creative.id)', insert);
+  const delivery = edge.indexOf('deliverNotifications(admin, inquiry, deliveryCreative, emailConfig)', insert);
   assert.ok(duplicateCheck > -1 && duplicateCheck < insert);
+  assert.ok(insert > -1 && insert < addressResolution);
   assert.ok(insert > -1 && insert < delivery);
   assert.match(edge, /notification_status: 'failed'.*Email delivery is not configured\./s);
+});
+
+test('creative inquiries remain assigned, unread, and visible to authorized dashboard users', async () => {
+  const [edge, sql] = await Promise.all([
+    readFile(new URL('../../supabase/functions/submit-service-request/index.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../../supabase/service_request_portal.sql', import.meta.url), 'utf8'),
+  ]);
+  assert.match(edge, /preferred_creative_id: creative\?\.id \|\| null/);
+  assert.match(edge, /assigned_creative_id: creative\?\.id \|\| null/);
+  assert.match(edge, /notification_status: 'pending', notification_state: \{\}, unread: true/);
+  assert.match(sql, /private\.has_role\(auth\.uid\(\), array\['super_admin', 'owner', 'admin'\]\)/i);
+  assert.match(sql, /coalesce\(assigned_creative_id, preferred_creative_id\) = private\.current_creative_member_id\(\)/i);
 });

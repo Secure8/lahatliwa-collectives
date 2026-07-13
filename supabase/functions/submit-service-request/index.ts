@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { branchKey, cleanText, escapeHtml, generateReference, notificationOutcome, notificationPlan, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
+import { branchKey, cleanText, deliverNotificationPlan, EMAIL_PATTERN, escapeHtml, generateReference, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 const reply = (body: unknown, status = 200, cors = {}) => new Response(JSON.stringify(body), { status, headers: { ...jsonHeaders, ...cors } });
@@ -47,12 +47,10 @@ async function resolveCreative(admin: any, slug: string) {
   const { data: creative, error } = await admin.from('creative_members').select('id, name, slug, role, is_published').eq('slug', slug).eq('is_published', true).maybeSingle();
   if (error) throw error;
   if (!creative) return null;
-  const { data: team, error: teamError } = await admin.from('admin_users').select('email').eq('creative_member_id', creative.id).eq('status', 'active').not('user_id', 'is', null).maybeSingle();
+  const { data: team, error: teamError } = await admin.from('admin_users').select('id').eq('creative_member_id', creative.id).eq('status', 'active').not('user_id', 'is', null).maybeSingle();
   if (teamError) throw teamError;
   if (!team) return null;
-  const { data: preference, error: preferenceError } = await admin.from('creative_notification_preferences').select('notification_email').eq('creative_member_id', creative.id).maybeSingle();
-  if (preferenceError) throw preferenceError;
-  return { ...creative, notificationEmail: cleanText(preference?.notification_email || team.email, 254).toLowerCase() };
+  return creative;
 }
 
 async function resolveCreativeById(admin: any, id: string) {
@@ -62,27 +60,66 @@ async function resolveCreativeById(admin: any, id: string) {
   return data?.slug ? resolveCreative(admin, data.slug) : null;
 }
 
+async function resolveCreativeNotificationEmail(admin: any, creativeId: string) {
+  if (!creativeId) return { email: '', reason: 'missing_creative' };
+  try {
+    const { data: preference, error: preferenceError } = await admin.from('creative_notification_preferences').select('notification_email').eq('creative_member_id', creativeId).maybeSingle();
+    if (preferenceError) throw preferenceError;
+    const preferredEmail = cleanText(preference?.notification_email, 254).toLowerCase();
+    if (preferredEmail) return EMAIL_PATTERN.test(preferredEmail)
+      ? { email: preferredEmail, reason: 'creative_preference' }
+      : { email: '', reason: 'invalid_preference' };
+
+    const { data: team, error: teamError } = await admin.from('admin_users').select('email').eq('creative_member_id', creativeId).eq('status', 'active').not('user_id', 'is', null).maybeSingle();
+    if (teamError) throw teamError;
+    const accountEmail = cleanText(team?.email, 254).toLowerCase();
+    return EMAIL_PATTERN.test(accountEmail)
+      ? { email: accountEmail, reason: 'active_team_account' }
+      : { email: '', reason: 'missing_valid_email' };
+  } catch (error) {
+    console.error('[service-request] creative notification address resolution failed', { creativeId, code: (error as any)?.code || 'QUERY_FAILED' });
+    return { email: '', reason: 'resolution_failed' };
+  }
+}
+
 async function deliverNotifications(admin: any, inquiry: any, creative: any, config: any) {
   inquiry.creative_name = creative?.name || '';
   const state = { ...(inquiry.notification_state || {}) };
-  if (creative && !creative.notificationEmail) state.creative = 'unavailable';
-  const plan = notificationPlan({ hasCreative: Boolean(creative), creativeEmail: creative?.notificationEmail, adminEmail: config.adminEmail, clientEmail: inquiry.client_email });
-  const failures = [];
-  for (const item of plan) {
-    if (!item.recipient || state[item.key] === 'sent') continue;
-    const isClient = item.key === 'client';
-    const title = isClient ? 'We received your inquiry' : item.key === 'creative' ? 'A visitor selected you for a project inquiry' : 'A new service inquiry needs review';
-    const subject = isClient ? `We received your inquiry — ${inquiry.public_reference}` : item.key === 'creative' ? `New project inquiry for you — ${inquiry.public_reference}` : `New ${branchLabel(inquiry.branch)} inquiry — ${inquiry.public_reference}`;
-    try {
-      await sendEmail(config.apiKey, { from: config.fromEmail, to: [item.recipient], reply_to: isClient ? config.adminEmail : inquiry.client_email, subject, html: emailHtml(title, inquiry, config.siteUrl, !isClient) });
-      state[item.key] = 'sent';
-    } catch (error) {
-      state[item.key] = 'failed';
-      failures.push(`${item.key}: ${error instanceof Error ? error.message : 'delivery failed'}`);
-    }
-  }
-  const notificationStatus = notificationOutcome(state, Boolean(creative));
-  const { error } = await admin.from('project_inquiries').update({ notification_status: notificationStatus, notification_state: state, notification_attempts: Number(inquiry.notification_attempts || 0) + 1, notification_error: failures.join('; ').slice(0, 1000) || null, notified_at: notificationStatus === 'sent' ? new Date().toISOString() : inquiry.notified_at }).eq('id', inquiry.id);
+  if (creative && !creative.notificationEmail) state.creative_resolution = creative.notificationReason || 'missing_valid_email';
+  const { nextState, failures, notificationStatus } = await deliverNotificationPlan({
+    hasCreative: Boolean(creative),
+    creativeEmail: creative?.notificationEmail || '',
+    adminEmail: config.adminEmail,
+    clientEmail: inquiry.client_email,
+    state,
+    send: async (item: any) => {
+      const isClient = item.key === 'client';
+      const isCreative = item.key === 'creative';
+      const isFallback = item.key === 'admin_fallback';
+      const title = isClient
+        ? 'We received your inquiry'
+        : isCreative
+          ? 'A visitor selected you for a project inquiry'
+          : isFallback
+            ? 'A creative inquiry needs fallback review'
+            : 'A new service inquiry needs review';
+      const subject = isClient
+        ? `We received your inquiry — ${inquiry.public_reference}`
+        : isCreative
+          ? `New project inquiry for you — ${inquiry.public_reference}`
+          : isFallback
+            ? `Fallback required for creative inquiry — ${inquiry.public_reference}`
+            : `New ${branchLabel(inquiry.branch)} inquiry — ${inquiry.public_reference}`;
+      await sendEmail(config.apiKey, {
+        from: config.fromEmail,
+        to: [item.recipient],
+        reply_to: isClient ? config.adminEmail : inquiry.client_email,
+        subject,
+        html: emailHtml(title, inquiry, config.siteUrl, !isClient),
+      });
+    },
+  });
+  const { error } = await admin.from('project_inquiries').update({ notification_status: notificationStatus, notification_state: nextState, notification_attempts: Number(inquiry.notification_attempts || 0) + 1, notification_error: failures.join('; ').slice(0, 1000) || null, notified_at: notificationStatus === 'sent' ? new Date().toISOString() : inquiry.notified_at }).eq('id', inquiry.id);
   if (error) console.error('[service-request] notification state update failed', { reference: inquiry.public_reference, code: error.code });
   return notificationStatus;
 }
@@ -124,8 +161,17 @@ Deno.serve(async (req) => {
       const { data: inquiry, error } = await admin.from('project_inquiries').select('*').eq('public_reference', reference).maybeSingle();
       if (error || !inquiry) return fail('INQUIRY_NOT_FOUND', 'The inquiry could not be found.', 404, cors);
       const creativeId = inquiry.assigned_creative_id || inquiry.preferred_creative_id || '';
-      const creative = await resolveCreativeById(admin, creativeId) || (creativeId ? { name: 'Selected creative', notificationEmail: '' } : null);
       if (!emailConfig.apiKey || !emailConfig.fromEmail) return fail('EMAIL_NOT_CONFIGURED', 'Email delivery is not configured.', 503, cors);
+      let creative = null;
+      try {
+        creative = await resolveCreativeById(admin, creativeId);
+      } catch (resolveError) {
+        console.error('[service-request] retry creative lookup failed', { creativeId, code: (resolveError as any)?.code || 'QUERY_FAILED' });
+      }
+      if (creativeId) {
+        const address = await resolveCreativeNotificationEmail(admin, creativeId);
+        creative = { ...(creative || { id: creativeId, name: 'Selected creative' }), notificationEmail: address.email, notificationReason: address.reason };
+      }
       const notificationStatus = await deliverNotifications(admin, inquiry, creative, emailConfig);
       return reply({ success: true, notificationStatus }, 200, cors);
     }
@@ -169,8 +215,8 @@ Deno.serve(async (req) => {
       client_email: normalized.clientEmail, client_phone: normalized.clientPhone || null, summary: normalized.summary,
       details: normalized.details, preferred_schedule: normalized.preferredSchedule || null, service_mode: normalized.serviceMode || null,
       general_location: normalized.generalLocation || null, request_metadata: safeBranchDetails(normalized.branchDetails), source_path: sourcePath || null,
-      preferred_creative_id: creative?.id || null, idempotency_key: normalized.idempotencyKey, submitter_hash: submitterHash,
-      notification_status: 'pending', notification_state: creative && !creative.notificationEmail ? { creative: 'unavailable' } : {}, unread: true,
+      preferred_creative_id: creative?.id || null, assigned_creative_id: creative?.id || null, idempotency_key: normalized.idempotencyKey, submitter_hash: submitterHash,
+      notification_status: 'pending', notification_state: {}, unread: true,
     };
     let inquiry;
     let insertError;
@@ -183,7 +229,14 @@ Deno.serve(async (req) => {
     if (insertError || !inquiry) throw insertError || new Error('Inquiry insert failed.');
 
     let notificationStatus = 'failed';
-    if (emailConfig.apiKey && emailConfig.fromEmail) notificationStatus = await deliverNotifications(admin, inquiry, creative, emailConfig);
+    if (emailConfig.apiKey && emailConfig.fromEmail) {
+      let deliveryCreative = creative;
+      if (creative) {
+        const address = await resolveCreativeNotificationEmail(admin, creative.id);
+        deliveryCreative = { ...creative, notificationEmail: address.email, notificationReason: address.reason };
+      }
+      notificationStatus = await deliverNotifications(admin, inquiry, deliveryCreative, emailConfig);
+    }
     else await admin.from('project_inquiries').update({ notification_status: 'failed', notification_attempts: 1, notification_error: 'Email delivery is not configured.' }).eq('id', inquiry.id);
 
     console.log('[service-request] inquiry saved', { reference: inquiry.public_reference, branch: inquiry.branch, hasCreative: Boolean(creative), notificationStatus });

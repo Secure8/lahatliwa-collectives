@@ -50,15 +50,11 @@ export function validateSubmission(raw = {}) {
   };
   const errors = [];
   if (!BRANCHES.has(normalized.branch)) errors.push('Choose an available service branch.');
-  if (normalized.branch !== 'general' && !normalized.serviceKey) errors.push('Choose an available service.');
+  if (!normalized.serviceKey) errors.push('Choose an available service category.');
   if (normalized.clientName.length < 2) errors.push('Enter your name or organization contact.');
   if (!EMAIL_PATTERN.test(normalized.clientEmail)) errors.push('Enter a valid email address.');
   if (normalized.summary.length < 5) errors.push('Add a short project summary.');
   if (normalized.details.length < 20) errors.push('Describe the request in at least 20 characters.');
-  if (normalized.branch === 'studio' && !cleanText(normalized.branchDetails.eventType || normalized.branchDetails.deliverables, 500)) errors.push('Add the event, project type, or expected deliverables.');
-  if (normalized.branch === 'tech' && !cleanText(normalized.branchDetails.device, 500)) errors.push('Add the device or platform that needs support.');
-  if (normalized.branch === 'digital' && !cleanText(normalized.branchDetails.projectGoal, 500)) errors.push('Add the digital project goal.');
-  if (normalized.branch === 'social' && !cleanText(normalized.branchDetails.platforms, 500)) errors.push('Add the social platforms involved.');
   if (!normalized.preferredContactMethod) errors.push('Choose a preferred contact method.');
   if (!normalized.consent) errors.push('Confirm that the team may contact you about this request.');
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized.idempotencyKey)) errors.push('This draft cannot be submitted safely. Refresh and try again.');

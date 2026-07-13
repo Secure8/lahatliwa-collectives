@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { branchKey, cleanText, deliverNotificationPlan, EMAIL_PATTERN, escapeHtml, generateReference, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
+import { branchKey, cleanText, deliverNotificationPlan, EMAIL_PATTERN, escapeHtml, generateReference, safeBranchDetails, validateSubmission } from './serviceRequest.js';
+import { resolveServiceCategory } from '../../../src/lib/serviceCatalog.js';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 const reply = (body: unknown, status = 200, cors = {}) => new Response(JSON.stringify(body), { status, headers: { ...jsonHeaders, ...cors } });
@@ -31,7 +32,7 @@ function branchLabel(branch: string) {
 function emailHtml(title: string, inquiry: any, siteUrl: string, includeAdminLink = false) {
   const rows = [
     ['Reference', inquiry.public_reference], ['Client', inquiry.name], ['Branch', branchLabel(inquiry.branch)],
-    ['Service', inquiry.project_type], ['Selected creative', inquiry.creative_name], ['Preferred contact', inquiry.preferred_contact],
+    ['Service category', inquiry.project_type], ['Selected creative', inquiry.creative_name], ['Preferred contact', inquiry.preferred_contact],
     ['Schedule', inquiry.preferred_schedule || 'To be discussed'], ['Summary', inquiry.summary],
   ].filter(([, value]) => value);
   return `<!doctype html><html><body style="margin:0;background:#09090b;color:#f4f4f5;font-family:Arial,sans-serif"><div style="max-width:640px;margin:0 auto;padding:32px 20px"><p style="color:#fdba74;font-size:12px;letter-spacing:.16em;text-transform:uppercase">Lahat Liwa Collectives</p><h1 style="font-size:24px">${escapeHtml(title)}</h1>${rows.map(([label, value]) => `<div style="border-top:1px solid #27272a;padding:12px 0"><small style="color:#71717a;text-transform:uppercase">${escapeHtml(label)}</small><div style="margin-top:5px;line-height:1.6">${escapeHtml(value)}</div></div>`).join('')}<div style="border-top:1px solid #27272a;padding:16px 0"><small style="color:#71717a;text-transform:uppercase">Request details</small><p style="white-space:pre-wrap;line-height:1.65">${escapeHtml(inquiry.details)}</p></div>${includeAdminLink ? `<p><a href="${escapeHtml(`${siteUrl}/admin/inquiries?reference=${encodeURIComponent(inquiry.public_reference)}`)}" style="color:#fdba74">Open in the inquiry dashboard</a></p>` : `<p style="color:#a1a1aa;line-height:1.6">This confirms receipt only. Availability, timing, pricing, and meetings remain subject to team review.</p><p><a href="${escapeHtml(siteUrl)}" style="color:#fdba74">Visit Lahat Liwa Collectives</a></p>`}</div></body></html>`;
@@ -192,16 +193,17 @@ Deno.serve(async (req) => {
     if (existingError) throw existingError;
     if (existing) return reply({ success: true, reference: existing.public_reference, submittedAt: existing.created_at, duplicate: true }, 200, cors);
 
-    let serviceName = 'General inquiry';
+    let resolvedService = resolveServiceCategory('general', normalized.serviceKey);
     if (normalized.branch !== 'general') {
       const { data: branchRows, error: branchError } = await admin.from('service_branches').select('name, slug, included_services').eq('is_published', true);
       if (branchError) throw branchError;
       const branch = (branchRows || []).find((row: any) => branchKey(row) === normalized.branch);
       if (!branch) return fail('INVALID_BRANCH', 'The selected service branch is unavailable.', 400, cors);
-      const service = (branch.included_services || []).find((name: string) => slugify(name) === normalized.serviceKey);
-      if (!service) return fail('INVALID_SERVICE', 'The selected service is unavailable.', 400, cors);
-      serviceName = cleanText(service, 120);
+      resolvedService = resolveServiceCategory(normalized.branch, normalized.serviceKey, branch.included_services || []);
     }
+    if (!resolvedService) return fail('INVALID_SERVICE', 'The selected service category is unavailable.', 400, cors);
+    const serviceName = cleanText(resolvedService.name, 120);
+    const canonicalServiceKey = cleanText(resolvedService.key, 80);
 
     const creative = normalized.creativeSlug ? await resolveCreative(admin, normalized.creativeSlug) : null;
     if (normalized.creativeSlug && !creative) return fail('INVALID_CREATIVE', 'The selected creative is unavailable. Choose another creative or the general team.', 400, cors);
@@ -211,7 +213,7 @@ Deno.serve(async (req) => {
     const payload: any = {
       name: normalized.clientName, email_or_contact: normalized.clientEmail, organization: normalized.organization || null,
       project_type: serviceName, budget_range: normalized.budgetRange || null, preferred_contact: normalized.preferredContactMethod,
-      message: normalized.details, status: 'new', branch: normalized.branch, service_key: normalized.serviceKey,
+      message: normalized.details, status: 'new', branch: normalized.branch, service_key: canonicalServiceKey,
       client_email: normalized.clientEmail, client_phone: normalized.clientPhone || null, summary: normalized.summary,
       details: normalized.details, preferred_schedule: normalized.preferredSchedule || null, service_mode: normalized.serviceMode || null,
       general_location: normalized.generalLocation || null, request_metadata: safeBranchDetails(normalized.branchDetails), source_path: sourcePath || null,

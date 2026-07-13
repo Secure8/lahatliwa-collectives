@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { branchKey, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
+import { resolveServiceCategory } from '../../../src/lib/serviceCatalog.js';
 
 function validRequest(overrides = {}) {
   return { branch: 'studio', serviceKey: 'photography', clientName: 'Client Name', clientEmail: 'client@example.com', preferredContactMethod: 'Email', summary: 'Campaign portraits', details: 'We need a portrait campaign with edited images.', consent: true, idempotencyKey: '123e4567-e89b-42d3-a456-426614174000', branchDetails: { eventType: 'Portrait campaign' }, ...overrides };
@@ -12,7 +13,15 @@ test('server validation accepts a valid request and rejects untrusted values', (
   assert.ok(validateSubmission(validRequest({ clientEmail: 'invalid' })).errors.length);
   assert.ok(validateSubmission(validRequest({ consent: false })).errors.length);
   assert.ok(validateSubmission(validRequest({ idempotencyKey: 'guessable' })).errors.length);
-  assert.ok(validateSubmission(validRequest({ branch: 'tech', serviceKey: 'diagnostics', branchDetails: {} })).errors.includes('Add the device or platform that needs support.'));
+  assert.ok(validateSubmission(validRequest({ branch: 'general', serviceKey: '' })).errors.includes('Choose an available service category.'));
+  assert.deepEqual(validateSubmission(validRequest({ branch: 'tech', serviceKey: 'diagnostics', branchDetails: {} })).errors, []);
+});
+
+test('server resolves broad, legacy, and intentional custom service categories', () => {
+  assert.deepEqual(resolveServiceCategory('studio', 'photo-editing'), { key: 'editing', name: 'Editing' });
+  assert.deepEqual(resolveServiceCategory('tech', 'virtual-assistance'), { key: 'remote-assistance', name: 'Remote Assistance' });
+  assert.deepEqual(resolveServiceCategory('general', 'unsure'), { key: 'not-sure-yet', name: 'Not Sure Yet' });
+  assert.deepEqual(resolveServiceCategory('digital', 'Accessibility Audit', ['Accessibility Audit']), { key: 'accessibility-audit', name: 'Accessibility Audit', custom: true });
 });
 
 test('service values are validated using normalized CMS keys', () => {

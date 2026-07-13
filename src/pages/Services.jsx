@@ -4,7 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
-import { branchKeyFromRecord, branchMeta, GENERAL_BRANCH, inquiryUrl, SERVICE_BRANCHES, servicesPath, slugifyService } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, GENERAL_BRANCH, inquiryUrl, SERVICE_BRANCHES, serviceCategoriesForBranch, servicesPath, slugifyService } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
 
 const iconMap = { studio: Camera, tech: Wrench, digital: Code2, social: Megaphone, general: Headphones, Camera, Circle, Code2, Sparkles, Wrench };
@@ -15,13 +15,18 @@ function findContentGroup(branch, groups = [], index = 0) {
 }
 
 function fallbackBranches(groups = []) {
-  const keys = ['studio', 'social', 'digital', 'tech'];
-  return groups.map((group, index) => ({
+  return groups.map((group) => ({
     ...group,
-    slug: keys[index] || slugifyService(group.name),
+    slug: slugifyService(group.name),
     included_services: group.items || [],
     icon_url: group.customIconUrl || group.iconUrl || '',
   }));
+}
+
+function publicBranchDescription(description, fallback) {
+  const value = String(description || '').trim();
+  if (!value || /(photography|photo editing|video coverage|page rebuilding|digital marketing support|portfolio websites|business websites|landing pages|simple technical help|everyday computer support)/i.test(value)) return fallback;
+  return value;
 }
 
 export default function Services() {
@@ -55,8 +60,8 @@ export default function Services() {
         key,
         label: meta.label,
         action: meta.action,
-        description: branch.description || contentGroup?.description || meta.description,
-        services: (branch.included_services || branch.items || []).filter(Boolean).map((name) => ({ name, key: slugifyService(name) })),
+        description: publicBranchDescription(branch.description || contentGroup?.description, meta.description),
+        services: serviceCategoriesForBranch(key, branch.included_services || branch.items || []),
         iconUrl: resolvePublicAssetUrl(branch.icon_url || branch.image_url || contentGroup?.customIconUrl || contentGroup?.iconUrl),
       } : null;
     }).filter(Boolean);
@@ -67,7 +72,7 @@ export default function Services() {
 
   return (
     <div className="page-shell py-16 sm:py-20">
-      <PublicPageHeader eyebrow="Client services" title="Choose the right path for your next project." description="Explore a service branch, select the support you need, and send a guided request to the collective or a specific creative." accentColor={content.accentColor} titleColor={content.servicesPage.headingColor || content.primaryTextColor} bodyColor={content.servicesPage.bodyTextColor || content.secondaryTextColor} />
+      <PublicPageHeader eyebrow="Client services" title="Choose a flexible path for what you need." description="Select a broad service category, then describe the exact outcome, situation, or support you need from the collective or a specific creative." accentColor={content.accentColor} titleColor={content.servicesPage.headingColor || content.primaryTextColor} bodyColor={content.servicesPage.bodyTextColor || content.secondaryTextColor} />
 
       <nav aria-label="Service branches" className="public-filter-scroll mt-10 flex gap-6 overflow-x-auto border-y border-white/[0.08] py-1">
         <Link to="/services" className={`min-h-12 shrink-0 content-center border-b text-xs uppercase tracking-[0.15em] ${!branchParam ? 'border-orange-300 text-white' : 'border-transparent text-zinc-500 hover:text-white'}`}>Overview</Link>
@@ -89,7 +94,7 @@ function ServiceOverview({ branches, content }) {
       {branches.map((branch, index) => <BranchCard key={branch.key} branch={branch} index={index} content={content} />)}
     </div>
     <section className="mt-12 grid gap-6 border-y border-white/[0.09] py-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-      <div><p className="text-xs uppercase tracking-[0.19em] text-orange-300">Not sure where to begin?</p><h2 className="mt-3 text-2xl font-medium text-white">Tell the main team what you have in mind.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Use a general inquiry for multidisciplinary work, partnerships, collaborations, or requirements that do not fit neatly into one branch.</p></div>
+      <div><p className="text-xs uppercase tracking-[0.19em] text-orange-300">Not sure where to begin?</p><h2 className="mt-3 text-2xl font-medium text-white">Describe what you need in your own words.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Use the general path for multidisciplinary work, partnerships, collaborations, or requests that do not fit neatly into one branch.</p></div>
       <Link to={inquiryUrl({ branch: GENERAL_BRANCH.key })} className="inline-flex min-h-11 w-fit items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200">{GENERAL_BRANCH.action}<ArrowRight size={16} /></Link>
     </section>
   </div>;
@@ -104,7 +109,7 @@ function BranchCard({ branch, index, content }) {
     </div>
     <h2 className="mt-6 text-2xl font-medium text-white">{branch.label}</h2>
     <p className="mt-3 max-w-xl text-sm leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{branch.description}</p>
-    <ul className="mt-5 grid gap-2 sm:grid-cols-2">{branch.services.slice(0, 6).map((service) => <li key={service.key} className="flex min-w-0 items-start gap-2 border-b border-white/[0.06] py-2.5 text-sm text-zinc-400"><Check size={14} className="mt-0.5 shrink-0 text-orange-300/80" /><span>{service.name}</span></li>)}</ul>
+    <ul className="mt-5 grid gap-2 sm:grid-cols-2">{branch.services.map((service) => <li key={service.key} className="flex min-w-0 items-start gap-2 border-b border-white/[0.06] py-2.5 text-sm text-zinc-400"><Check size={14} className="mt-0.5 shrink-0 text-orange-300/80" /><span>{service.name}</span></li>)}</ul>
     <Link to={servicesPath(branch.key)} className="mt-6 inline-flex min-h-11 items-center gap-2 border-b border-orange-300/45 text-sm font-medium text-zinc-200 transition hover:text-orange-200">Explore {branch.label}<ArrowRight size={15} /></Link>
   </section>;
 }
@@ -113,14 +118,15 @@ function BranchWorkspace({ branch, content }) {
   const Icon = iconMap[branch.key] || Circle;
   return <div className="pt-10">
     <section className="grid gap-8 border-b border-white/[0.09] pb-9 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end">
-      <div><div className="flex items-center gap-3 text-orange-200"><Icon size={20} /><span className="text-xs uppercase tracking-[0.19em]">{branch.label}</span></div><h1 className="mt-5 max-w-3xl text-4xl font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl">Choose the service that fits your request.</h1><p className="mt-5 max-w-2xl leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{branch.description}</p></div>
-      <div className="border-l border-orange-300/45 pl-5"><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">Guided request</p><p className="mt-2 text-sm leading-6 text-zinc-300">Choose a service, select a creative or the general team, then review everything before submitting.</p></div>
+      <div><div className="flex items-center gap-3 text-orange-200"><Icon size={20} /><span className="text-xs uppercase tracking-[0.19em]">{branch.label}</span></div><h1 className="mt-5 max-w-3xl text-4xl font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl">Choose a broad category for your request.</h1><p className="mt-5 max-w-2xl leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{branch.description}</p></div>
+      <div className="border-l border-orange-300/45 pl-5"><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">Guided request</p><p className="mt-2 text-sm leading-6 text-zinc-300">Choose a category, select a creative or the general team, then explain the exact result or support you need.</p></div>
     </section>
+    {branch.key === 'tech' && <p className="border-b border-white/[0.08] py-4 text-xs leading-6 text-zinc-500">On-site support depends on location, schedule, safety, and the availability of a suitable specialist.</p>}
 
     <div className="mt-8 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
       {branch.services.map((service, index) => <article key={service.key} className="group grid content-between border-t border-white/[0.09] py-5 transition hover:border-orange-300/45">
-        <div><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-700">{String(index + 1).padStart(2, '0')} / Service</p><h2 className="mt-4 text-xl font-medium text-white">{service.name}</h2><p className="mt-3 text-sm leading-6 text-zinc-500">Start a guided {branch.label} request and add the project-specific details the team needs to review it.</p></div>
-        <Link to={inquiryUrl({ branch: branch.key, service: service.key })} className="mt-7 inline-flex min-h-11 items-center gap-2 border-b border-white/[0.12] text-sm text-zinc-300 transition group-hover:border-orange-300/45 group-hover:text-orange-200">Choose service<ArrowRight size={15} /></Link>
+        <div><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-700">{String(index + 1).padStart(2, '0')} / Category</p><h2 className="mt-4 text-xl font-medium text-white">{service.name}</h2><p className="mt-3 text-sm leading-6 text-zinc-500">Start a guided {branch.label} request and describe the exact outcome, situation, or support the team should review.</p></div>
+        <Link to={inquiryUrl({ branch: branch.key, service: service.key })} className="mt-7 inline-flex min-h-11 items-center gap-2 border-b border-white/[0.12] text-sm text-zinc-300 transition group-hover:border-orange-300/45 group-hover:text-orange-200">Choose category<ArrowRight size={15} /></Link>
       </article>)}
     </div>
 

@@ -46,11 +46,11 @@ const routeMetadata = {
   '/': ['Lahat Liwa Collectives', 'A creative digital collective building visuals, stories, and useful digital experiences.'],
   '/about': ['About | Lahat Liwa Collectives', 'Meet Lahat Liwa Collectives and learn how its creative and digital branches work together.'],
   '/projects': ['Projects | Lahat Liwa Collectives', 'Explore published photography, video, design, website, application, and digital projects.'],
-  '/services': ['Services | Lahat Liwa Collectives', 'Explore creative, social, digital, and practical technology services from Lahat Liwa Collectives.'],
+  '/services': ['Services | Lahat Liwa Collectives', 'Explore flexible creative, social-media, digital, and technical service categories from Lahat Liwa Collectives.'],
   '/creatives': ['Creatives | Lahat Liwa Collectives', 'Meet the creatives shaping the work of Lahat Liwa Collectives.'],
-  '/start-a-project': ['Start a Project | Lahat Liwa Collectives', 'Tell Lahat Liwa Collectives about your project, goals, timeline, and creative or digital needs.'],
-  '/inquiry': ['Start a Project | Lahat Liwa Collectives', 'Tell Lahat Liwa Collectives about your project, goals, timeline, and creative or digital needs.'],
-  '/contact': ['Contact | Lahat Liwa Collectives', 'Contact Lahat Liwa Collectives about creative work, digital builds, and practical support.'],
+  '/start-a-project': ['Start a Project | Lahat Liwa Collectives', 'Describe your requirements, goals, timeline, and preferred support for review by Lahat Liwa Collectives.'],
+  '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Describe your requirements, goals, timeline, and preferred support for review by Lahat Liwa Collectives.'],
+  '/contact': ['Contact | Lahat Liwa Collectives', 'Contact Lahat Liwa Collectives about creative, digital, social-media, technical, or collaborative work.'],
 };
 
 function SiteDocumentMetadata() {

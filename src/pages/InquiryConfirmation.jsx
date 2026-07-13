@@ -37,11 +37,11 @@ export default function InquiryConfirmation() {
         <CheckCircle2 size={30} className="text-emerald-300" aria-hidden="true" />
         <p className="mt-5 text-[10px] uppercase tracking-[0.2em] text-zinc-600">Public reference</p>
         <div className="mt-2 flex flex-wrap items-center gap-4"><p className="text-2xl font-semibold tracking-[0.04em] text-white sm:text-3xl">{reference}</p><button type="button" onClick={copyReference} className="inline-flex min-h-10 items-center gap-2 border-b border-white/[0.15] text-sm text-zinc-300 hover:border-orange-300/60 hover:text-white"><Copy size={15} />{copied ? 'Copied' : 'Copy reference'}</button></div>
-        <p className="mt-5 max-w-2xl text-sm leading-7 text-zinc-400">This is a request for review, not a confirmed booking or meeting. The preferred schedule has been sent for confirmation where provided.</p>
+        <p className="mt-5 max-w-2xl text-sm leading-7 text-zinc-400">Services are matched according to your requirements, location, schedule, and the availability of suitable creatives or specialists. This request does not confirm a booking, schedule, or final quotation.</p>
       </div>
       <dl className="border-t border-orange-300/60">
         <Summary label="Branch" value={confirmation.branch} />
-        <Summary label="Service" value={confirmation.service} />
+        <Summary label="Service category" value={confirmation.service} />
         {confirmation.creative && <Summary label="Creative" value={confirmation.creative} />}
       </dl>
     </section>

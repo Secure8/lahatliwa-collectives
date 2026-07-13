@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { branchKeyFromRecord, emptyInquiryDraft, inquiryUrl, mergeInquiryContext, referenceIsValid, safeInquiryDraft, slugifyService, validateInquiryStep } from './serviceRequest.js';
+import { branchKeyFromRecord, canonicalServiceKey, emptyInquiryDraft, inquiryUrl, mergeInquiryContext, referenceIsValid, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
 
 test('canonical branch and inquiry routes preserve refresh-safe context', () => {
   assert.equal(branchKeyFromRecord({ slug: 'lahat-liwa-studio' }), 'studio');
   assert.equal(branchKeyFromRecord({ name: 'Lahat Liwa Web' }), 'digital');
-  assert.equal(inquiryUrl({ branch: 'studio', service: 'Photo Editing', creative: 'Jane-Doe' }), '/inquiry?branch=studio&service=photo-editing&creative=jane-doe');
+  assert.equal(inquiryUrl({ branch: 'studio', service: 'Photo Editing', creative: 'Jane-Doe' }), '/inquiry?branch=studio&service=editing&creative=jane-doe');
   assert.equal(inquiryUrl({ branch: 'invalid', service: 'Photography' }), '/inquiry?service=photography');
 });
 
@@ -14,18 +14,41 @@ test('draft context persists valid fields and rejects invalid branch state', () 
   const draft = mergeInquiryContext(emptyInquiryDraft(), { branch: 'tech', service: 'Virtual Assistance', creative: 'alex' });
   const restored = safeInquiryDraft(JSON.parse(JSON.stringify(draft)));
   assert.equal(restored.branch, 'tech');
-  assert.equal(restored.serviceKey, 'virtual-assistance');
+  assert.equal(restored.serviceKey, 'remote-assistance');
   assert.equal(restored.creativeSlug, 'alex');
   assert.equal(safeInquiryDraft({ ...draft, branch: 'invalid' }).branch, '');
 });
 
 test('branch-specific and common client validation fails safely', () => {
   const draft = emptyInquiryDraft({ branch: 'digital', service: 'Website Development' });
-  assert.deepEqual(validateInquiryStep(0, draft, [{ key: 'website-development' }]), {});
-  assert.ok(validateInquiryStep(0, { ...draft, serviceKey: 'made-up' }, [{ key: 'website-development' }]).serviceKey);
+  assert.deepEqual(validateInquiryStep(0, draft, [{ key: 'website' }]), {});
+  assert.ok(validateInquiryStep(0, { ...draft, serviceKey: 'made-up' }, [{ key: 'website' }]).serviceKey);
   assert.ok(validateInquiryStep(1, { ...draft, creativeSlug: 'missing' }, []).creativeSlug);
   assert.ok(validateInquiryStep(2, { ...draft, summary: 'Hi', details: 'short' }).summary);
+  assert.deepEqual(validateInquiryStep(2, { ...draft, branch: 'tech', summary: 'Technical help', details: 'Please review this technical workflow issue.', branchDetails: {} }), {});
   assert.ok(validateInquiryStep(3, { ...draft, clientName: 'A', clientEmail: 'bad', consent: false }).clientEmail);
+});
+
+test('broad service catalog is stable while legacy URLs and custom CMS categories remain compatible', () => {
+  const expected = {
+    studio: ['Photo', 'Video', 'Same-Day Edit (SDE)', 'Highlights', 'Editing', 'Other Creative Work'],
+    tech: ['Consultation', 'Diagnostics', 'Remote Assistance', 'Setup', 'On-site Support', 'Other Technical Help'],
+    digital: ['Website', 'App', 'System', 'Design & Prototype', 'Digital Product', 'Consultation', 'Other Digital Work'],
+    social: ['Management', 'Content', 'Campaign', 'Strategy', 'Page Setup', 'Review & Consultation', 'Other Social Media Work'],
+    general: ['General Inquiry', 'Multidisciplinary Project', 'Partnership or Collaboration', 'Not Sure Yet'],
+  };
+  for (const [branch, names] of Object.entries(expected)) {
+    const categories = serviceCategoriesForBranch(branch);
+    assert.deepEqual(categories.map((item) => item.name), names);
+    for (const category of categories) {
+      assert.equal(inquiryUrl({ branch, service: category.key }), `/inquiry?branch=${branch}&service=${category.key}`);
+    }
+  }
+  assert.equal(canonicalServiceKey('studio', 'portrait-photography'), 'photo');
+  assert.equal(canonicalServiceKey('digital', 'landing-pages'), 'website');
+  assert.equal(canonicalServiceKey('social', 'digital-marketing-support'), 'campaign');
+  assert.equal(canonicalServiceKey('tech', 'virtual-assistance'), 'remote-assistance');
+  assert.deepEqual(serviceCategoriesForBranch('studio', ['Photography', 'Photo Editing', 'Audio Production']).slice(-1)[0], { key: 'audio-production', name: 'Audio Production', custom: true });
 });
 
 test('public reference format is strict and non-database-identifying', () => {
@@ -52,6 +75,20 @@ test('guided form keeps mobile controls bounded and includes the Tech safety war
   assert.match(source, /Never submit passwords, one-time codes, banking details/);
   assert.match(source, /overflow-x-auto/);
   assert.doesNotMatch(source, /min-w-screen|w-screen/);
+});
+
+test('inquiry copy requires a prominent detailed request and avoids instant-booking promises', async () => {
+  const [form, services, confirmation, email] = await Promise.all([
+    readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/Services.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/InquiryConfirmation.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../../supabase/functions/submit-service-request/index.ts', import.meta.url), 'utf8'),
+  ]);
+  assert.match(form, /What do you need help with\?/);
+  assert.match(form, /Services are matched according to your requirements, location, schedule/);
+  assert.match(email, /Service category.*inquiry\.project_type/s);
+  assert.match(email, /Request details.*inquiry\.details/s);
+  assert.doesNotMatch(`${form}\n${services}\n${confirmation}`, /Book now|Confirm booking|Order service|Purchase service|Book a Creative/i);
 });
 
 test('migration closes public reads and inserts while limiting creative access to direct assignment', async () => {

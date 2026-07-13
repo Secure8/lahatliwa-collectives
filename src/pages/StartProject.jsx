@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { usePublicContent } from '../lib/contentApi';
-import { branchKeyFromRecord, branchMeta, emptyInquiryDraft, INQUIRY_DRAFT_KEY, INQUIRY_STEPS, mergeInquiryContext, safeInquiryDraft, SERVICE_BRANCHES, slugifyService, validateInquiryStep } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, canonicalServiceKey, emptyInquiryDraft, INQUIRY_DRAFT_KEY, INQUIRY_STEPS, mergeInquiryContext, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
 
 const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
@@ -68,7 +68,7 @@ export default function StartProject() {
   useEffect(() => {
     if (loadingChoices) return;
     const requestedBranch = queryContext.branch;
-    const requestedService = slugifyService(queryContext.service);
+    const requestedService = queryContext.service;
     const requestedCreative = String(queryContext.creative || '').toLowerCase();
     let contextNotice = '';
     setDraft((current) => {
@@ -85,7 +85,8 @@ export default function StartProject() {
       }
       const available = servicesForBranch(next.branch, branches);
       if (requestedService) {
-        if (available.some((service) => service.key === requestedService)) next.serviceKey = requestedService;
+        const requestedKey = canonicalServiceKey(next.branch, requestedService);
+        if (available.some((service) => service.key === requestedKey)) next.serviceKey = requestedKey;
         else { next.serviceKey = ''; contextNotice = 'The requested service is unavailable. Choose an available service.'; }
       }
       if (requestedCreative) {
@@ -114,12 +115,6 @@ export default function StartProject() {
 
   function updateBranchDetails(key, value) {
     setDraft((current) => ({ ...current, branchDetails: { ...current.branchDetails, [key]: value } }));
-    setErrors((current) => {
-      const next = { ...current };
-      delete next[key];
-      if (key === 'eventType' || key === 'deliverables') delete next.studioDetails;
-      return next;
-    });
   }
 
   function goNext() {
@@ -142,7 +137,7 @@ export default function StartProject() {
     setSubmitting(true); setNotice(''); setErrors({});
     try {
       const { data, error } = await supabase.functions.invoke('submit-service-request', {
-        body: { action: 'submit', request: { ...draft, serviceKey: draft.branch === 'general' ? 'general-inquiry' : draft.serviceKey }, sourcePath: `${location.pathname}${location.search}` },
+        body: { action: 'submit', request: draft, sourcePath: `${location.pathname}${location.search}` },
       });
       if (error) throw error;
       if (!data?.success || !data.reference) throw new Error(data?.message || 'The inquiry could not be submitted.');
@@ -160,7 +155,7 @@ export default function StartProject() {
   }
 
   return <div className="page-shell py-16 sm:py-20" style={{ '--project-accent': content.accentColor, '--project-secondary': content.secondaryTextColor }}>
-    <PublicPageHeader eyebrow="Guided inquiry" title="Build a clear request, one step at a time." description="Choose a service and creative, share the essentials, then review everything before it reaches the team." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
+    <PublicPageHeader eyebrow="Guided inquiry" title="Describe what you need, one step at a time." description="Choose a broad category and a creative or team, then share the details that will help us understand and match your request." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
 
     <StepProgress current={step} />
     <div className="grid gap-9 pt-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">
@@ -180,15 +175,14 @@ export default function StartProject() {
         </div>
       </main>
 
-      <aside className="h-fit border-t border-white/[0.09] pt-5 lg:sticky lg:top-24"><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">Request summary</p><SummaryLine label="Branch" value={selectedBranch?.label} /><SummaryLine label="Service" value={selectedService?.name || (draft.branch === 'general' ? 'General inquiry' : '')} /><SummaryLine label="Creative" value={selectedCreative?.name || 'General team'} /><p className="mt-5 text-xs leading-6 text-zinc-600">Submitting this form sends a request for review. It does not confirm availability, pricing, a booking, or a meeting.</p></aside>
+      <aside className="h-fit border-t border-white/[0.09] pt-5 lg:sticky lg:top-24"><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">Request summary</p><SummaryLine label="Branch" value={selectedBranch?.label} /><SummaryLine label="Service category" value={selectedService?.name} /><SummaryLine label="Creative" value={selectedCreative?.name || 'General team'} /><p className="mt-5 text-xs leading-6 text-zinc-600">Services are matched according to your requirements, location, schedule, and the availability of suitable creatives or specialists. Submitting a request does not confirm a booking, schedule, or final quotation.</p></aside>
     </div>
   </div>;
 }
 
 function servicesForBranch(branch, rows) {
-  if (branch === 'general') return [{ key: 'general-inquiry', name: 'General inquiry' }];
   const row = rows.find((item) => branchKeyFromRecord(item) === branch);
-  return (row?.included_services || []).filter(Boolean).map((name) => ({ name, key: slugifyService(name) }));
+  return serviceCategoriesForBranch(branch, row?.included_services || []);
 }
 
 function StepProgress({ current }) {
@@ -198,7 +192,7 @@ function StepProgress({ current }) {
 function ServiceStep({ draft, branches, availableServices, update, loading }) {
   if (loading) return <p className="py-8 text-sm text-zinc-500">Loading available services...</p>;
   const availableKeys = new Set(branches.map(branchKeyFromRecord));
-  return <div className="grid gap-8"><fieldset><legend className="text-sm font-medium text-zinc-200">Choose a branch</legend><div className="mt-4 grid gap-3 sm:grid-cols-2">{[...SERVICE_BRANCHES.filter((branch) => availableKeys.has(branch.key)), branchMeta('general')].map((branch) => <ChoiceButton key={branch.key} selected={draft.branch === branch.key} onClick={() => { update('branch', branch.key); update('serviceKey', ''); }} title={branch.label} detail={branch.description} />)}</div></fieldset>{draft.branch && draft.branch !== 'general' && <fieldset><legend className="text-sm font-medium text-zinc-200">Choose a service</legend><div className="mt-4 grid gap-2 sm:grid-cols-2">{availableServices.map((service) => <ChoiceButton key={service.key} selected={draft.serviceKey === service.key} onClick={() => update('serviceKey', service.key)} title={service.name} compact />)}</div></fieldset>}</div>;
+  return <div className="grid gap-8"><fieldset><legend className="text-sm font-medium text-zinc-200">Choose a branch</legend><div className="mt-4 grid gap-3 sm:grid-cols-2">{[...SERVICE_BRANCHES.filter((branch) => availableKeys.has(branch.key)), branchMeta('general')].map((branch) => <ChoiceButton key={branch.key} selected={draft.branch === branch.key} onClick={() => { update('branch', branch.key); update('serviceKey', ''); }} title={branch.label} detail={branch.description} />)}</div></fieldset>{draft.branch && <fieldset><legend className="text-sm font-medium text-zinc-200">Choose a broad service category</legend><p className="mt-2 text-sm leading-6 text-zinc-500">Choose the closest fit. You can explain the exact work or support you need in the next step.</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{availableServices.map((service) => <ChoiceButton key={service.key} selected={draft.serviceKey === service.key} onClick={() => update('serviceKey', service.key)} title={service.name} compact />)}</div></fieldset>}</div>;
 }
 
 function CreativeStep({ creatives, selected, update, loading, error }) {
@@ -206,14 +200,14 @@ function CreativeStep({ creatives, selected, update, loading, error }) {
 }
 
 function DetailsStep({ draft, update, updateBranchDetails, errors }) {
-  return <div className="grid gap-6"><Field label="Project summary" value={draft.summary} onChange={(value) => update('summary', value)} error={errors.summary} maxLength={160} placeholder="A short description of the outcome you need" /><TextArea label="Detailed request" value={draft.details} onChange={(value) => update('details', value)} error={errors.details} maxLength={5000} placeholder="Share the goal, scope, existing assets, expected output, and anything that would help the team understand the work." /><BranchFields branch={draft.branch} details={draft.branchDetails} update={updateBranchDetails} errors={errors} /><label className="sr-only" aria-hidden="true">Company website<input tabIndex="-1" autoComplete="off" value={draft.honeypot} onChange={(event) => update('honeypot', event.target.value)} /></label></div>;
+  return <div className="grid gap-6"><Field label="Project summary" value={draft.summary} onChange={(value) => update('summary', value)} error={errors.summary} maxLength={160} placeholder="A short description of the outcome you need" /><TextArea label="What do you need help with?" value={draft.details} onChange={(value) => update('details', value)} error={errors.details} maxLength={5000} placeholder="Describe the project, expected result, current situation, and useful context." hint="Describe the project, expected result, current situation, and any details that can help us match you with the right creative or specialist." /><BranchFields branch={draft.branch} details={draft.branchDetails} update={updateBranchDetails} /><label className="sr-only" aria-hidden="true">Company website<input tabIndex="-1" autoComplete="off" value={draft.honeypot} onChange={(event) => update('honeypot', event.target.value)} /></label></div>;
 }
 
-function BranchFields({ branch, details, update, errors }) {
-  if (branch === 'tech') return <div className="grid gap-5"><div className="flex items-start gap-3 border-y border-red-300/20 bg-red-300/[0.04] px-3 py-3 text-sm leading-6 text-red-100"><ShieldAlert size={18} className="mt-0.5 shrink-0" /><span>Never submit passwords, one-time codes, banking details, confidential files, or access credentials. For home visits, provide only a general location until the team confirms arrangements.</span></div><Field label="Device or platform" value={details.device || ''} onChange={(value) => update('device', value)} error={errors.device} /><Field label="Issue category" value={details.issueCategory || ''} onChange={(value) => update('issueCategory', value)} /><Select label="Support mode" value={details.supportMode || ''} onChange={(value) => update('supportMode', value)} options={['', 'Virtual assistance', 'Consultation', 'Drop-off', 'Home visit']} /></div>;
-  if (branch === 'studio') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Event or project type" value={details.eventType || ''} onChange={(value) => update('eventType', value)} error={errors.studioDetails} /><Field label="Estimated duration" value={details.duration || ''} onChange={(value) => update('duration', value)} /><Field label="Expected deliverables" value={details.deliverables || ''} onChange={(value) => update('deliverables', value)} className="sm:col-span-2" /><Field label="Existing files or assets" value={details.existingAssets || ''} onChange={(value) => update('existingAssets', value)} className="sm:col-span-2" /></div>;
-  if (branch === 'digital') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Project goal" value={details.projectGoal || ''} onChange={(value) => update('projectGoal', value)} error={errors.projectGoal} /><Field label="Target users" value={details.targetUsers || ''} onChange={(value) => update('targetUsers', value)} /><Field label="Required features" value={details.features || ''} onChange={(value) => update('features', value)} className="sm:col-span-2" /><Field label="Existing website or system" value={details.existingSystem || ''} onChange={(value) => update('existingSystem', value)} className="sm:col-span-2" /><CheckField label="Request a meeting" checked={Boolean(details.meetingRequested)} onChange={(value) => update('meetingRequested', value)} /></div>;
-  if (branch === 'social') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Platforms" value={details.platforms || ''} onChange={(value) => update('platforms', value)} error={errors.platforms} /><Field label="Campaign or account goal" value={details.campaignGoal || ''} onChange={(value) => update('campaignGoal', value)} /><Field label="Posting needs or frequency" value={details.postingNeeds || ''} onChange={(value) => update('postingNeeds', value)} /><Field label="Available brand assets" value={details.brandAssets || ''} onChange={(value) => update('brandAssets', value)} /><Field label="Campaign dates" value={details.campaignDates || ''} onChange={(value) => update('campaignDates', value)} /><Field label="Preferred arrangement" value={details.arrangement || ''} onChange={(value) => update('arrangement', value)} /></div>;
+function BranchFields({ branch, details, update }) {
+  if (branch === 'tech') return <div className="grid gap-5"><div className="flex items-start gap-3 border-y border-red-300/20 bg-red-300/[0.04] px-3 py-3 text-sm leading-6 text-red-100"><ShieldAlert size={18} className="mt-0.5 shrink-0" /><span>Never submit passwords, one-time codes, banking details, confidential files, or access credentials. For home visits, provide only a general location until the team confirms arrangements.</span></div><Field label="Device or platform (optional)" value={details.device || ''} onChange={(value) => update('device', value)} /><Field label="Issue category (optional)" value={details.issueCategory || ''} onChange={(value) => update('issueCategory', value)} /><Select label="Support mode (optional)" value={details.supportMode || ''} onChange={(value) => update('supportMode', value)} options={['', 'Virtual assistance', 'Consultation', 'Drop-off', 'Home visit']} /></div>;
+  if (branch === 'studio') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Event or project type (optional)" value={details.eventType || ''} onChange={(value) => update('eventType', value)} /><Field label="Estimated duration (optional)" value={details.duration || ''} onChange={(value) => update('duration', value)} /><Field label="Expected deliverables (optional)" value={details.deliverables || ''} onChange={(value) => update('deliverables', value)} className="sm:col-span-2" /><Field label="Existing files or assets (optional)" value={details.existingAssets || ''} onChange={(value) => update('existingAssets', value)} className="sm:col-span-2" /></div>;
+  if (branch === 'digital') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Project goal (optional)" value={details.projectGoal || ''} onChange={(value) => update('projectGoal', value)} /><Field label="Target users (optional)" value={details.targetUsers || ''} onChange={(value) => update('targetUsers', value)} /><Field label="Required features (optional)" value={details.features || ''} onChange={(value) => update('features', value)} className="sm:col-span-2" /><Field label="Existing website or system (optional)" value={details.existingSystem || ''} onChange={(value) => update('existingSystem', value)} className="sm:col-span-2" /><CheckField label="Request a meeting" checked={Boolean(details.meetingRequested)} onChange={(value) => update('meetingRequested', value)} /></div>;
+  if (branch === 'social') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Platforms (optional)" value={details.platforms || ''} onChange={(value) => update('platforms', value)} /><Field label="Campaign or account goal (optional)" value={details.campaignGoal || ''} onChange={(value) => update('campaignGoal', value)} /><Field label="Posting needs or frequency (optional)" value={details.postingNeeds || ''} onChange={(value) => update('postingNeeds', value)} /><Field label="Available brand assets (optional)" value={details.brandAssets || ''} onChange={(value) => update('brandAssets', value)} /><Field label="Campaign dates (optional)" value={details.campaignDates || ''} onChange={(value) => update('campaignDates', value)} /><Field label="Preferred arrangement (optional)" value={details.arrangement || ''} onChange={(value) => update('arrangement', value)} /></div>;
   return null;
 }
 
@@ -222,7 +216,7 @@ function ContactStep({ draft, update, errors }) {
 }
 
 function ReviewStep({ draft, branch, service, creative }) {
-  return <div className="grid gap-6"><div className="grid gap-4 sm:grid-cols-2"><ReviewItem label="Branch" value={branch?.label} /><ReviewItem label="Service" value={service?.name || 'General inquiry'} /><ReviewItem label="Creative" value={creative ? `${creative.name} — ${creative.role}` : 'General team'} /><ReviewItem label="Preferred contact" value={`${draft.preferredContactMethod}${draft.clientPhone ? ` · ${draft.clientPhone}` : ''}`} /><ReviewItem label="Schedule" value={draft.preferredSchedule || 'To be discussed'} /><ReviewItem label="Service mode" value={draft.serviceMode || 'To be discussed'} /></div><div className="border-t border-white/[0.08] pt-5"><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">Summary</p><p className="mt-2 text-lg text-white">{draft.summary}</p><p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-zinc-400">{draft.details}</p></div><div className="flex items-start gap-3 border-y border-white/[0.08] py-4 text-xs leading-6 text-zinc-500"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-emerald-300" /><span>Your request will be saved before notification delivery is attempted. Submission does not confirm a booking, meeting, final price, or availability.</span></div></div>;
+  return <div className="grid gap-6"><div className="grid gap-4 sm:grid-cols-2"><ReviewItem label="Branch" value={branch?.label} /><ReviewItem label="Service category" value={service?.name} /><ReviewItem label="Creative" value={creative ? `${creative.name} — ${creative.role}` : 'General team'} /><ReviewItem label="Preferred contact" value={`${draft.preferredContactMethod}${draft.clientPhone ? ` · ${draft.clientPhone}` : ''}`} /><ReviewItem label="Schedule" value={draft.preferredSchedule || 'To be discussed'} /><ReviewItem label="Service mode" value={draft.serviceMode || 'To be discussed'} /></div><div className="border-t border-white/[0.08] pt-5"><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">What you need help with</p><p className="mt-2 text-lg text-white">{draft.summary}</p><p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-zinc-400">{draft.details}</p></div><div className="flex items-start gap-3 border-y border-white/[0.08] py-4 text-xs leading-6 text-zinc-500"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-emerald-300" /><span>Services are matched according to your requirements, location, schedule, and the availability of suitable creatives or specialists. Submitting a request does not confirm a booking, schedule, or final quotation.</span></div></div>;
 }
 
 function ChoiceButton({ selected, onClick, title, detail, image, icon, compact = false }) {
@@ -230,7 +224,7 @@ function ChoiceButton({ selected, onClick, title, detail, image, icon, compact =
 }
 
 function Field({ label, value, onChange, error, type = 'text', maxLength = 240, placeholder = '', className = '' }) { return <label className={`grid gap-2 text-sm text-zinc-300 ${className}`}><span>{label}</span><input type={type} value={value} maxLength={maxLength} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className="min-h-12 w-full rounded-sm border border-white/[0.11] bg-black/20 px-3.5 text-white outline-none placeholder:text-zinc-700 hover:border-white/[0.2] focus:border-orange-300/60 aria-[invalid=true]:border-red-300/60" />{error && <span className="text-xs text-red-200">{error}</span>}</label>; }
-function TextArea({ label, value, onChange, error, maxLength, placeholder }) { return <label className="grid gap-2 text-sm text-zinc-300"><span>{label}</span><textarea value={value} maxLength={maxLength} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className="min-h-40 w-full resize-y rounded-sm border border-white/[0.11] bg-black/20 px-3.5 py-3 text-white outline-none placeholder:text-zinc-700 hover:border-white/[0.2] focus:border-orange-300/60 aria-[invalid=true]:border-red-300/60" />{error && <span className="text-xs text-red-200">{error}</span>}</label>; }
+function TextArea({ label, value, onChange, error, maxLength, placeholder, hint }) { return <label className="grid gap-2 text-sm text-zinc-300"><span>{label}</span>{hint && <span className="text-xs leading-5 text-zinc-500">{hint}</span>}<textarea value={value} maxLength={maxLength} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className="min-h-48 w-full resize-y rounded-sm border border-white/[0.11] bg-black/20 px-3.5 py-3 text-white outline-none placeholder:text-zinc-700 hover:border-white/[0.2] focus:border-orange-300/60 aria-[invalid=true]:border-red-300/60" />{error && <span className="text-xs text-red-200">{error}</span>}</label>; }
 function Select({ label, value, onChange, options, className = '' }) { return <label className={`grid gap-2 text-sm text-zinc-300 ${className}`}><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="dark-select min-h-12 w-full rounded-sm border border-white/[0.11] bg-black/20 px-3.5 text-white outline-none hover:border-white/[0.2] focus:border-orange-300/60">{options.map((option) => <option key={option || 'empty'} value={option}>{option || 'Choose an option'}</option>)}</select></label>; }
 function CheckField({ label, checked, onChange, error, className = '' }) { return <label className={`flex min-h-12 items-start gap-3 border-y border-white/[0.08] py-3 text-sm text-zinc-300 ${className}`}><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-0.5 h-4 w-4 accent-orange-300" /><span>{label}{error && <span className="mt-1 block text-xs text-red-200">{error}</span>}</span></label>; }
 function SummaryLine({ label, value }) { return <div className="border-b border-white/[0.07] py-4"><p className="text-[10px] uppercase tracking-[0.16em] text-zinc-700">{label}</p><p className="mt-1 text-sm text-zinc-300">{value || 'Not selected'}</p></div>; }

@@ -13,6 +13,7 @@ import { fairProjectExposure } from '../lib/fairProjectExposure';
 import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
 import { scrollPreservingNavigationState, shouldPushFilter } from '../lib/navigationHistory';
 import { AccentEyebrow } from '../components/PublicPageHeader';
+import { branchKeyFromRecord, branchMeta } from '../lib/serviceRequest';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -153,6 +154,9 @@ export default function Home() {
             const Icon = iconMap[group.iconName] || Circle;
             const serviceLogoUrl = resolvePublicAssetUrl(group.serviceLogoUrl);
             const iconUrl = resolvePublicAssetUrl(group.customIconUrl || group.iconUrl);
+            const broadBranch = branchMeta(branchKeyFromRecord(group));
+            const legacyDescription = /(planning and shaping social content|photo and video coverage|first-version mindset|simple technical help)/i.test(group.description || '');
+            const description = legacyDescription ? broadBranch?.description : group.description || broadBranch?.description;
             return (
             <div key={group.name} className="major-border-top pt-5">
               <div className="flex min-h-10 items-center gap-0.5">
@@ -160,7 +164,7 @@ export default function Home() {
                 {iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />)}
               </div>
               <h3 className="mt-5 text-lg font-medium" style={{ color: content.primaryTextColor }}>{group.name}</h3>
-              <p className="mt-2 text-sm leading-6" style={{ color: content.secondaryTextColor }}>{group.description || 'Clean, useful work for school, brands, creators, events, and small teams.'}</p>
+              <p className="mt-2 text-sm leading-6" style={{ color: content.secondaryTextColor }}>{description || 'Flexible support shaped around the client’s goals and requirements.'}</p>
             </div>
           );})}
         </div>
@@ -170,8 +174,8 @@ export default function Home() {
         <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Start a project</p>
-            <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Need visuals, content, a website, or digital support?</h2>
-            <p className="mt-4 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>Tell the collective what you are planning and we will review the best next step.</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Need creative, digital, social, or technical support?</h2>
+            <p className="mt-4 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>Describe what you need and the collective will review the most suitable next step.</p>
           </div>
           <Link to="/inquiry" className="inline-flex min-h-11 w-fit items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
             Send inquiry <ArrowRight size={18} />

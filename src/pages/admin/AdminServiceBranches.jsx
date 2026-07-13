@@ -30,7 +30,7 @@ export default function AdminServiceBranches() {
     ) : (
       <AdminEmptyState
         title="No service branches yet"
-        message="Add branches like Studio, Social, Web, and Tech."
+        message="Add branches such as Studio, Social, Digital, and Tech."
         action={<AdminButton to="/admin/service-branches/new" variant="primary"><Plus size={17}/> Add Branch</AdminButton>}
       />
     )}

@@ -21,7 +21,7 @@ const pageMeta = {
   services: {
     title: 'Edit Services Page',
     publicPath: '/services',
-    helper: 'Update the Services page heading, intro copy, theme colors, and fallback service groups.',
+    helper: 'Update the Services page heading, intro copy, theme colors, and fallback service categories.',
   },
   contact: {
     title: 'Edit Contact Page',
@@ -560,8 +560,8 @@ function PageFields({ pageKey, content, patch, patchServiceGroup, uploadHomeBack
                 <Field label="Service name" value={group.name || ''} onChange={(value) => patchServiceGroup(index, { name: value })} error={fieldErrors.groups} required />
                 <Field label="Lucide icon name" value={group.iconName || ''} onChange={(value) => patchServiceGroup(index, { iconName: value })} hint="Used when no custom icon image is set." />
               </div>
-              <Textarea label="Description" value={group.description || ''} onChange={(value) => patchServiceGroup(index, { description: value })} error={fieldErrors[`groupDescription-${index}`]} hint="Short service summary displayed on the public page." rows={4} />
-              <Textarea label="Items, comma-separated" value={listText(group.items)} onChange={(value) => patchServiceGroup(index, { items: parseListText(value) })} hint="Displayed as the service item list." rows={4} />
+              <Textarea label="Description" value={group.description || ''} onChange={(value) => patchServiceGroup(index, { description: value })} error={fieldErrors[`groupDescription-${index}`]} hint="Describe flexible support without implying a guaranteed package, schedule, location, or acceptance." rows={4} />
+              <Textarea label="Service categories, comma-separated" value={listText(group.items)} onChange={(value) => patchServiceGroup(index, { items: parseListText(value) })} hint="Use broad client-friendly categories. Custom administrator-created categories remain supported." rows={4} />
               <div className="grid gap-6 md:grid-cols-2">
                 <Field label="Service logo URL" value={group.serviceLogoUrl || ''} onChange={(value) => patchServiceGroup(index, { serviceLogoUrl: value })} error={fieldErrors[`groupServiceLogoUrl-${index}`]} hint="Optional logo shown beside the icon." />
                 <Field label="Custom icon URL" value={group.customIconUrl || group.iconUrl || ''} onChange={(value) => patchServiceGroup(index, { customIconUrl: value, iconUrl: '' })} error={fieldErrors[`groupCustomIconUrl-${index}`]} hint="Optional replacement for the Lucide icon." />

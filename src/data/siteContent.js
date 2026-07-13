@@ -44,27 +44,27 @@ export const defaultSiteContent = {
   ],
   tools: ['React', 'Supabase', 'Vite', 'Tailwind CSS', 'Canva', 'Adobe tools', 'CapCut', 'Figma'],
   servicesIntro:
-    'A practical mix of creative, digital, and technical services for students, small teams, creators, and early-stage project ideas.',
+    'Flexible creative, digital, social-media, and technical support shaped around each client’s goals, context, and requirements.',
   services: [
     {
       name: 'Liwa Social',
-      description: 'Planning and shaping social content so pages feel active, clear, and intentional.',
-      items: ['Social Media Management', 'Digital Marketing', 'Content Planning'],
+      description: 'Flexible social-media support for planning, content, account management, campaigns, and online presence.',
+      items: ['Management', 'Content', 'Campaign', 'Strategy', 'Page Setup', 'Review & Consultation', 'Other Social Media Work'],
     },
     {
       name: 'Liwa Studio',
-      description: 'Photo and video coverage with clean edits for events, highlights, and social-ready outputs.',
-      items: ['Photography', 'Videography', 'SDE', 'Highlights', 'Photo Editing', 'Video Editing'],
+      description: 'Flexible photo, video, editing, and visual-production support for projects, events, brands, and personal work.',
+      items: ['Photo', 'Video', 'Same-Day Edit (SDE)', 'Highlights', 'Editing', 'Other Creative Work'],
     },
     {
       name: 'Liwa Digital',
-      description: 'Websites, app concepts, interfaces, and digital systems built with a useful first-version mindset.',
-      items: ['Website Development', 'App Development', 'UI / Prototype', 'Digital Systems'],
+      description: 'Websites, applications, systems, interfaces, and other digital solutions shaped around the client’s goals.',
+      items: ['Website', 'App', 'System', 'Design & Prototype', 'Digital Product', 'Consultation', 'Other Digital Work'],
     },
     {
       name: 'Liwa Tech',
-      description: 'Simple technical help for devices, software setup, and everyday computer support.',
-      items: ['IT Technician Services', 'Computer Support', 'Software / System Assistance', 'Device Setup'],
+      description: 'Practical technical support for devices, software, setup, troubleshooting, and digital workflows.',
+      items: ['Consultation', 'Diagnostics', 'Remote Assistance', 'Setup', 'On-site Support', 'Other Technical Help'],
     },
   ],
   socialLinks: [],
@@ -78,7 +78,7 @@ export const defaultPageContent = {
     primaryCta: defaultSiteContent.hero.primaryCta,
     secondaryCta: defaultSiteContent.hero.secondaryCta,
     featuredHeading: 'Selected Projects',
-    servicesHeading: 'Creative and digital support',
+    servicesHeading: 'Flexible services for varied needs',
     servicesIntro: defaultSiteContent.servicesIntro,
     heroTitleColor: '',
     heroDescriptionColor: '',
@@ -101,7 +101,7 @@ export const defaultPageContent = {
     accentColor: '',
   },
   services: {
-    title: 'Creative, digital, and technical support.',
+    title: 'Creative, digital, social, and technical support.',
     intro: defaultSiteContent.servicesIntro,
     headingColor: '',
     bodyTextColor: '',
@@ -117,7 +117,7 @@ export const defaultPageContent = {
   },
   contact: {
     heading: 'Let us build the next project.',
-    description: 'For creative work, digital support, websites, apps, and project collaboration, reach out through email or social links.',
+    description: 'For creative, digital, social-media, technical, multidisciplinary, or collaborative work, send a guided request or reach out through the available contact channels.',
     ctaText: 'Email Lahat Liwa',
     notes: 'Use email for project inquiries, collaborations, and service requests.',
     headingColor: '',

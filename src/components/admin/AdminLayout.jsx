@@ -16,7 +16,7 @@ const links = [
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
     ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
     ['Services', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
-    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative'].includes(role)],
+    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
     ['Team', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Website', [
@@ -40,16 +40,19 @@ export default function AdminLayout({ children }) {
     .filter(([, groupLinks]) => groupLinks.length > 0);
 
   useEffect(() => {
-    if (!['super_admin', 'admin', 'editor', 'creative'].includes(access.role)) return undefined;
+    if (!['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(access.role) || !access.adminUser?.id) return undefined;
     let active = true;
     const loadCount = async () => {
-      const { count, error } = await supabase.from('project_inquiries').select('id', { count: 'exact', head: true }).eq('unread', true).is('archived_at', null);
+      const { count, error } = await supabase.from('inquiry_read_receipts').select('inquiry_id', { count: 'exact', head: true }).eq('team_member_id', access.adminUser.id).eq('is_unread', true);
       if (active && !error) setUnreadInquiries(count || 0);
     };
     loadCount();
     const timer = window.setInterval(loadCount, 60000);
-    return () => { active = false; window.clearInterval(timer); };
-  }, [access.role]);
+    const channel = supabase.channel(`admin-inquiry-unread-${access.adminUser.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiry_read_receipts', filter: `team_member_id=eq.${access.adminUser.id}` }, loadCount)
+      .subscribe();
+    return () => { active = false; window.clearInterval(timer); supabase.removeChannel(channel); };
+  }, [access.adminUser?.id, access.role]);
 
   useEffect(() => {
     document.documentElement.classList.add('admin-mode');

@@ -112,6 +112,81 @@ export async function deliverNotificationPlan({ hasCreative, creativeEmail, admi
   };
 }
 
+export async function deliverGeneralNotificationPlan({ recipients = [], adminEmail, clientEmail, state = {}, resolutionFailed = false, send }) {
+  const nextState = { ...state, creative_recipients: { ...(state.creative_recipients || {}) } };
+  const deliveries = [];
+  const failures = [];
+  const normalizedAdmin = String(adminEmail || '').trim().toLowerCase();
+  const seenInternalAddresses = new Set(normalizedAdmin ? [normalizedAdmin] : []);
+
+  async function attempt({ key, recipient, kind, memberId = null }) {
+    if (nextState[key] === 'sent') {
+      deliveries.push({ key, memberId, kind, status: 'sent', skippedRetry: true });
+      return;
+    }
+    try {
+      await send({ key, recipient, kind, memberId });
+      nextState[key] = 'sent';
+      deliveries.push({ key, memberId, kind, status: 'sent' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'delivery failed';
+      nextState[key] = 'failed';
+      failures.push(`${key}: ${message}`);
+      deliveries.push({ key, memberId, kind, status: 'failed', error: message });
+    }
+  }
+
+  await attempt({ key: 'admin', recipient: normalizedAdmin, kind: 'admin' });
+  if (resolutionFailed) {
+    nextState.creative_resolution = 'failed';
+    failures.push('creative-resolution: recipient lookup failed');
+    deliveries.push({ key: 'creative-resolution', memberId: null, kind: 'creative', status: 'failed', error: 'Recipient lookup failed.' });
+  }
+  for (const item of recipients) {
+    const memberId = String(item.memberId || 'unknown');
+    const recipient = String(item.email || '').trim().toLowerCase();
+    const key = `creative:${memberId}`;
+    if (!recipient) {
+      const resolutionFailed = item.reason === 'resolution_failed';
+      nextState.creative_recipients[memberId] = resolutionFailed ? 'failed' : 'skipped';
+      if (resolutionFailed) failures.push(`${key}: recipient lookup failed`);
+      deliveries.push({ key, memberId, kind: 'creative', status: resolutionFailed ? 'failed' : 'skipped', reason: item.reason || 'missing_valid_email', ...(resolutionFailed ? { error: 'Recipient lookup failed.' } : {}) });
+      continue;
+    }
+    if (seenInternalAddresses.has(recipient)) {
+      nextState.creative_recipients[memberId] = 'skipped';
+      deliveries.push({ key, memberId, kind: 'creative', status: 'skipped', reason: 'duplicate_recipient' });
+      continue;
+    }
+    seenInternalAddresses.add(recipient);
+    if (nextState.creative_recipients[memberId] === 'sent') {
+      deliveries.push({ key, memberId, kind: 'creative', status: 'sent', skippedRetry: true });
+      continue;
+    }
+    try {
+      await send({ key, recipient, kind: 'creative', memberId });
+      nextState.creative_recipients[memberId] = 'sent';
+      deliveries.push({ key, memberId, kind: 'creative', status: 'sent' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'delivery failed';
+      nextState.creative_recipients[memberId] = 'failed';
+      failures.push(`${key}: ${message}`);
+      deliveries.push({ key, memberId, kind: 'creative', status: 'failed', error: message });
+    }
+  }
+  await attempt({ key: 'client', recipient: clientEmail, kind: 'client' });
+
+  const statuses = deliveries.filter((item) => !item.skippedRetry).map((item) => item.status);
+  const hasFailure = statuses.includes('failed');
+  const hasSent = statuses.includes('sent');
+  return {
+    nextState,
+    deliveries,
+    failures,
+    notificationStatus: hasFailure ? (hasSent ? 'partially_sent' : 'failed') : 'sent',
+  };
+}
+
 export function escapeHtml(value = '') {
   return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
 }

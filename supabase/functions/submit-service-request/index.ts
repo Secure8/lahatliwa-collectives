@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { branchKey, cleanText, deliverNotificationPlan, EMAIL_PATTERN, escapeHtml, generateReference, safeBranchDetails, validateSubmission } from './serviceRequest.js';
+import { branchKey, cleanText, deliverGeneralNotificationPlan, deliverNotificationPlan, EMAIL_PATTERN, escapeHtml, generateReference, safeBranchDetails, validateSubmission } from './serviceRequest.js';
 import { resolveServiceCategory } from '../../../src/lib/serviceCatalog.js';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
@@ -51,7 +51,7 @@ async function resolveCreative(admin: any, slug: string) {
   const { data: team, error: teamError } = await admin.from('admin_users').select('id').eq('creative_member_id', creative.id).eq('status', 'active').not('user_id', 'is', null).maybeSingle();
   if (teamError) throw teamError;
   if (!team) return null;
-  return creative;
+  return { ...creative, teamMemberId: team.id };
 }
 
 async function resolveCreativeById(admin: any, id: string) {
@@ -83,9 +83,98 @@ async function resolveCreativeNotificationEmail(admin: any, creativeId: string) 
   }
 }
 
+async function resolveGeneralCreativeRecipients(admin: any) {
+  try {
+    const { data: members, error, count } = await admin.from('admin_users')
+      .select('id, creative_member_id', { count: 'exact' })
+      .eq('status', 'active')
+      .not('user_id', 'is', null)
+      .not('creative_member_id', 'is', null)
+      .in('role', ['super_admin', 'owner', 'admin', 'editor', 'creative', 'viewer'])
+      .order('created_at', { ascending: true })
+      .limit(500);
+    if (error) throw error;
+    if ((count || 0) > 500) throw new Error('Eligible creative recipient limit exceeded.');
+    const recipients = [];
+    for (let offset = 0; offset < (members || []).length; offset += 20) {
+      const batch = (members || []).slice(offset, offset + 20);
+      const resolved = await Promise.all(batch.map(async (member: any) => {
+        const address = await resolveCreativeNotificationEmail(admin, member.creative_member_id);
+        return { memberId: member.id, email: address.email, reason: address.reason };
+      }));
+      recipients.push(...resolved);
+    }
+    return { recipients, resolutionFailed: false };
+  } catch (error) {
+    console.error('[service-request] general creative recipient resolution failed', { code: (error as any)?.code || 'QUERY_FAILED' });
+    return { recipients: [], resolutionFailed: true };
+  }
+}
+
+async function recordDeliveryAttempts(admin: any, inquiryId: string, deliveries: any[]) {
+  const recordable = deliveries.filter((item) => !item.skippedRetry);
+  if (!recordable.length) return;
+  const keys = recordable.map((item) => item.key);
+  const { data: existing, error: existingError } = await admin.from('inquiry_delivery_attempts')
+    .select('delivery_key, attempts')
+    .eq('inquiry_id', inquiryId)
+    .in('delivery_key', keys);
+  if (existingError) {
+    console.error('[service-request] delivery history lookup failed', { inquiryId, code: existingError.code });
+    return;
+  }
+  const attempts = new Map((existing || []).map((item: any) => [item.delivery_key, Number(item.attempts || 0)]));
+  const now = new Date().toISOString();
+  const rows = recordable.map((item) => ({
+    inquiry_id: inquiryId,
+    delivery_key: item.key,
+    recipient_member_id: item.memberId || null,
+    recipient_kind: item.kind,
+    status: item.status,
+    attempts: item.status === 'skipped' ? (attempts.get(item.key) || 0) : (attempts.get(item.key) || 0) + 1,
+    last_error: item.status === 'failed' ? 'Delivery failed.' : item.reason || null,
+    last_attempted_at: item.status === 'skipped' ? null : now,
+    sent_at: item.status === 'sent' ? now : null,
+    updated_at: now,
+  }));
+  const { error } = await admin.from('inquiry_delivery_attempts').upsert(rows, { onConflict: 'inquiry_id,delivery_key' });
+  if (error) console.error('[service-request] delivery history update failed', { inquiryId, code: error.code });
+}
+
 async function deliverNotifications(admin: any, inquiry: any, creative: any, config: any) {
   inquiry.creative_name = creative?.name || '';
   const state = { ...(inquiry.notification_state || {}) };
+  if (!creative) {
+    const recipientResult = await resolveGeneralCreativeRecipients(admin);
+    const { nextState, failures, notificationStatus, deliveries } = await deliverGeneralNotificationPlan({
+      recipients: recipientResult.recipients,
+      resolutionFailed: recipientResult.resolutionFailed,
+      adminEmail: config.adminEmail,
+      clientEmail: inquiry.client_email,
+      state,
+      send: async (item: any) => {
+        const isClient = item.kind === 'client';
+        const isCreative = item.kind === 'creative';
+        const title = isClient ? 'We received your inquiry' : isCreative ? 'A general inquiry is open to the creative Team' : 'A new service inquiry needs review';
+        const subject = isClient
+          ? `We received your inquiry — ${inquiry.public_reference}`
+          : isCreative
+            ? `New general inquiry — ${inquiry.public_reference}`
+            : `New ${branchLabel(inquiry.branch)} inquiry — ${inquiry.public_reference}`;
+        await sendEmail(config.apiKey, {
+          from: config.fromEmail,
+          to: [item.recipient],
+          reply_to: isClient ? config.adminEmail : inquiry.client_email,
+          subject,
+          html: emailHtml(title, inquiry, config.siteUrl, !isClient),
+        });
+      },
+    });
+    await recordDeliveryAttempts(admin, inquiry.id, deliveries);
+    const { error } = await admin.from('project_inquiries').update({ notification_status: notificationStatus, notification_state: nextState, notification_attempts: Number(inquiry.notification_attempts || 0) + 1, notification_error: failures.join('; ').slice(0, 1000) || null, notified_at: notificationStatus === 'sent' ? new Date().toISOString() : inquiry.notified_at }).eq('id', inquiry.id);
+    if (error) console.error('[service-request] notification state update failed', { reference: inquiry.public_reference, code: error.code });
+    return notificationStatus;
+  }
   if (creative && !creative.notificationEmail) state.creative_resolution = creative.notificationReason || 'missing_valid_email';
   const { nextState, failures, notificationStatus } = await deliverNotificationPlan({
     hasCreative: Boolean(creative),
@@ -131,7 +220,7 @@ async function authorizedAdmin(req: Request, url: string, anonKey: string, admin
   const caller = createClient(url, anonKey, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } });
   const { data: { user }, error } = await caller.auth.getUser();
   if (error || !user) return null;
-  const { data } = await admin.from('admin_users').select('id').eq('user_id', user.id).eq('status', 'active').in('role', ['super_admin', 'owner', 'admin']).maybeSingle();
+  const { data } = await admin.from('admin_users').select('id').eq('user_id', user.id).eq('status', 'active').in('role', ['super_admin', 'owner']).maybeSingle();
   return data ? user : null;
 }
 

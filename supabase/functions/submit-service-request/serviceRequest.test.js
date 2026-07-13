@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { branchKey, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
+import { branchKey, deliverGeneralNotificationPlan, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
 import { resolveServiceCategory } from '../../../src/lib/serviceCatalog.js';
 
 function validRequest(overrides = {}) {
@@ -66,6 +66,64 @@ test('general inquiries email the administrative inbox and client', async () => 
   });
   assert.deepEqual(deliveries.map((item) => item.key), ['admin', 'client']);
   assert.equal(result.notificationStatus, 'sent');
+});
+
+test('general inquiries notify each eligible creative privately and deduplicate internal addresses', async () => {
+  const deliveries = [];
+  const result = await deliverGeneralNotificationPlan({
+    adminEmail: 'team@example.com',
+    clientEmail: 'client@example.com',
+    recipients: [
+      { memberId: 'creative-a', email: 'a@example.com' },
+      { memberId: 'creative-b', email: 'A@example.com' },
+      { memberId: 'creative-c', email: 'team@example.com' },
+      { memberId: 'creative-d', email: '', reason: 'missing_valid_email' },
+    ],
+    send: async (item) => deliveries.push(item),
+  });
+  assert.deepEqual(deliveries.map((item) => [item.kind, item.recipient]), [
+    ['admin', 'team@example.com'], ['creative', 'a@example.com'], ['client', 'client@example.com'],
+  ]);
+  assert.equal(deliveries.every((item) => typeof item.recipient === 'string'), true);
+  assert.equal(result.deliveries.filter((item) => item.status === 'skipped').length, 3);
+  assert.equal(result.notificationStatus, 'sent');
+});
+
+test('one failed general creative delivery does not block other recipients and records partial delivery', async () => {
+  const attempted = [];
+  const result = await deliverGeneralNotificationPlan({
+    adminEmail: 'team@example.com', clientEmail: 'client@example.com',
+    recipients: [{ memberId: 'a', email: 'a@example.com' }, { memberId: 'b', email: 'b@example.com' }],
+    send: async (item) => { attempted.push(item.key); if (item.memberId === 'a') throw new Error('provider rejected delivery'); },
+  });
+  assert.deepEqual(attempted, ['admin', 'creative:a', 'creative:b', 'client']);
+  assert.equal(result.deliveries.find((item) => item.memberId === 'a').status, 'failed');
+  assert.equal(result.deliveries.find((item) => item.memberId === 'b').status, 'sent');
+  assert.equal(result.notificationStatus, 'partially_sent');
+});
+
+test('general notification retry skips recipients already marked sent', async () => {
+  const deliveries = [];
+  const result = await deliverGeneralNotificationPlan({
+    adminEmail: 'team@example.com', clientEmail: 'client@example.com',
+    recipients: [{ memberId: 'a', email: 'a@example.com' }, { memberId: 'b', email: 'b@example.com' }],
+    state: { admin: 'sent', client: 'sent', creative_recipients: { a: 'sent', b: 'failed' } },
+    send: async (item) => deliveries.push(item.key),
+  });
+  assert.deepEqual(deliveries, ['creative:b']);
+  assert.equal(result.nextState.creative_recipients.a, 'sent');
+  assert.equal(result.nextState.creative_recipients.b, 'sent');
+});
+
+test('failed creative-recipient lookup fails closed without blocking admin or client delivery', async () => {
+  const deliveries = [];
+  const result = await deliverGeneralNotificationPlan({
+    adminEmail: 'team@example.com', clientEmail: 'client@example.com', recipients: [], resolutionFailed: true,
+    send: async (item) => deliveries.push(item.key),
+  });
+  assert.deepEqual(deliveries, ['admin', 'client']);
+  assert.equal(result.notificationStatus, 'partially_sent');
+  assert.equal(result.nextState.creative_resolution, 'failed');
 });
 
 test('failed creative delivery falls back to the administrative inbox and still confirms the client', async () => {

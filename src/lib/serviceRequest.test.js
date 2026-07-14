@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { defaultSiteContent } from '../data/siteContent.js';
-import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, canonicalServiceKey, changeInquiryBranchSelection, emptyInquiryDraft, INQUIRY_DETAILS_STEP, INQUIRY_SELECTION_STEP, inquiryCopy, inquiryNavigationState, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, resolveInquiryEntry, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
+import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, canonicalServiceKey, changeInquiryBranchSelection, emptyInquiryDraft, INQUIRY_DETAILS_STEP, INQUIRY_SELECTION_STEP, INQUIRY_SPECIALIST_STEP, inquiryCopy, inquiryNavigationState, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, resolveInquiryEntry, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
 
 test('canonical branch and inquiry routes preserve refresh-safe context', () => {
   assert.equal(branchKeyFromRecord({ slug: 'lahat-liwa-studio' }), 'studio');
@@ -11,14 +11,18 @@ test('canonical branch and inquiry routes preserve refresh-safe context', () => 
   assert.equal(inquiryUrl({ branch: 'invalid', service: 'Photography' }), '/inquiry?service=photography');
 });
 
-test('inquiry entry routing skips only complete valid selections', () => {
+test('inquiry entry routing advances only through selections explicitly provided', () => {
   const published = ['studio', 'tech', 'digital', 'social'];
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup' }, published), { branch: 'tech', serviceKey: 'setup', step: INQUIRY_DETAILS_STEP, status: 'ready' });
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech' }, published), { branch: 'tech', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'branch-only' });
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'device-setup' }, published), { branch: 'tech', serviceKey: 'setup', step: INQUIRY_DETAILS_STEP, status: 'ready' });
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'unavailable-service' }, published), { branch: 'tech', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-service' });
-  assert.deepEqual(resolveInquiryEntry({}, published), { branch: '', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'direct' });
-  assert.deepEqual(resolveInquiryEntry({ branch: 'studio', service: 'photo' }, ['tech']), { branch: '', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-branch' });
+  const creatives = [{ id: 'creative-id', slug: 'alex-tech' }];
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'specialist' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup', creative: 'alex-tech' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: 'alex-tech', step: INQUIRY_DETAILS_STEP, status: 'ready-specialist' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup', creative: 'missing-specialist' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'invalid-specialist' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup', creative: 'general-team' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: '', step: INQUIRY_DETAILS_STEP, status: 'ready-team' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech' }, published, creatives), { branch: 'tech', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'branch-only' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'device-setup' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'specialist' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'unavailable-service' }, published, creatives), { branch: 'tech', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-service' });
+  assert.deepEqual(resolveInquiryEntry({}, published, creatives), { branch: '', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'direct' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'studio', service: 'photo' }, ['tech'], creatives), { branch: '', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-branch' });
   assert.deepEqual(inquiryNavigationState({ branch: 'tech', service: 'Device Setup' }), { inquirySelection: { branch: 'tech', service: 'setup' } });
 });
 
@@ -64,6 +68,7 @@ test('submission boundary sends only canonical service keys', () => {
 test('branch-specific and common client validation fails safely', () => {
   const draft = emptyInquiryDraft({ branch: 'digital', service: 'Website Development' });
   assert.deepEqual(validateInquiryStep(0, draft, [{ key: 'website' }]), {});
+  assert.deepEqual(validateInquiryStep(INQUIRY_SPECIALIST_STEP, { ...draft, creativeSlug: '' }, [], []), {});
   assert.ok(validateInquiryStep(0, { ...draft, serviceKey: 'made-up' }, [{ key: 'website' }]).serviceKey);
   assert.ok(validateInquiryStep(1, { ...draft, creativeSlug: 'missing' }, []).creativeSlug);
   assert.ok(validateInquiryStep(2, { ...draft, summary: 'Hi', details: 'short' }).summary);
@@ -214,9 +219,12 @@ test('services preselection skips safely and exposes an accessible change-select
   ]);
   assert.match(services, /state=\{inquiryNavigationState\(\{ branch: branch\.key, service: service\.key \}\)\}/);
   assert.match(form, /const navigationSelection = location\.state\?\.inquirySelection/);
-  assert.match(form, /entry\.status === 'ready'[\s\S]*moveToStep\(entry\.step\)/);
+  assert.match(form, /entry\.status === 'specialist'[\s\S]*moveToStep\(entry\.step\)/);
   assert.match(form, /function changeSelection\(\)[\s\S]*delete nextState\.inquirySelection[\s\S]*moveToStep\(INQUIRY_SELECTION_STEP\)[\s\S]*replace: true/);
-  assert.match(form, /<SelectionSummary[^>]+onChange=\{changeSelection\}/);
+  assert.match(form, /function changeSpecialist\(\)[\s\S]*delete nextState\.inquirySelection\.creative[\s\S]*moveToStep\(INQUIRY_SPECIALIST_STEP\)[\s\S]*replace: true/);
+  assert.match(form, /<SelectionSummary[\s\S]*?onChange=\{changeSelection\}/);
+  assert.match(form, /onChangeSpecialist=\{step > INQUIRY_SPECIALIST_STEP \? changeSpecialist : null\}/);
+  assert.match(form, /Preferred specialist:/);
   assert.match(form, /aria-live="polite" aria-atomic="true"/);
   assert.match(form, /ref=\{stepHeadingRef\} tabIndex="-1"/);
 });

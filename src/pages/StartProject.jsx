@@ -5,7 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ActionFeedback, FieldError } from '../components/FieldFeedback';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { usePublicContent } from '../lib/contentApi';
-import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, changeInquiryBranchSelection, emptyInquiryDraft, INQUIRY_DRAFT_KEY, INQUIRY_SELECTION_STEP, inquiryCopy, mergeInquiryContext, resolveInquiryEntry, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, changeInquiryBranchSelection, emptyInquiryDraft, INQUIRY_DRAFT_KEY, INQUIRY_SELECTION_STEP, INQUIRY_SPECIALIST_STEP, inquiryCopy, mergeInquiryContext, resolveInquiryEntry, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
 
 const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
@@ -45,7 +45,7 @@ export default function StartProject() {
     return {
       branch: searchParams.get('branch') || navigationSelection.branch || '',
       service: searchParams.get('service') || navigationSelection.service || '',
-      creative: searchParams.get('creative') || '',
+      creative: searchParams.get('creative') || navigationSelection.creative || '',
     };
   }, [location.state, searchParams]);
   const [draft, setDraft] = useState(() => readDraft(queryContext));
@@ -81,8 +81,7 @@ export default function StartProject() {
     if (loadingChoices) return;
     const requestedBranch = queryContext.branch;
     const requestedService = queryContext.service;
-    const requestedCreative = String(queryContext.creative || '').toLowerCase();
-    const entry = resolveInquiryEntry(queryContext, branches.map(branchKeyFromRecord).filter(Boolean));
+    const entry = resolveInquiryEntry(queryContext, branches.map(branchKeyFromRecord).filter(Boolean), creatives);
     let contextNotice = '';
     setDraft((current) => {
       const next = { ...current };
@@ -102,18 +101,15 @@ export default function StartProject() {
         next.serviceKey = '';
         contextNotice = 'Choose a service branch before selecting a service.';
       }
-      if (requestedCreative) {
-        const creative = creatives.find((item) => item.slug === requestedCreative || item.id === requestedCreative);
-        if (creative) next.creativeSlug = creative.slug;
-        else {
-          const recipientCopy = inquiryCopy(next.branch);
-          next.creativeSlug = '';
-          contextNotice = `The requested ${recipientCopy.recipientLabel.toLowerCase()} is unavailable. You can choose another team member or ${recipientCopy.teamOption}.`;
-        }
+      if (entry.status === 'ready-specialist' || entry.status === 'ready-team') next.creativeSlug = entry.creativeSlug;
+      if (entry.status === 'invalid-specialist') {
+        const recipientCopy = inquiryCopy(next.branch);
+        next.creativeSlug = '';
+        contextNotice = `The requested ${recipientCopy.recipientLabel.toLowerCase()} is unavailable. Choose another team member or ${recipientCopy.teamOption}.`;
       }
       return next;
     });
-    if (entry.status === 'ready') moveToStep(entry.step);
+    if (entry.status === 'specialist' || entry.status === 'invalid-specialist' || entry.status === 'ready-specialist' || entry.status === 'ready-team') moveToStep(entry.step);
     else setStep(INQUIRY_SELECTION_STEP);
     setNotice(contextNotice);
   }, [branches, creatives, loadingChoices, queryContext]);
@@ -175,12 +171,28 @@ export default function StartProject() {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('branch');
     nextParams.delete('service');
+    nextParams.delete('creative');
     const nextState = { ...(location.state || {}) };
     delete nextState.inquirySelection;
     setErrors({});
     setSubmitError('');
     setNotice('');
     moveToStep(INQUIRY_SELECTION_STEP);
+    navigate({ pathname: location.pathname, search: nextParams.toString() ? `?${nextParams}` : '' }, { replace: true, state: nextState });
+  }
+
+  function changeSpecialist() {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('creative');
+    const nextState = { ...(location.state || {}) };
+    if (nextState.inquirySelection) {
+      nextState.inquirySelection = { ...nextState.inquirySelection };
+      delete nextState.inquirySelection.creative;
+    }
+    setErrors({});
+    setSubmitError('');
+    setNotice('');
+    moveToStep(INQUIRY_SPECIALIST_STEP);
     navigate({ pathname: location.pathname, search: nextParams.toString() ? `?${nextParams}` : '' }, { replace: true, state: nextState });
   }
 
@@ -232,7 +244,7 @@ export default function StartProject() {
   return <div className="page-shell py-16 sm:py-20" style={{ '--project-accent': content.accentColor, '--project-secondary': content.secondaryTextColor }}>
     <PublicPageHeader eyebrow={copy.pageEyebrow} title={step === 0 ? copy.serviceSelectionHeading : copy.pageTitle} description={step === 0 ? copy.serviceSelectionDescription : copy.pageDescription} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
 
-    {step > INQUIRY_SELECTION_STEP && selectedBranch && selectedService && <SelectionSummary branch={selectedBranch.label} service={selectedService.name} onChange={changeSelection} />}
+    {step > INQUIRY_SELECTION_STEP && selectedBranch && selectedService && <SelectionSummary branch={selectedBranch.label} service={selectedService.name} specialist={selectedCreative?.name || (step > INQUIRY_SPECIALIST_STEP ? copy.teamOption : '')} onChange={changeSelection} onChangeSpecialist={step > INQUIRY_SPECIALIST_STEP ? changeSpecialist : null} />}
 
     <StepProgress current={step} steps={steps} />
     <div className="grid gap-9 pt-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">
@@ -265,8 +277,8 @@ function servicesForBranch(branch, rows) {
   return serviceCategoriesForBranch(branch, row?.included_services || []);
 }
 
-function SelectionSummary({ branch, service, onChange }) {
-  return <section aria-label="Selected service" className="mt-8 flex flex-col gap-4 border-y border-white/[0.09] py-4 sm:flex-row sm:items-center sm:justify-between"><div aria-live="polite" aria-atomic="true"><p className="text-[10px] uppercase tracking-[0.18em] text-orange-300">Selected service</p><p className="mt-1 text-sm font-medium text-white">{branch} <span aria-hidden="true" className="text-zinc-600">·</span> {service}</p></div><button type="button" onClick={onChange} className="inline-flex min-h-11 w-fit items-center border-b border-orange-300/45 text-sm font-medium text-orange-100 transition hover:border-orange-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200">Change selection</button></section>;
+function SelectionSummary({ branch, service, specialist = '', onChange, onChangeSpecialist }) {
+  return <section aria-label="Inquiry selections" className="mt-8 flex flex-col gap-4 border-y border-white/[0.09] py-4 sm:flex-row sm:items-center sm:justify-between"><div aria-live="polite" aria-atomic="true"><p className="text-[10px] uppercase tracking-[0.18em] text-orange-300">Selected service</p><p className="mt-1 text-sm font-medium text-white">{branch} <span aria-hidden="true" className="text-zinc-600">·</span> {service}</p>{specialist && <p className="mt-2 text-xs text-zinc-400"><span className="text-zinc-600">Preferred specialist:</span> {specialist}</p>}</div><div className="flex flex-wrap gap-4">{onChangeSpecialist && <button type="button" onClick={onChangeSpecialist} className="inline-flex min-h-11 w-fit items-center border-b border-white/[0.16] text-sm font-medium text-zinc-300 transition hover:border-orange-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200">Change specialist</button>}<button type="button" onClick={onChange} className="inline-flex min-h-11 w-fit items-center border-b border-orange-300/45 text-sm font-medium text-orange-100 transition hover:border-orange-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200">Change selection</button></div></section>;
 }
 
 function StepProgress({ current, steps }) {

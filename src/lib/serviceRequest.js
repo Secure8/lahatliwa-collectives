@@ -10,6 +10,7 @@ export const SERVICE_BRANCHES = [
 export const GENERAL_BRANCH = { key: 'general', label: 'General', action: 'Describe What You Need', description: 'Describe your request, question, or collaboration idea. Include the result you are aiming for, your preferred timeline, and enough context for us to direct it to the appropriate Liwa branch.' };
 export const INQUIRY_STEPS = ['Service Category', 'Liwa Team', 'Request Details', 'Schedule and Contact', 'Review'];
 export const INQUIRY_SELECTION_STEP = 0;
+export const INQUIRY_SPECIALIST_STEP = 1;
 export const INQUIRY_DETAILS_STEP = 2;
 export const INQUIRY_DRAFT_KEY = 'lahat-liwa-inquiry-draft-v1';
 export const REFERENCE_PATTERN = /^LLC-\d{4}-[A-Z0-9]{6}$/;
@@ -247,22 +248,29 @@ export function branchMeta(key) {
   return SERVICE_BRANCHES.find((branch) => branch.key === key) || (key === 'general' ? GENERAL_BRANCH : null);
 }
 
-export function resolveInquiryEntry(context = {}, availableBranchKeys = null) {
+const GENERAL_TEAM_SELECTIONS = new Set(['team', 'general-team', 'liwa-team', 'branch-team']);
+
+export function resolveInquiryEntry(context = {}, availableBranchKeys = null, eligibleCreatives = []) {
   const branch = String(context.branch || '').trim().toLowerCase();
   const requestedService = context.service || context.serviceKey || '';
+  const requestedCreative = String(context.creative || context.creativeSlug || '').trim().toLowerCase();
   const available = Array.isArray(availableBranchKeys) ? new Set(availableBranchKeys) : null;
   const branchAvailable = Boolean(branchMeta(branch)) && (branch === 'general' || !available || available.has(branch));
-  if (!branch) return { branch: '', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'direct' };
-  if (!branchAvailable) return { branch: '', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-branch' };
-  if (!requestedService) return { branch, serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'branch-only' };
+  if (!branch) return { branch: '', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'direct' };
+  if (!branchAvailable) return { branch: '', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-branch' };
+  if (!requestedService) return { branch, serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'branch-only' };
   const service = resolveServiceCategory(branch, requestedService);
-  if (!service) return { branch, serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-service' };
-  return { branch, serviceKey: service.key, step: INQUIRY_DETAILS_STEP, status: 'ready' };
+  if (!service) return { branch, serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-service' };
+  if (!requestedCreative) return { branch, serviceKey: service.key, creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'specialist' };
+  if (GENERAL_TEAM_SELECTIONS.has(requestedCreative)) return { branch, serviceKey: service.key, creativeSlug: '', step: INQUIRY_DETAILS_STEP, status: 'ready-team' };
+  const creative = (Array.isArray(eligibleCreatives) ? eligibleCreatives : []).find((item) => item.slug === requestedCreative || item.id === requestedCreative);
+  if (!creative) return { branch, serviceKey: service.key, creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'invalid-specialist' };
+  return { branch, serviceKey: service.key, creativeSlug: creative.slug, step: INQUIRY_DETAILS_STEP, status: 'ready-specialist' };
 }
 
-export function inquiryNavigationState({ branch = '', service = '' } = {}) {
+export function inquiryNavigationState({ branch = '', service = '', creative = '' } = {}) {
   const entry = resolveInquiryEntry({ branch, service });
-  return { inquirySelection: { branch: entry.branch, service: entry.serviceKey } };
+  return { inquirySelection: { branch: entry.branch, service: entry.serviceKey, ...(creative ? { creative: String(creative).trim().toLowerCase() } : {}) } };
 }
 
 const REPLACED_BRANCH_DESCRIPTION = /(start a guided .+ request|flexible photo, video, editing, and visual-production support|practical technical support for devices, software, setup, troubleshooting|websites, applications, systems, interfaces, and other digital solutions|flexible social-media support for planning, content, account management|planning and shaping social content|photo and video coverage|first-version mindset|simple technical help|everyday computer support)/i;

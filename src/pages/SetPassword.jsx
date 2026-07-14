@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuthSession } from '../lib/authSession';
 import PasswordField from '../components/auth/PasswordField';
 import { ActionFeedback } from '../components/FieldFeedback';
+import BrandWordmark from '../components/BrandWordmark';
 
 export default function SetPassword() {
   const navigate = useNavigate();
@@ -70,7 +71,8 @@ export default function SetPassword() {
   return (
     <main className="grid min-h-screen place-items-center bg-zinc-950 px-4 py-12 text-white">
       <section className="w-full max-w-md">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-100">
+        <BrandWordmark variant="auth" to="/" />
+        <Link to="/" className="mt-7 inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-100">
           <ArrowLeft size={16} /> Back to site
         </Link>
 

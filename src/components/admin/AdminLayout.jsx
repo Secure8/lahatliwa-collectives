@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { canCreateProjects, canManageSettings, canManageTeam, isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
 import { usePublicContent } from '../../lib/contentApi';
 import { supabase } from '../../lib/supabaseClient';
+import BrandWordmark from '../BrandWordmark';
 
 const links = [
   ['Overview', [
@@ -96,26 +97,22 @@ export default function AdminLayout({ children }) {
     <div className="admin-shell min-h-screen overflow-x-hidden bg-zinc-950 text-white">
       <aside className="theme-navigation-surface fixed inset-x-0 top-0 z-30 border-b border-white/[0.08] bg-zinc-950/95 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-md lg:border lg:border-white/[0.08] lg:bg-zinc-900/80 lg:p-4">
         <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
-          <div className="flex min-w-0 items-center gap-3 lg:block">
-            <Link
-              to="/admin/dashboard"
-              preventScrollReset
-              className={clsx(
-                'grid h-10 w-10 shrink-0 place-items-center rounded-md text-sm font-bold',
-                content.logoUrl ? 'bg-transparent text-white' : 'bg-amber-300 text-zinc-950 '
-              )}
-            >
+          <Link to="/admin/dashboard" preventScrollReset className="flex min-w-0 items-center gap-3 lg:block" aria-label={`${content.displayName} admin dashboard`}>
+            <span className={clsx(
+              'grid h-10 w-10 shrink-0 place-items-center rounded-md text-sm font-bold',
+              content.logoUrl ? 'bg-transparent text-white' : 'bg-amber-300 text-zinc-950 '
+            )}>
               {content.logoUrl ? (
                 <img src={content.logoUrl} alt={content.logoAlt || 'Lahat Liwa logo'} decoding="async" width="36" height="36" className="h-9 w-9 object-contain" />
               ) : (
                 content.initials || 'LL'
               )}
-            </Link>
+            </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">{content.displayName || 'Lahat Liwa'}</p>
+              <BrandWordmark name={content.displayName} variant="admin" />
               <p className="truncate text-xs text-zinc-500">Studio control panel</p>
             </div>
-          </div>
+          </Link>
 
           <nav ref={sidebarNavRef} onScroll={rememberSidebarScroll} className="admin-sidebar-scroll hidden min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain py-4 pr-1 lg:grid">
             {visibleGroups.map(([group, groupLinks]) => (

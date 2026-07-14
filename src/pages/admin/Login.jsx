@@ -9,6 +9,7 @@ import PasswordField from '../../components/auth/PasswordField';
 import LoadingState from '../../components/LoadingState';
 import { dashboardRedirectAllowed } from '../../lib/authCallback';
 import { ActionFeedback, FieldError } from '../../components/FieldFeedback';
+import BrandWordmark from '../../components/BrandWordmark';
 
 const modeCopy = {
   login: {
@@ -168,7 +169,8 @@ export default function Login() {
   return (
     <main className="grid min-h-screen place-items-center bg-zinc-950 px-4 py-12">
       <section className="w-full max-w-md">
-        <Link to="/" className="fine-link inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-100">
+        <BrandWordmark variant="auth" to="/" />
+        <Link to="/" className="fine-link mt-7 inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-100">
           <ArrowLeft size={16} /> Back to site
         </Link>
         <form onSubmit={handleSubmit} className="mt-5 border-y border-white/[0.1] py-7">

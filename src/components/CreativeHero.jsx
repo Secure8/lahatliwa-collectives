@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { getPublicImageUrl } from '../lib/storage';
 import { resourceMeta } from '../lib/profileResources';
 import { inquiryUrl } from '../lib/serviceRequest';
+import BrandWordmark from './BrandWordmark';
 
 export default function CreativeHero({ creative, projectCount, socials, resources = [], renderSocial, adminPreview = false }) {
   const profileImage = getPublicImageUrl(creative.profile_image_url);
@@ -24,7 +25,7 @@ export default function CreativeHero({ creative, projectCount, socials, resource
         <p className="mt-3 inline-flex w-40 whitespace-nowrap justify-center border border-white/20 bg-black/20 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-100 backdrop-blur-sm">Creative portfolio</p>
         <h1 className="mt-4 max-w-3xl [overflow-wrap:anywhere] text-[clamp(2.5rem,5.6vw,5.7rem)] font-semibold leading-[0.94] tracking-[-0.045em] text-white">{creative.name}</h1>
         <div className="mt-4 max-w-2xl border-l-2 border-orange-300 pl-3 sm:pl-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-orange-300">Lahat Liwa</p>
+          <BrandWordmark variant="eyebrow" />
           <p className="mt-1 [overflow-wrap:anywhere] text-sm font-semibold leading-6 text-white sm:text-base sm:leading-7"><SeparatedTitle value={creative.role} /></p>
         </div>
         {intro && <p className="mt-4 max-w-xl text-sm leading-6 text-zinc-100 sm:text-base sm:leading-7 lg:hidden">{intro}</p>}

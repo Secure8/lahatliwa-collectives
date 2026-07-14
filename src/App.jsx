@@ -13,6 +13,7 @@ import { publicRouteBoundaryKey } from './lib/navigationHistory';
 import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadInquiryConfirmation, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
 import { applyPublicMetadata } from './lib/publicMetadata';
 import ThemeToggle from './components/ThemeToggle';
+import BrandWordmark from './components/BrandWordmark';
 
 const Login = lazy(() => import('./pages/admin/Login'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
@@ -77,13 +78,16 @@ function SiteDocumentMetadata() {
 
 function PublicSiteFrame() {
   const location = useLocation();
-  const { loading, resolved, error } = usePublicContent([]);
+  const { content, loading, resolved, error } = usePublicContent([]);
 
   if (!resolved) {
     return (
       <main className="min-h-screen bg-zinc-950 text-zinc-100">
         <div className="page-shell flex min-h-screen items-center justify-center py-20">
-          {loading ? <LoadingState label="Loading site content" /> : <p className="max-w-md text-center text-sm leading-6 text-zinc-400">{error || 'Live site content is temporarily unavailable. Please try again.'}</p>}
+          <div className="w-full max-w-xl">
+            <BrandWordmark name={content.displayName} variant="auth" to="/" />
+            <div className="mt-8">{loading ? <LoadingState label="Loading site content" /> : <p className="max-w-md text-sm leading-6 text-zinc-400">{error || 'Live site content is temporarily unavailable. Please try again.'}</p>}</div>
+          </div>
         </div>
       </main>
     );
@@ -114,7 +118,7 @@ function PublicLayout() {
 
 function AdminSuspense({ children }) {
   return (
-    <Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading admin" /></div>}>
+    <Suspense fallback={<main className="grid min-h-screen place-items-center bg-zinc-950 px-4 py-12 text-white"><section className="w-full max-w-lg"><BrandWordmark variant="auth" to="/" /><div className="mt-8"><LoadingState label="Loading admin" /></div></section></main>}>
       {children}
     </Suspense>
   );

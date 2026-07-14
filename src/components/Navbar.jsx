@@ -4,6 +4,7 @@ import { NavLink, Link, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { usePublicContent } from '../lib/contentApi';
 import { preloadPublicRoute } from '../lib/publicRoutePreload';
+import BrandWordmark from './BrandWordmark';
 
 const links = [
   ['Home', '/'],
@@ -51,13 +52,13 @@ export default function Navbar() {
       )}
     >
       <nav className="page-shell flex min-h-16 items-center justify-between gap-3">
-        <Link to="/" onClick={avoidDuplicateNavigation('/')} className="group flex min-w-0 items-center gap-3 font-medium tracking-wide">
+        <Link to="/" onClick={avoidDuplicateNavigation('/')} className="group flex min-w-0 items-center gap-3" aria-label={`${content.displayName} home`}>
           {content.logoUrl ? (
             <img src={content.logoUrl} alt={content.logoAlt} decoding="async" width="32" height="32" className="h-8 w-8 rounded-md object-contain" />
           ) : (
             <span className="site-accent site-border grid h-8 w-8 place-items-center border text-xs font-semibold transition">{content.initials}</span>
           )}
-          <span className="truncate">{content.displayName}</span>
+          <BrandWordmark name={content.displayName} variant="compact" />
         </Link>
         <div className="hidden items-center gap-1 xl:flex">
           {links.map(([label, href]) => (

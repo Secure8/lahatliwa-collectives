@@ -12,6 +12,7 @@ import { getPublicImageUrl } from '../lib/storage';
 import { safeExternalUrl } from '../lib/externalUrls';
 import { applyPublicMetadata } from '../lib/publicMetadata';
 import { getSingleProjectExternalLink, projectExternalLinkLabel, projectExternalLinkText } from '../lib/projectExternalLinks';
+import BrandWordmark from '../components/BrandWordmark';
 
 function isMissingCreditRolesColumn(error) {
   const message = `${error?.message || ''} ${error?.details || ''}`;
@@ -107,7 +108,7 @@ export default function ProjectDetails() {
             {primaryContributor && (
               <p>Work by <Link to={`/creatives/${primaryContributor.slug}`} className="site-hover-accent text-zinc-200">{primaryContributor.name}</Link></p>
             )}
-            <p>Published under <span className="text-zinc-200">Lahat Liwa Collectives</span></p>
+            <p>Published under <BrandWordmark name={content.displayName} variant="inline" /></p>
           </div>
           <p className="mt-5 inline-flex items-center gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}><Calendar size={16} /> {formatDate(project.project_date)}</p>
           {project.tools?.length > 0 && (

@@ -14,6 +14,9 @@ import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '.
 import { scrollPreservingNavigationState, shouldPushFilter } from '../lib/navigationHistory';
 import { AccentEyebrow } from '../components/PublicPageHeader';
 import { branchKeyFromRecord, branchMeta, publicBranchDescription } from '../lib/serviceRequest';
+import BrandWordmark from '../components/BrandWordmark';
+import { isBrandWordmarkText } from '../lib/brandWordmark';
+import { defaultSiteContent } from '../data/siteContent';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -39,6 +42,7 @@ export default function Home() {
   const projectLimit = 6;
   const selectedBranchInfo = branchForKey(selectedBranch) || PROJECT_BRANCHES[0];
   const visibleProjects = useMemo(() => fairProjectExposure(projectsForBranch(projects, selectedBranch), projectLimit), [projectLimit, projects, selectedBranch]);
+  const heroIsBrandWordmark = isBrandWordmarkText(content.home.heroTitle, content.displayName, [defaultSiteContent.displayName, defaultSiteContent.legalName]);
 
   useEffect(() => {
     let active = true;
@@ -90,7 +94,7 @@ export default function Home() {
       <div className={`page-shell relative grid min-h-[calc(100vh-4rem)] items-center gap-10 py-16 ${hasPortrait ? (heroBackground.mode === 'split-image' ? 'lg:grid-cols-[0.95fr_1.05fr]' : 'lg:grid-cols-[1.1fr_0.7fr]') : 'lg:grid-cols-1'} lg:gap-14 lg:py-20`}>
         <div className="max-w-2xl">
           <AccentEyebrow color={content.home.accentTextColor || content.accentColor} preserveColor>{content.home.heroEyebrow || content.hero.eyebrow}</AccentEyebrow>
-          <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{content.home.heroTitle}</h1>
+          <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{heroIsBrandWordmark ? <BrandWordmark name={content.home.heroTitle} variant="hero" /> : content.home.heroTitle}</h1>
           <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'A creative digital collective building visuals, stories, and digital experiences across photography, editing, social media, content, and web projects.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/inquiry" className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>

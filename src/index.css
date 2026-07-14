@@ -129,6 +129,95 @@ a {
   color: inherit;
 }
 
+.brand-wordmark {
+  --brand-wordmark-fill: var(--brand-wordmark-accent, var(--site-brand-accent, #f6d58b));
+  --brand-wordmark-edge: color-mix(in srgb, var(--brand-wordmark-fill) 46%, #241002);
+  display: inline-block;
+  min-width: 0;
+  color: var(--brand-wordmark-fill);
+  font-family: "Rubik 80s Fade", "Arial Black", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0.025em;
+  overflow-wrap: anywhere;
+  text-shadow: 0.045em 0.045em 0 var(--brand-wordmark-edge), 0 0.14em 0.34em rgb(0 0 0 / 0.18);
+  text-wrap: balance;
+}
+
+[data-theme="light"] .brand-wordmark {
+  --brand-wordmark-edge: color-mix(in srgb, var(--brand-wordmark-fill) 58%, #7a3100);
+  -webkit-text-stroke: 0.35px var(--brand-wordmark-edge);
+  text-shadow: 0.045em 0.045em 0 var(--brand-wordmark-edge), 0 0.12em 0.3em rgb(77 42 10 / 0.12);
+}
+
+.brand-wordmark--linked {
+  text-decoration: none;
+  transition: filter 160ms ease, text-shadow 160ms ease;
+}
+
+.brand-wordmark--linked:hover {
+  filter: brightness(1.08) saturate(1.04);
+}
+
+.brand-wordmark--compact {
+  max-width: min(12rem, 38vw);
+  overflow: hidden;
+  font-size: clamp(0.92rem, 3.2vw, 1.08rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-wordmark--admin {
+  max-width: min(13rem, 42vw);
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-wordmark--footer {
+  max-width: 28rem;
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
+}
+
+.brand-wordmark--auth {
+  display: block;
+  max-width: 100%;
+  font-size: clamp(1.8rem, 8vw, 2.7rem);
+}
+
+.brand-wordmark--hero {
+  display: block;
+  max-width: 100%;
+  font-size: inherit;
+}
+
+.brand-wordmark--eyebrow {
+  max-width: 100%;
+  font-size: 0.84rem;
+  letter-spacing: 0.06em;
+}
+
+.brand-wordmark--inline {
+  font-size: 1.04em;
+  letter-spacing: 0.015em;
+  text-shadow: 0.035em 0.035em 0 var(--brand-wordmark-edge);
+}
+
+.brand-wordmark--compact.brand-wordmark--long,
+.brand-wordmark--admin.brand-wordmark--long {
+  font-size: 0.88rem;
+  letter-spacing: 0.01em;
+}
+
+.brand-wordmark--compact.brand-wordmark--very-long,
+.brand-wordmark--admin.brand-wordmark--very-long {
+  max-width: min(10.5rem, 34vw);
+  font-size: 0.76rem;
+  letter-spacing: 0;
+}
+
 button,
 input,
 textarea,

@@ -56,6 +56,55 @@ test('theme toggle stays visible while keyboard-focused or pointer-hovered', () 
   assert.equal(harness.timers.size, 0);
 });
 
+test('a pointer-triggered theme change clears stale hover and non-visible focus state', () => {
+  const harness = visibilityHarness();
+  harness.controller.onPointerEnter();
+  harness.controller.onFocus(false);
+  harness.controller.onThemeChange({ focusVisible: false });
+  harness.controller.onScroll();
+  assert.deepEqual(harness.changes, [false, false, true]);
+  assert.equal([...harness.timers.values()][0].delay, THEME_TOGGLE_REVEAL_DELAY_MS);
+});
+
+test('scroll hiding remains active after one or several theme changes', () => {
+  const harness = visibilityHarness();
+  harness.controller.onScroll();
+  harness.controller.onThemeChange();
+  harness.controller.onScroll();
+  harness.controller.onThemeChange();
+  harness.controller.onThemeChange();
+  harness.controller.onScroll();
+  assert.deepEqual(harness.changes, [true, false, true, false, false, true]);
+  assert.equal(harness.timers.size, 1);
+  harness.runTimer();
+  assert.equal(harness.changes.at(-1), false);
+});
+
+test('rapid theme changes cancel pending reveals without disabling future scrolling', () => {
+  const harness = visibilityHarness();
+  harness.controller.onScroll();
+  const firstTimer = [...harness.timers.keys()][0];
+  harness.controller.onThemeChange();
+  harness.controller.onThemeChange();
+  assert.ok(harness.cleared.includes(firstTimer));
+  assert.equal(harness.timers.size, 0);
+  harness.controller.onScroll();
+  assert.equal(harness.changes.at(-1), true);
+  assert.equal(harness.timers.size, 1);
+});
+
+test('keyboard-visible focus remains protected across a theme change', () => {
+  const harness = visibilityHarness();
+  harness.controller.onFocus(true);
+  harness.controller.onThemeChange({ focusVisible: true });
+  harness.controller.onScroll();
+  assert.deepEqual(harness.changes, [false, false]);
+  assert.equal(harness.timers.size, 0);
+  harness.controller.onBlur();
+  harness.controller.onScroll();
+  assert.equal(harness.changes.at(-1), true);
+});
+
 test('route-restoration grace ignores initial scroll without hiding the toggle', () => {
   const harness = visibilityHarness();
   harness.controller.suppress(350);

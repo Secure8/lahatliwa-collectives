@@ -99,7 +99,11 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.match(toggle, /setPreference\(nextTheme, \{ event, element: event\.currentTarget \}\)/);
   assert.match(toggle, /window\.addEventListener\('scroll', controller\.onScroll, \{ passive: true \}\)/);
   assert.match(toggle, /window\.removeEventListener\('scroll', controller\.onScroll\)/);
-  assert.match(toggle, /onFocus=\{\(\) => controllerRef\.current\?\.onFocus\(\)\}/);
+  assert.match(toggle, /ref=\{buttonRef\}/);
+  assert.match(toggle, /onFocus=\{\(event\) => controllerRef\.current\?\.onFocus\(event\.currentTarget\.matches\(':focus-visible'\)\)\}/);
+  assert.match(toggle, /controllerRef\.current\?\.onThemeChange\(\{ focusVisible \}\)/);
+  assert.equal((toggle.match(/window\.addEventListener\('scroll'/g) || []).length, 1);
+  assert.equal((toggle.match(/window\.removeEventListener\('scroll'/g) || []).length, 1);
   assert.equal((toggle.match(/<button/g) || []).length, 1);
   assert.equal((app.match(/<ThemeToggle/g) || []).length, 1);
   for (const oldPlacement of [navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute]) {

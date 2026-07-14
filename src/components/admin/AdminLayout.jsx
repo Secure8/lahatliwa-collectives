@@ -109,7 +109,7 @@ export default function AdminLayout({ children }) {
               )}
             </span>
             <div className="min-w-0">
-              <BrandWordmark name={content.displayName} variant="admin" />
+              <BrandWordmark name={content.displayName} variant="admin" mobileVariant="mobile-compact" />
               <p className="truncate text-xs text-zinc-500">Studio control panel</p>
             </div>
           </Link>

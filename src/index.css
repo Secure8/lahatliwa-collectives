@@ -113,7 +113,7 @@ html.admin-mode {
 body {
   width: 100%;
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
   overflow-x: hidden;
   background: linear-gradient(180deg, color-mix(in srgb, var(--theme-page-background) 96%, var(--theme-primary-surface)) 0%, var(--theme-page-background) 48%, color-mix(in srgb, var(--theme-page-background) 94%, black) 100%);
@@ -135,11 +135,11 @@ a {
   display: inline-block;
   min-width: 0;
   color: var(--brand-wordmark-fill);
-  font-family: "Rubik 80s Fade", "Arial Black", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, system-ui, sans-serif;
   font-style: normal;
-  font-weight: 400;
-  line-height: 0.95;
-  letter-spacing: 0.025em;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.015em;
   overflow-wrap: anywhere;
   text-shadow: 0.045em 0.045em 0 var(--brand-wordmark-edge), 0 0.14em 0.34em rgb(0 0 0 / 0.18);
   text-wrap: balance;
@@ -160,37 +160,50 @@ a {
   filter: brightness(1.08) saturate(1.04);
 }
 
+.brand-wordmark--standard {
+  font-size: 1rem;
+}
+
 .brand-wordmark--compact {
-  max-width: min(12rem, 38vw);
+  max-width: min(10.75rem, 36vw);
   overflow: hidden;
-  font-size: clamp(0.92rem, 3.2vw, 1.08rem);
+  font-size: 0.96rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .brand-wordmark--admin {
-  max-width: min(13rem, 42vw);
+  max-width: min(12rem, 42vw);
   overflow: hidden;
-  font-size: 1rem;
+  font-size: 0.9rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .brand-wordmark--footer {
   max-width: 28rem;
-  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  font-size: clamp(1.15rem, 2.3vw, 1.45rem);
+  line-height: 1.05;
 }
 
 .brand-wordmark--auth {
   display: block;
   max-width: 100%;
-  font-size: clamp(1.8rem, 8vw, 2.7rem);
+  font-family: "Rubik 80s Fade", "Arial Black", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.65rem, 7vw, 2.25rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0.025em;
 }
 
 .brand-wordmark--hero {
   display: block;
   max-width: 100%;
+  font-family: "Rubik 80s Fade", "Arial Black", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
   font-size: inherit;
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0.025em;
 }
 
 .brand-wordmark--eyebrow {
@@ -207,15 +220,31 @@ a {
 
 .brand-wordmark--compact.brand-wordmark--long,
 .brand-wordmark--admin.brand-wordmark--long {
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   letter-spacing: 0.01em;
 }
 
 .brand-wordmark--compact.brand-wordmark--very-long,
 .brand-wordmark--admin.brand-wordmark--very-long {
-  max-width: min(10.5rem, 34vw);
-  font-size: 0.76rem;
+  max-width: min(10.25rem, 34vw);
+  font-size: 0.8125rem;
   letter-spacing: 0;
+}
+
+@media (max-width: 639px) {
+  .brand-wordmark--mobile-compact {
+    max-width: min(9.75rem, 42vw);
+    font-size: 0.84rem;
+    line-height: 1;
+    letter-spacing: 0.005em;
+  }
+
+  .brand-wordmark--mobile-compact.brand-wordmark--long,
+  .brand-wordmark--mobile-compact.brand-wordmark--very-long {
+    max-width: min(9rem, 40vw);
+    font-size: 0.8rem;
+    letter-spacing: 0;
+  }
 }
 
 button,

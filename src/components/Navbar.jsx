@@ -58,7 +58,7 @@ export default function Navbar() {
           ) : (
             <span className="site-accent site-border grid h-8 w-8 place-items-center border text-xs font-semibold transition">{content.initials}</span>
           )}
-          <BrandWordmark name={content.displayName} variant="compact" />
+          <BrandWordmark name={content.displayName} variant="compact" mobileVariant="mobile-compact" />
         </Link>
         <div className="hidden items-center gap-1 xl:flex">
           {links.map(([label, href]) => (

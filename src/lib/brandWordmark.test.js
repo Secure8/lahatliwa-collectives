@@ -42,9 +42,9 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(navbar, /<nav/);
   assert.match(navbar, /aria-label=\{`\$\{content\.displayName\} home`\}/);
   assert.match(navbar, /content\.logoUrl \? \(/);
-  assert.match(navbar, /<BrandWordmark name=\{content\.displayName\} variant="compact"/);
+  assert.match(navbar, /<BrandWordmark name=\{content\.displayName\} variant="compact" mobileVariant="mobile-compact"/);
   assert.match(footer, /<BrandWordmark name=\{content\.displayName\} variant="footer" to="\/"/);
-  assert.match(adminLayout, /<BrandWordmark name=\{content\.displayName\} variant="admin"/);
+  assert.match(adminLayout, /<BrandWordmark name=\{content\.displayName\} variant="admin" mobileVariant="mobile-compact"/);
   assert.match(login, /<BrandWordmark variant="auth" to="\/"/);
   assert.match(forgotPassword, /<BrandWordmark variant="auth" to="\/"/);
   assert.match(setPassword, /<BrandWordmark variant="auth" to="\/"/);
@@ -55,6 +55,14 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(css, /color: var\(--brand-wordmark-fill\)/);
   assert.match(css, /var\(--brand-wordmark-accent, var\(--site-brand-accent, #f6d58b\)\)/);
   assert.match(css, /\[data-theme="light"\] \.brand-wordmark/);
-  assert.match(css, /font-family: "Rubik 80s Fade", "Arial Black", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif/);
-  assert.match(html, /family=Rubik\+80s\+Fade&display=swap/);
+  assert.match(component, /variant = 'standard'/);
+  assert.match(component, /mobileVariant && `brand-wordmark--\$\{mobileVariant\}`/);
+  assert.match(css, /\.brand-wordmark \{[\s\S]*?font-family: "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, system-ui, sans-serif/);
+  assert.match(css, /\.brand-wordmark--hero \{[\s\S]*?font-family: "Rubik 80s Fade", "Arial Black", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif/);
+  assert.match(css, /\.brand-wordmark--compact \{[\s\S]*?font-size: 0\.96rem/);
+  assert.match(css, /\.brand-wordmark--footer \{[\s\S]*?font-size: clamp\(1\.15rem, 2\.3vw, 1\.45rem\)/);
+  assert.match(css, /@media \(max-width: 639px\) \{[\s\S]*?\.brand-wordmark--mobile-compact \{[\s\S]*?font-size: 0\.84rem/);
+  assert.match(css, /\.brand-wordmark--mobile-compact\.brand-wordmark--very-long \{[\s\S]*?font-size: 0\.8rem/);
+  assert.match(css, /body \{[\s\S]*?min-width: 0;/);
+  assert.match(html, /family=Chakra\+Petch:wght@600&family=Rubik\+80s\+Fade&display=swap/);
 });

@@ -37,9 +37,9 @@ export function createThemeToggleVisibilityController({
 
   return {
     onScroll,
-    onFocus() {
-      focused = true;
-      show();
+    onFocus(focusVisible = true) {
+      focused = Boolean(focusVisible);
+      if (focused) show();
     },
     onBlur() {
       focused = false;
@@ -50,6 +50,11 @@ export function createThemeToggleVisibilityController({
     },
     onPointerLeave() {
       hovered = false;
+    },
+    onThemeChange({ focusVisible = false } = {}) {
+      focused = Boolean(focusVisible);
+      hovered = false;
+      show();
     },
     suppress(duration = THEME_TOGGLE_SCROLL_RESTORE_GRACE_MS) {
       suppressedUntil = now() + duration;

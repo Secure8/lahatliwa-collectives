@@ -4,6 +4,7 @@ import { NavLink, Link, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { usePublicContent } from '../lib/contentApi';
 import { preloadPublicRoute } from '../lib/publicRoutePreload';
+import BrandLogo from './BrandLogo';
 import BrandWordmark from './BrandWordmark';
 
 const links = [
@@ -54,7 +55,7 @@ export default function Navbar() {
       <nav className="page-shell flex min-h-16 items-center justify-between gap-3">
         <Link to="/" onClick={avoidDuplicateNavigation('/')} className="group flex min-w-0 items-center gap-3" aria-label={`${content.displayName} home`}>
           {content.logoUrl ? (
-            <img src={content.logoUrl} alt={content.logoAlt} decoding="async" width="32" height="32" className="h-8 w-8 rounded-md object-contain" />
+            <BrandLogo src={content.logoUrl} alt={content.logoAlt} />
           ) : (
             <span className="site-accent site-border grid h-8 w-8 place-items-center border text-xs font-semibold transition">{content.initials}</span>
           )}

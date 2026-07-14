@@ -129,6 +129,32 @@ a {
   color: inherit;
 }
 
+.brand-logo {
+  --brand-logo-image-size: 2rem;
+  display: inline-grid;
+  width: var(--brand-logo-image-size);
+  height: var(--brand-logo-image-size);
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.brand-logo--admin {
+  --brand-logo-image-size: 2.25rem;
+}
+
+.brand-logo__image {
+  display: block;
+  width: var(--brand-logo-image-size);
+  height: var(--brand-logo-image-size);
+  filter: drop-shadow(0 1px 1px rgb(255 255 255 / 0.14)) drop-shadow(0 0 2px rgb(255 174 0 / 0.08));
+  object-fit: contain;
+  transition: filter 180ms ease;
+}
+
+[data-theme="light"] .brand-logo__image {
+  filter: drop-shadow(0 1px 1px rgb(24 24 27 / 0.45)) drop-shadow(0 0 2px rgb(24 24 27 / 0.28));
+}
+
 .brand-wordmark {
   --brand-wordmark-fill: var(--brand-wordmark-accent, var(--site-brand-accent, #f6d58b));
   --brand-wordmark-edge: color-mix(in srgb, var(--brand-wordmark-fill) 46%, #241002);
@@ -141,19 +167,18 @@ a {
   line-height: 1;
   letter-spacing: 0.015em;
   overflow-wrap: anywhere;
-  text-shadow: 0.045em 0.045em 0 var(--brand-wordmark-edge), 0 0.14em 0.34em rgb(0 0 0 / 0.18);
+  text-shadow: none;
   text-wrap: balance;
 }
 
 [data-theme="light"] .brand-wordmark {
   --brand-wordmark-edge: color-mix(in srgb, var(--brand-wordmark-fill) 58%, #7a3100);
   -webkit-text-stroke: 0.35px var(--brand-wordmark-edge);
-  text-shadow: 0.045em 0.045em 0 var(--brand-wordmark-edge), 0 0.12em 0.3em rgb(77 42 10 / 0.12);
 }
 
 .brand-wordmark--linked {
   text-decoration: none;
-  transition: filter 160ms ease, text-shadow 160ms ease;
+  transition: filter 160ms ease;
 }
 
 .brand-wordmark--linked:hover {
@@ -189,21 +214,21 @@ a {
 .brand-wordmark--auth {
   display: block;
   max-width: 100%;
-  font-family: "Rubik 80s Fade", "Arial Black", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(1.65rem, 7vw, 2.25rem);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 0.95;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.015em;
 }
 
 .brand-wordmark--hero {
   display: block;
   max-width: 100%;
-  font-family: "Rubik 80s Fade", "Arial Black", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, system-ui, sans-serif;
   font-size: inherit;
-  font-weight: 400;
+  font-weight: 600;
   line-height: 0.95;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.015em;
 }
 
 .brand-wordmark--eyebrow {
@@ -215,7 +240,6 @@ a {
 .brand-wordmark--inline {
   font-size: 1.04em;
   letter-spacing: 0.015em;
-  text-shadow: 0.035em 0.035em 0 var(--brand-wordmark-edge);
 }
 
 .brand-wordmark--compact.brand-wordmark--long,
@@ -229,6 +253,15 @@ a {
   max-width: min(10.25rem, 34vw);
   font-size: 0.8125rem;
   letter-spacing: 0;
+}
+
+@media (min-width: 768px) {
+  .brand-wordmark--hero,
+  .brand-wordmark--auth {
+    font-family: "Rubik 80s Fade", "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
 }
 
 @media (max-width: 639px) {

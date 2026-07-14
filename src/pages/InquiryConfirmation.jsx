@@ -44,7 +44,7 @@ export default function InquiryConfirmation() {
       </div>
       <dl className="border-t border-orange-300/60">
         <Summary label="Branch" value={confirmation.branch} />
-        <Summary label="Service category" value={confirmation.service} />
+        <Summary label={copy.serviceSelectionHeading} value={confirmation.service} hint={copy.serviceSelectionDescription} />
         {confirmation.creative && <Summary label={copy.recipientLabel} value={confirmation.creative} />}
       </dl>
     </section>
@@ -52,4 +52,4 @@ export default function InquiryConfirmation() {
   </div>;
 }
 
-function Summary({ label, value }) { return <div className="border-b border-white/[0.08] py-4"><dt className="text-[10px] uppercase tracking-[0.16em] text-zinc-600">{label}</dt><dd className="mt-1 text-sm text-zinc-300">{value}</dd></div>; }
+function Summary({ label, value, hint = '' }) { return <div className="border-b border-white/[0.08] py-4"><dt className="text-[10px] uppercase tracking-[0.16em] text-zinc-600">{label}</dt>{hint && <dd className="mt-1 text-xs leading-5 text-zinc-500">{hint}</dd>}<dd className="mt-2 text-sm text-zinc-300">{value}</dd></div>; }

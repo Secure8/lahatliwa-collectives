@@ -4,7 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
-import { branchKeyFromRecord, branchMeta, GENERAL_BRANCH, inquiryUrl, publicBranchDescription, SERVICE_BRANCHES, serviceCategoriesForBranch, servicesPath, slugifyService } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, GENERAL_BRANCH, inquiryCopy, inquiryUrl, publicBranchDescription, SERVICE_BRANCHES, serviceCategoriesForBranch, servicesPath, slugifyService } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
 
 const iconMap = { studio: Camera, tech: Wrench, digital: Code2, social: Megaphone, general: Headphones, Camera, Circle, Code2, Sparkles, Wrench };
@@ -110,9 +110,10 @@ function BranchCard({ branch, index, content }) {
 
 function BranchWorkspace({ branch, content }) {
   const Icon = iconMap[branch.key] || Circle;
+  const copy = inquiryCopy(branch.key);
   return <div className="pt-10">
     <section className="grid gap-8 border-b border-white/[0.09] pb-9 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end">
-      <div><div className="flex items-center gap-3 text-orange-200"><Icon size={20} /><span className="text-xs uppercase tracking-[0.19em]">{branch.label}</span></div><h1 className="mt-5 max-w-3xl text-4xl font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl">Choose a broad category for your request.</h1><p className="mt-5 max-w-2xl leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{branch.description}</p></div>
+      <div><div className="flex items-center gap-3 text-orange-200"><Icon size={20} /><span className="text-xs uppercase tracking-[0.19em]">{branch.label}</span></div><h1 className="mt-5 max-w-3xl text-4xl font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl">{copy.serviceSelectionHeading}</h1><p className="mt-5 max-w-2xl leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{copy.serviceSelectionDescription}</p></div>
       <div className="border-l border-orange-300/45 pl-5"><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">How it works</p><p className="mt-2 text-sm leading-6 text-zinc-300">Choose a category, select a creative or the general team, then explain the exact result or support you need.</p></div>
     </section>
     {branch.key === 'tech' && <p className="border-b border-white/[0.08] py-4 text-xs leading-6 text-zinc-500">On-site support depends on location, schedule, safety, and the availability of a suitable specialist.</p>}

@@ -63,6 +63,36 @@ test('every inquiry branch exposes distinct labels, examples, roles, and follow-
   assert.doesNotMatch(`${inquiryCopy('tech').pageDescription} ${inquiryCopy('tech').matchingCopy}`, /creative project|match.*creative/i);
 });
 
+test('every branch owns exact service-selection heading and supporting description copy', async () => {
+  const expected = {
+    studio: ['Choose the visual service you need.', 'For shoots, event coverage, editing, highlights, and other visual work.'],
+    digital: ['Choose the digital service you need.', 'For websites, applications, systems, prototypes, maintenance, and development guidance.'],
+    social: ['Choose the marketing support you need.', 'For social media management, content planning, campaigns, branding, and audience growth.'],
+    tech: ['Choose the technical support you need.', 'For computer troubleshooting, device setup, software assistance, system support, and maintenance.'],
+    general: ['Choose the type of support you need.', 'For requests that may involve one or more Liwa branches, consultation, or general assistance.'],
+  };
+
+  for (const [branch, [heading, description]] of Object.entries(expected)) {
+    const copy = inquiryCopy(branch);
+    assert.equal(copy.serviceSelectionHeading, heading);
+    assert.equal(copy.serviceSelectionDescription, description);
+  }
+
+  const [form, services, confirmation] = await Promise.all([
+    readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/Services.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/InquiryConfirmation.jsx', import.meta.url), 'utf8'),
+  ]);
+  assert.match(form, /legend=\{copy\.serviceSelectionHeading\}/);
+  assert.match(form, /copy\.serviceSelectionDescription/);
+  assert.match(services, /copy\.serviceSelectionHeading/);
+  assert.match(services, /copy\.serviceSelectionDescription/);
+  assert.match(confirmation, /copy\.serviceSelectionHeading/);
+  assert.match(confirmation, /copy\.serviceSelectionDescription/);
+  assert.doesNotMatch(`${form}\n${services}\n${confirmation}`, /Choose a broad category for your request|For building your online presence/i);
+  assert.doesNotMatch(`${inquiryCopy('studio').serviceSelectionDescription} ${inquiryCopy('tech').serviceSelectionDescription}`, /online presence|creative project/i);
+});
+
 test('every branch exposes exactly six balanced services while legacy URLs remain compatible', () => {
   const expected = {
     studio: ['Photography', 'Videography', 'Same-Day Edit (SDE)', 'Highlights', 'Photo & Video Editing', 'Other Visual Work'],

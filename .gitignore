@@ -2,3 +2,6 @@ node_modules
 dist
 .env.local
 supabase/.temp/storage-cleanup-worker-secret
+
+.vercel
+.env*.backup

@@ -118,13 +118,13 @@ export default function Home() {
             <p className="mt-4 leading-7" style={{ color: content.secondaryTextColor }}>Explore projects across the four branches of Lahat Liwa.</p>
           </div>
         </div>
-        <div className="mb-10 grid grid-cols-2 border-y border-white/[0.08] sm:grid-cols-4" role="tablist" aria-label="Project branches">
+        <div className="mb-10 grid grid-cols-2 gap-1 border-y border-white/[0.08] py-1 sm:grid-cols-4" role="tablist" aria-label="Project branches">
           {PROJECT_BRANCHES.map((branch) => {
             const active = selectedBranch === branch.key;
-            return <button key={branch.key} type="button" role="tab" aria-selected={active} onClick={() => selectHomeBranch(branch.key)} className={`min-w-0 border-b px-2 py-4 text-left transition sm:px-4 ${active ? 'border-[var(--site-accent)] text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
+            return <button key={branch.key} id={`home-branch-tab-${branch.key}`} type="button" role="tab" aria-selected={active} aria-controls="home-project-results" onClick={() => selectHomeBranch(branch.key)} className={`interactive-tab min-w-0 px-3 py-4 text-left sm:px-4 ${active ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
           })}
         </div>
-        <div className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
+        <div id="home-project-results" role="tabpanel" aria-labelledby={`home-branch-tab-${selectedBranch}`} className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
         <Link to={branchProjectsUrl(selectedBranch)} className="fine-link site-hover-accent mt-9 inline-flex items-center gap-2 text-sm text-zinc-300">View all {selectedBranchInfo.label} projects <ArrowRight size={16} /></Link>
       </section>
 

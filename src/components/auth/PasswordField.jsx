@@ -1,14 +1,20 @@
 import { Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { FieldError } from '../FieldFeedback';
 
-export default function PasswordField({ label, value, onChange, autoComplete, minLength, disabled = false }) {
+export default function PasswordField({ label, value, onChange, autoComplete, minLength, disabled = false, error = '', inputRef }) {
   const [visible, setVisible] = useState(false);
+  const generatedId = useId();
+  const inputId = `password-${generatedId}`;
+  const errorId = `${inputId}-error`;
   return (
-    <label className="grid gap-2 text-sm text-zinc-300">
-      {label}
+    <label className="grid gap-2 text-sm text-zinc-300" htmlFor={inputId}>
+      <span>{label}</span>
       <span className="relative block">
         <input
-          className="w-full rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 pr-12 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20"
+          ref={inputRef}
+          id={inputId}
+          className="w-full rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 pr-12 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20 aria-[invalid=true]:border-red-300/60 aria-[invalid=true]:focus:ring-red-300/20"
           type={visible ? 'text' : 'password'}
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -16,6 +22,8 @@ export default function PasswordField({ label, value, onChange, autoComplete, mi
           minLength={minLength}
           autoComplete={autoComplete}
           disabled={disabled}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
         />
         <button
           type="button"
@@ -28,6 +36,7 @@ export default function PasswordField({ label, value, onChange, autoComplete, mi
           {visible ? <EyeOff size={17} /> : <Eye size={17} />}
         </button>
       </span>
+      <FieldError id={errorId}>{error}</FieldError>
     </label>
   );
 }

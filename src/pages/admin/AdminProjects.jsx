@@ -175,7 +175,7 @@ export default function AdminProjects() {
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Content library</p>
                 <h2 className="mt-2 text-xl font-semibold text-white">All projects</h2>
               </div>
-              <div className="flex flex-wrap gap-2">{[['all','All projects'],['published','Published'],['draft','Drafts'],['archived','Archived'],['owned','My projects']].map(([key,label])=><AdminButton key={key} onClick={()=>setFilter(key)} variant={filter===key?'primary':'secondary'}>{label}</AdminButton>)}</div>
+              <div className="flex flex-wrap gap-2" aria-label="Filter admin projects">{[['all','All projects'],['published','Published'],['draft','Drafts'],['archived','Archived'],['owned','My projects']].map(([key,label])=><AdminButton key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)} variant={filter===key?'primary':'secondary'}>{label}</AdminButton>)}</div>
               {filteredProjects.map((project) => <AdminProjectCard key={project.id} project={project} onDelete={deleteProject} />)}
               {!filteredProjects.length && <p className="text-sm text-zinc-500">{filter === 'owned' ? 'You have not created any projects yet.' : `No ${filter === 'all' ? 'team' : filter} projects yet.`}</p>}
             </section>

@@ -50,7 +50,7 @@ export function AdminSoftPanel({ children, className = '' }) {
   );
 }
 
-export function AdminButton({ children, to, onClick, type = 'button', variant = 'secondary', className = '', disabled = false }) {
+export function AdminButton({ children, to, onClick, type = 'button', variant = 'secondary', className = '', disabled = false, ...props }) {
   const classes = clsx(
     'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border px-4 text-sm font-semibold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
     variant === 'primary'
@@ -64,17 +64,18 @@ export function AdminButton({ children, to, onClick, type = 'button', variant = 
   );
 
   if (to) {
-    return <Link to={to} className={classes}>{children}</Link>;
+    if (disabled) return <span aria-disabled="true" className={classes}>{children}</span>;
+    return <Link to={to} className={classes} {...props}>{children}</Link>;
   }
 
-  return <button type={type} onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
+  return <button type={type} onClick={onClick} disabled={disabled} className={classes} {...props}>{children}</button>;
 }
 
 export function AdminActionGroup({ children, className = '' }) {
   return <div className={clsx('flex min-h-9 flex-wrap content-center items-center gap-1.5', className)}>{children}</div>;
 }
 
-export function AdminActionButton({ children, to, onClick, type = 'button', variant = 'secondary', disabled = false, className = '' }) {
+export function AdminActionButton({ children, to, onClick, type = 'button', variant = 'secondary', disabled = false, className = '', ...props }) {
   const classes = clsx(
     'inline-flex h-9 min-w-20 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-xs font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
     variant === 'danger'
@@ -85,8 +86,11 @@ export function AdminActionButton({ children, to, onClick, type = 'button', vari
     className
   );
 
-  if (to) return <Link to={to} className={classes}>{children}</Link>;
-  return <button type={type} onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
+  if (to) {
+    if (disabled) return <span aria-disabled="true" className={classes}>{children}</span>;
+    return <Link to={to} className={classes} {...props}>{children}</Link>;
+  }
+  return <button type={type} onClick={onClick} disabled={disabled} className={classes} {...props}>{children}</button>;
 }
 
 export function AdminStatusBadge({ status, children }) {
@@ -130,9 +134,9 @@ export function AdminEmptyState({ title, message, action }) {
   );
 }
 
-export function AdminNotice({ children, tone = 'error', className = '' }) {
+export function AdminNotice({ children, tone = 'error', className = '', ...props }) {
   return (
-    <div className={clsx(
+    <div {...props} className={clsx(
       'rounded-md px-4 py-3 text-sm ring-1',
       tone === 'success'
         ? 'bg-emerald-300/10 text-emerald-100 ring-emerald-300/20'

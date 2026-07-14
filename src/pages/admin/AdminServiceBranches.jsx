@@ -6,6 +6,7 @@ import { AdminActionButton, AdminActionGroup, AdminButton, AdminEmptyState, Admi
 import LoadingState from '../../components/LoadingState';
 import { isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
 import { resolvePublicAssetUrl } from '../../lib/contentApi';
+import { branchKeyFromRecord, serviceCategoriesForBranch } from '../../lib/serviceRequest';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function AdminServiceBranches() {
@@ -23,7 +24,7 @@ export default function AdminServiceBranches() {
           <div className="grid h-12 w-12 place-items-center">{branch.icon_url?<img src={resolvePublicAssetUrl(branch.icon_url)} alt="" loading="lazy" width="48" height="48" className="max-h-12 max-w-12 object-contain"/>:<span className="text-lg font-semibold text-zinc-600">{branch.name?.slice(0,1)||'L'}</span>}</div>
           <div className="min-w-0"><h3 className="truncate font-semibold text-white">{branch.name}</h3><p className="mt-1 truncate text-xs text-zinc-600">/{branch.slug}</p></div>
           <p className="col-span-2 line-clamp-2 text-sm leading-6 text-zinc-400 sm:col-span-1 sm:col-start-2 lg:col-start-auto">{branch.description||'No description yet.'}</p>
-          <div className="col-span-2 flex flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2 lg:col-start-auto"><AdminStatusBadge status={branch.is_published?'published':'draft'}>{branch.is_published?'Published':'Draft'}</AdminStatusBadge><span className="text-xs text-zinc-500">Order {branch.display_order??'—'}</span></div>
+          <div className="col-span-2 flex flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2 lg:col-start-auto"><AdminStatusBadge status={branch.is_published?'published':'draft'}>{branch.is_published?'Published':'Draft'}</AdminStatusBadge><span className="text-xs text-zinc-500">{serviceCategoriesForBranch(branchKeyFromRecord(branch)).length || 0} categories</span><span className="text-xs text-zinc-500">Order {branch.display_order??'—'}</span></div>
           <div className="col-span-2 border-t border-white/[0.05] pt-3 sm:col-span-1 sm:col-start-2 lg:col-start-auto lg:border-0 lg:pt-0"><AdminActionGroup className="lg:justify-end"><AdminActionButton variant="primary" onClick={()=>navigate(`/admin/service-branches/${branch.id}/edit`)}><Edit size={14}/> Edit</AdminActionButton><AdminActionButton to="/services"><ExternalLink size={14}/> Public</AdminActionButton><AdminActionButton onClick={()=>deleteBranch(branch)} variant="danger"><Trash2 size={14}/> Delete</AdminActionButton></AdminActionGroup></div>
         </article>)}
       </section>

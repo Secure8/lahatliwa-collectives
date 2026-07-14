@@ -1,5 +1,5 @@
 import { ArrowLeft, CheckCircle2, Lock, ShieldCheck, UserPlus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { claimSignedInTeamRecord } from '../../lib/teamInvite';
@@ -8,6 +8,7 @@ import { useAuthSession } from '../../lib/authSession';
 import PasswordField from '../../components/auth/PasswordField';
 import LoadingState from '../../components/LoadingState';
 import { dashboardRedirectAllowed } from '../../lib/authCallback';
+import { ActionFeedback, FieldError } from '../../components/FieldFeedback';
 
 const modeCopy = {
   login: {
@@ -46,8 +47,12 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState(() => new URLSearchParams(window.location.search).get('password_updated') === '1' ? 'Password saved. Sign in with your new password.' : '');
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmRef = useRef(null);
 
   const currentCopy = modeCopy[mode] || modeCopy.login;
   const HeaderIcon = currentCopy.icon;
@@ -69,7 +74,8 @@ export default function Login() {
 
   function switchMode(nextMode) {
     setMode(nextMode);
-    setError('');
+    setFieldErrors({});
+    setActionError('');
     setNotice('');
     setPassword('');
     setConfirmPassword('');
@@ -134,15 +140,26 @@ export default function Login() {
   async function handleSubmit(event) {
     event.preventDefault();
     if (loading) return;
+    const nextErrors = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email))) nextErrors.email = 'Please enter a valid team email address.';
+    if (!password) nextErrors.password = 'Please enter your password.';
+    else if (isSetup && password.length < 8) nextErrors.password = 'Please use at least 8 characters for the password.';
+    if (isSetup && password !== confirmPassword) nextErrors.confirmPassword = 'The passwords do not match. Please enter them again.';
+    if (Object.keys(nextErrors).length) {
+      setFieldErrors(nextErrors);
+      const first = Object.keys(nextErrors)[0];
+      ({ email: emailRef, password: passwordRef, confirmPassword: confirmRef })[first].current?.focus();
+      return;
+    }
     setLoading(true);
-    setError('');
+    setActionError('');
     setNotice('');
 
     try {
       if (isSetup) await handleSetup();
       else await handleLogin();
     } catch (submitError) {
-      setError(safeAuthMessage(submitError));
+      setActionError(safeAuthMessage(submitError));
     } finally {
       setLoading(false);
     }
@@ -151,7 +168,7 @@ export default function Login() {
   return (
     <main className="grid min-h-screen place-items-center bg-zinc-950 px-4 py-12">
       <section className="w-full max-w-md">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-100">
+        <Link to="/" className="fine-link inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-100">
           <ArrowLeft size={16} /> Back to site
         </Link>
 
@@ -166,30 +183,27 @@ export default function Login() {
             </div>
           </div>
 
-          {notice && (
-            <div className="mt-5 flex gap-3 rounded-md bg-emerald-300/10 p-3 text-sm leading-6 text-emerald-100 ring-1 ring-emerald-300/20">
-              <CheckCircle2 className="mt-0.5 shrink-0" size={17} />
-              <span>{notice}</span>
-            </div>
-          )}
-          {error && <div className="mt-5 rounded-md bg-red-300/10 p-3 text-sm leading-6 text-red-100 ring-1 ring-red-300/20">{error}</div>}
-
-          <label className="mt-6 grid gap-2 text-sm text-zinc-300">
-              Email
+          <label className="mt-6 grid gap-2 text-sm text-zinc-300" htmlFor="team-email">
+              <span>Email</span>
               <input
-                className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20"
+                ref={emailRef}
+                id="team-email"
+                className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20 aria-[invalid=true]:border-red-300/60 aria-[invalid=true]:focus:ring-red-300/20"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => { setEmail(event.target.value); setFieldErrors((current) => ({ ...current, email: '' })); setActionError(''); }}
                 required
                 autoComplete="email"
                 disabled={loading}
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={fieldErrors.email ? 'team-email-error' : undefined}
               />
+              <FieldError id="team-email-error">{fieldErrors.email}</FieldError>
           </label>
 
-          <div className="mt-4"><PasswordField label={passwordLabel} value={password} onChange={setPassword} minLength={isSetup ? 8 : undefined} autoComplete={isSetup ? 'new-password' : 'current-password'} disabled={loading} /></div>
+          <div className="mt-4"><PasswordField inputRef={passwordRef} label={passwordLabel} value={password} onChange={(value) => { setPassword(value); setFieldErrors((current) => ({ ...current, password: '' })); setActionError(''); }} error={fieldErrors.password} minLength={isSetup ? 8 : undefined} autoComplete={isSetup ? 'new-password' : 'current-password'} disabled={loading} /></div>
 
-          {isSetup && <div className="mt-4"><PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} minLength={8} autoComplete="new-password" disabled={loading} /></div>}
+          {isSetup && <div className="mt-4"><PasswordField inputRef={confirmRef} label="Confirm password" value={confirmPassword} onChange={(value) => { setConfirmPassword(value); setFieldErrors((current) => ({ ...current, confirmPassword: '' })); setActionError(''); }} error={fieldErrors.confirmPassword} minLength={8} autoComplete="new-password" disabled={loading} /></div>}
 
           {isSetup && (
             <p className="mt-4 text-xs leading-5 text-zinc-500">
@@ -197,25 +211,28 @@ export default function Login() {
             </p>
           )}
 
+          {notice && <div className="mt-5 flex gap-3 rounded-md bg-emerald-300/10 p-3 text-sm leading-6 text-emerald-100 ring-1 ring-emerald-300/20" role="status"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /><span>{notice}</span></div>}
+          <ActionFeedback error={actionError} className="mt-5" />
+
           <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-amber-300 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-200 disabled:opacity-60">
             <ShieldCheck size={17} /> {submitLabel}
           </button>
 
           <div className="mt-5 grid gap-3 border-t border-white/[0.07] pt-5 text-sm">
             {mode !== 'login' && (
-              <button type="button" onClick={() => switchMode('login')} className="text-left text-zinc-400 transition hover:text-amber-100">
+              <button type="button" onClick={() => switchMode('login')} className="fine-link min-h-10 text-left text-zinc-300 transition hover:text-amber-100">
                 Return to normal login
               </button>
             )}
             {mode === 'login' && (
               <>
-                <button type="button" onClick={() => switchMode('setup')} className="text-left text-zinc-300 transition hover:text-amber-100">
+                <button type="button" onClick={() => switchMode('setup')} className="fine-link min-h-10 text-left text-zinc-300 transition hover:text-amber-100">
                   Set up team account
                 </button>
-                <Link to="/forgot-password" className="text-left text-zinc-500 transition hover:text-amber-100">Forgot password?</Link>
+                <Link to="/forgot-password" className="fine-link min-h-10 content-center text-left text-zinc-400 transition hover:text-amber-100">Forgot password?</Link>
               </>
             )}
-            {mode === 'setup' && <Link to="/forgot-password" className="text-left text-zinc-500 transition hover:text-amber-100">Already set up but forgot your password?</Link>}
+            {mode === 'setup' && <Link to="/forgot-password" className="fine-link min-h-10 content-center text-left text-zinc-400 transition hover:text-amber-100">Already set up but forgot your password?</Link>}
           </div>
         </form>
       </section>

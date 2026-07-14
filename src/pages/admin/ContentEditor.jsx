@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminButton, AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
+import ServiceTaxonomyPreview from '../../components/admin/ServiceTaxonomyPreview';
 import LoadingState from '../../components/LoadingState';
 import { defaultPageContent } from '../../data/siteContent';
 import { fetchPageContent, updatePageContent, uploadSiteAsset } from '../../lib/contentApi';
 import { uploadStatusText } from '../../lib/imageCompression';
+import { branchKeyFromRecord } from '../../lib/serviceRequest';
 
 const pageMeta = {
   home: {
@@ -318,6 +320,18 @@ export default function ContentEditor() {
       const next = updateGroup(current, index, updates);
       setMessage('');
       setError('');
+      setFieldErrors((currentErrors) => {
+        const nextErrors = { ...currentErrors };
+        const errorKeys = {
+          name: 'groups',
+          description: `groupDescription-${index}`,
+          serviceLogoUrl: `groupServiceLogoUrl-${index}`,
+          customIconUrl: `groupCustomIconUrl-${index}`,
+          iconUrl: `groupIconUrl-${index}`,
+        };
+        Object.keys(updates).forEach((key) => delete nextErrors[errorKeys[key]]);
+        return nextErrors;
+      });
       setDirty(true);
       return next;
     });
@@ -370,6 +384,7 @@ export default function ContentEditor() {
   async function save(event) {
     event.preventDefault();
     if (saving) return;
+    const formElement = event.currentTarget;
     setSaving(true);
     setError('');
     setMessage('');
@@ -381,6 +396,11 @@ export default function ContentEditor() {
         setFieldErrors(validationErrors);
         setError('Fix the highlighted fields before saving.');
         setSaving(false);
+        window.requestAnimationFrame(() => {
+          const firstInvalid = formElement.querySelector('[aria-invalid="true"]');
+          firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstInvalid?.focus({ preventScroll: true });
+        });
         return;
       }
 
@@ -440,10 +460,6 @@ export default function ContentEditor() {
         <LoadingState label="Loading content" />
       ) : (
         <form onSubmit={save} className="grid gap-5">
-          {message && <AdminNotice tone="success">{message}</AdminNotice>}
-          {uploadStatus && <AdminNotice tone="success">{uploadStatus}</AdminNotice>}
-          {error && <AdminNotice>{error}</AdminNotice>}
-
           <div className="grid gap-6">
             <Section title="Content Fields" description="Edit the structured page fields below.">
               <div className="grid gap-6">
@@ -463,6 +479,9 @@ export default function ContentEditor() {
               title="Save Actions"
               description="Save updates this page only. Discard reloads the saved content without leaving the editor."
             >
+              {message && <AdminNotice tone="success" role="status">{message}</AdminNotice>}
+              {uploadStatus && <AdminNotice tone="success" role="status">{uploadStatus}</AdminNotice>}
+              {error && <AdminNotice role="alert">{error}</AdminNotice>}
               <div className="flex flex-wrap items-center gap-3">
                 <AdminButton type="submit" variant="primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</AdminButton>
                 <AdminButton type="button" variant="ghost" onClick={discardDraft} disabled={!dirty || saving}>Discard Changes</AdminButton>
@@ -561,7 +580,11 @@ function PageFields({ pageKey, content, patch, patchServiceGroup, uploadHomeBack
                 <Field label="Lucide icon name" value={group.iconName || ''} onChange={(value) => patchServiceGroup(index, { iconName: value })} hint="Used when no custom icon image is set." />
               </div>
               <Textarea label="Description" value={group.description || ''} onChange={(value) => patchServiceGroup(index, { description: value })} error={fieldErrors[`groupDescription-${index}`]} hint="Describe flexible support without implying a guaranteed package, schedule, location, or acceptance." rows={4} />
-              <Textarea label="Service categories, comma-separated" value={listText(group.items)} onChange={(value) => patchServiceGroup(index, { items: parseListText(value) })} hint="Use broad client-friendly categories. Custom administrator-created categories remain supported." rows={4} />
+              {branchKeyFromRecord(group) ? (
+                <ServiceTaxonomyPreview branchKey={branchKeyFromRecord(group)} />
+              ) : (
+                <Textarea label="Service categories, comma-separated" value={listText(group.items)} onChange={(value) => patchServiceGroup(index, { items: parseListText(value) })} hint="Choose one of the four standard Liwa branch names to use the shared six-category taxonomy." rows={4} />
+              )}
               <div className="grid gap-6 md:grid-cols-2">
                 <Field label="Service logo URL" value={group.serviceLogoUrl || ''} onChange={(value) => patchServiceGroup(index, { serviceLogoUrl: value })} error={fieldErrors[`groupServiceLogoUrl-${index}`]} hint="Optional logo shown beside the icon." />
                 <Field label="Custom icon URL" value={group.customIconUrl || group.iconUrl || ''} onChange={(value) => patchServiceGroup(index, { customIconUrl: value, iconUrl: '' })} error={fieldErrors[`groupCustomIconUrl-${index}`]} hint="Optional replacement for the Lucide icon." />

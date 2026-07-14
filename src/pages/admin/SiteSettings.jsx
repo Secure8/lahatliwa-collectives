@@ -303,6 +303,7 @@ export default function SiteSettings() {
 
   async function save(event) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     if (!canSave) return;
     setSaving(true);
     setError('');
@@ -337,6 +338,11 @@ export default function SiteSettings() {
       setFieldErrors(validationErrors);
       setError('Fix the highlighted fields before saving.');
       setSaving(false);
+      window.requestAnimationFrame(() => {
+        const firstInvalid = formElement.querySelector('[aria-invalid="true"]');
+        firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstInvalid?.focus({ preventScroll: true });
+      });
       return;
     }
 
@@ -404,10 +410,6 @@ export default function SiteSettings() {
         {contentLoading && <span className="text-xs uppercase tracking-[0.18em] text-zinc-600">Loading settings</span>}
         {!contentLoading && !content.settingsId && <span className="text-xs uppercase tracking-[0.18em] text-zinc-600">Using current site defaults</span>}
       </div>
-
-      {message && <AdminNotice tone="success" className="mb-5">{message}</AdminNotice>}
-      {uploadStatus && <AdminNotice tone="success" className="mb-5">{uploadStatus}</AdminNotice>}
-      {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
 
       <form onSubmit={save} className="w-full max-w-5xl">
         <div className="min-w-0">
@@ -494,6 +496,9 @@ export default function SiteSettings() {
           </Section>
 
           <Section title="Save Actions" description="Save updates only this site settings record. Discard reloads the saved values and clears any draft.">
+            {message && <AdminNotice tone="success" role="status">{message}</AdminNotice>}
+            {uploadStatus && <AdminNotice tone="success" role="status">{uploadStatus}</AdminNotice>}
+            {error && <AdminNotice role="alert">{error}</AdminNotice>}
             <div className="flex flex-wrap items-center gap-3">
               <AdminButton disabled={!isDirty || !canSave} type="submit" variant="primary">
                 {saving ? 'Saving...' : 'Save Changes'}

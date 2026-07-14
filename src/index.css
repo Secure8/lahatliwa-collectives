@@ -55,6 +55,19 @@ select {
   font: inherit;
 }
 
+:where(a[href], button:not(:disabled), summary, label:has(input[type="file"])) {
+  cursor: pointer;
+}
+
+:where(a[href], button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--site-accent) 78%, white 10%);
+  outline-offset: 3px;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
 .dark-select,
 .admin-shell select {
   color-scheme: dark;
@@ -96,12 +109,31 @@ select {
   background-image: linear-gradient(currentColor, currentColor);
   background-position: 0 100%;
   background-repeat: no-repeat;
-  background-size: 0 1px;
+  background-size: 100% 1px;
   transition: color 180ms ease, background-size 180ms ease;
 }
 
 .fine-link:hover {
-  background-size: 100% 1px;
+  background-size: 100% 2px;
+}
+
+.interactive-tab {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.018);
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.interactive-tab:hover {
+  border-color: color-mix(in srgb, var(--site-accent) 45%, transparent);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.interactive-tab[aria-selected="true"],
+.interactive-tab[aria-pressed="true"],
+.interactive-tab[aria-current="page"] {
+  border-color: var(--site-accent);
+  background: color-mix(in srgb, var(--site-accent) 7%, transparent);
+  color: var(--site-primary-text);
 }
 
 .site-accent {

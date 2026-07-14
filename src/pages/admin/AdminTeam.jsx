@@ -445,8 +445,9 @@ export default function AdminTeam() {
                   <button
                     key={filter}
                     type="button"
+                    aria-pressed={isActive}
                     onClick={() => setActiveFilter(filter)}
-                    className={`shrink-0 border-b px-0 pb-3 text-sm capitalize transition ${isActive ? 'border-amber-200 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}
+                    className={`interactive-tab min-h-11 shrink-0 px-3 text-sm capitalize ${isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}
                   >
                     {filter} <span className="ml-1 text-xs text-zinc-600">{teamCounts[filter]}</span>
                   </button>

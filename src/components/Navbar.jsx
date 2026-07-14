@@ -78,12 +78,12 @@ export default function Navbar() {
             </NavLink>
           ))}
         </div>
-        <button className="grid h-11 w-11 place-items-center text-zinc-200 xl:hidden" onClick={() => setOpen((value) => !value)} aria-label="Toggle menu">
+        <button className="grid h-11 w-11 place-items-center border border-white/[0.12] bg-white/[0.035] text-zinc-200 transition hover:border-orange-300/35 hover:bg-white/[0.07] xl:hidden" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Close main menu' : 'Open main menu'} aria-expanded={open} aria-controls="public-mobile-navigation">
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
       </nav>
       {open && (
-        <div className="page-shell grid gap-1 pb-4 xl:hidden">
+        <div id="public-mobile-navigation" className="page-shell grid gap-1 pb-4 xl:hidden">
           {links.map(([label, href]) => (
             <NavLink key={href} to={href} onClick={avoidDuplicateNavigation(href)} onPointerDown={() => preloadPublicRoute(href)} className={({ isActive }) => `border-b py-3 text-sm uppercase tracking-[0.12em] transition ${isActive ? 'border-orange-300 text-white' : 'border-white/[0.06] text-zinc-400'}`}>
               {label}

@@ -8,43 +8,43 @@ const normalizeKey = (value = '') => String(value)
 
 export const SERVICE_CATALOG = Object.freeze({
   studio: Object.freeze([
-    { key: 'photo', name: 'Photo' },
-    { key: 'video', name: 'Video' },
+    { key: 'photo', name: 'Photography' },
+    { key: 'video', name: 'Videography' },
     { key: 'same-day-edit', name: 'Same-Day Edit (SDE)' },
     { key: 'highlights', name: 'Highlights' },
-    { key: 'editing', name: 'Editing' },
-    { key: 'other-creative-work', name: 'Other Creative Work' },
+    { key: 'editing', name: 'Photo & Video Editing' },
+    { key: 'other-creative-work', name: 'Other Visual Work' },
   ]),
   tech: Object.freeze([
-    { key: 'consultation', name: 'Consultation' },
-    { key: 'diagnostics', name: 'Diagnostics' },
-    { key: 'remote-assistance', name: 'Remote Assistance' },
-    { key: 'setup', name: 'Setup' },
-    { key: 'on-site-support', name: 'On-site Support' },
-    { key: 'other-technical-help', name: 'Other Technical Help' },
+    { key: 'diagnostics', name: 'Computer Troubleshooting' },
+    { key: 'setup', name: 'Device Setup' },
+    { key: 'remote-assistance', name: 'Software Assistance' },
+    { key: 'on-site-support', name: 'System & Network Support' },
+    { key: 'maintenance-and-optimization', name: 'Maintenance & Optimization' },
+    { key: 'consultation', name: 'Technical Consultation' },
   ]),
   digital: Object.freeze([
-    { key: 'website', name: 'Website' },
-    { key: 'app', name: 'App' },
-    { key: 'system', name: 'System' },
-    { key: 'design-and-prototype', name: 'Design & Prototype' },
-    { key: 'digital-product', name: 'Digital Product' },
-    { key: 'consultation', name: 'Consultation' },
-    { key: 'other-digital-work', name: 'Other Digital Work' },
+    { key: 'website', name: 'Website Development' },
+    { key: 'app', name: 'Application Development' },
+    { key: 'design-and-prototype', name: 'UI & Prototyping' },
+    { key: 'system', name: 'Digital Systems' },
+    { key: 'maintenance-and-improvements', name: 'Maintenance & Improvements' },
+    { key: 'consultation', name: 'Technical Consultation' },
   ]),
   social: Object.freeze([
-    { key: 'management', name: 'Management' },
-    { key: 'content', name: 'Content' },
-    { key: 'campaign', name: 'Campaign' },
-    { key: 'strategy', name: 'Strategy' },
-    { key: 'page-setup', name: 'Page Setup' },
-    { key: 'review-and-consultation', name: 'Review & Consultation' },
-    { key: 'other-social-media-work', name: 'Other Social Media Work' },
+    { key: 'management', name: 'Social Media Management' },
+    { key: 'content', name: 'Content Planning' },
+    { key: 'digital-marketing', name: 'Digital Marketing' },
+    { key: 'campaign', name: 'Campaign Support' },
+    { key: 'page-setup', name: 'Branding & Page Support' },
+    { key: 'review-and-consultation', name: 'Marketing Consultation' },
   ]),
   general: Object.freeze([
-    { key: 'general-inquiry', name: 'General Inquiry' },
-    { key: 'multidisciplinary-project', name: 'Multidisciplinary Project' },
-    { key: 'partnership-or-collaboration', name: 'Partnership or Collaboration' },
+    { key: 'general-inquiry', name: 'General Service Request' },
+    { key: 'multidisciplinary-project', name: 'Multi-Branch Request' },
+    { key: 'partnership-or-collaboration', name: 'Partnership & Collaboration' },
+    { key: 'event-or-organization-support', name: 'Event or Organization Support' },
+    { key: 'consultation-and-planning', name: 'Consultation & Planning' },
     { key: 'not-sure-yet', name: 'Not Sure Yet' },
   ]),
 });
@@ -61,28 +61,31 @@ const SERVICE_ALIASES = Object.freeze({
   tech: {
     'technical-consultation': 'consultation', 'computer-support': 'diagnostics', troubleshooting: 'diagnostics',
     'virtual-assistance': 'remote-assistance', 'remote-support': 'remote-assistance', 'software-system-assistance': 'remote-assistance',
-    'device-setup': 'setup', 'software-installation': 'setup', configuration: 'setup',
-    'onsite-support': 'on-site-support', 'home-visit': 'on-site-support',
-    'it-technician-services': 'other-technical-help', 'technical-assistance': 'other-technical-help', 'other-technical': 'other-technical-help',
+    'device-setup': 'setup', 'software-installation': 'remote-assistance', 'software-assistance': 'remote-assistance',
+    'system-network-support': 'on-site-support', 'system-and-network-support': 'on-site-support', 'onsite-support': 'on-site-support', 'home-visit': 'on-site-support',
+    configuration: 'maintenance-and-optimization', maintenance: 'maintenance-and-optimization', optimization: 'maintenance-and-optimization',
+    'other-technical-help': 'maintenance-and-optimization', 'it-technician-services': 'maintenance-and-optimization', 'technical-assistance': 'maintenance-and-optimization', 'other-technical': 'maintenance-and-optimization',
   },
   digital: {
     'website-development': 'website', 'portfolio-websites': 'website', 'business-websites': 'website', 'landing-pages': 'website', 'landing-page-development': 'website',
     'app-development': 'app', 'application-development': 'app',
     'digital-systems': 'system', 'cms-systems': 'system', 'system-development': 'system',
-    'ui-and-prototype': 'design-and-prototype', 'ui-prototype': 'design-and-prototype', 'design-prototype': 'design-and-prototype', prototype: 'design-and-prototype',
-    'digital-products': 'digital-product', 'digital-consultation': 'consultation',
-    'other-digital': 'other-digital-work',
+    'ui-and-prototype': 'design-and-prototype', 'ui-and-prototyping': 'design-and-prototype', 'ui-prototype': 'design-and-prototype', 'design-prototype': 'design-and-prototype', prototype: 'design-and-prototype',
+    'digital-products': 'maintenance-and-improvements', 'digital-product': 'maintenance-and-improvements', maintenance: 'maintenance-and-improvements', improvements: 'maintenance-and-improvements',
+    'digital-consultation': 'consultation', 'technical-consultation': 'consultation', 'other-digital': 'consultation', 'other-digital-work': 'consultation',
   },
   social: {
     'social-media-management': 'management', 'page-management': 'management', 'account-management': 'management',
     'content-planning': 'content', 'social-media-content': 'content', 'promotional-content': 'content',
-    'digital-marketing': 'campaign', 'digital-marketing-support': 'campaign', campaigns: 'campaign', 'creative-campaigns': 'campaign',
-    'content-strategy': 'strategy', 'social-strategy': 'strategy', 'page-rebuilding': 'page-setup',
-    'review-consultation': 'review-and-consultation', 'social-media-consultation': 'review-and-consultation',
-    'other-social': 'other-social-media-work',
+    'digital-marketing-support': 'digital-marketing', strategy: 'digital-marketing', 'content-strategy': 'digital-marketing', 'social-strategy': 'digital-marketing',
+    campaigns: 'campaign', 'campaign-support': 'campaign', 'creative-campaigns': 'campaign',
+    'branding-and-page-support': 'page-setup', 'page-rebuilding': 'page-setup',
+    'marketing-consultation': 'review-and-consultation', 'review-consultation': 'review-and-consultation', 'social-media-consultation': 'review-and-consultation',
+    'other-social': 'review-and-consultation', 'other-social-media-work': 'review-and-consultation',
   },
   general: {
-    general: 'general-inquiry', multidisciplinary: 'multidisciplinary-project', partnership: 'partnership-or-collaboration', collaboration: 'partnership-or-collaboration', unsure: 'not-sure-yet',
+    general: 'general-inquiry', multidisciplinary: 'multidisciplinary-project', partnership: 'partnership-or-collaboration', collaboration: 'partnership-or-collaboration',
+    'event-support': 'event-or-organization-support', 'organization-support': 'event-or-organization-support', consultation: 'consultation-and-planning', planning: 'consultation-and-planning', unsure: 'not-sure-yet',
   },
 });
 
@@ -95,20 +98,8 @@ export function canonicalServiceKey(branch, value = '') {
   return SERVICE_ALIASES[branch]?.[key] || key;
 }
 
-export function serviceCategoriesForBranch(branch, configuredServices = []) {
-  const canonical = SERVICE_CATALOG[branch] || [];
-  const used = new Set(canonical.map((item) => item.key));
-  const custom = [];
-  for (const value of Array.isArray(configuredServices) ? configuredServices : []) {
-    const name = String(value || '').trim();
-    const rawKey = normalizeKey(name);
-    if (!name || !rawKey) continue;
-    const key = canonicalServiceKey(branch, rawKey);
-    if (used.has(key)) continue;
-    used.add(key);
-    custom.push({ key, name, custom: true });
-  }
-  return [...canonical, ...custom];
+export function serviceCategoriesForBranch(branch, _configuredServices = []) {
+  return SERVICE_CATALOG[branch] || [];
 }
 
 export function resolveServiceCategory(branch, value, configuredServices = []) {

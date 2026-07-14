@@ -35,6 +35,7 @@ import {
 } from '../../lib/storage';
 import { AdminCheckbox } from './AdminUI';
 import ImageUploader from './ImageUploader';
+import { ActionFeedback, FieldError } from '../FieldFeedback';
 
 const emptyProject = {
   title: '',
@@ -87,12 +88,16 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [externalUrl, setExternalUrl] = useState('');
   const [bulkExternalUrls, setBulkExternalUrls] = useState('');
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [creditErrorCreativeId, setCreditErrorCreativeId] = useState('');
   const pendingGalleryFilesRef = useRef([]);
   const submitActionRef = useRef('save');
 
   useEffect(() => {
     setDraftReady(false);
     setContributorDraftReady(false);
+    setActionError('');
+    setCreditErrorCreativeId('');
     setContributorsDirty(false);
     setDirty(false);
     setRemovedGalleryPaths([]);
@@ -247,6 +252,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
   function update(name, value) {
     setDirty(true);
+    setActionError('');
     setForm((current) => ({ ...current, [name]: value }));
   }
 
@@ -257,6 +263,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   }
 
   function updateTitle(value) {
+    setActionError('');
     setForm((current) => ({
       ...current,
       title: value,
@@ -332,6 +339,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   }
 
   function toggleCreative(id) {
+    setActionError('');
+    setCreditErrorCreativeId('');
     setSelectedCreativeIds((current) => (
       current.includes(id) ? current.filter((creativeId) => creativeId !== id) : [...current, id]
     ));
@@ -344,6 +353,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   }
 
   function updateContributor(id, patch) {
+    setActionError('');
+    if (creditErrorCreativeId === id) setCreditErrorCreativeId('');
     setContributorDetails((current) => {
       const next = { ...current };
       if (patch.isPrimary === true) {
@@ -498,36 +509,43 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   async function handleSubmit(event) {
     event.preventDefault();
     setSaving(true);
-    setError('');
+    setActionError('');
+    setCreditErrorCreativeId('');
     let uploadedGalleryPaths = [];
     const submitAction = submitActionRef.current || 'save_draft';
     submitActionRef.current = 'save_draft';
 
     if (!canEditCurrent && ['save_draft', 'submit'].includes(submitAction)) {
       setSaving(false);
-      setError('You do not have permission to edit this project.');
+      setActionError('You do not have permission to edit this project.');
       return;
     }
     if (['approve', 'reject', 'archive'].includes(submitAction) && !canApprove) {
       setSaving(false);
-      setError('You do not have permission to review this project.');
+      setActionError('You do not have permission to review this project.');
       return;
     }
     if (submitAction === 'publish' && !canEditCurrent) {
       setSaving(false);
-      setError('You do not have permission to publish this project.');
+      setActionError('You do not have permission to publish this project.');
       return;
     }
     if (selectedCreativeIds.length && creditRolesSupported === false) {
       setSaving(false);
-      setError('Multiple credit roles need the project_credit_roles.sql migration. Run it in Supabase, then reopen this project.');
+      setActionError('Multiple credit roles need the project_credit_roles.sql migration. Run it in Supabase, then reopen this project.');
       return;
     }
 
     const missingCreditCreative = selectedCreativeIds.find((creativeId) => !contributorCreditRoles(contributorDetails[creativeId]).length);
     if (missingCreditCreative) {
       setSaving(false);
-      setError('Choose or add at least one credit role for every selected creative.');
+      setCreditErrorCreativeId(missingCreditCreative);
+      setActionError('Choose or add at least one credit role for every selected creative.');
+      window.requestAnimationFrame(() => {
+        const field = document.querySelector(`[data-credit-creative="${missingCreditCreative}"]`);
+        field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        field?.focus({ preventScroll: true });
+      });
       return;
     }
 
@@ -650,7 +668,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         } catch {
         }
       }
-      setError(saveError.message || 'Something went wrong while saving this project.');
+      setActionError(saveError.message || 'Something went wrong while saving this project.');
     } finally {
       setSaving(false);
       setUploadStatus('');
@@ -661,9 +679,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6">
-      {error && <div className="rounded-md bg-red-300/10 p-4 text-sm text-red-100 ring-1 ring-red-300/20">{error}</div>}
+      {error && <div role="alert" className="rounded-md bg-red-300/10 p-4 text-sm text-red-100 ring-1 ring-red-300/20">{error}</div>}
       {uploadStatus && <div role="status" className="rounded-md bg-white/[0.045] p-3 text-sm text-zinc-300 ring-1 ring-white/[0.07]">{uploadStatus}</div>}
-      {optimizationMessage && <div className="rounded-md bg-emerald-300/[0.07] p-3 text-sm text-emerald-100 ring-1 ring-emerald-300/15">{optimizationMessage}</div>}
+      {optimizationMessage && <div role="status" className="rounded-md bg-emerald-300/[0.07] p-3 text-sm text-emerald-100 ring-1 ring-emerald-300/15">{optimizationMessage}</div>}
 
       <FormSection eyebrow="Basic project info" title="Core details" description="Set the public title, URL slug, category, and description.">
       <div className="grid gap-5 lg:grid-cols-2">
@@ -847,7 +865,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                 </label>
                 {selectedCreativeIds.includes(creative.id) && (
                   <div className="mt-4 grid gap-4 border-t border-white/[0.07] pt-4">
-                    <fieldset className="grid gap-2">
+                    <fieldset data-credit-creative={creative.id} tabIndex="-1" aria-invalid={creditErrorCreativeId === creative.id} aria-describedby={creditErrorCreativeId === creative.id ? `credit-error-${creative.id}` : undefined} className={`grid gap-2 outline-none ${creditErrorCreativeId === creative.id ? 'border-l-2 border-red-300/60 pl-3' : ''}`}>
                       <legend className="mb-1 text-xs text-zinc-400">Credit roles</legend>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {PROJECT_CREDIT_ROLE_PRESETS.map((contributorRole) => {
@@ -860,6 +878,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                           );
                         })}
                       </div>
+                      <FieldError id={`credit-error-${creative.id}`}>{creditErrorCreativeId === creative.id ? 'Please choose or add at least one credit role for this creative.' : ''}</FieldError>
                     </fieldset>
                     <label className="grid gap-2 text-xs text-zinc-400">
                       Other credits <span className="text-zinc-600">Separate multiple roles with commas</span>
@@ -881,6 +900,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       )}
 
       <div className="sticky bottom-0 z-10 grid grid-cols-2 gap-2 border-t border-white/[0.1] bg-zinc-950/92 py-3 backdrop-blur sm:flex sm:flex-wrap sm:gap-3">
+        <ActionFeedback error={actionError} className="col-span-2 w-full sm:basis-full" />
         {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="col-span-2 inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 sm:col-auto sm:px-5"><Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Publishing...' : uploadingImages ? 'Uploading...' : mode === 'new' ? 'Create & Publish' : 'Publish Changes'}</button>}
         {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save_draft'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">Save Draft</button>}
         {canEditCurrent && !canApprove && (
@@ -942,7 +962,7 @@ function ExternalGalleryItemEditor({ item, index, total, saving, onChange, onUpl
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className="inline-flex h-10 cursor-pointer items-center gap-2 px-3 text-sm text-zinc-200 hover:bg-white/[0.04]">
+        <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-white/[0.12] bg-white/[0.035] px-3 text-sm text-zinc-200 transition hover:border-amber-200/35 hover:bg-white/[0.07]">
           <Upload size={15} /> Upload thumbnail
           <input className="sr-only" type="file" accept="image/*" onChange={(event) => {
             onUploadThumbnail(event.target.files?.[0]);

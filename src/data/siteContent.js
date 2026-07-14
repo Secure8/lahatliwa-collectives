@@ -49,22 +49,22 @@ export const defaultSiteContent = {
     {
       name: 'Liwa Social',
       description: 'Tell us what you want to improve or achieve on social media. Share your platforms, content needs, campaign goals, posting support, and any challenges with your current online presence.',
-      items: ['Management', 'Content', 'Campaign', 'Strategy', 'Page Setup', 'Review & Consultation', 'Other Social Media Work'],
+      items: ['Social Media Management', 'Content Planning', 'Digital Marketing', 'Campaign Support', 'Branding & Page Support', 'Marketing Consultation'],
     },
     {
       name: 'Liwa Studio',
       description: 'Tell us what you need for your photo, video, editing, SDE, or highlights project. Share the occasion, preferred style, schedule, and expected output so we can match you with the right creative.',
-      items: ['Photo', 'Video', 'Same-Day Edit (SDE)', 'Highlights', 'Editing', 'Other Creative Work'],
+      items: ['Photography', 'Videography', 'Same-Day Edit (SDE)', 'Highlights', 'Photo & Video Editing', 'Other Visual Work'],
     },
     {
       name: 'Liwa Digital',
       description: 'Tell us what you want to build or improve, such as a website, app, system, prototype, or digital product. Share your goal, required features, target users, and preferred timeline.',
-      items: ['Website', 'App', 'System', 'Design & Prototype', 'Digital Product', 'Consultation', 'Other Digital Work'],
+      items: ['Website Development', 'Application Development', 'UI & Prototyping', 'Digital Systems', 'Maintenance & Improvements', 'Technical Consultation'],
     },
     {
       name: 'Liwa Tech',
       description: 'Describe the device, software, setup, or technical issue you need help with. Let us know what is happening, how urgent it is, and whether you prefer remote or on-site support.',
-      items: ['Consultation', 'Diagnostics', 'Remote Assistance', 'Setup', 'On-site Support', 'Other Technical Help'],
+      items: ['Computer Troubleshooting', 'Device Setup', 'Software Assistance', 'System & Network Support', 'Maintenance & Optimization', 'Technical Consultation'],
     },
   ],
   socialLinks: [],

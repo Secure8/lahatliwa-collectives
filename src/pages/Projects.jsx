@@ -85,9 +85,9 @@ export default function Projects() {
       <section id="project-results" className="scroll-mt-20 border-b border-white/[0.09] py-6 sm:py-7" aria-label="Project search and filters">
         <div className="grid gap-5 lg:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.8fr)] lg:items-end">
           <SearchBar value={search} onChange={updateSearch} />
-          <div className="public-filter-scroll flex min-w-0 gap-6 overflow-x-auto pb-1 lg:justify-end" aria-label="Filter projects by branch">
-            <button type="button" onClick={() => selectBranch(null)} className={`min-h-11 shrink-0 border-b text-xs uppercase tracking-[0.13em] transition ${!selectedBranch ? 'border-orange-300 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}>All projects</button>
-            {PROJECT_BRANCHES.map((branch) => <button key={branch.key} type="button" onClick={() => selectBranch(branch.key)} className={`min-h-11 shrink-0 border-b text-xs uppercase tracking-[0.13em] transition ${selectedBranch === branch.key ? 'border-orange-300 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-200'}`}>{branch.label}</button>)}
+          <div className="public-filter-scroll flex min-w-0 gap-2 overflow-x-auto pb-1 lg:justify-end" aria-label="Filter projects by branch">
+            <button type="button" aria-pressed={!selectedBranch} onClick={() => selectBranch(null)} className={`interactive-tab min-h-11 shrink-0 px-3 text-xs uppercase tracking-[0.13em] ${!selectedBranch ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}>All projects</button>
+            {PROJECT_BRANCHES.map((branch) => <button key={branch.key} type="button" aria-pressed={selectedBranch === branch.key} onClick={() => selectBranch(branch.key)} className={`interactive-tab min-h-11 shrink-0 px-3 text-xs uppercase tracking-[0.13em] ${selectedBranch === branch.key ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}>{branch.label}</button>)}
           </div>
         </div>
       </section>

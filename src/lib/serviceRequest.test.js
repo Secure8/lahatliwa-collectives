@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { branchKeyFromRecord, branchMeta, canonicalServiceKey, emptyInquiryDraft, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
+import { defaultSiteContent } from '../data/siteContent.js';
+import { branchKeyFromRecord, branchMeta, canonicalServiceKey, emptyInquiryDraft, inquiryCopy, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
 
 test('canonical branch and inquiry routes preserve refresh-safe context', () => {
   assert.equal(branchKeyFromRecord({ slug: 'lahat-liwa-studio' }), 'studio');
@@ -27,36 +28,78 @@ test('branch-specific and common client validation fails safely', () => {
   assert.ok(validateInquiryStep(2, { ...draft, summary: 'Hi', details: 'short' }).summary);
   assert.deepEqual(validateInquiryStep(2, { ...draft, branch: 'tech', summary: 'Technical help', details: 'Please review this technical workflow issue.', branchDetails: {} }), {});
   assert.ok(validateInquiryStep(3, { ...draft, clientName: 'A', clientEmail: 'bad', consent: false }).clientEmail);
+  for (const branch of ['studio', 'digital', 'social', 'tech', 'general']) {
+    const branchDraft = { ...emptyInquiryDraft({ branch }), summary: '', details: '' };
+    const errors = validateInquiryStep(2, branchDraft);
+    assert.equal(errors.summary, inquiryCopy(branch).summaryError);
+    assert.equal(errors.details, inquiryCopy(branch).detailsError);
+  }
 });
 
-test('broad service catalog is stable while legacy URLs and custom CMS categories remain compatible', () => {
+test('every inquiry branch exposes distinct labels, examples, roles, and follow-up language', () => {
   const expected = {
-    studio: ['Photo', 'Video', 'Same-Day Edit (SDE)', 'Highlights', 'Editing', 'Other Creative Work'],
-    tech: ['Consultation', 'Diagnostics', 'Remote Assistance', 'Setup', 'On-site Support', 'Other Technical Help'],
-    digital: ['Website', 'App', 'System', 'Design & Prototype', 'Digital Product', 'Consultation', 'Other Digital Work'],
-    social: ['Management', 'Content', 'Campaign', 'Strategy', 'Page Setup', 'Review & Consultation', 'Other Social Media Work'],
-    general: ['General Inquiry', 'Multidisciplinary Project', 'Partnership or Collaboration', 'Not Sure Yet'],
+    studio: ['Tell us about the shoot or visual project', 'Shoot or production summary', 'What visual output do you need?', 'Creative or production specialist', 'Shoot date, event date, or turnaround'],
+    digital: ['Tell us about the digital product or system', 'Product or system summary', 'What should the product or system accomplish?', 'Developer or digital specialist', 'Preferred timeline or launch target'],
+    social: ['Tell us about your brand or campaign', 'Marketing or social media summary', 'What kind of marketing support do you need?', 'Social media or marketing specialist', 'Campaign dates or preferred start'],
+    tech: ['Tell us about the device or technical issue', 'Technical request summary', 'What problem or setup do you need help with?', 'Technician or technical specialist', 'When do you need technical support?'],
+    general: ['Tell us what you need', 'Request summary', 'Describe your request', 'Liwa team member', 'Preferred date or timeline'],
+  };
+  for (const [branch, [sectionTitle, summaryLabel, detailsLabel, recipientLabel, scheduleLabel]] of Object.entries(expected)) {
+    const copy = inquiryCopy(branch);
+    assert.equal(copy.steps[2], sectionTitle);
+    assert.equal(copy.summaryLabel, summaryLabel);
+    assert.equal(copy.detailsLabel, detailsLabel);
+    assert.equal(copy.recipientLabel, recipientLabel);
+    assert.equal(copy.scheduleLabel, scheduleLabel);
+    assert.ok(copy.summaryHelper.length > 20);
+    assert.ok(copy.detailsHelper.length > 40);
+    if (branch !== 'general') {
+      assert.equal(copy.examples.length, 2);
+      assert.ok(copy.reviewFields.length >= 3);
+    }
+  }
+  assert.equal(inquiryCopy(''), inquiryCopy('general'));
+  assert.equal(new Set(Object.values(expected).map(([title]) => title)).size, 5);
+  assert.doesNotMatch(`${inquiryCopy('tech').pageDescription} ${inquiryCopy('tech').matchingCopy}`, /creative project|match.*creative/i);
+});
+
+test('every branch exposes exactly six balanced services while legacy URLs remain compatible', () => {
+  const expected = {
+    studio: ['Photography', 'Videography', 'Same-Day Edit (SDE)', 'Highlights', 'Photo & Video Editing', 'Other Visual Work'],
+    tech: ['Computer Troubleshooting', 'Device Setup', 'Software Assistance', 'System & Network Support', 'Maintenance & Optimization', 'Technical Consultation'],
+    digital: ['Website Development', 'Application Development', 'UI & Prototyping', 'Digital Systems', 'Maintenance & Improvements', 'Technical Consultation'],
+    social: ['Social Media Management', 'Content Planning', 'Digital Marketing', 'Campaign Support', 'Branding & Page Support', 'Marketing Consultation'],
+    general: ['General Service Request', 'Multi-Branch Request', 'Partnership & Collaboration', 'Event or Organization Support', 'Consultation & Planning', 'Not Sure Yet'],
   };
   for (const [branch, names] of Object.entries(expected)) {
     const categories = serviceCategoriesForBranch(branch);
+    assert.equal(categories.length, 6);
     assert.deepEqual(categories.map((item) => item.name), names);
     for (const category of categories) {
       assert.equal(inquiryUrl({ branch, service: category.key }), `/inquiry?branch=${branch}&service=${category.key}`);
     }
   }
+  for (const group of defaultSiteContent.services) {
+    const branch = branchKeyFromRecord(group);
+    assert.equal(group.items.length, 6);
+    assert.deepEqual(group.items, expected[branch]);
+  }
   assert.equal(canonicalServiceKey('studio', 'portrait-photography'), 'photo');
   assert.equal(canonicalServiceKey('digital', 'landing-pages'), 'website');
-  assert.equal(canonicalServiceKey('social', 'digital-marketing-support'), 'campaign');
+  assert.equal(canonicalServiceKey('social', 'digital-marketing-support'), 'digital-marketing');
   assert.equal(canonicalServiceKey('tech', 'virtual-assistance'), 'remote-assistance');
-  assert.deepEqual(serviceCategoriesForBranch('studio', ['Photography', 'Photo Editing', 'Audio Production']).slice(-1)[0], { key: 'audio-production', name: 'Audio Production', custom: true });
+  assert.equal(canonicalServiceKey('digital', 'digital-product'), 'maintenance-and-improvements');
+  assert.equal(canonicalServiceKey('social', 'strategy'), 'digital-marketing');
+  assert.equal(canonicalServiceKey('tech', 'other-technical-help'), 'maintenance-and-optimization');
+  assert.deepEqual(serviceCategoriesForBranch('studio', ['Photography', 'Photo Editing', 'Audio Production']), serviceCategoriesForBranch('studio'));
 });
 
 test('branch descriptions are specific, stable, and replace known template copy without hiding intentional CMS wording', () => {
-  assert.equal(branchMeta('studio').description, 'Tell us what you need for your photo, video, editing, SDE, or highlights project. Share the occasion, preferred style, schedule, and expected output so we can match you with the right creative.');
-  assert.equal(branchMeta('tech').description, 'Describe the device, software, setup, or technical issue you need help with. Let us know what is happening, how urgent it is, and whether you prefer remote or on-site support.');
-  assert.equal(branchMeta('digital').description, 'Tell us what you want to build or improve, such as a website, app, system, prototype, or digital product. Share your goal, required features, target users, and preferred timeline.');
-  assert.equal(branchMeta('social').description, 'Tell us what you want to improve or achieve on social media. Share your platforms, content needs, campaign goals, posting support, and any challenges with your current online presence.');
-  assert.equal(branchMeta('general').description, 'Describe your project, question, or collaboration idea. Include the result you are aiming for, your preferred timeline, and any details that will help us direct your request to the right team.');
+  assert.match(branchMeta('studio').description, /shoot, coverage, production, or editing request/);
+  assert.match(branchMeta('tech').description, /technician or technical specialist/);
+  assert.match(branchMeta('digital').description, /developer or digital specialist/);
+  assert.match(branchMeta('social').description, /social media or marketing specialist/);
+  assert.match(branchMeta('general').description, /appropriate Liwa branch/);
   assert.equal(publicBranchDescription('social', 'Start a guided Liwa Social request and describe the exact outcome.'), branchMeta('social').description);
   assert.equal(publicBranchDescription('studio', 'Custom audio and mixed-media support for community productions.'), 'Custom audio and mixed-media support for community productions.');
 });
@@ -85,6 +128,11 @@ test('guided form keeps mobile controls bounded and includes the Tech safety war
   assert.match(source, /Never submit passwords, one-time codes, banking details/);
   assert.match(source, /overflow-x-auto/);
   assert.doesNotMatch(source, /min-w-screen|w-screen/);
+  assert.match(source, /const copy = inquiryCopy\(draft\.branch\)/);
+  assert.match(source, /<DetailsStep[^>]+copy=\{copy\}/);
+  assert.match(source, /<ContactStep[^>]+copy=\{copy\}/);
+  assert.match(source, /function selectBranch[\s\S]*branchDetails:/);
+  assert.match(source, /function selectBranch[\s\S]*setErrors\(\{\}\)/);
 });
 
 test('inquiry copy requires a prominent detailed request and avoids instant-booking promises', async () => {
@@ -94,8 +142,9 @@ test('inquiry copy requires a prominent detailed request and avoids instant-book
     readFile(new URL('../pages/InquiryConfirmation.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../../supabase/functions/submit-service-request/index.ts', import.meta.url), 'utf8'),
   ]);
-  assert.match(form, /What do you need help with\?/);
-  assert.match(form, /Services are matched according to your requirements, location, schedule/);
+  assert.match(form, /label=\{copy\.detailsLabel\}/);
+  assert.match(form, /\{copy\.matchingCopy\}/);
+  assert.match(confirmation, /inquiryCopy\(branchKey\)/);
   assert.match(email, /Service category.*inquiry\.project_type/s);
   assert.match(email, /Request details.*inquiry\.details/s);
   assert.doesNotMatch(`${form}\n${services}\n${confirmation}`, /Book now|Confirm booking|Order service|Purchase service|Book a Creative/i);

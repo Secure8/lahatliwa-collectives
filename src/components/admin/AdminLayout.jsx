@@ -140,14 +140,14 @@ export default function AdminLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <button type="button" onClick={() => setMobileOpen((current) => !current)} className="grid h-10 w-10 place-items-center text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50" aria-label={mobileOpen ? 'Close admin menu' : 'Open admin menu'} aria-expanded={mobileOpen}>
+            <button type="button" onClick={() => setMobileOpen((current) => !current)} className="grid h-11 w-11 place-items-center rounded-md border border-white/[0.12] bg-white/[0.04] text-zinc-300 transition hover:border-amber-200/30 hover:bg-white/[0.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50" aria-label={mobileOpen ? 'Close admin menu' : 'Open admin menu'} aria-expanded={mobileOpen} aria-controls="admin-mobile-navigation">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
-        {mobileOpen && <div className="fixed inset-x-0 bottom-0 top-[65px] z-40 grid grid-rows-[1fr_auto] border-t border-white/[0.08] bg-zinc-950 p-4 lg:hidden">
+        {mobileOpen && <div id="admin-mobile-navigation" className="fixed inset-x-0 bottom-0 top-[65px] z-40 grid grid-rows-[1fr_auto] border-t border-white/[0.08] bg-zinc-950 p-4 lg:hidden">
           <nav className="admin-sidebar-scroll min-h-0 overflow-y-auto" aria-label="Admin navigation">
-            {visibleGroups.map(([group, groupLinks]) => <div key={group} className="mb-5"><p className="mb-2 text-[0.66rem] uppercase tracking-[0.2em] text-zinc-600">{group}</p><div className="grid">{groupLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} onClick={() => setMobileOpen(false)} className={({ isActive }) => clsx('flex items-center gap-3 border-b border-white/[0.07] px-1 py-3 text-sm', isActive ? 'text-amber-100' : 'text-zinc-400')}><Icon size={16} /><span>{label}</span>{href === '/admin/inquiries' && unreadInquiries > 0 && <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-zinc-950" aria-label={`${unreadInquiries} unread inquiries`}>{unreadInquiries > 99 ? '99+' : unreadInquiries}</span>}<span className="sr-only">{label} page</span></NavLink>)}</div></div>)}
+            {visibleGroups.map(([group, groupLinks]) => <div key={group} className="mb-5"><p className="mb-2 text-[0.66rem] uppercase tracking-[0.2em] text-zinc-600">{group}</p><div className="grid gap-1">{groupLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} onClick={() => setMobileOpen(false)} className={({ isActive }) => clsx('flex min-h-12 items-center gap-3 rounded-md border px-3 py-3 text-sm transition', isActive ? 'border-amber-200/25 bg-amber-200/[0.08] text-amber-100' : 'border-transparent text-zinc-400 hover:border-white/[0.08] hover:bg-white/[0.035] hover:text-white')}><Icon size={16} /><span>{label}</span>{href === '/admin/inquiries' && unreadInquiries > 0 && <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-zinc-950" aria-label={`${unreadInquiries} unread inquiries`}>{unreadInquiries > 99 ? '99+' : unreadInquiries}</span>}<span className="sr-only">{label} page</span></NavLink>)}</div></div>)}
           </nav>
           <div className="-mx-4 grid grid-cols-2 gap-3 border-t border-white/[0.1] bg-zinc-900/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-16px_40px_rgba(0,0,0,0.32)]"><Link to="/" onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100"><ExternalLink size={16} /> View site</Link><button type="button" onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/[0.14] bg-white/[0.06] px-3 text-sm font-medium text-zinc-100 transition hover:border-red-200/30 hover:bg-red-300/[0.08] hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><LogOut size={16} /> Logout</button></div>
         </div>}
@@ -172,7 +172,7 @@ function AdminNavLink({ label, href, Icon, badge = 0, onBeforeNavigate }) {
         clsx(
           'group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors duration-150',
           isActive
-            ? 'bg-white/[0.09] text-white'
+            ? 'bg-amber-200/[0.09] text-amber-50 ring-1 ring-inset ring-amber-200/15'
             : 'text-zinc-400 hover:bg-white/[0.055] hover:text-white'
         )
       }

@@ -68,9 +68,9 @@ export default function Services() {
     <div className="page-shell py-16 sm:py-20">
       <PublicPageHeader eyebrow="Client services" title="Choose a flexible path for what you need." description="Select a broad service category, then describe the exact outcome, situation, or support you need from the collective or a specific creative." accentColor={content.accentColor} titleColor={content.servicesPage.headingColor || content.primaryTextColor} bodyColor={content.servicesPage.bodyTextColor || content.secondaryTextColor} />
 
-      <nav aria-label="Service branches" className="public-filter-scroll mt-10 flex gap-6 overflow-x-auto border-y border-white/[0.08] py-1">
-        <Link to="/services" className={`min-h-12 shrink-0 content-center border-b text-xs uppercase tracking-[0.15em] ${!branchParam ? 'border-orange-300 text-white' : 'border-transparent text-zinc-500 hover:text-white'}`}>Overview</Link>
-        {branchGroups.map((branch) => <Link key={branch.key} to={servicesPath(branch.key)} className={`min-h-12 shrink-0 content-center border-b text-xs uppercase tracking-[0.15em] ${branchParam === branch.key ? 'border-orange-300 text-white' : 'border-transparent text-zinc-500 hover:text-white'}`}>{branch.label}</Link>)}
+      <nav aria-label="Service branches" className="public-filter-scroll mt-10 flex gap-2 overflow-x-auto border-y border-white/[0.08] py-2">
+        <Link to="/services" aria-current={!branchParam ? 'page' : undefined} className={`interactive-tab min-h-11 shrink-0 content-center px-3 text-xs uppercase tracking-[0.15em] ${!branchParam ? 'text-white' : 'text-zinc-500 hover:text-white'}`}>Overview</Link>
+        {branchGroups.map((branch) => <Link key={branch.key} to={servicesPath(branch.key)} aria-current={branchParam === branch.key ? 'page' : undefined} className={`interactive-tab min-h-11 shrink-0 content-center px-3 text-xs uppercase tracking-[0.15em] ${branchParam === branch.key ? 'text-white' : 'text-zinc-500 hover:text-white'}`}>{branch.label}</Link>)}
       </nav>
 
       {loading ? <div className="py-12"><LoadingState label="Loading services" /></div> : selected ? (
@@ -96,9 +96,9 @@ function ServiceOverview({ branches, content }) {
 
 function BranchCard({ branch, index, content }) {
   const Icon = iconMap[branch.key] || Circle;
-  return <section className="group relative min-w-0 border-t border-white/[0.1] pt-6 transition hover:border-orange-300/40">
+  return <section className="relative min-w-0 border-t border-white/[0.1] pt-6">
     <div className="flex items-start justify-between gap-5">
-      <div className="grid h-11 w-11 place-items-center border border-white/[0.1] bg-white/[0.025] text-orange-200 transition group-hover:border-orange-300/35 group-hover:shadow-[0_0_22px_rgba(251,146,60,0.16)]">{branch.iconUrl ? <img src={branch.iconUrl} alt="" width="44" height="44" className="h-9 w-9 object-contain" /> : <Icon size={21} />}</div>
+      <div className="grid h-11 w-11 place-items-center border border-white/[0.1] bg-white/[0.025] text-orange-200">{branch.iconUrl ? <img src={branch.iconUrl} alt="" width="44" height="44" className="h-9 w-9 object-contain" /> : <Icon size={21} />}</div>
       <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-700">0{index + 1}</span>
     </div>
     <h2 className="mt-6 text-2xl font-medium text-white">{branch.label}</h2>
@@ -118,10 +118,10 @@ function BranchWorkspace({ branch, content }) {
     {branch.key === 'tech' && <p className="border-b border-white/[0.08] py-4 text-xs leading-6 text-zinc-500">On-site support depends on location, schedule, safety, and the availability of a suitable specialist.</p>}
 
     <div className="mt-8 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-      {branch.services.map((service, index) => <article key={service.key} className="group grid content-between border-t border-white/[0.09] py-5 transition hover:border-orange-300/45">
-        <div><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-700">{String(index + 1).padStart(2, '0')} / Category</p><h2 className="mt-4 text-xl font-medium text-white">{service.name}</h2></div>
-        <Link to={inquiryUrl({ branch: branch.key, service: service.key })} className="mt-7 inline-flex min-h-11 items-center gap-2 border-b border-white/[0.12] text-sm text-zinc-300 transition group-hover:border-orange-300/45 group-hover:text-orange-200">Choose category<ArrowRight size={15} /></Link>
-      </article>)}
+      {branch.services.map((service, index) => <Link key={service.key} to={inquiryUrl({ branch: branch.key, service: service.key })} aria-label={`Choose ${service.name} for ${branch.label}`} className="group grid min-h-40 content-between border border-white/[0.09] bg-white/[0.012] p-5 transition hover:border-orange-300/45 hover:bg-orange-300/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
+        <div><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">{String(index + 1).padStart(2, '0')} / Category</p><h2 className="mt-4 text-xl font-medium text-white">{service.name}</h2></div>
+        <span className="mt-7 inline-flex min-h-11 items-center gap-2 border-b border-white/[0.16] text-sm text-zinc-300 transition group-hover:border-orange-300/55 group-hover:text-orange-200">Choose {service.name}<ArrowRight size={15} /></span>
+      </Link>)}
     </div>
 
     <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-y border-white/[0.08] py-5"><p className="text-sm text-zinc-500">Need help choosing? Start with the branch and describe the outcome you need.</p><Link to={inquiryUrl({ branch: branch.key })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">{branch.action}<ArrowRight size={16} /></Link></div>

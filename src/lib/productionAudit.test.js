@@ -73,8 +73,24 @@ test('dark native menus preserve readable choices and mobile admin actions stay 
   const adminLayout = readFileSync(resolve(root, 'src/components/admin/AdminLayout.jsx'), 'utf8');
   assert.match(styles, /\.dark-select option,[\s\S]*?background-color: #18181b;[\s\S]*?color: #f4f4f5;/);
   assert.match(styles, /\.admin-shell select option/);
-  assert.match(inquiry, /CreativeStep/);
+  assert.match(inquiry, /RecipientStep/);
   assert.match(inquiry, /className="dark-select/);
   assert.match(adminLayout, /View site<\/Link>[\s\S]*?Logout<\/button>/);
   assert.match(adminLayout, /pb-\[max\(1rem,env\(safe-area-inset-bottom\)\)\]/);
+});
+
+test('shared interaction treatments expose persistent focus, active, and disclosure cues', () => {
+  const styles = readFileSync(resolve(root, 'src/index.css'), 'utf8');
+  const navbar = readFileSync(resolve(root, 'src/components/Navbar.jsx'), 'utf8');
+  const adminLayout = readFileSync(resolve(root, 'src/components/admin/AdminLayout.jsx'), 'utf8');
+  const inquiries = readFileSync(resolve(root, 'src/pages/admin/AdminInquiries.jsx'), 'utf8');
+  const services = readFileSync(resolve(root, 'src/pages/Services.jsx'), 'utf8');
+  assert.match(styles, /:where\(a\[href\], button, input, textarea, select, summary\):focus-visible/);
+  assert.match(styles, /\.interactive-tab\[aria-selected="true"\]/);
+  assert.match(navbar, /aria-expanded=\{open\}/);
+  assert.match(navbar, /aria-controls="public-mobile-navigation"/);
+  assert.match(adminLayout, /aria-controls="admin-mobile-navigation"/);
+  assert.match(inquiries, /ChevronDown/);
+  assert.match(inquiries, /group-open:rotate-180/);
+  assert.match(services, /aria-label=\{`Choose \$\{service\.name\} for \$\{branch\.label\}`\}/);
 });

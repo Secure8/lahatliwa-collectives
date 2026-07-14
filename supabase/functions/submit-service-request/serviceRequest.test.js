@@ -17,11 +17,11 @@ test('server validation accepts a valid request and rejects untrusted values', (
   assert.deepEqual(validateSubmission(validRequest({ branch: 'tech', serviceKey: 'diagnostics', branchDetails: {} })).errors, []);
 });
 
-test('server resolves broad, legacy, and intentional custom service categories', () => {
-  assert.deepEqual(resolveServiceCategory('studio', 'photo-editing'), { key: 'editing', name: 'Editing' });
-  assert.deepEqual(resolveServiceCategory('tech', 'virtual-assistance'), { key: 'remote-assistance', name: 'Remote Assistance' });
+test('server resolves balanced and legacy service categories while rejecting unlisted custom values', () => {
+  assert.deepEqual(resolveServiceCategory('studio', 'photo-editing'), { key: 'editing', name: 'Photo & Video Editing' });
+  assert.deepEqual(resolveServiceCategory('tech', 'virtual-assistance'), { key: 'remote-assistance', name: 'Software Assistance' });
   assert.deepEqual(resolveServiceCategory('general', 'unsure'), { key: 'not-sure-yet', name: 'Not Sure Yet' });
-  assert.deepEqual(resolveServiceCategory('digital', 'Accessibility Audit', ['Accessibility Audit']), { key: 'accessibility-audit', name: 'Accessibility Audit', custom: true });
+  assert.equal(resolveServiceCategory('digital', 'Accessibility Audit', ['Accessibility Audit']), null);
 });
 
 test('service values are validated using normalized CMS keys', () => {

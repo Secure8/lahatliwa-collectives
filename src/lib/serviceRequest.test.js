@@ -2,13 +2,24 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { defaultSiteContent } from '../data/siteContent.js';
-import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, canonicalServiceKey, emptyInquiryDraft, inquiryCopy, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
+import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, canonicalServiceKey, changeInquiryBranchSelection, emptyInquiryDraft, INQUIRY_DETAILS_STEP, INQUIRY_SELECTION_STEP, inquiryCopy, inquiryNavigationState, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, resolveInquiryEntry, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
 
 test('canonical branch and inquiry routes preserve refresh-safe context', () => {
   assert.equal(branchKeyFromRecord({ slug: 'lahat-liwa-studio' }), 'studio');
   assert.equal(branchKeyFromRecord({ name: 'Lahat Liwa Web' }), 'digital');
   assert.equal(inquiryUrl({ branch: 'studio', service: 'Photo Editing', creative: 'Jane-Doe' }), '/inquiry?branch=studio&service=editing&creative=jane-doe');
   assert.equal(inquiryUrl({ branch: 'invalid', service: 'Photography' }), '/inquiry?service=photography');
+});
+
+test('inquiry entry routing skips only complete valid selections', () => {
+  const published = ['studio', 'tech', 'digital', 'social'];
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup' }, published), { branch: 'tech', serviceKey: 'setup', step: INQUIRY_DETAILS_STEP, status: 'ready' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech' }, published), { branch: 'tech', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'branch-only' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'device-setup' }, published), { branch: 'tech', serviceKey: 'setup', step: INQUIRY_DETAILS_STEP, status: 'ready' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'unavailable-service' }, published), { branch: 'tech', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-service' });
+  assert.deepEqual(resolveInquiryEntry({}, published), { branch: '', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'direct' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'studio', service: 'photo' }, ['tech']), { branch: '', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-branch' });
+  assert.deepEqual(inquiryNavigationState({ branch: 'tech', service: 'Device Setup' }), { inquirySelection: { branch: 'tech', service: 'setup' } });
 });
 
 test('draft context persists valid fields and rejects invalid branch state', () => {
@@ -18,6 +29,16 @@ test('draft context persists valid fields and rejects invalid branch state', () 
   assert.equal(restored.serviceKey, 'remote-assistance');
   assert.equal(restored.creativeSlug, 'alex');
   assert.equal(safeInquiryDraft({ ...draft, branch: 'invalid' }).branch, '');
+});
+
+test('changing branches clears branch-specific answers but preserves shared client information', () => {
+  const changed = changeInquiryBranchSelection({
+    branch: 'studio', serviceKey: 'photo', creativeSlug: 'studio-member', summary: 'Old shoot', details: 'Old visual request details',
+    serviceMode: 'On location', branchDetails: { eventType: 'Portrait' }, clientName: 'Client', clientEmail: 'client@example.com',
+    organization: 'Organization', preferredSchedule: 'Next month', generalLocation: 'Manila', budgetRange: 'Not specified', consent: true,
+  }, 'tech');
+  assert.deepEqual({ branch: changed.branch, serviceKey: changed.serviceKey, creativeSlug: changed.creativeSlug, summary: changed.summary, details: changed.details, serviceMode: changed.serviceMode, branchDetails: changed.branchDetails }, { branch: 'tech', serviceKey: '', creativeSlug: '', summary: '', details: '', serviceMode: '', branchDetails: {} });
+  assert.deepEqual({ clientName: changed.clientName, clientEmail: changed.clientEmail, organization: changed.organization, preferredSchedule: changed.preferredSchedule, generalLocation: changed.generalLocation, budgetRange: changed.budgetRange, consent: changed.consent }, { clientName: 'Client', clientEmail: 'client@example.com', organization: 'Organization', preferredSchedule: 'Next month', generalLocation: 'Manila', budgetRange: 'Not specified', consent: true });
 });
 
 test('submission boundary sends only canonical service keys', () => {
@@ -181,9 +202,23 @@ test('guided form keeps mobile controls bounded and includes the Tech safety war
   assert.match(source, /const copy = inquiryCopy\(draft\.branch\)/);
   assert.match(source, /<DetailsStep[^>]+copy=\{copy\}/);
   assert.match(source, /<ContactStep[^>]+copy=\{copy\}/);
-  assert.match(source, /function selectBranch[\s\S]*branchDetails:/);
+  assert.match(source, /function selectBranch[\s\S]*changeInquiryBranchSelection\(current, branch\)/);
   assert.match(source, /function selectBranch[\s\S]*setErrors\(\{\}\)/);
   assert.match(source, /request: buildInquirySubmissionRequest\(draft\)/);
+});
+
+test('services preselection skips safely and exposes an accessible change-selection path', async () => {
+  const [form, services] = await Promise.all([
+    readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/Services.jsx', import.meta.url), 'utf8'),
+  ]);
+  assert.match(services, /state=\{inquiryNavigationState\(\{ branch: branch\.key, service: service\.key \}\)\}/);
+  assert.match(form, /const navigationSelection = location\.state\?\.inquirySelection/);
+  assert.match(form, /entry\.status === 'ready'[\s\S]*moveToStep\(entry\.step\)/);
+  assert.match(form, /function changeSelection\(\)[\s\S]*delete nextState\.inquirySelection[\s\S]*moveToStep\(INQUIRY_SELECTION_STEP\)[\s\S]*replace: true/);
+  assert.match(form, /<SelectionSummary[^>]+onChange=\{changeSelection\}/);
+  assert.match(form, /aria-live="polite" aria-atomic="true"/);
+  assert.match(form, /ref=\{stepHeadingRef\} tabIndex="-1"/);
 });
 
 test('inquiry copy requires a prominent detailed request and avoids instant-booking promises', async () => {

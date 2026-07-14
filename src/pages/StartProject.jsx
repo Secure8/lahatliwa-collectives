@@ -1,11 +1,11 @@
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, CircleAlert, Send, ShieldAlert, UserRound } from 'lucide-react';
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ActionFeedback, FieldError } from '../components/FieldFeedback';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { usePublicContent } from '../lib/contentApi';
-import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, canonicalServiceKey, emptyInquiryDraft, INQUIRY_DRAFT_KEY, inquiryCopy, mergeInquiryContext, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, changeInquiryBranchSelection, emptyInquiryDraft, INQUIRY_DRAFT_KEY, INQUIRY_SELECTION_STEP, inquiryCopy, mergeInquiryContext, resolveInquiryEntry, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
 
 const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
@@ -40,7 +40,14 @@ export default function StartProject() {
   const location = useLocation();
   const navigate = useNavigate();
   const { content } = usePublicContent([]);
-  const queryContext = useMemo(() => ({ branch: searchParams.get('branch') || '', service: searchParams.get('service') || '', creative: searchParams.get('creative') || '' }), [searchParams]);
+  const queryContext = useMemo(() => {
+    const navigationSelection = location.state?.inquirySelection || {};
+    return {
+      branch: searchParams.get('branch') || navigationSelection.branch || '',
+      service: searchParams.get('service') || navigationSelection.service || '',
+      creative: searchParams.get('creative') || '',
+    };
+  }, [location.state, searchParams]);
   const [draft, setDraft] = useState(() => readDraft(queryContext));
   const [step, setStep] = useState(0);
   const [branches, setBranches] = useState([]);
@@ -51,7 +58,9 @@ export default function StartProject() {
   const [notice, setNotice] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [focusTarget, setFocusTarget] = useState({ key: '', request: 0 });
+  const [focusStepHeadingRequest, setFocusStepHeadingRequest] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const stepHeadingRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -73,6 +82,7 @@ export default function StartProject() {
     const requestedBranch = queryContext.branch;
     const requestedService = queryContext.service;
     const requestedCreative = String(queryContext.creative || '').toLowerCase();
+    const entry = resolveInquiryEntry(queryContext, branches.map(branchKeyFromRecord).filter(Boolean));
     let contextNotice = '';
     setDraft((current) => {
       const next = { ...current };
@@ -84,17 +94,13 @@ export default function StartProject() {
         contextNotice = 'A saved service choice is no longer available. Choose a current service below.';
       }
       if (requestedBranch) {
-        const branchAvailable = requestedBranch === 'general' || branches.some((item) => branchKeyFromRecord(item) === requestedBranch);
-        if (branchMeta(requestedBranch) && branchAvailable) {
-          if (next.branch !== requestedBranch) { next.branchDetails = {}; next.serviceMode = ''; }
-          next.branch = requestedBranch;
-        } else { next.branch = ''; next.serviceKey = ''; next.branchDetails = {}; next.serviceMode = ''; contextNotice = 'The requested service branch is unavailable. Choose one below.'; }
-      }
-      const available = servicesForBranch(next.branch, branches);
-      if (requestedService) {
-        const requestedKey = canonicalServiceKey(next.branch, requestedService);
-        if (available.some((service) => service.key === requestedKey)) next.serviceKey = requestedKey;
-        else { next.serviceKey = ''; contextNotice = 'The requested service is unavailable. Choose an available service.'; }
+        const selectionDraft = changeInquiryBranchSelection(next, entry.branch);
+        Object.assign(next, selectionDraft, { serviceKey: entry.serviceKey });
+        if (entry.status === 'invalid-branch') contextNotice = 'The requested service branch is unavailable. Choose one below.';
+        if (entry.status === 'invalid-service') contextNotice = 'The requested service is unavailable. Choose an available service.';
+      } else if (requestedService) {
+        next.serviceKey = '';
+        contextNotice = 'Choose a service branch before selecting a service.';
       }
       if (requestedCreative) {
         const creative = creatives.find((item) => item.slug === requestedCreative || item.id === requestedCreative);
@@ -107,6 +113,8 @@ export default function StartProject() {
       }
       return next;
     });
+    if (entry.status === 'ready') moveToStep(entry.step);
+    else setStep(INQUIRY_SELECTION_STEP);
     setNotice(contextNotice);
   }, [branches, creatives, loadingChoices, queryContext]);
 
@@ -128,6 +136,12 @@ export default function StartProject() {
     return () => window.clearTimeout(timer);
   }, [focusTarget, step]);
 
+  useEffect(() => {
+    if (!focusStepHeadingRequest) return undefined;
+    const timer = window.setTimeout(() => stepHeadingRef.current?.focus({ preventScroll: true }), 0);
+    return () => window.clearTimeout(timer);
+  }, [focusStepHeadingRequest, step]);
+
   const availableServices = useMemo(() => servicesForBranch(draft.branch, branches), [branches, draft.branch]);
   const selectedBranch = branchMeta(draft.branch);
   const selectedService = availableServices.find((service) => service.key === draft.serviceKey) || null;
@@ -145,17 +159,29 @@ export default function StartProject() {
     setDraft((current) => ({ ...current, branchDetails: { ...current.branchDetails, [key]: value } }));
   }
 
+  function moveToStep(nextStep) {
+    setStep(nextStep);
+    setFocusStepHeadingRequest((current) => current + 1);
+  }
+
   function selectBranch(branch) {
-    setDraft((current) => ({
-      ...current,
-      branch,
-      serviceKey: '',
-      branchDetails: current.branch === branch ? current.branchDetails : {},
-      serviceMode: current.branch === branch ? current.serviceMode : '',
-    }));
+    setDraft((current) => changeInquiryBranchSelection(current, branch));
     setErrors({});
     setSubmitError('');
     setNotice('');
+  }
+
+  function changeSelection() {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('branch');
+    nextParams.delete('service');
+    const nextState = { ...(location.state || {}) };
+    delete nextState.inquirySelection;
+    setErrors({});
+    setSubmitError('');
+    setNotice('');
+    moveToStep(INQUIRY_SELECTION_STEP);
+    navigate({ pathname: location.pathname, search: nextParams.toString() ? `?${nextParams}` : '' }, { replace: true, state: nextState });
   }
 
   function goNext() {
@@ -166,10 +192,10 @@ export default function StartProject() {
       setFocusTarget((current) => ({ key: firstKey, request: current.request + 1 }));
       return;
     }
-    setErrors({}); setNotice(''); setStep((current) => Math.min(current + 1, steps.length - 1)); window.scrollTo({ top: 0, behavior: 'auto' });
+    setErrors({}); setNotice(''); moveToStep(Math.min(step + 1, steps.length - 1)); window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
-  function goBack() { setErrors({}); setNotice(''); setSubmitError(''); setStep((current) => Math.max(current - 1, 0)); window.scrollTo({ top: 0, behavior: 'auto' }); }
+  function goBack() { setErrors({}); setNotice(''); setSubmitError(''); moveToStep(Math.max(step - 1, 0)); window.scrollTo({ top: 0, behavior: 'auto' }); }
 
   async function submit() {
     if (submitting) return;
@@ -206,10 +232,12 @@ export default function StartProject() {
   return <div className="page-shell py-16 sm:py-20" style={{ '--project-accent': content.accentColor, '--project-secondary': content.secondaryTextColor }}>
     <PublicPageHeader eyebrow={copy.pageEyebrow} title={step === 0 ? copy.serviceSelectionHeading : copy.pageTitle} description={step === 0 ? copy.serviceSelectionDescription : copy.pageDescription} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
 
+    {step > INQUIRY_SELECTION_STEP && selectedBranch && selectedService && <SelectionSummary branch={selectedBranch.label} service={selectedService.name} onChange={changeSelection} />}
+
     <StepProgress current={step} steps={steps} />
     <div className="grid gap-9 pt-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">
       <main className="min-w-0 border-y border-white/[0.09] py-7">
-        <div className="mb-7 flex items-start justify-between gap-5"><div><p className="text-[10px] uppercase tracking-[0.2em] text-orange-300">Step {step + 1} of {steps.length}</p><h1 className="mt-2 text-2xl font-medium text-white">{steps[step]}</h1></div>{step > 0 && <button type="button" onClick={goBack} className="inline-flex min-h-10 items-center gap-2 border-b border-white/[0.12] text-sm text-zinc-400 hover:border-orange-300/45 hover:text-white"><ArrowLeft size={15} />Back to {steps[step - 1]}</button>}</div>
+        <div className="mb-7 flex items-start justify-between gap-5"><div><p className="text-[10px] uppercase tracking-[0.2em] text-orange-300">Step {step + 1} of {steps.length}</p><h1 ref={stepHeadingRef} tabIndex="-1" className="mt-2 text-2xl font-medium text-white outline-none">{steps[step]}</h1></div>{step > 0 && <button type="button" onClick={goBack} className="inline-flex min-h-10 items-center gap-2 border-b border-white/[0.12] text-sm text-zinc-400 hover:border-orange-300/45 hover:text-white"><ArrowLeft size={15} />Back to {steps[step - 1]}</button>}</div>
         {choiceLoadError && <div role="status" className="mb-6 flex items-start gap-3 border-y border-amber-300/20 bg-amber-300/[0.05] px-3 py-3 text-sm leading-6 text-amber-100"><CircleAlert size={17} className="mt-0.5 shrink-0" />{choiceLoadError}</div>}
         {notice && <div role="status" className="mb-6 flex items-start gap-3 border-y border-amber-300/20 bg-amber-300/[0.05] px-3 py-3 text-sm leading-6 text-amber-100"><CircleAlert size={17} className="mt-0.5 shrink-0" />{notice}</div>}
 
@@ -235,6 +263,10 @@ export default function StartProject() {
 function servicesForBranch(branch, rows) {
   const row = rows.find((item) => branchKeyFromRecord(item) === branch);
   return serviceCategoriesForBranch(branch, row?.included_services || []);
+}
+
+function SelectionSummary({ branch, service, onChange }) {
+  return <section aria-label="Selected service" className="mt-8 flex flex-col gap-4 border-y border-white/[0.09] py-4 sm:flex-row sm:items-center sm:justify-between"><div aria-live="polite" aria-atomic="true"><p className="text-[10px] uppercase tracking-[0.18em] text-orange-300">Selected service</p><p className="mt-1 text-sm font-medium text-white">{branch} <span aria-hidden="true" className="text-zinc-600">·</span> {service}</p></div><button type="button" onClick={onChange} className="inline-flex min-h-11 w-fit items-center border-b border-orange-300/45 text-sm font-medium text-orange-100 transition hover:border-orange-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200">Change selection</button></section>;
 }
 
 function StepProgress({ current, steps }) {

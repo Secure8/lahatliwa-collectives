@@ -4,7 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
-import { branchKeyFromRecord, branchMeta, GENERAL_BRANCH, inquiryCopy, inquiryUrl, publicBranchDescription, SERVICE_BRANCHES, serviceCategoriesForBranch, servicesPath, slugifyService } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, GENERAL_BRANCH, inquiryCopy, inquiryNavigationState, inquiryUrl, publicBranchDescription, SERVICE_BRANCHES, serviceCategoriesForBranch, servicesPath, slugifyService } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
 
 const iconMap = { studio: Camera, tech: Wrench, digital: Code2, social: Megaphone, general: Headphones, Camera, Circle, Code2, Sparkles, Wrench };
@@ -89,7 +89,7 @@ function ServiceOverview({ branches, content }) {
     </div>
     <section className="mt-12 grid gap-6 border-y border-white/[0.09] py-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
       <div><p className="text-xs uppercase tracking-[0.19em] text-orange-300">Not sure where to begin?</p><h2 className="mt-3 text-2xl font-medium text-white">Describe what you need in your own words.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{GENERAL_BRANCH.description}</p></div>
-      <Link to={inquiryUrl({ branch: GENERAL_BRANCH.key })} className="inline-flex min-h-11 w-fit items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200">{GENERAL_BRANCH.action}<ArrowRight size={16} /></Link>
+      <Link to={inquiryUrl({ branch: GENERAL_BRANCH.key })} state={inquiryNavigationState({ branch: GENERAL_BRANCH.key })} className="inline-flex min-h-11 w-fit items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200">{GENERAL_BRANCH.action}<ArrowRight size={16} /></Link>
     </section>
   </div>;
 }
@@ -119,12 +119,12 @@ function BranchWorkspace({ branch, content }) {
     {branch.key === 'tech' && <p className="border-b border-white/[0.08] py-4 text-xs leading-6 text-zinc-500">On-site support depends on location, schedule, safety, and the availability of a suitable specialist.</p>}
 
     <div className="mt-8 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-      {branch.services.map((service, index) => <Link key={service.key} to={inquiryUrl({ branch: branch.key, service: service.key })} aria-label={`Choose ${service.name} for ${branch.label}`} className="group grid min-h-40 content-between border border-white/[0.09] bg-white/[0.012] p-5 transition hover:border-orange-300/45 hover:bg-orange-300/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
+      {branch.services.map((service, index) => <Link key={service.key} to={inquiryUrl({ branch: branch.key, service: service.key })} state={inquiryNavigationState({ branch: branch.key, service: service.key })} aria-label={`Choose ${service.name} for ${branch.label}`} className="group grid min-h-40 content-between border border-white/[0.09] bg-white/[0.012] p-5 transition hover:border-orange-300/45 hover:bg-orange-300/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
         <div><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">{String(index + 1).padStart(2, '0')} / Category</p><h2 className="mt-4 text-xl font-medium text-white">{service.name}</h2></div>
         <span className="mt-7 inline-flex min-h-11 items-center gap-2 border-b border-white/[0.16] text-sm text-zinc-300 transition group-hover:border-orange-300/55 group-hover:text-orange-200">Choose {service.name}<ArrowRight size={15} /></span>
       </Link>)}
     </div>
 
-    <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-y border-white/[0.08] py-5"><p className="text-sm text-zinc-500">Need help choosing? Start with the branch and describe the outcome you need.</p><Link to={inquiryUrl({ branch: branch.key })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">{branch.action}<ArrowRight size={16} /></Link></div>
+    <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-y border-white/[0.08] py-5"><p className="text-sm text-zinc-500">Need help choosing? Start with the branch and describe the outcome you need.</p><Link to={inquiryUrl({ branch: branch.key })} state={inquiryNavigationState({ branch: branch.key })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">{branch.action}<ArrowRight size={16} /></Link></div>
   </div>;
 }

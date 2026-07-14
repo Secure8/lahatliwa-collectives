@@ -9,6 +9,8 @@ export const SERVICE_BRANCHES = [
 
 export const GENERAL_BRANCH = { key: 'general', label: 'General', action: 'Describe What You Need', description: 'Describe your request, question, or collaboration idea. Include the result you are aiming for, your preferred timeline, and enough context for us to direct it to the appropriate Liwa branch.' };
 export const INQUIRY_STEPS = ['Service Category', 'Liwa Team', 'Request Details', 'Schedule and Contact', 'Review'];
+export const INQUIRY_SELECTION_STEP = 0;
+export const INQUIRY_DETAILS_STEP = 2;
 export const INQUIRY_DRAFT_KEY = 'lahat-liwa-inquiry-draft-v1';
 export const REFERENCE_PATTERN = /^LLC-\d{4}-[A-Z0-9]{6}$/;
 
@@ -245,6 +247,24 @@ export function branchMeta(key) {
   return SERVICE_BRANCHES.find((branch) => branch.key === key) || (key === 'general' ? GENERAL_BRANCH : null);
 }
 
+export function resolveInquiryEntry(context = {}, availableBranchKeys = null) {
+  const branch = String(context.branch || '').trim().toLowerCase();
+  const requestedService = context.service || context.serviceKey || '';
+  const available = Array.isArray(availableBranchKeys) ? new Set(availableBranchKeys) : null;
+  const branchAvailable = Boolean(branchMeta(branch)) && (branch === 'general' || !available || available.has(branch));
+  if (!branch) return { branch: '', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'direct' };
+  if (!branchAvailable) return { branch: '', serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-branch' };
+  if (!requestedService) return { branch, serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'branch-only' };
+  const service = resolveServiceCategory(branch, requestedService);
+  if (!service) return { branch, serviceKey: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-service' };
+  return { branch, serviceKey: service.key, step: INQUIRY_DETAILS_STEP, status: 'ready' };
+}
+
+export function inquiryNavigationState({ branch = '', service = '' } = {}) {
+  const entry = resolveInquiryEntry({ branch, service });
+  return { inquirySelection: { branch: entry.branch, service: entry.serviceKey } };
+}
+
 const REPLACED_BRANCH_DESCRIPTION = /(start a guided .+ request|flexible photo, video, editing, and visual-production support|practical technical support for devices, software, setup, troubleshooting|websites, applications, systems, interfaces, and other digital solutions|flexible social-media support for planning, content, account management|planning and shaping social content|photo and video coverage|first-version mindset|simple technical help|everyday computer support)/i;
 
 export function publicBranchDescription(key, configuredDescription = '') {
@@ -295,6 +315,22 @@ export function mergeInquiryContext(draft, context = {}) {
   if (context.service) next.serviceKey = canonicalServiceKey(next.branch, context.service);
   if (context.creative) next.creativeSlug = String(context.creative).trim().toLowerCase();
   return next;
+}
+
+export function changeInquiryBranchSelection(draft = {}, branch = '') {
+  const branchChanged = Boolean(draft.branch && draft.branch !== branch);
+  return {
+    ...draft,
+    branch,
+    serviceKey: '',
+    ...(branchChanged ? {
+      creativeSlug: '',
+      summary: '',
+      details: '',
+      serviceMode: '',
+      branchDetails: {},
+    } : {}),
+  };
 }
 
 export function buildInquirySubmissionRequest(draft = {}) {

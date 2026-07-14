@@ -10,7 +10,7 @@ export default function CreativeHero({ creative, projectCount, socials, resource
   const coverImage = getPublicImageUrl(creative.cover_image) || profileImage;
   const intro = creative.short_bio || creative.full_bio;
   return (
-    <header className="relative isolate flex min-h-[63rem] w-full flex-col overflow-hidden rounded-[10px] bg-zinc-900 min-[341px]:min-h-[61rem] min-[381px]:min-h-[60rem] sm:aspect-[4/3] sm:min-h-[54rem] lg:aspect-video lg:min-h-[32.5rem] lg:max-h-[45rem]">
+    <header className="theme-inverse relative isolate flex min-h-[63rem] w-full flex-col overflow-hidden rounded-[10px] bg-zinc-900 min-[341px]:min-h-[61rem] min-[381px]:min-h-[60rem] sm:aspect-[4/3] sm:min-h-[54rem] lg:aspect-video lg:min-h-[32.5rem] lg:max-h-[45rem]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(246,213,139,0.14),transparent_34%),linear-gradient(135deg,#27272a,#09090b)]" />
       {coverImage && <SmoothImage key={`cover-${coverImage}`} src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} fetchpriority={adminPreview ? 'auto' : 'high'} decoding="async" width="1920" height="1080" sizes="(max-width: 1439px) calc(100vw - 24px), 1360px" className="absolute inset-0 h-full w-full object-cover object-center" />}
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,6,0.94)_0%,rgba(5,5,6,0.58)_30%,rgba(5,5,6,0.02)_57%,rgba(5,5,6,0.82)_100%),linear-gradient(0deg,rgba(5,5,6,0.78)_0%,transparent_58%)]" />

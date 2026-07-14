@@ -520,7 +520,7 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
   return createElement(
     PublicContentContext.Provider,
     { value },
-    createElement('div', { style: themeStyle(value.content) }, children),
+    createElement('div', { className: 'theme-content-root', style: themeStyle(value.content) }, children),
   );
 }
 

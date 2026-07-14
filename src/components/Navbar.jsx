@@ -4,6 +4,7 @@ import { NavLink, Link, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { usePublicContent } from '../lib/contentApi';
 import { preloadPublicRoute } from '../lib/publicRoutePreload';
+import ThemeControl from './ThemeControl';
 
 const links = [
   ['Home', '/'],
@@ -45,7 +46,7 @@ export default function Navbar() {
       onFocusCapture={() => immersiveProfile && setImmersiveVisible(true)}
       onBlurCapture={(event) => immersiveProfile && !event.currentTarget.contains(event.relatedTarget) && setImmersiveVisible(false)}
       className={clsx(
-        'top-0 border-b border-white/[0.08] bg-zinc-950/90 shadow-[0_10px_35px_rgba(0,0,0,0.12)] xl:bg-zinc-950/75 xl:backdrop-blur-xl',
+        'theme-navigation-surface top-0 border-b border-white/[0.08] bg-zinc-950/90 shadow-[0_10px_35px_rgba(0,0,0,0.12)] xl:bg-zinc-950/75 xl:backdrop-blur-xl',
         immersiveProfile ? 'fixed inset-x-0 z-50 xl:transition-[transform,opacity] xl:duration-300 xl:ease-out motion-reduce:transition-none' : 'sticky z-40',
         immersiveProfile && (immersiveVisible ? 'xl:translate-y-0 xl:opacity-100' : 'xl:pointer-events-none xl:-translate-y-full xl:opacity-0'),
       )}
@@ -77,6 +78,7 @@ export default function Navbar() {
               {label}
             </NavLink>
           ))}
+          <ThemeControl className="ml-2 w-56" />
         </div>
         <button className="grid h-11 w-11 place-items-center border border-white/[0.12] bg-white/[0.035] text-zinc-200 transition hover:border-orange-300/35 hover:bg-white/[0.07] xl:hidden" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Close main menu' : 'Open main menu'} aria-expanded={open} aria-controls="public-mobile-navigation">
           {open ? <X size={22} /> : <Menu size={22} />}
@@ -89,6 +91,7 @@ export default function Navbar() {
               {label}
             </NavLink>
           ))}
+          <ThemeControl className="mt-4" onSelect={() => setOpen(false)} />
         </div>
       )}
     </header>

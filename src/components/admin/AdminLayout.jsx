@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { canCreateProjects, canManageSettings, canManageTeam, isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
 import { usePublicContent } from '../../lib/contentApi';
 import { supabase } from '../../lib/supabaseClient';
+import ThemeControl from '../ThemeControl';
 
 const links = [
   ['Overview', [
@@ -94,7 +95,7 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="admin-shell min-h-screen overflow-x-hidden bg-zinc-950 text-white">
-      <aside className="fixed inset-x-0 top-0 z-30 border-b border-white/[0.08] bg-zinc-950/95 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-md lg:border lg:border-white/[0.08] lg:bg-zinc-900/80 lg:p-4">
+      <aside className="theme-navigation-surface fixed inset-x-0 top-0 z-30 border-b border-white/[0.08] bg-zinc-950/95 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-md lg:border lg:border-white/[0.08] lg:bg-zinc-900/80 lg:p-4">
         <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
           <div className="flex min-w-0 items-center gap-3 lg:block">
             <Link
@@ -131,6 +132,7 @@ export default function AdminLayout({ children }) {
           </nav>
 
           <div className="hidden gap-2 lg:grid">
+            <ThemeControl />
             <Link to="/" className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.045] px-4 text-sm text-zinc-300 ring-1 ring-white/[0.07] transition-colors duration-150 hover:bg-white/[0.075] hover:text-amber-100">
               <ExternalLink size={16} /> View site
             </Link>
@@ -149,7 +151,7 @@ export default function AdminLayout({ children }) {
           <nav className="admin-sidebar-scroll min-h-0 overflow-y-auto" aria-label="Admin navigation">
             {visibleGroups.map(([group, groupLinks]) => <div key={group} className="mb-5"><p className="mb-2 text-[0.66rem] uppercase tracking-[0.2em] text-zinc-600">{group}</p><div className="grid gap-1">{groupLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} onClick={() => setMobileOpen(false)} className={({ isActive }) => clsx('flex min-h-12 items-center gap-3 rounded-md border px-3 py-3 text-sm transition', isActive ? 'border-amber-200/25 bg-amber-200/[0.08] text-amber-100' : 'border-transparent text-zinc-400 hover:border-white/[0.08] hover:bg-white/[0.035] hover:text-white')}><Icon size={16} /><span>{label}</span>{href === '/admin/inquiries' && unreadInquiries > 0 && <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-zinc-950" aria-label={`${unreadInquiries} unread inquiries`}>{unreadInquiries > 99 ? '99+' : unreadInquiries}</span>}<span className="sr-only">{label} page</span></NavLink>)}</div></div>)}
           </nav>
-          <div className="-mx-4 grid grid-cols-2 gap-3 border-t border-white/[0.1] bg-zinc-900/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-16px_40px_rgba(0,0,0,0.32)]"><Link to="/" onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100"><ExternalLink size={16} /> View site</Link><button type="button" onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/[0.14] bg-white/[0.06] px-3 text-sm font-medium text-zinc-100 transition hover:border-red-200/30 hover:bg-red-300/[0.08] hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><LogOut size={16} /> Logout</button></div>
+          <div className="-mx-4 grid grid-cols-2 gap-3 border-t border-white/[0.1] bg-zinc-900/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-16px_40px_rgba(0,0,0,0.32)]"><ThemeControl className="col-span-2" onSelect={() => setMobileOpen(false)} /><Link to="/" onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100"><ExternalLink size={16} /> View site</Link><button type="button" onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/[0.14] bg-white/[0.06] px-3 text-sm font-medium text-zinc-100 transition hover:border-red-200/30 hover:bg-red-300/[0.08] hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><LogOut size={16} /> Logout</button></div>
         </div>}
       </aside>
       <main className="px-4 pb-10 pt-24 sm:px-5 lg:ml-80 lg:px-8 lg:pt-10">

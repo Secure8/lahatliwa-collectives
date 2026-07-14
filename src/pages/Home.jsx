@@ -79,7 +79,7 @@ export default function Home() {
 
   return (
     <div>
-      <section className="relative overflow-hidden">
+      <section className="theme-inverse relative overflow-hidden">
         {homeBg && (
           <>
             <div className={`hero-background-visual absolute inset-0 ${heroBackground.mode === 'ambient-blur' ? 'lg:scale-105' : ''}`} style={{ ...heroBackground.style, filter: undefined, transform: undefined, '--hero-background-blur': heroBackground.mode === 'ambient-blur' ? `blur(${content.home.heroBackgroundBlur || 14}px)` : 'none' }} aria-hidden="true" />
@@ -114,8 +114,8 @@ export default function Home() {
         <div className="mb-8 max-w-2xl">
           <div>
             <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Selected work</p>
-            <h2 id="selected-work-heading" className="mt-3 text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>{content.home.featuredHeading}</h2>
-            <p className="mt-4 leading-7" style={{ color: content.secondaryTextColor }}>Explore projects across the four branches of Lahat Liwa.</p>
+            <h2 id="selected-work-heading" className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>{content.home.featuredHeading}</h2>
+            <p className="mt-4 leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore projects across the four branches of Lahat Liwa.</p>
           </div>
         </div>
         <div className="mb-10 grid grid-cols-2 gap-1 border-y border-white/[0.08] py-1 sm:grid-cols-4" role="tablist" aria-label="Project branches">
@@ -132,7 +132,7 @@ export default function Home() {
         <div className="mb-10 flex items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Featured creatives</p>
-            <h2 className="mt-3 text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Meet the people behind the work.</h2>
+            <h2 className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>Meet the people behind the work.</h2>
           </div>
           <Link to="/creatives" className="fine-link site-hover-accent text-sm text-zinc-300">View creatives</Link>
         </div>
@@ -146,8 +146,8 @@ export default function Home() {
       <section className="page-shell major-border-top py-16">
         <div className="mb-10 max-w-2xl">
           <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Services preview</p>
-          <h2 className="mt-3 text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>{content.home.servicesHeading}</h2>
-          <p className="mt-4 leading-7" style={{ color: content.secondaryTextColor }}>{content.home.servicesIntro}</p>
+          <h2 className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>{content.home.servicesHeading}</h2>
+          <p className="mt-4 leading-7" style={{ color: 'var(--site-secondary-text)' }}>{content.home.servicesIntro}</p>
         </div>
         <div className="grid gap-8 md:grid-cols-3">
           {servicePreview.map((group) => {
@@ -163,8 +163,8 @@ export default function Home() {
                 {serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} loading="lazy" decoding="async" width="80" height="28" className="h-7 max-w-20 object-contain" />}
                 {iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />)}
               </div>
-              <h3 className="mt-5 text-lg font-medium" style={{ color: content.primaryTextColor }}>{group.name}</h3>
-              <p className="mt-2 text-sm leading-6" style={{ color: content.secondaryTextColor }}>{description || 'Flexible support shaped around the client’s goals and requirements.'}</p>
+              <h3 className="mt-5 text-lg font-medium" style={{ color: 'var(--site-primary-text)' }}>{group.name}</h3>
+              <p className="mt-2 text-sm leading-6" style={{ color: 'var(--site-secondary-text)' }}>{description || 'Flexible support shaped around the client’s goals and requirements.'}</p>
             </div>
           );})}
         </div>
@@ -174,8 +174,8 @@ export default function Home() {
         <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Start a project</p>
-            <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: content.home.sectionHeadingColor || content.primaryTextColor }}>Need creative, digital, social, or technical support?</h2>
-            <p className="mt-4 max-w-2xl leading-7" style={{ color: content.secondaryTextColor }}>Describe what you need and the collective will review the most suitable next step.</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>Need creative, digital, social, or technical support?</h2>
+            <p className="mt-4 max-w-2xl leading-7" style={{ color: 'var(--site-secondary-text)' }}>Describe what you need and the collective will review the most suitable next step.</p>
           </div>
           <Link to="/inquiry" className="inline-flex min-h-11 w-fit items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
             Send inquiry <ArrowRight size={18} />

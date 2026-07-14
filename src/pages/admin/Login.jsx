@@ -9,6 +9,7 @@ import PasswordField from '../../components/auth/PasswordField';
 import LoadingState from '../../components/LoadingState';
 import { dashboardRedirectAllowed } from '../../lib/authCallback';
 import { ActionFeedback, FieldError } from '../../components/FieldFeedback';
+import ThemeControl from '../../components/ThemeControl';
 
 const modeCopy = {
   login: {
@@ -171,6 +172,7 @@ export default function Login() {
         <Link to="/" className="fine-link inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-100">
           <ArrowLeft size={16} /> Back to site
         </Link>
+        <ThemeControl className="mt-5" />
 
         <form onSubmit={handleSubmit} className="mt-5 border-y border-white/[0.1] py-7">
           <div className="flex items-start gap-3">

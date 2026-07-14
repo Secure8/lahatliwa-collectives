@@ -101,18 +101,18 @@ export default function ProjectDetails() {
             <span>{project.category}</span>
             {project.featured && <span style={{ color: content.accentColor }}>Selected</span>}
           </div>
-          <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: content.primaryTextColor }}>{project.title}</h1>
-          <p className="mt-5 text-lg leading-8" style={{ color: content.secondaryTextColor }}>{project.description}</p>
-          <div className="mt-6 grid gap-2 text-sm" style={{ color: content.mutedTextColor }}>
+          <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: 'var(--site-primary-text)' }}>{project.title}</h1>
+          <p className="mt-5 text-lg leading-8" style={{ color: 'var(--site-secondary-text)' }}>{project.description}</p>
+          <div className="mt-6 grid gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}>
             {primaryContributor && (
               <p>Work by <Link to={`/creatives/${primaryContributor.slug}`} className="site-hover-accent text-zinc-200">{primaryContributor.name}</Link></p>
             )}
             <p>Published under <span className="text-zinc-200">Lahat Liwa Collectives</span></p>
           </div>
-          <p className="mt-5 inline-flex items-center gap-2 text-sm" style={{ color: content.mutedTextColor }}><Calendar size={16} /> {formatDate(project.project_date)}</p>
+          <p className="mt-5 inline-flex items-center gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}><Calendar size={16} /> {formatDate(project.project_date)}</p>
           {project.tools?.length > 0 && (
             <div className="major-border-y mt-7 flex flex-wrap gap-x-4 gap-y-2 py-5">
-              {project.tools.map((tool) => <span key={tool} className="text-sm" style={{ color: content.secondaryTextColor }}>{tool}</span>)}
+              {project.tools.map((tool) => <span key={tool} className="text-sm" style={{ color: 'var(--site-secondary-text)' }}>{tool}</span>)}
             </div>
           )}
           <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
@@ -147,7 +147,7 @@ export default function ProjectDetails() {
 
       {gallery.length > 0 && (
         <section className="major-border-top mt-16 pt-10">
-          <h2 className="text-2xl font-medium" style={{ color: content.primaryTextColor }}>Gallery</h2>
+          <h2 className="text-2xl font-medium" style={{ color: 'var(--site-primary-text)' }}>Gallery</h2>
           <div className="mt-6 columns-1 gap-5 sm:columns-2 lg:columns-3">
             {gallery.map((item) => (
               <GalleryItem key={item.id} item={item} projectTitle={project.title} />
@@ -169,7 +169,7 @@ function ProjectCover({ cover, title, externalLink }) {
     <a href={externalLink.url} target="_blank" rel="noopener noreferrer" aria-label={projectExternalLinkLabel(externalLink)} className={`${frameClass} group relative block cursor-pointer transition hover:border-orange-300/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950`}>
       {image}
       <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-end bg-gradient-to-t from-black/75 via-black/20 to-transparent px-4 pb-4 pt-12 text-xs font-medium text-white opacity-90 sm:px-5 sm:pb-5">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 backdrop-blur-sm">{projectExternalLinkText(externalLink)} <ExternalLink size={14} aria-hidden="true" /></span>
+        <span className="theme-inverse inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 backdrop-blur-sm">{projectExternalLinkText(externalLink)} <ExternalLink size={14} aria-hidden="true" /></span>
       </span>
     </a>
   );
@@ -237,7 +237,7 @@ function YouTubeGalleryItem({ item, youtubeId, thumbnailUrl }) {
       ) : (
         <button type="button" onClick={() => setPlayerOpen(true)} className="group relative block aspect-video w-full overflow-hidden bg-zinc-950" aria-label={`Play ${item.title || 'YouTube video'}`}>
           <img src={previewUrl} alt="" loading="lazy" decoding="async" width="800" height="450" className="h-full w-full object-cover opacity-80 transition duration-300 group-hover:opacity-95" />
-          <span className="absolute inset-0 grid place-items-center bg-black/15">
+          <span className="theme-inverse absolute inset-0 grid place-items-center bg-black/15">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-zinc-950/85 text-white ring-1 ring-white/20 transition group-hover:scale-105 group-hover:text-[var(--site-accent)]">
               <Play size={20} fill="currentColor" />
             </span>

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuthSession } from '../lib/authSession';
 import PasswordField from '../components/auth/PasswordField';
 import { ActionFeedback } from '../components/FieldFeedback';
+import ThemeControl from '../components/ThemeControl';
 
 export default function SetPassword() {
   const navigate = useNavigate();
@@ -73,6 +74,7 @@ export default function SetPassword() {
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-100">
           <ArrowLeft size={16} /> Back to site
         </Link>
+        <ThemeControl className="mt-5" />
 
         <div className="mt-5 border-y border-white/[0.1] py-7">
           <div className="flex items-start gap-3">

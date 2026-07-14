@@ -70,12 +70,12 @@ export default function Projects() {
               <span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_9px_rgba(253,186,116,0.9)]" aria-hidden="true" />
               {featuredOnly ? 'Selected projects' : 'Project archive'}
             </p>
-            <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-5xl" style={{ color: content.primaryTextColor }}>
+            <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-5xl" style={{ color: 'var(--site-primary-text)' }}>
               {featuredOnly ? 'Selected work.' : 'Work that speaks.'}
             </h1>
           </div>
           <div className="border-l border-orange-300/55 pl-5 lg:pb-1">
-            <p className="text-sm leading-6" style={{ color: content.secondaryTextColor }}>{featuredOnly ? 'A focused selection of projects highlighted across the collective.' : 'Creative and digital work across photography, editing, design, websites, applications, and visual storytelling.'}</p>
+            <p className="text-sm leading-6" style={{ color: 'var(--site-secondary-text)' }}>{featuredOnly ? 'A focused selection of projects highlighted across the collective.' : 'Creative and digital work across photography, editing, design, websites, applications, and visual storytelling.'}</p>
             <p className="mt-4 text-[10px] uppercase tracking-[0.18em] text-zinc-500">{visible.length} {visible.length === 1 ? 'project' : 'projects'} in view</p>
             {featuredOnly && <Link to="/projects" className="mt-4 inline-flex min-h-11 items-center border-b border-white/20 text-sm text-zinc-300 transition hover:border-orange-300/60 hover:text-orange-200">View all projects</Link>}
           </div>

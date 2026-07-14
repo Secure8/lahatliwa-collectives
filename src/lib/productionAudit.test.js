@@ -67,11 +67,12 @@ test('public image priorities match the installed React runtime and loading plac
   assert.doesNotMatch(loadingState, /animate-pulse/);
 });
 
-test('dark native menus preserve readable choices and mobile admin actions stay distinct', () => {
+test('native menus follow the active theme and mobile admin actions stay distinct', () => {
   const styles = readFileSync(resolve(root, 'src/index.css'), 'utf8');
   const inquiry = readFileSync(resolve(root, 'src/pages/StartProject.jsx'), 'utf8');
   const adminLayout = readFileSync(resolve(root, 'src/components/admin/AdminLayout.jsx'), 'utf8');
-  assert.match(styles, /\.dark-select option,[\s\S]*?background-color: #18181b;[\s\S]*?color: #f4f4f5;/);
+  assert.match(styles, /\.dark-select,[\s\S]*?color-scheme: inherit;/);
+  assert.match(styles, /\.dark-select option,[\s\S]*?background-color: var\(--theme-primary-surface\);[\s\S]*?color: var\(--theme-text-primary\);/);
   assert.match(styles, /\.admin-shell select option/);
   assert.match(inquiry, /RecipientStep/);
   assert.match(inquiry, /className="dark-select/);

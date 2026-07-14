@@ -12,6 +12,24 @@
 
 <meta name="theme-color" content="#09090b" />
 
+<script>
+  (() => {
+    const key = 'lahat-liwa-theme';
+    const valid = new Set(['light', 'dark', 'system']);
+    let preference = 'system';
+    try {
+      const saved = localStorage.getItem(key);
+      if (valid.has(saved)) preference = saved;
+    } catch {}
+    const resolved = preference === 'system'
+      ? (typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : preference;
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.style.colorScheme = resolved;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolved === 'light' ? '#f5f1e8' : '#09090b');
+  })();
+</script>
+
 <meta property="og:site_name" content="Lahat Liwa Collectives" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Lahat Liwa Collectives" />

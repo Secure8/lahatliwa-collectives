@@ -102,7 +102,7 @@ function BranchCard({ branch, index, content }) {
       <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-700">0{index + 1}</span>
     </div>
     <h2 className="mt-6 text-2xl font-medium text-white">{branch.label}</h2>
-    <p className="mt-3 max-w-xl text-sm leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{branch.description}</p>
+    <p className="mt-3 max-w-xl text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>{branch.description}</p>
     <ul className="mt-5 grid gap-2 sm:grid-cols-2">{branch.services.map((service) => <li key={service.key} className="flex min-w-0 items-start gap-2 border-b border-white/[0.06] py-2.5 text-sm text-zinc-400"><Check size={14} className="mt-0.5 shrink-0 text-orange-300/80" /><span>{service.name}</span></li>)}</ul>
     <Link to={servicesPath(branch.key)} className="mt-6 inline-flex min-h-11 items-center gap-2 border-b border-orange-300/45 text-sm font-medium text-zinc-200 transition hover:text-orange-200">Explore {branch.label}<ArrowRight size={15} /></Link>
   </section>;
@@ -113,7 +113,7 @@ function BranchWorkspace({ branch, content }) {
   const copy = inquiryCopy(branch.key);
   return <div className="pt-10">
     <section className="grid gap-8 border-b border-white/[0.09] pb-9 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end">
-      <div><div className="flex items-center gap-3 text-orange-200"><Icon size={20} /><span className="text-xs uppercase tracking-[0.19em]">{branch.label}</span></div><h1 className="mt-5 max-w-3xl text-4xl font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl">{copy.serviceSelectionHeading}</h1><p className="mt-5 max-w-2xl leading-7" style={{ color: content.servicesPage.bodyTextColor || content.secondaryTextColor }}>{copy.serviceSelectionDescription}</p></div>
+      <div><div className="flex items-center gap-3 text-orange-200"><Icon size={20} /><span className="text-xs uppercase tracking-[0.19em]">{branch.label}</span></div><h1 className="mt-5 max-w-3xl text-4xl font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl">{copy.serviceSelectionHeading}</h1><p className="mt-5 max-w-2xl leading-7" style={{ color: 'var(--site-secondary-text)' }}>{copy.serviceSelectionDescription}</p></div>
       <div className="border-l border-orange-300/45 pl-5"><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">How it works</p><p className="mt-2 text-sm leading-6 text-zinc-300">Choose a category, select a creative or the general team, then explain the exact result or support you need.</p></div>
     </section>
     {branch.key === 'tech' && <p className="border-b border-white/[0.08] py-4 text-xs leading-6 text-zinc-500">On-site support depends on location, schedule, safety, and the availability of a suitable specialist.</p>}

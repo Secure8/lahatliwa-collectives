@@ -4,13 +4,16 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './index.css';
 import { AuthSessionProvider } from './lib/authSession.jsx';
+import { ThemeProvider } from './lib/ThemeProvider.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AuthSessionProvider>
-        <App />
-      </AuthSessionProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AuthSessionProvider>
+          <App />
+        </AuthSessionProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   </React.StrictMode>,
 );

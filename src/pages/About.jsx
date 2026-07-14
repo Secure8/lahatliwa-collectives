@@ -13,7 +13,7 @@ export default function About() {
           <AccentEyebrow color={content.about.accentColor || content.accentColor}>01 / Story</AccentEyebrow>
           <h2 className="mt-4 text-2xl font-medium">Creative Journey</h2>
         </div>
-        <p className="max-w-4xl border-l border-white/[0.09] pl-5 text-lg leading-8 sm:pl-7" style={{ color: content.about.bodyTextColor || content.secondaryTextColor }}>{content.about.journey}</p>
+        <p className="max-w-4xl border-l border-white/[0.09] pl-5 text-lg leading-8 sm:pl-7" style={{ color: 'var(--site-secondary-text)' }}>{content.about.journey}</p>
       </section>
     </div>
   );

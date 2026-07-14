@@ -82,7 +82,7 @@ export default function Home() {
   }
 
   return (
-    <div>
+    <div className="public-home-app">
       <section className="theme-inverse relative overflow-hidden">
         {homeBg && (
           <>

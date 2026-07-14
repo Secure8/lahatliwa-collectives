@@ -17,7 +17,7 @@ export default function Footer() {
   const socialLinks = content.socialLinks || [];
 
   return (
-    <footer className="mt-28 border-t border-orange-300/45">
+    <footer className="public-footer mt-28 border-t border-orange-300/45">
       <div className="page-shell grid gap-10 py-12 md:grid-cols-[1.4fr_1fr] md:py-14">
         <div>
           <BrandWordmark name={content.displayName} variant="footer" to="/" />

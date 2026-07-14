@@ -20,7 +20,7 @@ export default function ProjectCard({ project, index = 0 }) {
   const creditSummary = projectCreditSummary(project);
 
   return (
-      <article id={`project-${project.id}`} className="group min-w-0 scroll-mt-24">
+      <article id={`project-${project.id}`} className="mobile-app-card group min-w-0 scroll-mt-24">
         <Link
           to={`/projects/${project.slug}`}
           state={linkState}

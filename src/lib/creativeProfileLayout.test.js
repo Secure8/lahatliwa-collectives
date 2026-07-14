@@ -34,6 +34,26 @@ test('mobile hero stacks tools and facts without forcing the desktop dock over c
   assert.doesNotMatch(styles, /\[aria-label="Tools and resources"\][^{]*\{[^}]*display:\s*flex/);
 });
 
+test('mobile profile facts match the tools dock and omit only the redundant discipline row', async () => {
+  const hero = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
+  const mobileFactsStart = hero.indexOf('data-creative-hero-facts');
+  const mobileFactsEnd = hero.indexOf('{resources.length > 0 && <ResourceDock resources={resources} />}');
+  const mobileFacts = hero.slice(mobileFactsStart, mobileFactsEnd);
+
+  assert.ok(mobileFactsStart > -1 && mobileFactsEnd > mobileFactsStart);
+  assert.match(mobileFacts, /data-creative-facts-box/);
+  assert.match(mobileFacts, /rounded-xl/);
+  assert.match(mobileFacts, /border-white\/15/);
+  assert.match(mobileFacts, /bg-black\/55/);
+  assert.match(mobileFacts, /shadow-\[0_10px_35px_rgba\(0,0,0,0\.35\)\]/);
+  assert.match(mobileFacts, /sm:grid-cols-2/);
+  assert.match(mobileFacts, /HeroFact label="Status"/);
+  assert.match(mobileFacts, /HeroFact label="Selected work"/);
+  assert.doesNotMatch(mobileFacts, /HeroFact label="Discipline"/);
+  assert.match(hero, /BrandWordmark variant="eyebrow"[\s\S]*?<SeparatedTitle value=\{creative\.role\}/);
+  assert.match(hero, /<aside[\s\S]*?<HeroFact label="02 \/ Discipline"/);
+});
+
 test('mobile cover height is independent from long profile content while overlays stay intact', async () => {
   const hero = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
   assert.match(hero, /theme-inverse[^\n]*bg-\[#09090b\]/);
@@ -76,6 +96,28 @@ test('creative profiles reveal immersive navigation from the desktop top edge', 
   assert.match(details, /xl:pointer-events-none xl:-translate-y-2 xl:opacity-0/);
   assert.match(hero, /<span>DISCOVER MORE<\/span>/);
   assert.match(hero, /pointer-events-none.*hidden justify-center xl:flex/);
+});
+
+test('creative-profile mobile navigation stays compact, translucent, and layered without changing desktop navigation', async () => {
+  const navbar = await readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8');
+  const styles = await readFile(new URL('../index.css', import.meta.url), 'utf8');
+
+  assert.match(navbar, /immersiveProfile \? 'creative-profile-navigation xl:fixed xl:inset-x-0 xl:z-50/);
+  assert.match(navbar, /publicAppBarMode\(location\.pathname\)/);
+  assert.match(navbar, /min-h-14 items-center justify-between gap-3 xl:min-h-16/);
+  assert.match(navbar, /content\.logoUrl[\s\S]*?<BrandLogo/);
+  assert.match(navbar, /<BrandWordmark name=\{content\.displayName\} variant="compact" mobileVariant="mobile-compact"/);
+  assert.match(navbar, /hidden items-center gap-1 xl:flex/);
+  assert.match(navbar, /focus-visible:ring-\[var\(--focus-ring\)\] xl:hidden/);
+  assert.match(navbar, /aria-label="Open main menu"/);
+  assert.match(navbar, /aria-label="Close main menu"/);
+  assert.match(navbar, /id="public-mobile-navigation"/);
+
+  assert.match(styles, /@media \(max-width: 1279px\)[\s\S]*?\.theme-navigation-surface\.creative-profile-navigation/);
+  assert.match(styles, /background-color: rgb\(9 9 11 \/ 0\.46\) !important/);
+  assert.match(styles, /background-color: rgb\(250 247 240 \/ 0\.5\) !important/);
+  assert.match(styles, /backdrop-filter: blur\(16px\) saturate\(1\.08\)/);
+  assert.match(navbar, /xl:bg-zinc-950\/75 xl:backdrop-blur-xl/);
 });
 
 test('profile hero upload retains large-image quality limits', async () => {

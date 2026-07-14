@@ -1,12 +1,15 @@
 import { ExternalLink, FileText, FolderKanban, Images, Inbox, LayoutDashboard, LogOut, Menu, Settings, User, UserCog, Users, Workflow, X } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { canCreateProjects, canManageSettings, canManageTeam, isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
 import { usePublicContent } from '../../lib/contentApi';
 import { supabase } from '../../lib/supabaseClient';
 import BrandLogo from '../BrandLogo';
 import BrandWordmark from '../BrandWordmark';
+import AppearanceMenuAction from '../AppearanceMenuAction';
+import { adminPageTitle } from '../../lib/mobileAppShell';
+import useModalDrawer from '../../lib/useModalDrawer';
 
 const links = [
   ['Overview', [
@@ -32,6 +35,7 @@ const SIDEBAR_SCROLL_KEY = 'lahat-liwa-admin-sidebar-scroll';
 
 export default function AdminLayout({ children }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const sidebarNavRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadInquiries, setUnreadInquiries] = useState(0);
@@ -40,6 +44,9 @@ export default function AdminLayout({ children }) {
   const visibleGroups = links
     .map(([group, groupLinks]) => [group, groupLinks.filter(([, , , canShow]) => canShow(access))])
     .filter(([, groupLinks]) => groupLinks.length > 0);
+  const currentPageTitle = adminPageTitle(location.pathname, visibleGroups);
+  const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
+  const { panelRef, triggerRef } = useModalDrawer({ open: mobileOpen, onClose: closeMobileMenu });
 
   useEffect(() => {
     if (!['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(access.role) || !access.adminUser?.id) return undefined;
@@ -62,11 +69,8 @@ export default function AdminLayout({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!mobileOpen) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [mobileOpen]);
+    setMobileOpen(false);
+  }, [location.key, location.pathname]);
 
   useLayoutEffect(() => {
     const nav = sidebarNavRef.current;
@@ -96,7 +100,7 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="admin-shell min-h-screen overflow-x-hidden bg-zinc-950 text-white">
-      <aside className="theme-navigation-surface fixed inset-x-0 top-0 z-30 border-b border-white/[0.08] bg-zinc-950/95 px-3 py-3 backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-md lg:border lg:border-white/[0.08] lg:bg-zinc-900/80 lg:p-4">
+      <aside className="admin-app-bar theme-navigation-surface fixed inset-x-0 top-0 z-30 border-b border-white/[0.08] bg-zinc-950/95 px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-md lg:inset-y-4 lg:left-4 lg:right-auto lg:w-72 lg:rounded-md lg:border lg:border-white/[0.08] lg:bg-zinc-900/80 lg:p-4">
         <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
           <Link to="/admin/dashboard" preventScrollReset className="flex min-w-0 items-center gap-3 lg:block" aria-label={`${content.displayName} admin dashboard`}>
             {content.logoUrl ? (
@@ -108,7 +112,7 @@ export default function AdminLayout({ children }) {
             )}
             <div className="min-w-0">
               <BrandWordmark name={content.displayName} variant="admin" mobileVariant="mobile-compact" />
-              <p className="truncate text-xs text-zinc-500">Studio control panel</p>
+              <p className="truncate text-xs text-zinc-500"><span className="lg:hidden">{currentPageTitle}</span><span className="hidden lg:inline">Studio control panel</span></p>
             </div>
           </Link>
 
@@ -135,19 +139,29 @@ export default function AdminLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <button type="button" onClick={() => setMobileOpen((current) => !current)} className="grid h-11 w-11 place-items-center rounded-md border border-white/[0.12] bg-white/[0.04] text-zinc-300 transition hover:border-amber-200/30 hover:bg-white/[0.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50" aria-label={mobileOpen ? 'Close admin menu' : 'Open admin menu'} aria-expanded={mobileOpen} aria-controls="admin-mobile-navigation">
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            <button ref={triggerRef} type="button" onClick={() => setMobileOpen(true)} className="grid h-11 w-11 place-items-center rounded-xl border border-white/[0.12] bg-white/[0.04] text-zinc-300 transition hover:border-amber-200/30 hover:bg-white/[0.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50" aria-label="Open admin menu" aria-expanded={mobileOpen} aria-controls="admin-mobile-navigation" aria-hidden={mobileOpen ? 'true' : undefined} tabIndex={mobileOpen ? -1 : undefined}>
+              <Menu size={20} />
             </button>
           </div>
         </div>
-        {mobileOpen && <div id="admin-mobile-navigation" className="fixed inset-x-0 bottom-0 top-[65px] z-40 grid grid-rows-[1fr_auto] border-t border-white/[0.08] bg-zinc-950 p-4 lg:hidden">
-          <nav className="admin-sidebar-scroll min-h-0 overflow-y-auto" aria-label="Admin navigation">
-            {visibleGroups.map(([group, groupLinks]) => <div key={group} className="mb-5"><p className="mb-2 text-[0.66rem] uppercase tracking-[0.2em] text-zinc-600">{group}</p><div className="grid gap-1">{groupLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} onClick={() => setMobileOpen(false)} className={({ isActive }) => clsx('flex min-h-12 items-center gap-3 rounded-md border px-3 py-3 text-sm transition', isActive ? 'border-amber-200/25 bg-amber-200/[0.08] text-amber-100' : 'border-transparent text-zinc-400 hover:border-white/[0.08] hover:bg-white/[0.035] hover:text-white')}><Icon size={16} /><span>{label}</span>{href === '/admin/inquiries' && unreadInquiries > 0 && <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-zinc-950" aria-label={`${unreadInquiries} unread inquiries`}>{unreadInquiries > 99 ? '99+' : unreadInquiries}</span>}<span className="sr-only">{label} page</span></NavLink>)}</div></div>)}
-          </nav>
-          <div className="-mx-4 grid grid-cols-2 gap-3 border-t border-white/[0.1] bg-zinc-900/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-16px_40px_rgba(0,0,0,0.32)]"><Link to="/" onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100"><ExternalLink size={16} /> View site</Link><button type="button" onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/[0.14] bg-white/[0.06] px-3 text-sm font-medium text-zinc-100 transition hover:border-red-200/30 hover:bg-red-300/[0.08] hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><LogOut size={16} /> Logout</button></div>
-        </div>}
       </aside>
-      <main className="px-4 pb-10 pt-24 sm:px-5 lg:ml-80 lg:px-8 lg:pt-10">
+      {mobileOpen && <div className="fixed inset-0 z-50 lg:hidden">
+        <button type="button" tabIndex={-1} onClick={closeMobileMenu} className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" aria-label="Close admin menu" />
+        <section ref={panelRef} id="admin-mobile-navigation" role="dialog" aria-modal="true" aria-label="Admin menu" className="theme-navigation-surface absolute inset-y-0 right-0 grid w-[min(24rem,calc(100%-0.75rem))] grid-rows-[auto_1fr_auto] overflow-hidden border-l border-white/[0.1] bg-zinc-950/98 shadow-[-24px_0_70px_rgba(0,0,0,0.42)]">
+          <div className="flex min-h-16 items-center justify-between gap-4 border-b border-white/[0.08] px-4 pt-[env(safe-area-inset-top)]">
+            <div className="min-w-0"><p className="text-[0.66rem] font-medium uppercase tracking-[0.22em] text-amber-200/80">Admin menu</p><p className="mt-1 truncate text-sm font-medium text-white">{currentPageTitle}</p></div>
+            <button data-drawer-initial-focus type="button" onClick={closeMobileMenu} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/[0.12] bg-white/[0.04] text-zinc-200" aria-label="Close admin menu"><X size={20} /></button>
+          </div>
+          <nav className="admin-sidebar-scroll min-h-0 overflow-y-auto overscroll-contain px-3 py-4" aria-label="Admin navigation">
+            {visibleGroups.map(([group, groupLinks]) => <div key={group} className="mb-5 last:mb-0"><p className="mb-2 px-2 text-[0.66rem] uppercase tracking-[0.2em] text-zinc-600">{group}</p><div className="grid gap-1">{groupLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} onClick={closeMobileMenu} className={({ isActive }) => clsx('flex min-h-12 items-center gap-3 rounded-xl border px-3 py-3 text-sm transition', isActive ? 'border-amber-200/25 bg-amber-200/[0.08] text-amber-100' : 'border-transparent text-zinc-400 hover:border-white/[0.08] hover:bg-white/[0.035] hover:text-white')}><span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.04]"><Icon size={16} /></span><span>{label}</span>{href === '/admin/inquiries' && unreadInquiries > 0 && <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-semibold text-zinc-950" aria-label={`${unreadInquiries} unread inquiries`}>{unreadInquiries > 99 ? '99+' : unreadInquiries}</span>}</NavLink>)}</div></div>)}
+          </nav>
+          <div className="grid gap-3 border-t border-white/[0.1] bg-zinc-900/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-16px_40px_rgba(0,0,0,0.32)]">
+            <AppearanceMenuAction className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.045] px-3 text-sm text-zinc-200" />
+            <div className="grid grid-cols-2 gap-3"><Link to="/" onClick={closeMobileMenu} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-amber-300 px-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100"><ExternalLink size={16} /> View site</Link><button type="button" onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-300/20 bg-red-300/[0.04] px-3 text-sm font-medium text-red-100 transition hover:border-red-200/40 hover:bg-red-300/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/60"><LogOut size={16} /> Logout</button></div>
+          </div>
+        </section>
+      </div>}
+      <main className="admin-app-content px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[calc(5.75rem+env(safe-area-inset-top))] sm:px-5 lg:ml-80 lg:px-8 lg:pb-10 lg:pt-10">
         <div className="mx-auto max-w-7xl">{children}</div>
       </main>
     </div>

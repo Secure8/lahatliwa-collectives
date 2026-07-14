@@ -651,6 +651,152 @@ html.theme-transition::view-transition-new(root) { z-index: 2; }
 
 .theme-navigation-surface { background-color: var(--theme-navigation-surface) !important; }
 
+@media (max-width: 1279px) {
+  .public-app-bar {
+    padding-top: env(safe-area-inset-top);
+    -webkit-backdrop-filter: blur(16px) saturate(1.08);
+    backdrop-filter: blur(16px) saturate(1.08);
+  }
+
+  .theme-navigation-surface.public-app-bar--surface {
+    background-color: rgb(9 9 11 / 0.9) !important;
+  }
+
+  .theme-navigation-surface.public-app-bar--overlay {
+    background-color: rgb(9 9 11 / 0.54) !important;
+    border-color: rgb(255 255 255 / 0.12) !important;
+  }
+
+  [data-theme="light"] .theme-navigation-surface.public-app-bar--surface {
+    background-color: rgb(250 247 240 / 0.92) !important;
+  }
+
+  [data-theme="light"] .theme-navigation-surface.public-app-bar--overlay {
+    background-color: rgb(250 247 240 / 0.62) !important;
+    border-color: rgb(39 39 42 / 0.14) !important;
+  }
+
+  .public-app-content--surface {
+    padding-top: calc(3.5rem + env(safe-area-inset-top));
+  }
+
+  .public-app-content--surface > .page-shell {
+    padding-top: 2.25rem !important;
+  }
+
+  .mobile-navigation-open .theme-toggle--global {
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-0.5rem, 0.5rem) scale(0.96);
+  }
+
+  .theme-navigation-surface.creative-profile-navigation {
+    background-color: rgb(9 9 11 / 0.46) !important;
+    border-color: rgb(255 255 255 / 0.12) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.08);
+    backdrop-filter: blur(16px) saturate(1.08);
+  }
+
+  .theme-navigation-surface.creative-profile-navigation.creative-profile-navigation--open {
+    background-color: rgb(9 9 11 / 0.62) !important;
+  }
+
+  [data-theme="light"] .theme-navigation-surface.creative-profile-navigation {
+    background-color: rgb(250 247 240 / 0.5) !important;
+    border-color: rgb(39 39 42 / 0.14) !important;
+  }
+
+  [data-theme="light"] .theme-navigation-surface.creative-profile-navigation.creative-profile-navigation--open {
+    background-color: rgb(250 247 240 / 0.68) !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .page-shell {
+    width: min(1120px, calc(100% - 32px));
+  }
+
+  .public-page-header {
+    padding-bottom: 2rem;
+  }
+
+  .public-page-header h1 {
+    margin-top: 1rem;
+    font-size: clamp(2rem, 10vw, 2.35rem);
+    line-height: 1.06;
+  }
+
+  .public-page-header h1 + p {
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .public-home-app > section:not(:first-child) {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  .public-home-app > section:first-child .page-shell {
+    min-height: 100svh;
+    padding-top: calc(5.25rem + env(safe-area-inset-top));
+    padding-bottom: 3rem;
+  }
+
+  .public-home-app > section h2 {
+    font-size: 1.75rem;
+    line-height: 1.15;
+  }
+
+  .mobile-app-card,
+  .mobile-service-card {
+    overflow: hidden;
+    border: 1px solid var(--theme-border) !important;
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--theme-elevated-surface) 76%, transparent);
+    padding: 0.75rem;
+    box-shadow: 0 16px 42px -32px var(--theme-shadow);
+  }
+
+  .mobile-app-card::after {
+    display: none;
+  }
+
+  .mobile-service-card {
+    padding: 1rem;
+  }
+
+  .public-inquiry-flow > .grid > main {
+    border: 1px solid var(--theme-border);
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--theme-elevated-surface) 64%, transparent);
+    padding: 1rem;
+  }
+
+  .public-footer {
+    margin-top: 4.5rem;
+  }
+
+  .public-footer > .page-shell:first-child {
+    gap: 2rem;
+    padding-top: 2.25rem;
+    padding-bottom: 2.25rem;
+  }
+
+  .public-footer a[aria-label] {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .admin-shell :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]), textarea, select) {
+    min-height: 2.75rem;
+  }
+
+  .admin-shell .sticky.bottom-0 {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
 [data-theme="light"] :where([class~="divide-white/[0.07]"], [class~="divide-white/[0.08]"]) > :not(:last-child) {
   border-color: var(--theme-border) !important;
 }

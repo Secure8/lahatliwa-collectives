@@ -23,20 +23,20 @@ const statusTone = {
 
 export function AdminPageHeader({ eyebrow, title, description, action }) {
   return (
-    <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-7 flex flex-col gap-5 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-3xl">
         {eyebrow && <p className="text-xs font-medium uppercase tracking-[0.24em] text-amber-200/80">{eyebrow}</p>}
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-amber-100 sm:text-4xl">{title}</h1>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-amber-100 sm:text-4xl">{title}</h1>
         {description && <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>}
       </div>
-      {action && <div className="flex shrink-0 flex-wrap gap-3">{action}</div>}
+      {action && <div className="flex w-full shrink-0 flex-wrap gap-3 sm:w-auto">{action}</div>}
     </div>
   );
 }
 
 export function AdminSurface({ children, className = '', as: Component = 'section', ...props }) {
   return (
-    <Component {...props} className={clsx('rounded-md border border-amber-200/15 bg-zinc-950/95 p-5 shadow-lg shadow-black/15', className)}>
+    <Component {...props} className={clsx('rounded-xl border border-amber-200/15 bg-zinc-950/95 p-4 shadow-lg shadow-black/15 sm:rounded-md sm:p-5', className)}>
       {children}
     </Component>
   );
@@ -52,7 +52,7 @@ export function AdminSoftPanel({ children, className = '' }) {
 
 export function AdminButton({ children, to, onClick, type = 'button', variant = 'secondary', className = '', disabled = false, ...props }) {
   const classes = clsx(
-    'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border px-4 text-sm font-semibold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
+    'inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-4 text-sm font-semibold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45 sm:h-10 sm:rounded-md',
     variant === 'primary'
       ? 'border-amber-200/70 bg-amber-300 text-zinc-950 shadow-sm shadow-amber-950/30 hover:bg-amber-200'
       : variant === 'danger'
@@ -77,7 +77,7 @@ export function AdminActionGroup({ children, className = '' }) {
 
 export function AdminActionButton({ children, to, onClick, type = 'button', variant = 'secondary', disabled = false, className = '', ...props }) {
   const classes = clsx(
-    'inline-flex h-9 min-w-20 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-xs font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
+    'inline-flex h-11 min-w-20 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-xs font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45 lg:h-9 lg:rounded-md',
     variant === 'danger'
       ? 'border-red-300/20 bg-red-300/[0.04] text-red-200 hover:border-red-300/40 hover:bg-red-300/10 hover:text-red-100'
       : variant === 'primary'

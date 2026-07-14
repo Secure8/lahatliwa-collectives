@@ -14,7 +14,7 @@ export default function CreativeCard({ creative }) {
   const skills = allSkills.slice(0, 4);
 
   return (
-    <article id={`creative-${creative.id}`} className="group relative flex h-full scroll-mt-24 flex-col border-t border-white/[0.09] pt-5 after:absolute after:left-0 after:top-[-1px] after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.75)] after:transition-all after:duration-500 hover:after:w-20">
+    <article id={`creative-${creative.id}`} className="mobile-app-card group relative flex h-full scroll-mt-24 flex-col border-t border-white/[0.09] pt-5 after:absolute after:left-0 after:top-[-1px] after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.75)] after:transition-all after:duration-500 hover:after:w-20">
       <Link to={`/creatives/${creative.slug}`} state={linkState} onPointerEnter={() => preloadPublicRoute('/creatives/:slug')} onFocus={() => preloadPublicRoute('/creatives/:slug')} className="block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
         {profileImage && !imageFailed ? (
           <img src={profileImage} alt={creative.name} loading="lazy" decoding="async" width="800" height="800" className="mx-auto aspect-square w-full max-w-48 rounded-full border border-white/10 bg-zinc-900 object-cover opacity-95 transition duration-500 group-hover:scale-[1.015] group-hover:border-orange-300/30 group-hover:opacity-100 group-hover:shadow-[0_0_32px_rgba(251,146,60,0.16)]" onError={() => setImageFailed(true)} />

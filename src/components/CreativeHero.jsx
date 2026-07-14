@@ -47,9 +47,8 @@ export default function CreativeHero({ creative, projectCount, socials, resource
       </aside>
       <div data-creative-hero-facts className="relative z-10 mx-3 mb-3 lg:hidden">
         {resources.length > 0 && <ResourceDock resources={resources} mobile />}
-        <div className="grid border border-white/15 bg-black/55 backdrop-blur-md sm:grid-cols-3">
+        <div data-creative-facts-box className="grid overflow-hidden rounded-xl border border-white/15 bg-black/55 shadow-[0_10px_35px_rgba(0,0,0,0.35)] backdrop-blur-md sm:grid-cols-2">
           <HeroFact label="Status" value={creative.availability_status || 'Creative profile'} accent={Boolean(creative.availability_status)} />
-          <HeroFact label="Discipline" value={<SeparatedTitle value={creative.role || 'Multidisciplinary'} />} />
           <HeroFact label="Selected work" value={`${projectCount} published ${projectCount === 1 ? 'project' : 'projects'}`} />
         </div>
       </div>

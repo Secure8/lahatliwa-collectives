@@ -241,7 +241,7 @@ export default function StartProject() {
     }
   }
 
-  return <div className="page-shell py-16 sm:py-20" style={{ '--project-accent': content.accentColor, '--project-secondary': content.secondaryTextColor }}>
+  return <div className="public-inquiry-flow page-shell py-16 sm:py-20" style={{ '--project-accent': content.accentColor, '--project-secondary': content.secondaryTextColor }}>
     <PublicPageHeader eyebrow={copy.pageEyebrow} title={step === 0 ? copy.serviceSelectionHeading : copy.pageTitle} description={step === 0 ? copy.serviceSelectionDescription : copy.pageDescription} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
 
     {step > INQUIRY_SELECTION_STEP && selectedBranch && selectedService && <SelectionSummary branch={selectedBranch.label} service={selectedService.name} specialist={selectedCreative?.name || (step > INQUIRY_SPECIALIST_STEP ? copy.teamOption : '')} onChange={changeSelection} onChangeSpecialist={step > INQUIRY_SPECIALIST_STEP ? changeSpecialist : null} />}

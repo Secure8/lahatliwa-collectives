@@ -95,13 +95,13 @@ export default function Home() {
         <div className="max-w-2xl">
           <AccentEyebrow color={content.home.accentTextColor || content.accentColor} preserveColor>{content.home.heroEyebrow || content.hero.eyebrow}</AccentEyebrow>
           <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{heroIsBrandWordmark ? <BrandWordmark name={content.home.heroTitle} variant="hero" /> : content.home.heroTitle}</h1>
-          <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'A creative digital collective building visuals, stories, and digital experiences across photography, editing, social media, content, and web projects.'}</p>
+          <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'Find focused support across visual production, digital development, social media, and technical needs—or explore the creatives and work published through the platform.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/inquiry" className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
-              Start a Project <ArrowRight size={18} />
+              {content.home.primaryCta || 'Send an Inquiry'} <ArrowRight size={18} />
             </Link>
             <Link to="/projects" className="fine-link px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
-              Explore Works
+              {content.home.secondaryCta || 'Explore Published Work'}
             </Link>
           </div>
           <p className="mt-8 max-w-xl text-sm leading-6" style={{ color: content.mutedTextColor }}>{content.tagline}</p>
@@ -119,7 +119,7 @@ export default function Home() {
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Selected work</p>
             <h2 id="selected-work-heading" className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>{content.home.featuredHeading}</h2>
-            <p className="mt-4 leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore projects across the four branches of Lahat Liwa.</p>
+            <p className="mt-4 leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore complete project records, visible outputs, and contributor credits across the four Liwa branches.</p>
           </div>
         </div>
         <div className="mb-10 grid grid-cols-2 gap-1 border-y border-white/[0.08] py-1 sm:grid-cols-4" role="tablist" aria-label="Project branches">
@@ -136,15 +136,15 @@ export default function Home() {
         <div className="mb-10 flex items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Featured creatives</p>
-            <h2 className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>Meet the people behind the work.</h2>
+            <h2 className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>Discover published creatives and their work.</h2>
           </div>
-          <Link to="/creatives" className="fine-link site-hover-accent text-sm text-zinc-300">View creatives</Link>
+          <Link to="/creatives" className="fine-link site-hover-accent text-sm text-zinc-300">Explore creative profiles</Link>
         </div>
         {loading ? <LoadingState label="Loading creatives" /> : creatives.length ? (
           <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} />)}
           </div>
-        ) : <EmptyState title="No featured creatives yet" message="Publish and feature creative members from the admin dashboard." />}
+        ) : <EmptyState title="No featured creative profiles yet" message="Explore the full directory for currently published profiles." />}
       </section>
 
       <section className="page-shell major-border-top py-16">
@@ -179,7 +179,7 @@ export default function Home() {
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Start a project</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>Need creative, digital, social, or technical support?</h2>
-            <p className="mt-4 max-w-2xl leading-7" style={{ color: 'var(--site-secondary-text)' }}>Describe what you need and the collective will review the most suitable next step.</p>
+            <p className="mt-4 max-w-2xl leading-7" style={{ color: 'var(--site-secondary-text)' }}>Describe what you need, share the context that matters, and begin a review before any timing, pricing, or availability is confirmed.</p>
           </div>
           <Link to="/inquiry" className="inline-flex min-h-11 w-fit items-center gap-2 bg-[var(--site-accent)] px-5 text-sm font-semibold text-zinc-950 transition hover:bg-[var(--site-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
             Send inquiry <ArrowRight size={18} />

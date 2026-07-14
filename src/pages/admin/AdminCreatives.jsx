@@ -69,7 +69,7 @@ export default function AdminCreatives() {
 
   return (
     <AdminLayout>
-      <AdminPageHeader eyebrow="Collective" title="Creatives" description="Manage public creative profiles and visibility." action={<AdminButton variant="primary" to="/admin/creatives/new"><Plus size={17} /> Add Creative</AdminButton>} />
+      <AdminPageHeader eyebrow="Published profiles" title="Creatives" description="Manage public creative profiles, publication, and featured visibility." action={<AdminButton variant="primary" to="/admin/creatives/new"><Plus size={17} /> Add Creative</AdminButton>} />
       {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
       {notice && <AdminNotice tone="success" className="mb-5">{notice}</AdminNotice>}
       {loading ? <LoadingState label="Loading creatives" /> : creatives.length ? (

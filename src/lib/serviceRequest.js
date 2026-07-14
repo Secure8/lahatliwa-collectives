@@ -1,14 +1,14 @@
 import { canonicalServiceKey, resolveServiceCategory, serviceCategoriesForBranch, serviceKey } from './serviceCatalog.js';
 
 export const SERVICE_BRANCHES = [
-  { key: 'studio', label: 'Liwa Studio', action: 'Request Studio Services', description: 'Tell us about the shoot, coverage, production, or editing request. Share the subject or event, visual style, schedule, and required photos or videos so we can match you with a creative or production specialist.' },
+  { key: 'studio', label: 'Liwa Studio', action: 'Request Studio Services', description: 'Tell us about the shoot, coverage, production, or editing request. Share the subject or event, visual style, schedule, and required photos or videos so the requirements can be reviewed clearly.' },
   { key: 'tech', label: 'Liwa Tech', action: 'Request Technical Support', description: 'Describe the device, software, setup, or technical issue that needs attention. Include the symptoms, timing, and preferred support arrangement so a technician or technical specialist can review it.' },
   { key: 'digital', label: 'Liwa Digital', action: 'Start a Digital Request', description: 'Tell us about the website, application, prototype, system, automation, or integration you want to build or improve so a developer or digital specialist can review the requirements.' },
   { key: 'social', label: 'Liwa Social', action: 'Start a Marketing Request', description: 'Tell us about the brand, page, audience, content plan, or campaign that needs support so a social media or marketing specialist can review your goals.' },
 ];
 
 export const GENERAL_BRANCH = { key: 'general', label: 'General', action: 'Describe What You Need', description: 'Describe your request, question, or collaboration idea. Include the result you are aiming for, your preferred timeline, and enough context for us to direct it to the appropriate Liwa branch.' };
-export const INQUIRY_STEPS = ['Service Category', 'Liwa Team', 'Request Details', 'Schedule and Contact', 'Review'];
+export const INQUIRY_STEPS = ['Service Category', 'Preferred Creative', 'Request Details', 'Schedule and Contact', 'Review'];
 export const INQUIRY_SELECTION_STEP = 0;
 export const INQUIRY_SPECIALIST_STEP = 1;
 export const INQUIRY_DETAILS_STEP = 2;
@@ -36,10 +36,10 @@ export const BRANCH_INQUIRY_COPY = {
     examples: ['We need photo and video coverage for a school event…', 'We already have raw footage and need a 2-minute highlight video…'],
     recipientLabel: 'Creative or production specialist',
     recipientLegend: 'Who should receive this Studio request?',
-    recipientHelper: 'Choose an available Studio creative or production specialist, or let the Studio team assign the best fit.',
-    teamOption: 'Liwa Studio team',
-    teamOptionDetail: 'Let the Studio team review the shoot, production, or editing request and assign the best fit.',
-    recipientError: 'Please choose an available Studio creative or the Liwa Studio team.',
+    recipientHelper: 'Express a preference for a published Studio creative, or continue without choosing a specific person. A preference does not guarantee availability or assignment.',
+    teamOption: 'General Studio request',
+    teamOptionDetail: 'Send the request to Liwa Studio for review without choosing a specific published creative.',
+    recipientError: 'Please choose a published Studio creative or continue with a general Studio request.',
     scheduleLabel: 'Shoot date, event date, or turnaround',
     schedulePlaceholder: 'Event date, coverage hours, or preferred delivery date',
     serviceModeLabel: 'Production arrangement (optional)',
@@ -53,10 +53,10 @@ export const BRANCH_INQUIRY_COPY = {
       ['existingAssets', 'Visual style, references, or existing files'],
     ],
     reviewLabel: 'Visual output requested',
-    matchingCopy: 'The Studio team will review the shoot date, location, coverage hours, visual style, output quantity, editing needs, turnaround, and availability of a creative or production specialist.',
-    confirmationTitle: 'Your Studio request is safely with the team.',
+    matchingCopy: 'Liwa Studio will review the shoot date, location, coverage hours, visual style, output quantity, editing needs, turnaround, and available support. A selected creative is a preference, not a guaranteed assignment.',
+    confirmationTitle: 'Your Studio inquiry has been received.',
     confirmationDescription: 'Keep your reference number nearby. Liwa Studio will review the shoot, coverage, production, or editing requirements before confirming availability, timing, or pricing.',
-    directoryLabel: 'Explore Studio creatives',
+    directoryLabel: 'Explore Studio creative profiles',
   },
   digital: {
     pageEyebrow: 'Liwa Digital inquiry',
@@ -78,10 +78,10 @@ export const BRANCH_INQUIRY_COPY = {
     examples: ['We need a website for a small café with a menu and inquiry form…', 'We have an existing system that needs a new dashboard and user roles…'],
     recipientLabel: 'Developer or digital specialist',
     recipientLegend: 'Who should receive this Digital request?',
-    recipientHelper: 'Choose an available developer or digital specialist, or let the Digital team assign the best fit.',
-    teamOption: 'Liwa Digital team',
-    teamOptionDetail: 'Let the Digital team review the website, application, prototype, or system requirements and assign the best fit.',
-    recipientError: 'Please choose an available developer or the Liwa Digital team.',
+    recipientHelper: 'Express a preference for a published developer or digital specialist, or continue without choosing a specific person. A preference does not guarantee availability or assignment.',
+    teamOption: 'General Digital request',
+    teamOptionDetail: 'Send the request to Liwa Digital for review without choosing a specific published creative.',
+    recipientError: 'Please choose a published digital specialist or continue with a general Digital request.',
     scheduleLabel: 'Preferred timeline or launch target',
     schedulePlaceholder: 'Target launch, milestone, or consultation date',
     serviceModeLabel: 'Development arrangement (optional)',
@@ -96,10 +96,10 @@ export const BRANCH_INQUIRY_COPY = {
       ['meetingRequested', 'Development consultation'],
     ],
     reviewLabel: 'Product or system requirements',
-    matchingCopy: 'The Digital team will review the users, features, platform, integrations, content, hosting or domain needs, maintenance expectations, timeline, and availability of a developer or digital specialist.',
-    confirmationTitle: 'Your Digital request is safely with the team.',
+    matchingCopy: 'Liwa Digital will review the users, features, platform, integrations, content, hosting or domain needs, maintenance expectations, timeline, and available support. A selected creative is a preference, not a guaranteed assignment.',
+    confirmationTitle: 'Your Digital inquiry has been received.',
     confirmationDescription: 'Keep your reference number nearby. Liwa Digital will review the product, website, application, system, or consultation requirements before confirming availability, timing, or pricing.',
-    directoryLabel: 'Meet digital specialists',
+    directoryLabel: 'Explore Digital creative profiles',
   },
   social: {
     pageEyebrow: 'Liwa Social inquiry',
@@ -121,10 +121,10 @@ export const BRANCH_INQUIRY_COPY = {
     examples: ['We need monthly Facebook content planning and posting for a local café…', 'We are launching a campaign and need strategy, captions, and promotional materials…'],
     recipientLabel: 'Social media or marketing specialist',
     recipientLegend: 'Who should receive this Social request?',
-    recipientHelper: 'Choose an available social media or marketing specialist, or let the Social team assign the best fit.',
-    teamOption: 'Liwa Social team',
-    teamOptionDetail: 'Let the Social team review the page, content, brand, or campaign needs and assign the best fit.',
-    recipientError: 'Please choose an available social media specialist or the Liwa Social team.',
+    recipientHelper: 'Express a preference for a published social media or marketing specialist, or continue without choosing a specific person. A preference does not guarantee availability or assignment.',
+    teamOption: 'General Social request',
+    teamOptionDetail: 'Send the request to Liwa Social for review without choosing a specific published creative.',
+    recipientError: 'Please choose a published social or marketing specialist or continue with a general Social request.',
     scheduleLabel: 'Campaign dates or preferred start',
     schedulePlaceholder: 'Launch date, campaign period, or preferred start month',
     serviceModeLabel: 'Working arrangement (optional)',
@@ -140,10 +140,10 @@ export const BRANCH_INQUIRY_COPY = {
       ['arrangement', 'Strategy, management, or consultation'],
     ],
     reviewLabel: 'Marketing support requested',
-    matchingCopy: 'The Social team will review the platforms, audience, campaign goal, content calendar, captions, posting frequency, available assets, brand voice, analytics needs, and availability of a social media or marketing specialist.',
-    confirmationTitle: 'Your Social request is safely with the team.',
+    matchingCopy: 'Liwa Social will review the platforms, audience, campaign goal, content calendar, captions, posting frequency, available assets, brand voice, analytics needs, and available support. A selected creative is a preference, not a guaranteed assignment.',
+    confirmationTitle: 'Your Social inquiry has been received.',
     confirmationDescription: 'Keep your reference number nearby. Liwa Social will review the brand, page, content, or campaign requirements before confirming availability, timing, or pricing.',
-    directoryLabel: 'Meet social and marketing specialists',
+    directoryLabel: 'Explore Social creative profiles',
   },
   tech: {
     pageEyebrow: 'Liwa Tech support request',
@@ -165,10 +165,10 @@ export const BRANCH_INQUIRY_COPY = {
     examples: ['My Windows laptop has become very slow and sometimes fails to start…', 'We need several office computers configured with the required software and user accounts…'],
     recipientLabel: 'Technician or technical specialist',
     recipientLegend: 'Who should receive this technical support request?',
-    recipientHelper: 'Choose an available technician or technical specialist, or let the Liwa Tech team assign the best fit.',
-    teamOption: 'Liwa Tech team',
-    teamOptionDetail: 'Let the technical support team review the device, setup, software, or issue and assign the right specialist.',
-    recipientError: 'Please choose an available technician or the Liwa Tech team.',
+    recipientHelper: 'Express a preference for a published technician or technical specialist, or continue without choosing a specific person. A preference does not guarantee availability or assignment.',
+    teamOption: 'General Tech request',
+    teamOptionDetail: 'Send the request to Liwa Tech for review without choosing a specific published creative.',
+    recipientError: 'Please choose a published technical specialist or continue with a general Tech request.',
     scheduleLabel: 'When do you need technical support?',
     schedulePlaceholder: 'Preferred date, urgency, or available support window',
     serviceModeLabel: 'Support arrangement (optional)',
@@ -181,10 +181,10 @@ export const BRANCH_INQUIRY_COPY = {
       ['supportMode', 'Preferred technical support'],
     ],
     reviewLabel: 'Technical issue or setup',
-    matchingCopy: 'The Liwa Tech team will review the device type, operating system, symptoms, error messages, software, setup, troubleshooting already attempted, support mode, urgency, and availability of a technician or technical specialist.',
-    confirmationTitle: 'Your technical support request is safely with Liwa Tech.',
-    confirmationDescription: 'Keep your reference number nearby. A technician or technical specialist will review the device, setup, software, or issue before the team confirms availability, timing, or pricing.',
-    directoryLabel: 'Meet technical specialists',
+    matchingCopy: 'Liwa Tech will review the device type, operating system, symptoms, error messages, software, setup, troubleshooting already attempted, support mode, urgency, and available support. A selected creative is a preference, not a guaranteed assignment.',
+    confirmationTitle: 'Your technical support inquiry has been received.',
+    confirmationDescription: 'Keep your reference number nearby. Liwa Tech will review the device, setup, software, or issue before confirming availability, timing, or pricing.',
+    directoryLabel: 'Explore Tech creative profiles',
   },
   general: {
     pageEyebrow: 'Liwa service inquiry',
@@ -194,7 +194,7 @@ export const BRANCH_INQUIRY_COPY = {
     serviceSelectionDescription: 'For requests that may involve one or more Liwa branches, consultation, or general assistance.',
     serviceHelper: 'Choose the closest fit. You can explain the exact goal, situation, and support you need in the next step.',
     submitLabel: 'Send request',
-    steps: ['Service category', 'Liwa team member', 'Tell us what you need', 'Schedule and contact', 'Review request'],
+    steps: ['Service category', 'Preferred published creative', 'Tell us what you need', 'Schedule and contact', 'Review request'],
     summaryLabel: 'Request summary',
     summaryHelper: 'Give us a short overview so we can direct your request to the appropriate Liwa branch.',
     summaryPlaceholder: 'A short overview of the help or result you need',
@@ -204,12 +204,12 @@ export const BRANCH_INQUIRY_COPY = {
     detailsPlaceholder: 'Describe what you need, what is happening now, and the result you are hoping for…',
     detailsError: 'Please describe your request in at least 20 characters.',
     examples: [],
-    recipientLabel: 'Liwa team member',
+    recipientLabel: 'Preferred published creative',
     recipientLegend: 'Who should receive this request?',
-    recipientHelper: 'Choose an available team member or let the collective direct the request to the appropriate Liwa branch.',
-    teamOption: 'General Liwa team',
-    teamOptionDetail: 'Let the collective review the request and direct it to the appropriate branch and team member.',
-    recipientError: 'Please choose an available team member or the general Liwa team.',
+    recipientHelper: 'Express a preference for a published creative, or continue without choosing a specific person. A preference does not guarantee availability or assignment.',
+    teamOption: 'General Liwa request',
+    teamOptionDetail: 'Let the platform review the request and direct it to the appropriate branch without choosing a specific published creative.',
+    recipientError: 'Please choose a published creative or continue with a general Liwa request.',
     scheduleLabel: 'Preferred date or timeline',
     schedulePlaceholder: 'Preferred date, range, or timing',
     serviceModeLabel: 'Service arrangement (optional)',
@@ -218,10 +218,10 @@ export const BRANCH_INQUIRY_COPY = {
     locationPlaceholder: 'City or general area only',
     reviewFields: [],
     reviewLabel: 'Request details',
-    matchingCopy: 'The collective will review your goal, current situation, expected result, schedule, location, and the availability of the appropriate Liwa team member.',
-    confirmationTitle: 'Your request is safely with the collective.',
-    confirmationDescription: 'Keep your reference number nearby. The team will direct your request to the appropriate Liwa branch before confirming availability, timing, or pricing.',
-    directoryLabel: 'Meet the Liwa team',
+    matchingCopy: 'The platform will review your goal, current situation, expected result, schedule, location, and available support. A selected creative is a preference, not a guaranteed assignment.',
+    confirmationTitle: 'Your inquiry has been received.',
+    confirmationDescription: 'Keep your reference number nearby. The request will be reviewed and directed to the appropriate Liwa branch before availability, timing, or pricing is confirmed.',
+    directoryLabel: 'Explore published creative profiles',
   },
 };
 
@@ -366,7 +366,7 @@ export function validateInquiryStep(step, draft, availableServices = [], eligibl
   if (step === 3) {
     if (String(draft.clientName || '').trim().length < 2) errors.clientName = 'Please enter your name or organization contact.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.clientEmail || '').trim())) errors.clientEmail = 'Please enter a valid email address.';
-    if (!draft.consent) errors.consent = 'Please confirm that the team may contact you about this request.';
+    if (!draft.consent) errors.consent = 'Please confirm that Lahat Liwa may contact you about this request.';
   }
   return errors;
 }

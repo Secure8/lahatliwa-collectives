@@ -16,7 +16,7 @@ const pages = [
   {
     key: 'about',
     title: 'About',
-    description: 'About page heading, introduction, and creative journey copy.',
+    description: 'About page heading, introduction, purpose, and platform positioning copy.',
     editorPath: '/admin/content/about',
     publicPath: '/about',
   },

@@ -45,13 +45,13 @@ export default function ProjectCard({ project, index = 0 }) {
             {project.description && <p className="mt-3 line-clamp-2 max-w-2xl text-sm leading-6 text-zinc-500">{excerpt(project.description, 150)}</p>}
             {creditSummary && (
               <div className="mt-4 min-w-0 border-l border-orange-300/45 pl-3" title={creditSummary.fullNames}>
-                <p className="text-[9px] font-medium uppercase tracking-[0.18em] text-zinc-600">Creative credit</p>
+                <p className="text-[9px] font-medium uppercase tracking-[0.18em] text-zinc-600">Contributor credit</p>
                 <p className="mt-1 truncate text-sm font-semibold text-zinc-100">{creditSummary.names}</p>
                 {creditSummary.roles && <p className="mt-1 line-clamp-2 text-[10px] font-medium uppercase leading-4 tracking-[0.13em] text-orange-200">{creditSummary.roles}</p>}
               </div>
             )}
           </div>
-          <Link to={`/projects/${project.slug}`} state={linkState} className="mt-3 inline-flex min-h-11 items-center gap-2 self-end border-b border-white/[0.14] text-sm text-zinc-300 transition hover:border-orange-300/55 hover:text-orange-200 sm:mt-0">View project <ArrowUpRight size={15} /></Link>
+          <Link to={`/projects/${project.slug}`} state={linkState} className="mt-3 inline-flex min-h-11 items-center gap-2 self-end border-b border-white/[0.14] text-sm text-zinc-300 transition hover:border-orange-300/55 hover:text-orange-200 sm:mt-0">View project details <ArrowUpRight size={15} /></Link>
         </div>
       </article>
   );

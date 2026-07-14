@@ -16,7 +16,7 @@ export default function AdminServiceBranches() {
   async function deleteBranch(branch){if(!window.confirm(`Delete "${branch.name}"?`))return;const{error:deleteError}=await supabase.from('service_branches').delete().eq('id',branch.id);if(deleteError)setError(deleteError.message);else setBranches((current)=>current.filter((item)=>item.id!==branch.id));}
   if(!isPrivilegedRole(role))return <Navigate to="/admin/dashboard" replace/>;
   return <AdminLayout>
-    <AdminPageHeader eyebrow="Collective services" title="Service Branches" description="Manage the service modules shown on the public Services page." action={<AdminButton to="/admin/service-branches/new" variant="primary"><Plus size={17}/> Add Branch</AdminButton>}/>
+    <AdminPageHeader eyebrow="Service structure" title="Service Branches" description="Manage the branch content shown on the public Services page. Public branches describe service paths, not staffed departments." action={<AdminButton to="/admin/service-branches/new" variant="primary"><Plus size={17}/> Add Branch</AdminButton>}/>
     {error&&<AdminNotice className="mb-5">{error}</AdminNotice>}
     {loading?<LoadingState label="Loading service branches"/>:branches.length?(
       <section className="overflow-hidden border-y border-white/[0.07]">

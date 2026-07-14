@@ -18,7 +18,7 @@ const pageMeta = {
   about: {
     title: 'Edit About Page',
     publicPath: '/about',
-    helper: 'Update the About page heading, introduction, and creative journey copy.',
+    helper: 'Update the About page heading, introduction, and purpose copy. The supporting platform relationship sections remain consistent site-wide.',
   },
   services: {
     title: 'Edit Services Page',
@@ -541,7 +541,7 @@ function PageFields({ pageKey, content, patch, patchServiceGroup, uploadHomeBack
       <>
         <Field label="Page title" value={content.title || ''} onChange={(value) => patch({ title: value })} error={fieldErrors.title} hint="Main heading shown on the About page." required />
         <Textarea label="Introduction" value={content.intro || ''} onChange={(value) => patch({ intro: value })} error={fieldErrors.intro} hint="Keep this concise for better page balance." rows={4} />
-        <Textarea label="Creative journey" value={content.journey || ''} onChange={(value) => patch({ journey: value })} error={fieldErrors.journey} hint="Longer story text shown lower on the About page." rows={6} />
+        <Textarea label="Purpose and journey" value={content.journey || ''} onChange={(value) => patch({ journey: value })} error={fieldErrors.journey} hint="Explain why the platform was built and how it helps organize or credit the work." rows={6} />
         <div className="grid gap-6 md:grid-cols-3">
           <ColorField label="Heading color" value={content.headingColor || ''} onChange={(value) => patch({ headingColor: value })} />
           <ColorField label="Body text color" value={content.bodyTextColor || ''} onChange={(value) => patch({ bodyTextColor: value })} />

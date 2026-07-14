@@ -74,7 +74,7 @@ export default function ProjectDetails() {
     if (!project) return;
     applyPublicMetadata({
       title: `${project.title} | Lahat Liwa Collectives`,
-      description: String(project.description || 'View a published project from Lahat Liwa Collectives.').slice(0, 160),
+      description: String(project.description || 'View the complete output and contributor credits for this published project.').slice(0, 160),
       pathname: `/projects/${project.slug}`,
       type: 'article',
       image: getPublicImageUrl(project.cover_image),
@@ -106,9 +106,9 @@ export default function ProjectDetails() {
           <p className="mt-5 text-lg leading-8" style={{ color: 'var(--site-secondary-text)' }}>{project.description}</p>
           <div className="mt-6 grid gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}>
             {primaryContributor && (
-              <p>Work by <Link to={`/creatives/${primaryContributor.slug}`} className="site-hover-accent text-zinc-200">{primaryContributor.name}</Link></p>
+              <p>Primary contributor: <Link to={`/creatives/${primaryContributor.slug}`} className="site-hover-accent text-zinc-200">{primaryContributor.name}</Link></p>
             )}
-            <p>Published under <BrandWordmark name={content.displayName} variant="inline" /></p>
+            <p>Published through <BrandWordmark name={content.displayName} variant="inline" /></p>
           </div>
           <p className="mt-5 inline-flex items-center gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}><Calendar size={16} /> {formatDate(project.project_date)}</p>
           {project.tools?.length > 0 && (
@@ -118,8 +118,8 @@ export default function ProjectDetails() {
           )}
           <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
             <Action href={project.video_url} icon={Play} label="Watch Video" />
-            <Action href={project.social_post_url} icon={Share2} label="View Post" />
-            <Action href={project.live_url} icon={ArrowUpRight} label="Live Project" />
+            <Action href={project.social_post_url} icon={Share2} label="Open Post" />
+            <Action href={project.live_url} icon={ArrowUpRight} label="Open Full Project" />
             <Action href={project.github_url} icon={Github} label="GitHub" />
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function ProjectDetails() {
 
       {contributors.length > 0 && (
         <section className="major-border-top mt-12 pt-8">
-          <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-orange-300"><span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_9px_rgba(253,186,116,0.9)]" />Creative credits</p>
+          <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-orange-300"><span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_9px_rgba(253,186,116,0.9)]" />Credited contributors</p>
           <div className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
             {contributors.map((creative) => (
               <Link key={creative.id} to={`/creatives/${creative.slug}`} className="group flex min-w-0 items-start gap-3 border-b border-white/[0.09] px-1 py-3 text-sm text-zinc-200 transition hover:border-orange-300/50">
@@ -148,7 +148,7 @@ export default function ProjectDetails() {
 
       {gallery.length > 0 && (
         <section className="major-border-top mt-16 pt-10">
-          <h2 className="text-2xl font-medium" style={{ color: 'var(--site-primary-text)' }}>Gallery</h2>
+          <h2 className="text-2xl font-medium" style={{ color: 'var(--site-primary-text)' }}>Full output and gallery</h2>
           <div className="mt-6 columns-1 gap-5 sm:columns-2 lg:columns-3">
             {gallery.map((item) => (
               <GalleryItem key={item.id} item={item} projectTitle={project.title} />

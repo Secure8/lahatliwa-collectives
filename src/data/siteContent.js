@@ -1,15 +1,17 @@
+export const SITE_TAGLINE = 'Build your presence. Shape your story.';
+
 export const defaultSiteContent = {
   legalName: 'Lahat Liwa Collectives',
   displayName: 'Lahat Liwa',
   initials: 'LL',
   email: '',
-  tagline: 'A creative digital collective for visuals, content, websites, and practical digital services.',
+  tagline: SITE_TAGLINE,
   logoUrl: '',
   logoAlt: 'Lahat Liwa logo',
   heroImageUrl: '',
   heroImageAlt: 'Lahat Liwa Collectives hero portrait',
   showHeroPortrait: false,
-  footerText: 'A calm collective website for visual work, social content, digital builds, and practical tech support.',
+  footerText: 'An independently operated platform for practical services, published work, credited contributions, and growing creative visibility across four Liwa branches.',
   primaryTextColor: '#f5f5f4',
   secondaryTextColor: '#d4d4d8',
   mutedTextColor: '#a1a1aa',
@@ -18,19 +20,19 @@ export const defaultSiteContent = {
   defaultBackgroundImageUrl: '',
   defaultBackgroundOverlayOpacity: 0.55,
   hero: {
-    eyebrow: 'Creative digital collective',
-    title: 'A creative digital collective building visuals, stories, and digital experiences.',
+    eyebrow: 'Independent creative platform',
+    title: 'Practical support, published work, and room for creative growth.',
     description:
-      'Lahat Liwa Collectives works across photography, editing, video, social media, content planning, websites, and practical digital services.',
-    primaryCta: 'Start a Project',
-    secondaryCta: 'Explore Works',
+      'Find focused support across visual production, digital development, social media, and technical needs—or explore the creatives and work published through the platform.',
+    primaryCta: 'Send an Inquiry',
+    secondaryCta: 'Explore Published Work',
   },
   about: {
-    title: 'A collective shaping real creative and digital projects.',
+    title: 'One platform for practical support and visible creative work.',
     intro:
-      'Lahat Liwa Collectives brings together visual work, web experiments, social media support, school projects, and practical digital services into one growing body of work.',
+      'Lahat Liwa is an independently operated platform that organizes practical services while giving selected creatives a place to publish profiles, projects, and credited contributions.',
     journey:
-      'The work is still evolving: capturing moments, cleaning up edits, designing for social media, building small web and app ideas, and learning how digital tools can help people move faster.',
+      'It was built to make scattered work easier to discover, credit, and discuss—and to give clients a clearer path from an initial need to a reviewed inquiry.',
   },
   skills: [
     'Photography',
@@ -44,7 +46,7 @@ export const defaultSiteContent = {
   ],
   tools: ['React', 'Supabase', 'Vite', 'Tailwind CSS', 'Canva', 'Adobe tools', 'CapCut', 'Figma'],
   servicesIntro:
-    'Choose the area that best matches your request, then share the result, context, and timeline that matter to you.',
+    'Choose the branch closest to your need, then share the outcome, context, and timeline that matter to you.',
   services: [
     {
       name: 'Liwa Social',
@@ -53,7 +55,7 @@ export const defaultSiteContent = {
     },
     {
       name: 'Liwa Studio',
-      description: 'Tell us what you need for your photo, video, editing, SDE, or highlights project. Share the occasion, preferred style, schedule, and expected output so we can match you with the right creative.',
+      description: 'Tell us what you need for your photo, video, editing, SDE, or highlights request. Share the occasion, preferred style, schedule, and expected output so the request can be reviewed clearly.',
       items: ['Photography', 'Videography', 'Same-Day Edit (SDE)', 'Highlights', 'Photo & Video Editing', 'Other Visual Work'],
     },
     {
@@ -77,8 +79,8 @@ export const defaultPageContent = {
     heroDescription: defaultSiteContent.hero.description,
     primaryCta: defaultSiteContent.hero.primaryCta,
     secondaryCta: defaultSiteContent.hero.secondaryCta,
-    featuredHeading: 'Selected Projects',
-    servicesHeading: 'Flexible services for varied needs',
+    featuredHeading: 'Selected published work',
+    servicesHeading: 'Four practical paths for different needs',
     servicesIntro: defaultSiteContent.servicesIntro,
     heroTitleColor: '',
     heroDescriptionColor: '',
@@ -101,7 +103,7 @@ export const defaultPageContent = {
     accentColor: '',
   },
   services: {
-    title: 'Creative, digital, social, and technical support.',
+    title: 'Four practical paths for different kinds of support.',
     intro: defaultSiteContent.servicesIntro,
     headingColor: '',
     bodyTextColor: '',
@@ -116,10 +118,10 @@ export const defaultPageContent = {
     })),
   },
   contact: {
-    heading: 'Let us build the next project.',
-    description: 'For creative, digital, social-media, technical, multidisciplinary, or collaborative work, send a guided request or reach out through the available contact channels.',
-    ctaText: 'Email Lahat Liwa',
-    notes: 'Use email for project inquiries, collaborations, and service requests.',
+    heading: 'Start the right conversation.',
+    description: 'Use the guided inquiry for services and project requests. For collaboration ideas, profile or credit questions, relevant opportunities, or general platform concerns, use the available contact channels.',
+    ctaText: 'Email the platform',
+    notes: 'A short, relevant message helps direct the conversation. Please do not include passwords or sensitive account details.',
     headingColor: '',
     bodyTextColor: '',
     accentColor: '',

@@ -142,7 +142,7 @@ export default function Login() {
     event.preventDefault();
     if (loading) return;
     const nextErrors = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email))) nextErrors.email = 'Please enter a valid team email address.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email))) nextErrors.email = 'Please enter a valid platform account email address.';
     if (!password) nextErrors.password = 'Please enter your password.';
     else if (isSetup && password.length < 8) nextErrors.password = 'Please use at least 8 characters for the password.';
     if (isSetup && password !== confirmPassword) nextErrors.confirmPassword = 'The passwords do not match. Please enter them again.';
@@ -208,7 +208,7 @@ export default function Login() {
 
           {isSetup && (
             <p className="mt-4 text-xs leading-5 text-zinc-500">
-              This is only for invited Lahat Liwa team members. The email must already exist in Team Management with an invited or active status.
+              This is only for invited platform users. The email must already exist in Team Management with an invited or active status.
             </p>
           )}
 

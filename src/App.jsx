@@ -45,14 +45,14 @@ const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
 const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
 
 const routeMetadata = {
-  '/': ['Lahat Liwa Collectives', 'A creative digital collective building visuals, stories, and useful digital experiences.'],
-  '/about': ['About | Lahat Liwa Collectives', 'Meet Lahat Liwa Collectives and learn how its creative and digital branches work together.'],
-  '/projects': ['Projects | Lahat Liwa Collectives', 'Explore published photography, video, design, website, application, and digital projects.'],
-  '/services': ['Services | Lahat Liwa Collectives', 'Explore support for photo and video projects, technical needs, digital products, social media, and multidisciplinary work.'],
-  '/creatives': ['Creatives | Lahat Liwa Collectives', 'Meet the creatives shaping the work of Lahat Liwa Collectives.'],
-  '/start-a-project': ['Start a Project | Lahat Liwa Collectives', 'Describe your requirements, goals, timeline, and preferred support for review by Lahat Liwa Collectives.'],
-  '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Describe your requirements, goals, timeline, and preferred support for review by Lahat Liwa Collectives.'],
-  '/contact': ['Contact | Lahat Liwa Collectives', 'Contact Lahat Liwa Collectives about creative, digital, social-media, technical, or collaborative work.'],
+  '/': ['Lahat Liwa Collectives', 'Practical services, published work, credited contributions, and creative profiles across four Liwa branches.'],
+  '/about': ['About | Lahat Liwa Collectives', 'Learn how this independently operated platform supports client inquiries, published creative profiles, and clear contributor credit.'],
+  '/projects': ['Projects | Lahat Liwa Collectives', 'Explore complete project records, visible outputs, and credited contributions across visual, digital, social, and technical work.'],
+  '/services': ['Services | Lahat Liwa Collectives', 'Explore focused support across Liwa Studio, Liwa Digital, Liwa Social, and Liwa Tech.'],
+  '/creatives': ['Creatives | Lahat Liwa Collectives', 'Discover published creative profiles, skills, portfolio work, and credited project contributions.'],
+  '/start-a-project': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
+  '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
+  '/contact': ['Contact | Lahat Liwa Collectives', 'Start a service inquiry, collaboration conversation, profile or credit question, opportunity, or general platform conversation.'],
 };
 
 function SiteDocumentMetadata() {
@@ -65,9 +65,9 @@ function SiteDocumentMetadata() {
     const isCreative = pathname.startsWith('/creatives/');
     const [configuredTitle, description] = routeMetadata[pathname]
       || (isProject
-        ? [`Project | ${brand}`, 'View a published project from Lahat Liwa Collectives.']
+        ? [`Project | ${brand}`, 'View the complete output and contributor credits for a published project.']
         : isCreative
-          ? [`Creative Profile | ${brand}`, 'View a published creative profile from Lahat Liwa Collectives.']
+          ? [`Creative Profile | ${brand}`, 'View a published creative profile, portfolio work, and credited project contributions.']
           : [brand, content.tagline || routeMetadata['/'][1]]);
     const title = pathname === '/' ? brand : configuredTitle;
     applyPublicMetadata({ title, description, pathname, type: isProject || isCreative ? 'article' : 'website' });

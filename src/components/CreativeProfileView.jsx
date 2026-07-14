@@ -54,8 +54,8 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
     {!adminPreview && <footer id="contact" className="scroll-mt-24 border-t border-orange-300/60 py-8 sm:py-10">
       <p className="text-xs uppercase tracking-[0.2em] text-orange-300">04 / Collaboration</p>
       <div className="mt-5 grid gap-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div><h2 className="max-w-2xl text-[clamp(1.85rem,3.5vw,3.25rem)] font-medium leading-[1.05] tracking-[-0.035em] text-white">Create something meaningful together.</h2>{creative.availability_status && <p className="mt-3 text-sm text-zinc-400">{creative.availability_status}</p>}</div>
-        <div className="flex flex-wrap gap-4"><Link to={inquiryUrl({ creative: creative.slug })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">Start a project <ArrowRight size={16} /></Link><Link to="/creatives" className="inline-flex min-h-11 items-center border-b border-white/20 text-sm text-zinc-300 hover:text-white">Explore creatives</Link></div>
+        <div><h2 className="max-w-2xl text-[clamp(1.85rem,3.5vw,3.25rem)] font-medium leading-[1.05] tracking-[-0.035em] text-white">Explore a possible collaboration.</h2>{creative.availability_status && <p className="mt-3 text-sm text-zinc-400">{creative.availability_status}</p>}<p className="mt-3 max-w-xl text-xs leading-6 text-zinc-500">Selecting this profile expresses a preference and does not guarantee availability or assignment.</p></div>
+        <div className="flex flex-wrap gap-4"><Link to={inquiryUrl({ creative: creative.slug })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">Send an inquiry <ArrowRight size={16} /></Link><Link to="/creatives" className="inline-flex min-h-11 items-center border-b border-white/20 text-sm text-zinc-300 hover:text-white">Explore creative profiles</Link></div>
       </div>
     </footer>}
     </div>

@@ -394,7 +394,7 @@ export default function AdminTeam() {
       <AdminPageHeader
         eyebrow="Team CMS"
         title="Team Management"
-        description="Add team members, assign roles, link creative profiles, and control access to Lahat Liwa Collectives."
+        description="Manage platform accounts, roles, linked creative profiles, and access. Platform access is separate from being published as a creative."
         action={isSuperAdmin && <AdminButton onClick={openAddMember} variant="primary"><Plus size={17} /> Add Member</AdminButton>}
       />
 

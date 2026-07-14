@@ -21,6 +21,7 @@ export default function Footer() {
       <div className="page-shell grid gap-10 py-12 md:grid-cols-[1.4fr_1fr] md:py-14">
         <div>
           <BrandWordmark name={content.displayName} variant="footer" to="/" />
+          <p className="mt-3 text-sm font-medium text-[var(--site-brand-accent)]">{content.tagline}</p>
           <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">{content.footerText}</p>
         </div>
         <div className="flex flex-wrap items-start gap-3 md:justify-end">
@@ -35,7 +36,7 @@ export default function Footer() {
               </a>
             );
           })}
-          <Link className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-black/20 text-zinc-500 transition hover:-translate-y-0.5 hover:border-orange-300/40 hover:text-orange-200 hover:shadow-[0_0_16px_rgba(251,146,60,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300" to="/admin/dashboard" aria-label="Member admin access" title="Member admin access">
+          <Link className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-black/20 text-zinc-500 transition hover:-translate-y-0.5 hover:border-orange-300/40 hover:text-orange-200 hover:shadow-[0_0_16px_rgba(251,146,60,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300" to="/admin/dashboard" aria-label="Platform admin access" title="Platform admin access">
             <Lock size={18} />
           </Link>
         </div>

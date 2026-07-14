@@ -417,7 +417,7 @@ export default function SiteSettings() {
             <div className="grid gap-6 md:grid-cols-2">
               <Field label="Brand name" value={form.displayName || ''} onChange={(value) => update('displayName', value)} error={fieldErrors.displayName} hint="Shown in the navbar and browser-facing branding." required />
               <Field label="Personal / legal name" value={form.legalName || ''} onChange={(value) => update('legalName', value)} error={fieldErrors.legalName} hint="Used in the admin shell and global content defaults." required />
-              <Textarea label="Tagline" value={form.tagline || ''} onChange={(value) => update('tagline', value)} error={fieldErrors.tagline} hint="Short brand description shown in the footer and shared site surfaces." rows={3} required />
+              <Textarea label="Tagline" value={form.tagline || ''} onChange={(value) => update('tagline', value)} error={fieldErrors.tagline} hint={'Keep the approved brand tagline exactly: "Build your presence. Shape your story."'} rows={3} required />
               <Field label="Contact email" type="email" value={form.email || ''} onChange={(value) => update('email', value)} error={fieldErrors.email} hint="Used by the public Contact page and footer." autoComplete="email" />
               <Field label="Logo alt text" value={form.logoAlt || ''} onChange={(value) => update('logoAlt', value)} error={fieldErrors.logoAlt} hint="Used anywhere the logo is rendered as an image." />
               <Field label="Portrait image alt text" value={form.heroImageAlt || ''} onChange={(value) => update('heroImageAlt', value)} error={fieldErrors.heroImageAlt} hint="Used for the homepage portrait image." />

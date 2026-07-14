@@ -34,7 +34,7 @@ export default function Creatives() {
 
   return (
     <div className="page-shell py-20">
-      <PublicPageHeader eyebrow="Creative directory" title="The people shaping Lahat Liwa Collectives." description="A growing circle of creatives working across visuals, social content, websites, editing, and digital support." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} aside={<><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Published profiles</p><p className="mt-2 text-2xl font-medium text-white">{creatives.length}</p></>} />
+      <PublicPageHeader eyebrow="Creative directory" title="Discover published creatives and credited work." description={`Explore profiles, skills, portfolio work, and project contributions published through ${content.displayName}. A published profile supports visibility and discovery without implying employment or permanent affiliation.`} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} aside={<><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Published profiles</p><p className="mt-2 text-2xl font-medium text-white">{creatives.length}</p></>} />
       <div className="pt-12">
       {loading && <LoadingState label="Loading creatives" />}
       {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}
@@ -43,7 +43,7 @@ export default function Creatives() {
           <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} />)}
           </div>
-        ) : <EmptyState title="No creatives yet" message="Published creative profiles will appear here." />
+        ) : <EmptyState title="No published profiles yet" message="Published creative profiles will appear here." />
       )}
       </div>
     </div>

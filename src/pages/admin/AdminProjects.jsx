@@ -125,7 +125,7 @@ export default function AdminProjects() {
       <AdminPageHeader
         eyebrow="Project manager"
         title="Projects"
-        description={canManageAll ? 'Arrange featured works, manage drafts, and keep the collective portfolio moving.' : 'Browse shared team projects, then manage the work you own or have been assigned.'}
+        description={canManageAll ? 'Manage published project records, drafts, featured placement, and contributor credits.' : 'Browse available project records, then manage the work you own or have been assigned.'}
         action={canCreate && <AdminButton to="/admin/projects/new" variant="primary">
           <Plus size={18} /> New project
         </AdminButton>}

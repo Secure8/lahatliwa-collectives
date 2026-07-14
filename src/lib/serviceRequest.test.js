@@ -88,7 +88,7 @@ test('every inquiry branch exposes distinct labels, examples, roles, and follow-
     digital: ['Tell us about the digital product or system', 'Product or system summary', 'What should the product or system accomplish?', 'Developer or digital specialist', 'Preferred timeline or launch target'],
     social: ['Tell us about your brand or campaign', 'Marketing or social media summary', 'What kind of marketing support do you need?', 'Social media or marketing specialist', 'Campaign dates or preferred start'],
     tech: ['Tell us about the device or technical issue', 'Technical request summary', 'What problem or setup do you need help with?', 'Technician or technical specialist', 'When do you need technical support?'],
-    general: ['Tell us what you need', 'Request summary', 'Describe your request', 'Liwa team member', 'Preferred date or timeline'],
+    general: ['Tell us what you need', 'Request summary', 'Describe your request', 'Preferred published creative', 'Preferred date or timeline'],
   };
   for (const [branch, [sectionTitle, summaryLabel, detailsLabel, recipientLabel, scheduleLabel]] of Object.entries(expected)) {
     const copy = inquiryCopy(branch);
@@ -224,7 +224,7 @@ test('services preselection skips safely and exposes an accessible change-select
   assert.match(form, /function changeSpecialist\(\)[\s\S]*delete nextState\.inquirySelection\.creative[\s\S]*moveToStep\(INQUIRY_SPECIALIST_STEP\)[\s\S]*replace: true/);
   assert.match(form, /<SelectionSummary[\s\S]*?onChange=\{changeSelection\}/);
   assert.match(form, /onChangeSpecialist=\{step > INQUIRY_SPECIALIST_STEP \? changeSpecialist : null\}/);
-  assert.match(form, /Preferred specialist:/);
+  assert.match(form, /Preferred creative:/);
   assert.match(form, /aria-live="polite" aria-atomic="true"/);
   assert.match(form, /ref=\{stepHeadingRef\} tabIndex="-1"/);
 });

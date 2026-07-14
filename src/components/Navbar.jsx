@@ -4,7 +4,6 @@ import { NavLink, Link, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { usePublicContent } from '../lib/contentApi';
 import { preloadPublicRoute } from '../lib/publicRoutePreload';
-import ThemeControl from './ThemeControl';
 
 const links = [
   ['Home', '/'],
@@ -51,14 +50,14 @@ export default function Navbar() {
         immersiveProfile && (immersiveVisible ? 'xl:translate-y-0 xl:opacity-100' : 'xl:pointer-events-none xl:-translate-y-full xl:opacity-0'),
       )}
     >
-      <nav className="page-shell flex min-h-16 items-center justify-between">
-        <Link to="/" onClick={avoidDuplicateNavigation('/')} className="group flex items-center gap-3 font-medium tracking-wide">
+      <nav className="page-shell flex min-h-16 items-center justify-between gap-3">
+        <Link to="/" onClick={avoidDuplicateNavigation('/')} className="group flex min-w-0 items-center gap-3 font-medium tracking-wide">
           {content.logoUrl ? (
             <img src={content.logoUrl} alt={content.logoAlt} decoding="async" width="32" height="32" className="h-8 w-8 rounded-md object-contain" />
           ) : (
             <span className="site-accent site-border grid h-8 w-8 place-items-center border text-xs font-semibold transition">{content.initials}</span>
           )}
-          <span>{content.displayName}</span>
+          <span className="truncate">{content.displayName}</span>
         </Link>
         <div className="hidden items-center gap-1 xl:flex">
           {links.map(([label, href]) => (
@@ -70,7 +69,7 @@ export default function Navbar() {
               onFocus={() => preloadPublicRoute(href)}
               className={({ isActive }) =>
                 clsx(
-                  'relative min-h-11 content-center px-3 py-2 text-xs uppercase tracking-[0.12em] transition after:absolute after:inset-x-3 after:bottom-0 after:h-px after:origin-left after:bg-orange-300 after:transition-transform',
+                  'relative min-h-11 content-center px-3 py-2 text-xs uppercase tracking-[0.12em] transition after:absolute after:inset-x-3 after:bottom-0 after:h-px after:origin-left after:bg-[var(--site-accent)] after:transition-transform',
                   isActive ? 'site-primary after:scale-x-100' : 'site-muted after:scale-x-0 hover:text-white hover:after:scale-x-100',
                 )
               }
@@ -78,20 +77,20 @@ export default function Navbar() {
               {label}
             </NavLink>
           ))}
-          <ThemeControl className="ml-2 w-56" />
         </div>
-        <button className="grid h-11 w-11 place-items-center border border-white/[0.12] bg-white/[0.035] text-zinc-200 transition hover:border-orange-300/35 hover:bg-white/[0.07] xl:hidden" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Close main menu' : 'Open main menu'} aria-expanded={open} aria-controls="public-mobile-navigation">
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div className="flex items-center gap-2 xl:hidden">
+          <button className="grid h-11 w-11 place-items-center border border-white/[0.12] bg-white/[0.035] text-zinc-200 transition hover:border-orange-300/35 hover:bg-white/[0.07]" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Close main menu' : 'Open main menu'} aria-expanded={open} aria-controls="public-mobile-navigation">
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </nav>
       {open && (
         <div id="public-mobile-navigation" className="page-shell grid gap-1 pb-4 xl:hidden">
           {links.map(([label, href]) => (
-            <NavLink key={href} to={href} onClick={avoidDuplicateNavigation(href)} onPointerDown={() => preloadPublicRoute(href)} className={({ isActive }) => `border-b py-3 text-sm uppercase tracking-[0.12em] transition ${isActive ? 'border-orange-300 text-white' : 'border-white/[0.06] text-zinc-400'}`}>
+            <NavLink key={href} to={href} onClick={avoidDuplicateNavigation(href)} onPointerDown={() => preloadPublicRoute(href)} className={({ isActive }) => `border-b py-3 text-sm uppercase tracking-[0.12em] transition ${isActive ? 'border-[var(--site-accent-border)] text-[var(--site-accent-text)]' : 'border-white/[0.06] text-zinc-400'}`}>
               {label}
             </NavLink>
           ))}
-          <ThemeControl className="mt-4" onSelect={() => setOpen(false)} />
         </div>
       )}
     </header>

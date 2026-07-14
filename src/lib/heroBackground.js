@@ -1,3 +1,9 @@
+export function normalizeHeroOverlayOpacity(value, fallback = 0.55) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(1, Math.max(0, numeric));
+}
+
 export function createHeroBackgroundRender({
   imageUrl = '',
   position = 'center',
@@ -5,12 +11,17 @@ export function createHeroBackgroundRender({
   mode = 'none',
   overlayOpacity = 0.55,
 } = {}) {
+  const normalizedOverlayOpacity = normalizeHeroOverlayOpacity(overlayOpacity);
   return {
     imageUrl,
     position,
     blur,
     mode,
-    overlayOpacity,
+    overlayOpacity: normalizedOverlayOpacity,
+    overlayStyle: {
+      backgroundColor: 'var(--hero-overlay-color, #09090b)',
+      opacity: normalizedOverlayOpacity,
+    },
     style: imageUrl
       ? {
           backgroundImage: `url(${imageUrl})`,

@@ -439,7 +439,7 @@ function readCurrentCachedContent(pageKeys) {
 
 function themeStyle(content) {
   return {
-    '--site-accent': content.accentColor || defaultSiteContent.accentColor,
+    '--site-brand-accent': content.accentColor || defaultSiteContent.accentColor,
     '--site-primary-text': content.primaryTextColor || defaultSiteContent.primaryTextColor,
     '--site-secondary-text': content.secondaryTextColor || defaultSiteContent.secondaryTextColor,
     '--site-muted-text': content.mutedTextColor || defaultSiteContent.mutedTextColor,

@@ -5,6 +5,10 @@ export function normalizeThemePreference(value) {
   return THEME_PREFERENCES.includes(value) ? value : 'system';
 }
 
+export function nextThemePreference(resolvedTheme) {
+  return resolvedTheme === 'light' ? 'dark' : 'light';
+}
+
 export function systemTheme(matchMedia = globalThis.matchMedia) {
   try {
     return matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light';

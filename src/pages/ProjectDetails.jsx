@@ -99,7 +99,7 @@ export default function ProjectDetails() {
         <div className="min-w-0 lg:py-4">
           <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
             <span>{project.category}</span>
-            {project.featured && <span style={{ color: content.accentColor }}>Selected</span>}
+            {project.featured && <span className="text-[var(--site-accent-text)]">Selected</span>}
           </div>
           <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: 'var(--site-primary-text)' }}>{project.title}</h1>
           <p className="mt-5 text-lg leading-8" style={{ color: 'var(--site-secondary-text)' }}>{project.description}</p>
@@ -116,10 +116,10 @@ export default function ProjectDetails() {
             </div>
           )}
           <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
-            <Action href={project.video_url} icon={Play} label="Watch Video" accentColor={content.accentColor} />
-            <Action href={project.social_post_url} icon={Share2} label="View Post" accentColor={content.accentColor} />
-            <Action href={project.live_url} icon={ArrowUpRight} label="Live Project" accentColor={content.accentColor} />
-            <Action href={project.github_url} icon={Github} label="GitHub" accentColor={content.accentColor} />
+            <Action href={project.video_url} icon={Play} label="Watch Video" />
+            <Action href={project.social_post_url} icon={Share2} label="View Post" />
+            <Action href={project.live_url} icon={ArrowUpRight} label="Live Project" />
+            <Action href={project.github_url} icon={Github} label="GitHub" />
           </div>
         </div>
       </div>
@@ -267,11 +267,11 @@ function ExternalGalleryCardContent({ item, compact = false }) {
   );
 }
 
-function Action({ href, icon: Icon, label, accentColor }) {
+function Action({ href, icon: Icon, label }) {
   const safeHref = safeExternalUrl(href);
   if (!safeHref) return null;
   return (
-    <a href={safeHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center justify-center gap-2 border px-3 py-3 text-center text-sm text-zinc-200 transition hover:opacity-80 sm:px-4" style={{ borderColor: `${accentColor}55`, color: accentColor }}>
+    <a href={safeHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center justify-center gap-2 border border-[var(--site-accent-border)] px-3 py-3 text-center text-sm text-[var(--site-accent-text)] transition hover:bg-[var(--site-accent-surface)] sm:px-4">
       <Icon size={17} /> {label}
     </a>
   );

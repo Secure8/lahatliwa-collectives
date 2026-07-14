@@ -83,13 +83,13 @@ export default function Home() {
         {homeBg && (
           <>
             <div className={`hero-background-visual absolute inset-0 ${heroBackground.mode === 'ambient-blur' ? 'lg:scale-105' : ''}`} style={{ ...heroBackground.style, filter: undefined, transform: undefined, '--hero-background-blur': heroBackground.mode === 'ambient-blur' ? `blur(${content.home.heroBackgroundBlur || 14}px)` : 'none' }} aria-hidden="true" />
-            <div className="absolute inset-0 bg-zinc-950" style={{ opacity: heroBackground.overlayOpacity }} aria-hidden="true" />
+            <div className="hero-background-overlay absolute inset-0" style={heroBackground.overlayStyle} aria-hidden="true" />
           </>
         )}
         {!homeBg && <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(120,113,108,0.12),transparent_45%),linear-gradient(180deg,#101012,#09090b)]" aria-hidden="true" />}
       <div className={`page-shell relative grid min-h-[calc(100vh-4rem)] items-center gap-10 py-16 ${hasPortrait ? (heroBackground.mode === 'split-image' ? 'lg:grid-cols-[0.95fr_1.05fr]' : 'lg:grid-cols-[1.1fr_0.7fr]') : 'lg:grid-cols-1'} lg:gap-14 lg:py-20`}>
         <div className="max-w-2xl">
-          <AccentEyebrow color={content.home.accentTextColor || content.accentColor}>{content.home.heroEyebrow || content.hero.eyebrow}</AccentEyebrow>
+          <AccentEyebrow color={content.home.accentTextColor || content.accentColor} preserveColor>{content.home.heroEyebrow || content.hero.eyebrow}</AccentEyebrow>
           <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{content.home.heroTitle}</h1>
           <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'A creative digital collective building visuals, stories, and digital experiences across photography, editing, social media, content, and web projects.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -113,7 +113,7 @@ export default function Home() {
       <section id="selected-work" className="page-shell major-border-top scroll-mt-20 py-16" aria-labelledby="selected-work-heading">
         <div className="mb-8 max-w-2xl">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Selected work</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Selected work</p>
             <h2 id="selected-work-heading" className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>{content.home.featuredHeading}</h2>
             <p className="mt-4 leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore projects across the four branches of Lahat Liwa.</p>
           </div>
@@ -131,7 +131,7 @@ export default function Home() {
       <section className="page-shell major-border-top py-16">
         <div className="mb-10 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Featured creatives</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Featured creatives</p>
             <h2 className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>Meet the people behind the work.</h2>
           </div>
           <Link to="/creatives" className="fine-link site-hover-accent text-sm text-zinc-300">View creatives</Link>
@@ -145,7 +145,7 @@ export default function Home() {
 
       <section className="page-shell major-border-top py-16">
         <div className="mb-10 max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Services preview</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Services preview</p>
           <h2 className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>{content.home.servicesHeading}</h2>
           <p className="mt-4 leading-7" style={{ color: 'var(--site-secondary-text)' }}>{content.home.servicesIntro}</p>
         </div>
@@ -161,7 +161,7 @@ export default function Home() {
             <div key={group.name} className="major-border-top pt-5">
               <div className="flex min-h-10 items-center gap-0.5">
                 {serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} loading="lazy" decoding="async" width="80" height="28" className="h-7 max-w-20 object-contain" />}
-                {iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon style={{ color: content.servicesPage.iconColor || content.accentColor }} size={40} />)}
+                {iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon className="text-[var(--site-accent-text)]" size={40} />)}
               </div>
               <h3 className="mt-5 text-lg font-medium" style={{ color: 'var(--site-primary-text)' }}>{group.name}</h3>
               <p className="mt-2 text-sm leading-6" style={{ color: 'var(--site-secondary-text)' }}>{description || 'Flexible support shaped around the client’s goals and requirements.'}</p>
@@ -173,11 +173,11 @@ export default function Home() {
       <section className="page-shell major-border-top py-16">
         <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em]" style={{ color: content.home.accentTextColor || content.accentColor }}>Start a project</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Start a project</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>Need creative, digital, social, or technical support?</h2>
             <p className="mt-4 max-w-2xl leading-7" style={{ color: 'var(--site-secondary-text)' }}>Describe what you need and the collective will review the most suitable next step.</p>
           </div>
-          <Link to="/inquiry" className="inline-flex min-h-11 w-fit items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
+          <Link to="/inquiry" className="inline-flex min-h-11 w-fit items-center gap-2 bg-[var(--site-accent)] px-5 text-sm font-semibold text-zinc-950 transition hover:bg-[var(--site-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
             Send inquiry <ArrowRight size={18} />
           </Link>
         </div>

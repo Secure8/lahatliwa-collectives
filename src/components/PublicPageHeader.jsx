@@ -1,6 +1,6 @@
-export function AccentEyebrow({ children, color }) {
+export function AccentEyebrow({ children, color, preserveColor = false }) {
   return (
-    <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ color }}>
+    <p className={`accent-eyebrow flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] ${preserveColor ? 'accent-eyebrow--configured' : ''}`} style={{ color: preserveColor ? color : 'var(--site-accent-text)', '--accent-eyebrow-configured': color }}>
       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current shadow-[0_0_9px_currentColor]" aria-hidden="true" />
       {children}
     </p>

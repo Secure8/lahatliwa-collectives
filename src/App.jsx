@@ -12,6 +12,7 @@ import PublicErrorBoundary from './components/PublicErrorBoundary';
 import { publicRouteBoundaryKey } from './lib/navigationHistory';
 import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadInquiryConfirmation, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
 import { applyPublicMetadata } from './lib/publicMetadata';
+import ThemeToggle from './components/ThemeToggle';
 
 const Login = lazy(() => import('./pages/admin/Login'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
@@ -121,7 +122,7 @@ function AdminSuspense({ children }) {
 
 export default function App() {
   return (
-    <Routes>
+    <><Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<Home />} />
         <Route path="/about" element={<About />} />
@@ -160,6 +161,6 @@ export default function App() {
         <Route path="/admin/content/:pageKey" element={<AdminSuspense><ContentEditor /></AdminSuspense>} />
         <Route path="/admin/media/icons" element={<AdminSuspense><IconsMedia /></AdminSuspense>} />
       </Route>
-    </Routes>
+    </Routes><ThemeToggle /></>
   );
 }

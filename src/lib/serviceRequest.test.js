@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { defaultSiteContent } from '../data/siteContent.js';
-import { branchKeyFromRecord, branchMeta, canonicalServiceKey, emptyInquiryDraft, inquiryCopy, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
+import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, canonicalServiceKey, emptyInquiryDraft, inquiryCopy, inquiryUrl, mergeInquiryContext, publicBranchDescription, referenceIsValid, safeInquiryDraft, serviceCategoriesForBranch, slugifyService, validateInquiryStep } from './serviceRequest.js';
 
 test('canonical branch and inquiry routes preserve refresh-safe context', () => {
   assert.equal(branchKeyFromRecord({ slug: 'lahat-liwa-studio' }), 'studio');
@@ -18,6 +18,26 @@ test('draft context persists valid fields and rejects invalid branch state', () 
   assert.equal(restored.serviceKey, 'remote-assistance');
   assert.equal(restored.creativeSlug, 'alex');
   assert.equal(safeInquiryDraft({ ...draft, branch: 'invalid' }).branch, '');
+});
+
+test('submission boundary sends only canonical service keys', () => {
+  const expected = {
+    studio: ['photo', 'video', 'same-day-edit', 'highlights', 'editing', 'other-creative-work'],
+    tech: ['diagnostics', 'setup', 'remote-assistance', 'on-site-support', 'maintenance-and-optimization', 'consultation'],
+    digital: ['website', 'app', 'design-and-prototype', 'system', 'maintenance-and-improvements', 'consultation'],
+    social: ['management', 'content', 'digital-marketing', 'campaign', 'page-setup', 'review-and-consultation'],
+  };
+  for (const [branch, keys] of Object.entries(expected)) {
+    assert.deepEqual(serviceCategoriesForBranch(branch).map((service) => service.key), keys);
+    for (const service of serviceCategoriesForBranch(branch)) {
+      assert.equal(buildInquirySubmissionRequest({ branch, serviceKey: service.key }).serviceKey, service.key);
+      assert.equal(buildInquirySubmissionRequest({ branch, serviceKey: service.name }).serviceKey, service.key);
+    }
+  }
+  assert.equal(buildInquirySubmissionRequest({ branch: 'digital', serviceKey: 'digital-product' }).serviceKey, 'maintenance-and-improvements');
+  assert.equal(buildInquirySubmissionRequest({ branch: 'social', serviceKey: 'strategy' }).serviceKey, 'digital-marketing');
+  assert.equal(buildInquirySubmissionRequest({ branch: 'tech', serviceKey: 'other-technical-help' }).serviceKey, 'maintenance-and-optimization');
+  assert.equal(buildInquirySubmissionRequest({ branch: 'studio', serviceKey: 'unlisted-service' }).serviceKey, '');
 });
 
 test('branch-specific and common client validation fails safely', () => {
@@ -163,6 +183,7 @@ test('guided form keeps mobile controls bounded and includes the Tech safety war
   assert.match(source, /<ContactStep[^>]+copy=\{copy\}/);
   assert.match(source, /function selectBranch[\s\S]*branchDetails:/);
   assert.match(source, /function selectBranch[\s\S]*setErrors\(\{\}\)/);
+  assert.match(source, /request: buildInquirySubmissionRequest\(draft\)/);
 });
 
 test('inquiry copy requires a prominent detailed request and avoids instant-booking promises', async () => {

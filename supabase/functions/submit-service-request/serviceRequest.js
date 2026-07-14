@@ -1,3 +1,5 @@
+import { canonicalServiceKey } from '../../../src/lib/serviceCatalog.js';
+
 export const BRANCHES = new Set(['studio', 'tech', 'digital', 'social', 'general']);
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const REFERENCE_PATTERN = /^LLC-\d{4}-[A-Z0-9]{6}$/;
@@ -28,9 +30,10 @@ export function generateReference(now = new Date(), randomValues) {
 
 export function validateSubmission(raw = {}) {
   const request = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const branch = cleanText(request.branch, 20).toLowerCase();
   const normalized = {
-    branch: cleanText(request.branch, 20).toLowerCase(),
-    serviceKey: slugify(request.serviceKey),
+    branch,
+    serviceKey: canonicalServiceKey(branch, request.serviceKey),
     creativeSlug: cleanText(request.creativeSlug, 120).toLowerCase(),
     clientName: cleanText(request.clientName, 120),
     organization: cleanText(request.organization, 160),

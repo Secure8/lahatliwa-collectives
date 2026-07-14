@@ -55,11 +55,11 @@ const SERVICE_ALIASES = Object.freeze({
     videography: 'video', 'video-shoot-editing': 'video', 'video-shoot': 'video', 'promotional-videography': 'video',
     sde: 'same-day-edit', 'same-day-edit-sde': 'same-day-edit',
     'event-highlights': 'highlights', 'highlight-video': 'highlights',
-    'photo-editing': 'editing', 'video-editing': 'editing', 'photo-retouching': 'editing',
-    'other-creative': 'other-creative-work',
+    'photo-editing': 'editing', 'video-editing': 'editing', 'photo-retouching': 'editing', 'photo-and-video-editing': 'editing',
+    'other-creative': 'other-creative-work', 'other-visual-work': 'other-creative-work',
   },
   tech: {
-    'technical-consultation': 'consultation', 'computer-support': 'diagnostics', troubleshooting: 'diagnostics',
+    'technical-consultation': 'consultation', 'computer-support': 'diagnostics', 'computer-troubleshooting': 'diagnostics', troubleshooting: 'diagnostics',
     'virtual-assistance': 'remote-assistance', 'remote-support': 'remote-assistance', 'software-system-assistance': 'remote-assistance',
     'device-setup': 'setup', 'software-installation': 'remote-assistance', 'software-assistance': 'remote-assistance',
     'system-network-support': 'on-site-support', 'system-and-network-support': 'on-site-support', 'onsite-support': 'on-site-support', 'home-visit': 'on-site-support',
@@ -84,7 +84,7 @@ const SERVICE_ALIASES = Object.freeze({
     'other-social': 'review-and-consultation', 'other-social-media-work': 'review-and-consultation',
   },
   general: {
-    general: 'general-inquiry', multidisciplinary: 'multidisciplinary-project', partnership: 'partnership-or-collaboration', collaboration: 'partnership-or-collaboration',
+    general: 'general-inquiry', 'general-service-request': 'general-inquiry', multidisciplinary: 'multidisciplinary-project', 'multi-branch-request': 'multidisciplinary-project', partnership: 'partnership-or-collaboration', collaboration: 'partnership-or-collaboration', 'partnership-and-collaboration': 'partnership-or-collaboration',
     'event-support': 'event-or-organization-support', 'organization-support': 'event-or-organization-support', consultation: 'consultation-and-planning', planning: 'consultation-and-planning', unsure: 'not-sure-yet',
   },
 });

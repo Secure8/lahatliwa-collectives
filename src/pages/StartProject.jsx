@@ -5,7 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ActionFeedback, FieldError } from '../components/FieldFeedback';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { usePublicContent } from '../lib/contentApi';
-import { branchKeyFromRecord, branchMeta, canonicalServiceKey, emptyInquiryDraft, INQUIRY_DRAFT_KEY, inquiryCopy, mergeInquiryContext, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, canonicalServiceKey, emptyInquiryDraft, INQUIRY_DRAFT_KEY, inquiryCopy, mergeInquiryContext, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
 
 const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
@@ -186,7 +186,7 @@ export default function StartProject() {
     setSubmitting(true); setNotice(''); setSubmitError(''); setErrors({});
     try {
       const { data, error } = await supabase.functions.invoke('submit-service-request', {
-        body: { action: 'submit', request: draft, sourcePath: `${location.pathname}${location.search}` },
+        body: { action: 'submit', request: buildInquirySubmissionRequest(draft), sourcePath: `${location.pathname}${location.search}` },
       });
       if (error) throw error;
       if (!data?.success || !data.reference) throw new Error(data?.message || 'The inquiry could not be submitted.');

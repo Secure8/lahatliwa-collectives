@@ -1,4 +1,4 @@
-import { canonicalServiceKey, serviceCategoriesForBranch, serviceKey } from './serviceCatalog.js';
+import { canonicalServiceKey, resolveServiceCategory, serviceCategoriesForBranch, serviceKey } from './serviceCatalog.js';
 
 export const SERVICE_BRANCHES = [
   { key: 'studio', label: 'Liwa Studio', action: 'Request Studio Services', description: 'Tell us about the shoot, coverage, production, or editing request. Share the subject or event, visual style, schedule, and required photos or videos so we can match you with a creative or production specialist.' },
@@ -295,6 +295,16 @@ export function mergeInquiryContext(draft, context = {}) {
   if (context.service) next.serviceKey = canonicalServiceKey(next.branch, context.service);
   if (context.creative) next.creativeSlug = String(context.creative).trim().toLowerCase();
   return next;
+}
+
+export function buildInquirySubmissionRequest(draft = {}) {
+  const branch = branchMeta(draft.branch)?.key || '';
+  const service = resolveServiceCategory(branch, draft.serviceKey);
+  return {
+    ...draft,
+    branch,
+    serviceKey: service?.key || '',
+  };
 }
 
 export function validateInquiryStep(step, draft, availableServices = [], eligibleCreatives = []) {

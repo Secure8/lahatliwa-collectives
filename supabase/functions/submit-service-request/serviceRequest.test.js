@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { branchKey, deliverGeneralNotificationPlan, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
-import { resolveServiceCategory } from '../../../src/lib/serviceCatalog.js';
+import { SERVICE_CATALOG, resolveServiceCategory } from '../../../src/lib/serviceCatalog.js';
+
+const BRANCH_SERVICE_KEYS = {
+  studio: ['photo', 'video', 'same-day-edit', 'highlights', 'editing', 'other-creative-work'],
+  tech: ['diagnostics', 'setup', 'remote-assistance', 'on-site-support', 'maintenance-and-optimization', 'consultation'],
+  digital: ['website', 'app', 'design-and-prototype', 'system', 'maintenance-and-improvements', 'consultation'],
+  social: ['management', 'content', 'digital-marketing', 'campaign', 'page-setup', 'review-and-consultation'],
+};
 
 function validRequest(overrides = {}) {
   return { branch: 'studio', serviceKey: 'photography', clientName: 'Client Name', clientEmail: 'client@example.com', preferredContactMethod: 'Email', summary: 'Campaign portraits', details: 'We need a portrait campaign with edited images.', consent: true, idempotencyKey: '123e4567-e89b-42d3-a456-426614174000', branchDetails: { eventType: 'Portrait campaign' }, ...overrides };
@@ -22,6 +29,45 @@ test('server resolves balanced and legacy service categories while rejecting unl
   assert.deepEqual(resolveServiceCategory('tech', 'virtual-assistance'), { key: 'remote-assistance', name: 'Software Assistance' });
   assert.deepEqual(resolveServiceCategory('general', 'unsure'), { key: 'not-sure-yet', name: 'Not Sure Yet' });
   assert.equal(resolveServiceCategory('digital', 'Accessibility Audit', ['Accessibility Audit']), null);
+});
+
+test('server validation accepts all 24 canonical branch service choices', () => {
+  let choices = 0;
+  for (const [branch, expectedKeys] of Object.entries(BRANCH_SERVICE_KEYS)) {
+    assert.deepEqual(SERVICE_CATALOG[branch].map((service) => service.key), expectedKeys);
+    for (const serviceKey of expectedKeys) {
+      const result = validateSubmission(validRequest({ branch, serviceKey }));
+      assert.deepEqual(result.errors, [], `${branch}/${serviceKey} should pass request validation`);
+      assert.equal(result.normalized.serviceKey, serviceKey);
+      assert.equal(resolveServiceCategory(branch, result.normalized.serviceKey)?.key, serviceKey);
+      choices += 1;
+    }
+  }
+  assert.equal(choices, 24);
+});
+
+test('server canonicalizes explicit legacy aliases and old display values', () => {
+  const aliases = [
+    ['studio', 'Photography', 'photo'],
+    ['studio', 'Photo & Video Editing', 'editing'],
+    ['studio', 'Other Visual Work', 'other-creative-work'],
+    ['tech', 'Virtual Assistance', 'remote-assistance'],
+    ['tech', 'Other Technical Help', 'maintenance-and-optimization'],
+    ['digital', 'Digital Product', 'maintenance-and-improvements'],
+    ['digital', 'Other Digital Work', 'consultation'],
+    ['social', 'Strategy', 'digital-marketing'],
+    ['social', 'Other Social Media Work', 'review-and-consultation'],
+    ['general', 'General Service Request', 'general-inquiry'],
+    ['general', 'Multi-Branch Request', 'multidisciplinary-project'],
+  ];
+  for (const [branch, alias, canonical] of aliases) {
+    const result = validateSubmission(validRequest({ branch, serviceKey: alias }));
+    assert.deepEqual(result.errors, [], `${branch}/${alias} should remain compatible`);
+    assert.equal(result.normalized.serviceKey, canonical);
+    assert.equal(resolveServiceCategory(branch, result.normalized.serviceKey)?.key, canonical);
+  }
+  const unknown = validateSubmission(validRequest({ branch: 'digital', serviceKey: 'Accessibility Audit' }));
+  assert.equal(resolveServiceCategory('digital', unknown.normalized.serviceKey), null);
 });
 
 test('service values are validated using normalized CMS keys', () => {

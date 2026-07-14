@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabaseClient';
 import { getPublicImageUrl } from '../lib/storage';
 import { safeExternalUrl } from '../lib/externalUrls';
 import { applyPublicMetadata } from '../lib/publicMetadata';
+import { getSingleProjectExternalLink, projectExternalLinkLabel, projectExternalLinkText } from '../lib/projectExternalLinks';
 
 function isMissingCreditRolesColumn(error) {
   const message = `${error?.message || ''} ${error?.details || ''}`;
@@ -84,6 +85,7 @@ export default function ProjectDetails() {
 
   const cover = getPublicImageUrl(project.cover_image);
   const gallery = normalizeProjectGallery(project);
+  const coverExternalLink = getSingleProjectExternalLink(project);
   const primaryContributor = contributors.find((creative) => creative.isPrimary) || contributors[0];
   const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/projects'); if (action.delta) navigate(action.delta); else navigate(action.to); };
 
@@ -92,9 +94,7 @@ export default function ProjectDetails() {
       <button type="button" onClick={goBack} className="fine-link site-hover-accent text-sm text-zinc-400">Back</button>
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.88fr)] lg:items-center' : 'lg:grid-cols-1'}`}>
         {cover && (
-          <div className="overflow-hidden rounded-[10px] border border-white/10 bg-zinc-900 shadow-[0_18px_58px_-32px_rgba(251,146,60,0.35)]">
-            <img className="aspect-[4/3] w-full object-cover" src={cover} alt={project.title} decoding="async" fetchpriority="high" width="1200" height="900" />
-          </div>
+          <ProjectCover cover={cover} title={project.title} externalLink={coverExternalLink} />
         )}
         <div className="min-w-0 lg:py-4">
           <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
@@ -156,6 +156,22 @@ export default function ProjectDetails() {
         </section>
       )}
     </article>
+  );
+}
+
+function ProjectCover({ cover, title, externalLink }) {
+  const frameClass = 'overflow-hidden rounded-[10px] border border-white/10 bg-zinc-900 shadow-[0_18px_58px_-32px_rgba(251,146,60,0.35)]';
+  const image = <img className={`aspect-[4/3] w-full object-cover ${externalLink ? 'transition duration-500 group-hover:scale-[1.015] group-hover:opacity-95 motion-reduce:transition-none' : ''}`} src={cover} alt={title} decoding="async" fetchpriority="high" width="1200" height="900" />;
+
+  if (!externalLink) return <div className={frameClass}>{image}</div>;
+
+  return (
+    <a href={externalLink.url} target="_blank" rel="noopener noreferrer" aria-label={projectExternalLinkLabel(externalLink)} className={`${frameClass} group relative block cursor-pointer transition hover:border-orange-300/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950`}>
+      {image}
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-end bg-gradient-to-t from-black/75 via-black/20 to-transparent px-4 pb-4 pt-12 text-xs font-medium text-white opacity-90 sm:px-5 sm:pb-5">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 backdrop-blur-sm">{projectExternalLinkText(externalLink)} <ExternalLink size={14} aria-hidden="true" /></span>
+      </span>
+    </a>
   );
 }
 

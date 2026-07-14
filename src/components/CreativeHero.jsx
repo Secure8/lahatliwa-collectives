@@ -11,12 +11,14 @@ export default function CreativeHero({ creative, projectCount, socials, resource
   const coverImage = getPublicImageUrl(creative.cover_image) || profileImage;
   const intro = creative.short_bio || creative.full_bio;
   return (
-    <header className="theme-inverse relative isolate flex min-h-[63rem] w-full flex-col overflow-hidden rounded-[10px] bg-zinc-900 min-[341px]:min-h-[61rem] min-[381px]:min-h-[60rem] sm:aspect-[4/3] sm:min-h-[54rem] lg:aspect-video lg:min-h-[32.5rem] lg:max-h-[45rem]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(246,213,139,0.14),transparent_34%),linear-gradient(135deg,#27272a,#09090b)]" />
-      {coverImage && <SmoothImage key={`cover-${coverImage}`} src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} fetchpriority={adminPreview ? 'auto' : 'high'} decoding="async" width="1920" height="1080" sizes="(max-width: 1439px) calc(100vw - 24px), 1360px" className="absolute inset-0 h-full w-full object-cover object-center" />}
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,6,0.94)_0%,rgba(5,5,6,0.58)_30%,rgba(5,5,6,0.02)_57%,rgba(5,5,6,0.82)_100%),linear-gradient(0deg,rgba(5,5,6,0.78)_0%,transparent_58%)]" />
+    <header className="theme-inverse relative isolate w-full overflow-hidden rounded-[10px] bg-[#09090b] lg:flex lg:aspect-video lg:min-h-[32.5rem] lg:max-h-[45rem] lg:flex-col">
+      <div data-creative-cover className="relative aspect-[16/9] w-full shrink-0 overflow-hidden lg:absolute lg:inset-0 lg:h-full lg:aspect-auto">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(246,213,139,0.14),transparent_34%),linear-gradient(135deg,#27272a,#09090b)]" />
+        {coverImage && <SmoothImage key={`cover-${coverImage}`} src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} fetchpriority={adminPreview ? 'auto' : 'high'} decoding="async" width="1920" height="1080" sizes="(max-width: 1439px) calc(100vw - 24px), 1360px" className="absolute inset-0 h-full w-full object-cover object-center" />}
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,6,0.94)_0%,rgba(5,5,6,0.58)_30%,rgba(5,5,6,0.02)_57%,rgba(5,5,6,0.82)_100%),linear-gradient(0deg,rgba(5,5,6,0.78)_0%,transparent_58%)]" />
+      </div>
       {!adminPreview && <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-3 z-20 hidden justify-center xl:flex"><div className="flex items-center gap-3 text-[9px] font-medium uppercase tracking-[0.24em] text-white/55"><span className="h-px w-12 bg-gradient-to-r from-transparent to-orange-200/55 shadow-[0_0_6px_rgba(251,146,60,0.28)]" /><ChevronUp size={12} className="text-orange-200/75" /><span>DISCOVER MORE</span><span className="h-px w-12 bg-gradient-to-l from-transparent to-orange-200/55 shadow-[0_0_6px_rgba(251,146,60,0.28)]" /></div></div>}
-      <div className="relative z-10 flex min-w-0 flex-1 items-center px-5 pb-72 pt-28 sm:px-9 sm:pb-40 sm:pt-10 lg:w-[48%] lg:translate-y-10 lg:px-12 lg:pb-10">
+      <div data-creative-hero-content className="relative z-10 -mt-12 min-w-0 px-5 pb-7 sm:-mt-16 sm:px-9 sm:pb-9 lg:mt-0 lg:flex lg:w-[48%] lg:flex-1 lg:translate-y-10 lg:items-center lg:px-12 lg:pb-10 lg:pt-10">
         <div className="max-w-[34rem]">
         <div className="relative grid h-40 w-40 place-items-center overflow-hidden rounded-full border border-white/25 bg-zinc-900/85 shadow-[0_10px_28px_rgba(0,0,0,0.35)]">
           <span aria-hidden="true" className="text-3xl font-semibold text-orange-200">{creative.name?.slice(0, 1) || 'L'}</span>
@@ -43,7 +45,7 @@ export default function CreativeHero({ creative, projectCount, socials, resource
           <HeroFact label="03 / Selected work" value={`${projectCount} published ${projectCount === 1 ? 'project' : 'projects'}`} />
         </div>
       </aside>
-      <div className="absolute inset-x-3 bottom-3 z-10 lg:hidden">
+      <div data-creative-hero-facts className="relative z-10 mx-3 mb-3 lg:hidden">
         {resources.length > 0 && <ResourceDock resources={resources} mobile />}
         <div className="grid border border-white/15 bg-black/55 backdrop-blur-md sm:grid-cols-3">
           <HeroFact label="Status" value={creative.availability_status || 'Creative profile'} accent={Boolean(creative.availability_status)} />

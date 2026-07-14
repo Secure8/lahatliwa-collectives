@@ -5,9 +5,10 @@ import { projectLayout } from './creativeProfileLayout.js';
 
 test('profile hero uses responsive campaign dimensions with intentional cover cropping', async () => {
   const source = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
-  assert.match(source, /sm:aspect-\[4\/3\].*lg:aspect-video/);
+  assert.match(source, /data-creative-cover.*aspect-\[16\/9\].*lg:absolute.*lg:inset-0.*lg:h-full.*lg:aspect-auto/);
   assert.match(source, /coverImage/);
-  assert.match(source, /object-cover/);
+  assert.match(source, /className="absolute inset-0 h-full w-full object-cover object-center"/);
+  assert.doesNotMatch(source, /min-h-\[63rem\]|min-\[341px\]:min-h-\[61rem\]|min-\[381px\]:min-h-\[60rem\]|sm:min-h-\[54rem\]/);
 });
 
 test('unified hero uses the cover background with a circular profile identity', async () => {
@@ -27,8 +28,24 @@ test('mobile hero stacks tools and facts without forcing the desktop dock over c
   const hero = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
   const styles = await readFile(new URL('../index.css', import.meta.url), 'utf8');
   assert.match(hero, /Mobile tools and resources/);
-  assert.match(hero, /pb-72.*sm:pb-40.*lg:pb-10/);
+  assert.match(hero, /data-creative-hero-content.*-mt-12.*sm:-mt-16.*lg:mt-0/);
+  assert.match(hero, /data-creative-hero-facts.*relative z-10 mx-3 mb-3 lg:hidden/);
+  assert.doesNotMatch(hero, /absolute inset-x-3 bottom-3 z-10 lg:hidden/);
   assert.doesNotMatch(styles, /\[aria-label="Tools and resources"\][^{]*\{[^}]*display:\s*flex/);
+});
+
+test('mobile cover height is independent from long profile content while overlays stay intact', async () => {
+  const hero = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
+  assert.match(hero, /theme-inverse[^\n]*bg-\[#09090b\]/);
+  assert.match(hero, /data-creative-cover/);
+  assert.match(hero, /data-creative-hero-content/);
+  assert.match(hero, /creative\.profile_image_url/);
+  assert.match(hero, /rounded-full/);
+  assert.match(hero, /Creative portfolio/);
+  assert.match(hero, /creative\.availability_status/);
+  assert.match(hero, /socials\.map\(renderSocial\)/);
+  assert.match(hero, /ResourceDock/);
+  assert.doesNotMatch(hero, /data-creative-cover[^>]*(?:self-stretch|items-stretch|min-h-full|row-span-)/);
 });
 
 test('desktop profile rails frame the cover and content without entering mobile layouts', async () => {

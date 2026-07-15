@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 
-test('public bottom navigation is mobile-only, safe-area aware, keyboard-aware, and absent from admin layout', async () => {
+test('public and admin bottom navigation are mobile-only, safe-area aware, and keyboard-aware', async () => {
   const [component, app, admin, styles, keyboard] = await Promise.all([
     readFile(new URL('../components/MobileBottomNavigation.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
@@ -18,7 +18,11 @@ test('public bottom navigation is mobile-only, safe-area aware, keyboard-aware, 
   assert.match(component, /surfaceOpen/);
   assert.match(keyboard, /visualViewport/);
   assert.match(app, /<MobileBottomNavigation/);
-  assert.doesNotMatch(admin, /MobileBottomNavigation/);
+  assert.match(admin, /data-admin-mobile-bottom-navigation/);
+  assert.match(admin, /useKeyboardVisibility/);
+  assert.match(admin, /grid-cols-5/);
+  assert.match(admin, /aria-current=\{active \? 'page'/);
+  assert.match(admin, /safe-area-inset-bottom/);
   assert.match(styles, /\.public-footer[\s\S]*?padding-bottom: calc\(4\.5rem \+ env\(safe-area-inset-bottom\)\)/);
 });
 
@@ -72,7 +76,7 @@ test('project cards stretch equally on desktop without fixed mobile heights', as
   assert.match(projects, /<ProjectGrid projects=\{visible\}/);
 });
 
-test('admin keeps stable role-aware navigation and uses compact mobile dashboard rails without a second fixed bar', async () => {
+test('admin keeps stable role-aware navigation, compact dashboard rails, and a one-handed primary bar', async () => {
   const [admin, dashboard, styles] = await Promise.all([
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/admin/Dashboard.jsx', import.meta.url), 'utf8'),
@@ -80,7 +84,40 @@ test('admin keeps stable role-aware navigation and uses compact mobile dashboard
   ]);
   assert.match(admin, /groupLinks\.filter\(\(\[, , , canShow\]\) => canShow\(access\)\)/);
   assert.match(admin, /admin-app-bar[\s\S]*?fixed inset-x-0 top-0/);
-  assert.doesNotMatch(admin, /AdminMobileBottomNavigation|MobileBottomNavigation/);
+  assert.match(admin, /mobilePrimaryLinks/);
+  assert.match(admin, /profileDestination/);
+  assert.match(admin, /Open all admin sections/);
   assert.match(dashboard, /admin-dashboard-grid/);
   assert.match(styles, /\.admin-dashboard-grid[\s\S]*?grid-auto-flow: column/);
+});
+
+test('long admin forms share mobile sections and sticky actions above the primary navigation', async () => {
+  const [ui, projectForm, creativeEditor, branchEditor, settings, contentEditor, profile, styles] = await Promise.all([
+    readFile(new URL('../components/admin/AdminUI.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/admin/ProjectForm.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/admin/CreativeEditor.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/admin/ServiceBranchEditor.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/admin/SiteSettings.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/admin/ContentEditor.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../pages/admin/MyProfile.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../index.css', import.meta.url), 'utf8'),
+  ]);
+  assert.match(ui, /export function ResponsiveFormSection/);
+  assert.match(ui, /export function StickyMobileActions/);
+  assert.match(ui, /data-sticky-mobile-actions/);
+  for (const source of [projectForm, creativeEditor, branchEditor, settings, contentEditor, profile]) {
+    assert.match(source, /StickyMobileActions/);
+    assert.match(source, /ResponsiveFormSection/);
+  }
+  assert.match(styles, /\[data-sticky-mobile-actions\][\s\S]*?bottom: calc\(3\.5rem \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(styles, /font-size: 1rem/);
+});
+
+test('inquiry details use a focus-trapped full-screen mobile dialog and a mobile confirmation sheet', async () => {
+  const inquiries = await readFile(new URL('../pages/admin/AdminInquiries.jsx', import.meta.url), 'utf8');
+  assert.match(inquiries, /useModalDrawer/);
+  assert.match(inquiries, /h-dvh max-h-dvh/);
+  assert.match(inquiries, /data-drawer-initial-focus/);
+  assert.match(inquiries, /place-items-end[\s\S]*?sm:place-items-center/);
+  assert.match(inquiries, /pb-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
 });

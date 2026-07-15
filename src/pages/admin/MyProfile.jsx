@@ -23,7 +23,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import CreativeProfileView from '../../components/CreativeProfileView';
-import { AdminButton, AdminNotice, AdminPageHeader, AdminStatusBadge } from '../../components/admin/AdminUI';
+import { AdminButton, AdminNotice, AdminPageHeader, AdminStatusBadge, ResponsiveFormSection, StickyMobileActions } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
 import { useAdminAccess } from '../../lib/adminAccess';
 import { copyText } from '../../lib/clipboard';
@@ -146,15 +146,7 @@ function ProfileTextarea({ label, value, onChange, rows = 4, hint, error, placeh
 }
 
 function ProfileSection({ title, description, children }) {
-  return (
-    <section className="grid gap-5 border-t border-white/[0.08] py-7 first:border-t-0 first:pt-0">
-      <div>
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-        {description && <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-500">{description}</p>}
-      </div>
-      {children}
-    </section>
-  );
+  return <ResponsiveFormSection title={title} description={description}>{children}</ResponsiveFormSection>;
 }
 
 function InlineActionButton({ children, onClick, href, disabled = false, subtle = false }) {
@@ -904,7 +896,7 @@ export default function MyProfile() {
           title="Save Actions"
           description="Save updates locally and keep you on this page. Discard reloads the last saved profile without leaving the editor."
         >
-          <div className="flex flex-wrap items-center gap-3">
+          <StickyMobileActions>
             <AdminButton type="submit" disabled={saving || Boolean(uploadingKind)} variant="primary">
               <Save size={16} />
               {saving ? 'Saving...' : 'Save Changes'}
@@ -921,7 +913,7 @@ export default function MyProfile() {
                 <Copy size={16} /> Copy Profile Link
               </InlineActionButton>
             )}
-          </div>
+          </StickyMobileActions>
         </ProfileSection>
       </form>
     </AdminLayout>

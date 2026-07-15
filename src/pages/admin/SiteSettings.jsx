@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { AdminButton, AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
+import { AdminButton, AdminNotice, AdminPageHeader, ResponsiveFormSection, StickyMobileActions } from '../../components/admin/AdminUI';
 import { mergePublicContent, settingsFormFromRow, settingsFromSiteContent, updateSiteSettings, uploadSiteAsset, usePublicContent } from '../../lib/contentApi';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { createHeroBackgroundRender } from '../../lib/heroBackground';
@@ -57,15 +57,7 @@ function LineButton({ children, to, href, onClick, subtle = false, external = fa
 }
 
 function Section({ title, description, children }) {
-  return (
-    <section className="grid gap-5 border-t border-white/[0.08] py-7 first:border-t-0 first:pt-0">
-      <div>
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-        {description && <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-500">{description}</p>}
-      </div>
-      {children}
-    </section>
-  );
+  return <ResponsiveFormSection title={title} description={description}>{children}</ResponsiveFormSection>;
 }
 
 function Field({ label, value, onChange, placeholder, type = 'text', error, hint, onBlur, required = false, disabled = false, min, max, step, autoComplete }) {
@@ -499,12 +491,12 @@ export default function SiteSettings() {
             {message && <AdminNotice tone="success" role="status">{message}</AdminNotice>}
             {uploadStatus && <AdminNotice tone="success" role="status">{uploadStatus}</AdminNotice>}
             {error && <AdminNotice role="alert">{error}</AdminNotice>}
-            <div className="flex flex-wrap items-center gap-3">
+            <StickyMobileActions>
               <AdminButton disabled={!isDirty || !canSave} type="submit" variant="primary">
                 {saving ? 'Saving...' : 'Save Changes'}
               </AdminButton>
               <LineButton onClick={discardChanges} subtle disabled={!isDirty || saving || Boolean(uploadingField)}>Discard Unsaved Changes</LineButton>
-            </div>
+            </StickyMobileActions>
           </Section>
         </div>
 

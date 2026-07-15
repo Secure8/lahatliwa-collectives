@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { ArrowUpRight, Circle } from 'lucide-react';
+import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 
 const statusTone = {
@@ -23,24 +24,49 @@ const statusTone = {
 
 export function AdminPageHeader({ eyebrow, title, description, action }) {
   return (
-    <div className="mb-7 flex flex-col gap-5 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+    <div className="admin-page-header mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
       <div className="max-w-3xl">
         {eyebrow && <p className="text-xs font-medium uppercase tracking-[0.24em] text-amber-200/80">{eyebrow}</p>}
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-amber-100 sm:text-4xl">{title}</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-amber-100 sm:mt-3 sm:text-4xl">{title}</h1>
         {description && <p className="admin-page-intro mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>}
       </div>
-      {action && <div className="flex w-full shrink-0 flex-wrap gap-3 sm:w-auto">{action}</div>}
+      {action && <div className="admin-page-header-actions flex w-full shrink-0 flex-wrap gap-2 sm:w-auto sm:gap-3">{action}</div>}
     </div>
   );
 }
 
-export function AdminSurface({ children, className = '', as: Component = 'section', ...props }) {
+export function ResponsiveFormSection({ eyebrow, title, description, children, className = '' }) {
   return (
-    <Component {...props} className={clsx('rounded-xl border border-amber-200/15 bg-zinc-950/95 p-4 shadow-lg shadow-black/15 sm:rounded-md sm:p-5', className)}>
+    <section className={clsx('admin-form-section grid min-w-0 gap-5 border-t border-white/[0.08] py-6 first:border-t-0 first:pt-0 sm:py-7', className)}>
+      <div className="min-w-0">
+        {eyebrow && <p className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-zinc-500">{eyebrow}</p>}
+        <h2 className={clsx('font-semibold text-white', eyebrow ? 'mt-2 text-xl' : 'text-lg')}>{title}</h2>
+        {description && <p className="mt-1.5 max-w-3xl text-sm leading-6 text-zinc-500">{description}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export function StickyMobileActions({ children, className = '', label = 'Page actions' }) {
+  return (
+    <div
+      aria-label={label}
+      data-sticky-mobile-actions
+      className={clsx('admin-sticky-actions sticky bottom-0 z-30 -mx-4 mt-2 grid grid-cols-2 gap-2 border-t border-white/[0.1] bg-zinc-950/95 px-4 py-3 shadow-[0_-16px_35px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:mx-0 sm:flex sm:flex-wrap sm:items-center sm:gap-3 sm:bg-zinc-950/90 sm:px-0 sm:shadow-none', className)}
+    >
+      {children}
+    </div>
+  );
+}
+
+export const AdminSurface = forwardRef(function AdminSurface({ children, className = '', as: Component = 'section', ...props }, ref) {
+  return (
+    <Component ref={ref} {...props} className={clsx('rounded-xl border border-amber-200/15 bg-zinc-950/95 p-4 shadow-lg shadow-black/15 sm:rounded-md sm:p-5', className)}>
       {children}
     </Component>
   );
-}
+});
 
 export function AdminSoftPanel({ children, className = '' }) {
   return (

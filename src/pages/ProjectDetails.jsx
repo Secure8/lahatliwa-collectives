@@ -92,7 +92,7 @@ export default function ProjectDetails() {
 
   return (
     <article className="page-shell py-20">
-      <button type="button" onClick={goBack} className="fine-link site-hover-accent text-sm text-zinc-400">Back</button>
+      <button type="button" onClick={goBack} className="fine-link site-hover-accent min-h-11 text-sm text-zinc-400">Back</button>
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.88fr)] lg:items-center' : 'lg:grid-cols-1'}`}>
         {cover && (
           <ProjectCover cover={cover} title={project.title} externalLink={coverExternalLink} />
@@ -272,7 +272,7 @@ function Action({ href, icon: Icon, label }) {
   const safeHref = safeExternalUrl(href);
   if (!safeHref) return null;
   return (
-    <a href={safeHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center justify-center gap-2 border border-[var(--site-accent-border)] px-3 py-3 text-center text-sm text-[var(--site-accent-text)] transition hover:bg-[var(--site-accent-surface)] sm:px-4">
+    <a href={safeHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 border border-[var(--site-accent-border)] px-3 py-3 text-center text-sm text-[var(--site-accent-text)] transition hover:bg-[var(--site-accent-surface)] sm:px-4">
       <Icon size={17} /> {label}
     </a>
   );

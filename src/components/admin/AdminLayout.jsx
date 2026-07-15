@@ -10,6 +10,7 @@ import BrandWordmark from '../BrandWordmark';
 import AppearanceMenuAction from '../AppearanceMenuAction';
 import { adminPageTitle } from '../../lib/mobileAppShell';
 import useModalDrawer from '../../lib/useModalDrawer';
+import useKeyboardVisibility from '../../lib/useKeyboardVisibility';
 import { canSeeStorageNavigation } from '../../lib/storageAdmin';
 
 const links = [
@@ -41,12 +42,24 @@ export default function AdminLayout({ children }) {
   const sidebarNavRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadInquiries, setUnreadInquiries] = useState(0);
+  const keyboardVisible = useKeyboardVisibility();
   const { content } = usePublicContent([]);
   const access = useAdminAccess();
   const visibleGroups = links
     .map(([group, groupLinks]) => [group, groupLinks.filter(([, , , canShow]) => canShow(access))])
     .filter(([, groupLinks]) => groupLinks.length > 0);
   const currentPageTitle = adminPageTitle(location.pathname, visibleGroups);
+  const profileDestination = access.role === 'viewer'
+    ? ['Directory', '/admin/directory', Users]
+    : ['Profile', '/admin/my-profile', User];
+  const mobilePrimaryLinks = [
+    ['Home', '/admin/dashboard', LayoutDashboard],
+    ['Projects', '/admin/projects', FolderKanban],
+    ['Inquiries', '/admin/inquiries', Inbox],
+    profileDestination,
+  ];
+  const primaryRouteIsActive = (href) => location.pathname === href || (href !== '/admin/dashboard' && location.pathname.startsWith(`${href}/`));
+  const moreIsActive = !mobilePrimaryLinks.some(([, href]) => primaryRouteIsActive(href));
   const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
   const { panelRef, triggerRef } = useModalDrawer({ open: mobileOpen, onClose: closeMobileMenu });
 
@@ -163,7 +176,51 @@ export default function AdminLayout({ children }) {
           </div>
         </section>
       </div>}
-      <main className="admin-app-content px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[calc(5.75rem+env(safe-area-inset-top))] sm:px-5 lg:ml-80 lg:px-8 lg:pb-10 lg:pt-10">
+      <nav
+        aria-label="Primary admin navigation"
+        data-admin-mobile-bottom-navigation
+        data-hidden={keyboardVisible || mobileOpen ? 'true' : 'false'}
+        className={clsx(
+          'admin-mobile-bottom-navigation theme-navigation-surface fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.1] bg-zinc-950/94 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl transition-[transform,opacity] duration-200 motion-reduce:transition-none lg:hidden',
+          (keyboardVisible || mobileOpen) && 'pointer-events-none translate-y-full opacity-0',
+        )}
+      >
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {mobilePrimaryLinks.map(([label, href, Icon]) => {
+            const active = primaryRouteIsActive(href);
+            return (
+              <NavLink
+                key={href}
+                to={href}
+                aria-current={active ? 'page' : undefined}
+                className={clsx('relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 text-[0.66rem] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-200/60', active ? 'text-amber-100' : 'text-zinc-500 hover:text-zinc-200')}
+              >
+                <span className="relative">
+                  <Icon size={19} strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" />
+                  {href === '/admin/inquiries' && unreadInquiries > 0 && <span className="absolute -right-2.5 -top-1.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 bg-amber-300" aria-hidden="true" />}
+                </span>
+                <span className="max-w-full truncate">{label}</span>
+                {href === '/admin/inquiries' && unreadInquiries > 0 && <span className="sr-only">{unreadInquiries} unread inquiries</span>}
+                {active && <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-amber-300" aria-hidden="true" />}
+              </NavLink>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open all admin sections"
+            aria-expanded={mobileOpen}
+            aria-controls="admin-mobile-navigation"
+            aria-current={moreIsActive ? 'page' : undefined}
+            className={clsx('relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 text-[0.66rem] font-medium transition hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-200/60', moreIsActive ? 'text-amber-100' : 'text-zinc-500')}
+          >
+            <Menu size={19} strokeWidth={moreIsActive ? 2.2 : 1.8} aria-hidden="true" />
+            <span>More</span>
+            {moreIsActive && <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-amber-300" aria-hidden="true" />}
+          </button>
+        </div>
+      </nav>
+      <main className="admin-app-content px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-[calc(5.75rem+env(safe-area-inset-top))] sm:px-5 lg:ml-80 lg:px-8 lg:pb-10 lg:pt-10">
         <div className="mx-auto max-w-7xl">{children}</div>
       </main>
     </div>

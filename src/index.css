@@ -738,8 +738,20 @@ html.theme-transition::view-transition-new(root) { z-index: 2; }
     scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   }
 
+  html.admin-mode {
+    scroll-padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  }
+
   .public-footer {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
+  .admin-mobile-bottom-navigation {
+    box-shadow: 0 -12px 35px rgb(0 0 0 / 0.2);
+  }
+
+  .admin-shell [data-sticky-mobile-actions] {
+    bottom: calc(3.5rem + env(safe-area-inset-bottom));
   }
 
   .public-mode .theme-toggle--global {
@@ -906,11 +918,29 @@ html.theme-transition::view-transition-new(root) { z-index: 2; }
   }
 
   .admin-shell :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]), textarea, select) {
+    min-height: 3rem;
+    font-size: 1rem;
+  }
+
+  .admin-shell :where(button:not([tabindex="-1"]), a[href], label:has(input[type="file"]), summary) {
     min-height: 2.75rem;
   }
 
-  .admin-shell .sticky.bottom-0 {
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  .admin-shell :where(input[type="checkbox"], input[type="radio"]) {
+    min-width: 1.125rem;
+    min-height: 1.125rem;
+  }
+
+  .admin-page-header-actions > * {
+    flex: 1 1 auto;
+  }
+
+  .admin-form-section {
+    gap: 1rem;
+  }
+
+  .admin-sticky-actions > * {
+    min-width: 0;
   }
 
   .admin-page-intro {

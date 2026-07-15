@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronUp } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPublicImageUrl } from '../lib/storage';
@@ -17,7 +17,7 @@ export default function CreativeHero({ creative, projectCount, socials, resource
         {coverImage && <SmoothImage key={`cover-${coverImage}`} src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} fetchpriority={adminPreview ? 'auto' : 'high'} decoding="async" width="1920" height="1080" sizes="(max-width: 1439px) calc(100vw - 24px), 1360px" className="absolute inset-0 h-full w-full object-cover object-center" />}
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,6,0.94)_0%,rgba(5,5,6,0.58)_30%,rgba(5,5,6,0.02)_57%,rgba(5,5,6,0.82)_100%),linear-gradient(0deg,rgba(5,5,6,0.78)_0%,transparent_58%)]" />
       </div>
-      {!adminPreview && <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-3 z-20 hidden justify-center xl:flex"><div className="flex items-center gap-3 text-[9px] font-medium uppercase tracking-[0.24em] text-white/55"><span className="h-px w-12 bg-gradient-to-r from-transparent to-orange-200/55 shadow-[0_0_6px_rgba(251,146,60,0.28)]" /><ChevronUp size={12} className="text-orange-200/75" /><span>DISCOVER MORE</span><span className="h-px w-12 bg-gradient-to-l from-transparent to-orange-200/55 shadow-[0_0_6px_rgba(251,146,60,0.28)]" /></div></div>}
+      {!adminPreview && <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-3 z-20 hidden justify-center xl:flex"><span className="text-[9px] font-medium uppercase tracking-[0.24em] text-white/55">DISCOVER MORE</span></div>}
       <div data-creative-hero-content className="relative z-10 -mt-12 min-w-0 px-5 pb-7 sm:-mt-16 sm:px-9 sm:pb-9 lg:mt-0 lg:flex lg:w-[48%] lg:flex-1 lg:translate-y-10 lg:items-center lg:px-12 lg:pb-10 lg:pt-10">
         <div className="max-w-[34rem]">
         <div className="relative grid h-40 w-40 place-items-center overflow-hidden rounded-full border border-white/25 bg-zinc-900/85 shadow-[0_10px_28px_rgba(0,0,0,0.35)]">

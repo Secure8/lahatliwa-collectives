@@ -80,7 +80,7 @@ test('desktop profile rails frame the cover and content without entering mobile 
   assert.match(profile, /inset-x-0 top-0 h-px/);
   assert.match(profile, /shadow-\[0_0_5px_rgba\(251,146,60,0\.4\)\]/);
   assert.doesNotMatch(details, /-top-10/);
-  assert.match(details, /min-h-10/);
+  assert.match(details, /min-h-11/);
   assert.match(details, /relative mt-1/);
 });
 
@@ -95,8 +95,15 @@ test('creative profile utilities can reveal from the desktop top edge without co
   assert.match(details, /event\.clientY <= 140/);
   assert.match(details, /fixed left-3 top-\[4\.5rem\]/);
   assert.match(details, /xl:pointer-events-none xl:-translate-y-2 xl:opacity-0/);
-  assert.match(hero, /<span>DISCOVER MORE<\/span>/);
-  assert.match(hero, /pointer-events-none.*hidden justify-center xl:flex/);
+  assert.match(hero, />DISCOVER MORE<\/span>/);
+  assert.match(details, /CreativeProfileQuickNav/);
+  assert.match(details, /fixed left-1\/2 top-\[4\.5rem\]/);
+  assert.match(details, /aria-label="Creative profile navigation"/);
+  assert.match(details, /href="#work"/);
+  assert.match(details, /href="#about"/);
+  assert.match(details, /href="#skills"/);
+  assert.match(details, /href="#contact"/);
+  assert.doesNotMatch(hero, /ChevronUp|bg-gradient-to-[rl] from-transparent to-orange-200\/55/);
 });
 
 test('creative profiles use the same full desktop navbar while mobile overlay behavior stays breakpoint-scoped', async () => {

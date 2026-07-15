@@ -47,7 +47,7 @@ import {
   validateExternalThumbnailUploadFile,
   validateGalleryUploadFile,
 } from '../../lib/storage';
-import { AdminCheckbox } from './AdminUI';
+import { AdminCheckbox, ResponsiveFormSection, StickyMobileActions } from './AdminUI';
 import ImageUploader from './ImageUploader';
 import { ActionFeedback, FieldError } from '../FieldFeedback';
 
@@ -1063,7 +1063,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </FormSection>
       )}
 
-      <div className="sticky bottom-0 z-10 grid grid-cols-2 gap-2 border-t border-white/[0.1] bg-zinc-950/92 py-3 backdrop-blur sm:flex sm:flex-wrap sm:gap-3">
+      <StickyMobileActions className="sm:z-10">
         <ActionFeedback error={actionError} className="col-span-2 w-full sm:basis-full" />
         {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="col-span-2 inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 sm:col-auto sm:px-5"><Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Publishing...' : uploadingImages ? 'Uploading...' : mode === 'new' ? 'Create & Publish' : 'Publish Changes'}</button>}
         {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save_draft'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">Save Draft</button>}
@@ -1082,7 +1082,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         <button type="button" onClick={() => navigate('/admin/projects')} className="col-span-2 h-10 rounded-md bg-white/[0.055] px-3 text-sm text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] sm:col-auto sm:px-5">
           Cancel
         </button>
-      </div>
+      </StickyMobileActions>
     </form>
   );
 }
@@ -1166,14 +1166,7 @@ function Field({ label, value, onChange, type = 'text', required = false, onBlur
 
 function FormSection({ eyebrow, title, description, children }) {
   return (
-    <section className="grid gap-5 border-t border-white/[0.08] py-7 first:border-t-0 first:pt-0">
-      <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{eyebrow}</p>
-        <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
-        {description && <p className="mt-2 text-sm leading-6 text-zinc-500">{description}</p>}
-      </div>
-      {children}
-    </section>
+    <ResponsiveFormSection eyebrow={eyebrow} title={title} description={description}>{children}</ResponsiveFormSection>
   );
 }
 

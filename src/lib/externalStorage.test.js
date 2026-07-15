@@ -261,16 +261,22 @@ test('existing upload, public gallery, payload, and cleanup paths remain Supabas
   assert.doesNotMatch(worker, /external_media_objects|storage_migrations|google_drive/);
 });
 
-test('the architecture documents Phase 2 OAuth while keeping copying, retention, and cleanup later', async () => {
+test('the architecture documents the production state and preserves the corrected Phase 5–7 roadmap', async () => {
   const [design, phase2] = await Promise.all([
     source('docs/external-storage-architecture.md'), source('docs/google-drive-byos-phase2.md'),
   ]);
   assert.match(design, /Copy → Verify → Register destination → Test preview\/display → Switch reference → Retain source → Delete source after retention/);
   assert.match(design, /7–30 days/);
-  assert.match(design, /Phase 2/);
-  assert.match(design, /Current cleanup is Supabase-specific and must remain unchanged in Phase 1/);
+  assert.match(design, /Phases 1–4 are complete and deployed/);
+  assert.match(design, /Phase 5A — Production resumable upload foundation/);
+  assert.match(design, /Phase 5B — Controlled videos up to 1 GB/);
+  assert.match(design, /Phase 5C — Other large originals/);
+  assert.match(design, /Phase 6 — Historical-media migration/);
+  assert.match(design, /Phase 7 — Provider expansion and production hardening/);
+  assert.match(design, /centralized cleanup worker remains Supabase-specific/);
+  assert.match(design, /must not simply be raised to 1 GB/);
   assert.match(phase2, /http:\/\/127\.0\.0\.1:54321\/functions\/v1\/google-drive-oauth-callback/);
-  assert.match(phase2, /https:\/\/ombmknvnllhxhxxojuam\.supabase\.co\/functions\/v1\/google-drive-oauth-callback/);
+  assert.match(phase2, /https:\/\/fgelzlxfqeooxvvcpndd\.supabase\.co\/functions\/v1\/google-drive-oauth-callback/);
   assert.match(phase2, /VITE_GOOGLE_DRIVE_CONNECTOR_ENABLED=true/);
   assert.match(phase2, /No media file upload/);
 });

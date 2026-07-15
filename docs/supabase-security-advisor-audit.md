@@ -52,7 +52,7 @@ All listed SECURITY DEFINER functions and their role helpers now use an empty `s
 
 ## Phase 4 conflict review
 
-No Phase 4 file is changed by this audit. The frontend flag remains `VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=false`.
+At the time of this audit, no Phase 4 file was changed and the frontend flag remained `VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=false`. Phase 4 was subsequently committed, deployed, enabled through production configuration, and verified as a separate change. The tracked `.env.example` still keeps the flag false as a safe default.
 
 The applied SQL does not mention `external_media_objects`, the Phase 4 media lifecycle function, provider payloads, or Google Drive feature flags. It preserves the Phase 3 safe `storage_connections` columns used by the Storage page and Phase 4 connection checks. Edge Functions continue using the service role against base tables, so the new authenticated Super Admin RLS policies do not alter their behavior. There is no Phase 4 SQL migration to conflict with.
 
@@ -62,7 +62,7 @@ The applied SQL does not mention `external_media_objects`, the Phase 4 media lif
 - The isolated Security Advisor suite passed 6/6 tests, including the public, non-Team authenticated, owner/Super Admin, Team-member, and admin permission matrix.
 - The Vite production build passed (1,739 modules transformed).
 - `git diff --check` passed; only existing line-ending conversion warnings were printed.
-- Phase 4 was SHA-256 checked before and after the audit: all 29 pre-existing modified/untracked Phase 4 files were byte-for-byte unchanged.
+- During the audit, Phase 4 was SHA-256 checked before and after: all 29 then-uncommitted Phase 4 files were byte-for-byte unchanged.
 - The repository has no configured lint or standalone type-check command, so neither could be run separately.
 - The production migration completed successfully; its built-in postconditions verified view options, sensitive-column denial, and RPC grants before commit.
 
@@ -111,4 +111,4 @@ notify pgrst, 'reload schema';
 commit;
 ```
 
-No Edge Function or frontend deployment was performed, and Phase 4 remains disabled.
+No Edge Function or frontend deployment was performed as part of the security-hardening change. Phase 4 was deployed and enabled later through its separately reviewed rollout.

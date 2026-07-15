@@ -1,6 +1,6 @@
 # Google Drive BYOS — Phase 2 runbook
 
-Status: implemented locally, not applied or deployed. Google Drive connection management only. Supabase remains the only upload provider; external uploads and migrations remain disabled.
+Status: complete and deployed to production project `fgelzlxfqeooxvvcpndd`. Phase 2 provides Google Drive connection management only; the separately reviewed Phase 3 test upload and Phase 4 project-gallery image flow were deployed later. Supabase remains the global default and public-delivery provider, and historical-media migration remains disabled.
 
 ## Security boundary
 
@@ -49,7 +49,7 @@ No media file upload, external file registration, migration job, copy, reference
 6. Add these exact authorized redirect URIs:
 
    - Local: `http://127.0.0.1:54321/functions/v1/google-drive-oauth-callback`
-   - Production: `https://ombmknvnllhxhxxojuam.supabase.co/functions/v1/google-drive-oauth-callback`
+   - Production: `https://fgelzlxfqeooxvvcpndd.supabase.co/functions/v1/google-drive-oauth-callback`
 
 The application does not use Google’s browser JavaScript SDK, so an authorized JavaScript origin is not required for this server flow. If an organization policy requires origins to be listed, use only `http://localhost:5173` for local work and `https://www.lahatliwa.studio` for production. Never add wildcard redirect URIs.
 
@@ -75,15 +75,16 @@ VITE_GOOGLE_DRIVE_CONNECTOR_ENABLED=true
 
 The UI enables Connect only when both this build-time gate and the Edge Function’s server-side `GOOGLE_DRIVE_OAUTH_ENABLED`/configuration check pass. `externalUploadsEnabled` and `storageMigrationEnabled` stay false.
 
-## Reviewed rollout order
+## Verified production rollout and recovery order
 
-1. Review and manually apply `supabase/external_storage_phase1.sql` if it has not already been applied.
-2. Review and manually apply `supabase/external_storage_phase2_google_drive.sql`.
-3. Configure the Google Cloud OAuth web client and exact redirect URI.
-4. Set the Edge Function secrets while leaving `GOOGLE_DRIVE_OAUTH_ENABLED=false`.
-5. Deploy the four Google Drive Edge Functions with JWT gateway verification disabled; each browser endpoint verifies the bearer session itself, while the callback uses the one-time state.
-6. Set `GOOGLE_DRIVE_OAUTH_ENABLED=true`, verify server status, then build the site with `VITE_GOOGLE_DRIVE_CONNECTOR_ENABLED=true` for a small eligible test group.
-7. Test connect, cancel, state expiry/reuse, wrong-account reconnect, connection check, folder removal, token revocation, disconnect, mobile layout, and both themes before broader rollout.
+The production rollout completed the following reviewed sequence:
+
+1. Apply the reviewed Phase 1 and Phase 2 SQL manually.
+2. Configure the Google Cloud OAuth web client and the exact production redirect URI.
+3. Store provider configuration in server-only Edge Function secrets.
+4. Deploy the four Google Drive connection functions with JWT gateway verification disabled; each browser endpoint verifies the bearer session itself, while the callback uses the one-time state.
+5. Enable the server and frontend connector gates for a controlled eligible group.
+6. Verify connect, cancel, state expiry/reuse, wrong-account reconnect, connection checks, folder removal, token revocation, disconnect, mobile layout, and both themes before broader use.
 
 Rollback is non-destructive: set the client gate false and `GOOGLE_DRIVE_OAUTH_ENABLED=false`. Existing connection rows and Drive folders remain for recovery. Do not drop Vault secrets until owners have explicitly disconnected or a separate reviewed retirement procedure is approved.
 
@@ -99,4 +100,4 @@ Rollback is non-destructive: set the client gate false and `GOOGLE_DRIVE_OAUTH_E
 
 Controls address CSRF and callback replay (hashed one-time state), intercepted authorization codes (PKCE and exact redirect URI), client impersonation (verified Supabase user and server-derived ownership), cross-owner account reuse (database uniqueness and server checks), token leakage (Vault, no browser responses/logging), open redirects (fixed return path), overbroad Drive access (`drive.file`), and destructive disconnect ambiguity (recent session plus explicit confirmation).
 
-Phase 2 does not provide a public-media fallback for Drive originals, resumable upload, quota display, Shared Drive support, migration, cross-owner delegation, automatic folder repair, provider-webhook processing, or automated credential retirement. Those require separately reviewed later phases.
+Phase 2 itself does not provide media upload or public delivery. Phase 3 later added the isolated test upload, and Phase 4 added controlled project-gallery image originals with public Supabase previews. Resumable large-file upload, quota display, Shared Drive support, historical-media migration, cross-owner delegation, automatic folder repair, provider-webhook processing, and automated credential retirement remain separately reviewed Phase 5–7 work.

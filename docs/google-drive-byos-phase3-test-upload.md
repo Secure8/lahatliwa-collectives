@@ -1,6 +1,6 @@
-# Google Drive BYOS Phase 3A: isolated test upload
+# Google Drive BYOS Phase 3: isolated test upload
 
-Status: implemented locally. This slice does not change project, profile, CMS, media-library, public-delivery, or cleanup destinations. Supabase remains the only operational/default website storage provider.
+Status: complete, deployed, and verified in production project `fgelzlxfqeooxvvcpndd`. This isolated test slice does not change project, profile, CMS, media-library, public-delivery, or cleanup destinations. Supabase remains the global operational/default website storage provider; Phase 4 later added its own controlled project-gallery image path.
 
 ## Scope
 
@@ -36,7 +36,7 @@ File MIME type is detected from its binary signature. The browser-supplied multi
 
 The browser receives only the Lahat Liwa media record ID, safe filename, verified MIME type, size, status, and friendly folder label. It does not receive OAuth credentials, Vault references, provider account IDs, Drive file/folder IDs, checksums, or provider metadata.
 
-Apply [the Phase 3 SQL](../supabase/external_storage_phase3_google_drive_upload.sql) before enabling uploads. It changes authenticated read grants from full-table selection to safe column lists for `storage_connections` and `external_media_objects`; existing owner RLS remains in force. Service-role writes from the authenticated Edge Function remain server-only and are appropriate here because the owner and every provider identifier are resolved by trusted server code.
+The applied [Phase 3 SQL](../supabase/external_storage_phase3_google_drive_upload.sql) changes authenticated read grants from full-table selection to safe column lists for `storage_connections` and `external_media_objects`; existing owner RLS remains in force. Service-role writes from the authenticated Edge Function remain server-only and are appropriate here because the owner and every provider identifier are resolved by trusted server code.
 
 ## Upload and failure lifecycle
 
@@ -52,7 +52,7 @@ Any pre-finalization failure marks the row `error` with a bounded internal error
 
 Multipart is intentionally limited to this small test slice. A later phase can add a resumable transport behind the same validation, purpose mapping, metadata lifecycle, and provider-result verification without changing normal website uploads.
 
-## Feature gates and rollout order
+## Feature gates and verified rollout
 
 Required website build gates:
 
@@ -69,15 +69,15 @@ GOOGLE_DRIVE_UPLOAD_ENABLED=true
 
 The Storage page also reads the server capability from `google-drive-connection-check`; the control appears only when the build and server gates are both enabled and the owner connection is healthy.
 
-Safe production order:
+The production rollout followed this reviewed order:
 
-1. Review and manually apply `supabase/external_storage_phase3_google_drive_upload.sql`.
+1. Apply `supabase/external_storage_phase3_google_drive_upload.sql` manually.
 2. Deploy the changed `google-drive-connection-check` and new `google-drive-upload` functions with `--no-verify-jwt` because they verify the session themselves.
-3. Keep `GOOGLE_DRIVE_UPLOAD_ENABLED=false` and the website test flag false during deployment.
-4. Enable the server gate for a controlled test account, then build the website with the test flag.
-5. Upload one disposable file from Admin → Storage.
-6. Confirm the Drive file exists in `Lahat Liwa/Originals` and the matching metadata row is `available`.
+3. Keep the server and website test gates false during deployment.
+4. Enable the gates for a controlled eligible account.
+5. Upload a disposable file from Admin → Storage.
+6. Confirm the private Drive file exists in `Lahat Liwa/Originals` and the matching metadata row is `available`.
 7. Confirm project, profile, CMS, and media-library uploads still use Supabase.
-8. Disable both test gates after verification if the test control should not remain visible.
+8. Retain or disable the test control according to the reviewed production configuration; tracked example defaults remain false.
 
-Do not enable normal external uploads, public delivery, migrations, or Google Drive as the default provider in Phase 3A.
+Phase 3 did not enable generic external uploads, public Drive delivery, historical-media migration, or Google Drive as the default provider. Phase 4 later introduced only its separately gated project-gallery image workflow.

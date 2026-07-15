@@ -1,16 +1,16 @@
 # Google Drive BYOS Phase 4: Project gallery originals
 
-## Local implementation state
+## Verified production state
 
-Phase 4 is implemented locally and disabled by default. It is not deployed by this change.
+Phase 4 is complete, deployed, enabled, and verified end to end in production project `fgelzlxfqeooxvvcpndd`. Supabase remains the default gallery destination. Eligible editors may explicitly select Google Drive Originals for newly added JPEG, PNG, or WebP project-gallery images.
 
-The frontend gate is:
+The production frontend configuration is:
 
 ```text
-VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=false
+VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=true
 ```
 
-The editor shows Google Drive only when that flag, the existing connector flag, the existing server upload capability, and a connected eligible owner all pass. Supabase remains the default and remains available if Drive is unavailable.
+The tracked `.env.example` intentionally remains `false` so a new or local environment cannot enable external gallery uploads accidentally. The editor shows Google Drive only when the production flag, the existing connector flag, the existing server upload capability, and a connected eligible owner all pass. Supabase remains the default and remains available if Drive is unavailable.
 
 No new SQL is required. Phase 4 uses the existing `external_media_objects` preview columns and the Phase 3 restricted browser grants. Do not broaden those grants.
 
@@ -42,17 +42,28 @@ The browser never supplies or receives Drive file IDs, parent folder IDs, accoun
 
 - PDFs continue using Supabase Storage.
 - Covers, thumbnails, profiles, site/CMS assets, service media, and media-library uploads remain on Supabase.
-- The current prepared/optimized gallery image is the Drive original for this phase; raw high-resolution source preservation and resumable uploads are later work.
+- The current prepared/optimized gallery image is the Drive original for this phase; raw high-resolution source preservation and resumable uploads are Phase 5 work.
 - The existing 2 MB secure Edge upload ceiling remains; gallery optimization normally produces a file no larger than 1 MB.
 - Google Drive is not registered as a generic operational or public-delivery provider.
 - Phase 4 does not migrate or rewrite existing project media.
 
-## Deployment prerequisites for a later approved rollout
+The current multipart Edge Function must not have its limit raised to accommodate large files or 1 GB video. Phase 5A must first introduce direct browser-to-provider resumable chunk transport, durable session state, recovery, cancellation, quota checks, and abandoned-session cleanup. Controlled video originals then belong in Phase 5B.
 
-1. Deploy the updated `google-drive-upload` and `google-drive-connection-check` functions.
-2. Deploy the new `google-drive-media-lifecycle` function.
-3. Confirm `GOOGLE_DRIVE_UPLOAD_ENABLED=true` remains intentional on the server.
-4. Build the frontend with `VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=true` only after controlled review.
-5. Verify an eligible owner, a disconnected owner, a reconnect-required account, partial failure cleanup, public preview rendering, media removal, and draft project deletion.
+## Verified production deployment
+
+The reviewed rollout deployed the updated `google-drive-upload` and `google-drive-connection-check` functions plus the new `google-drive-media-lifecycle` function. Server upload capability remained explicitly configured, and the frontend was built with `VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=true` only after controlled review.
+
+Production verification confirmed:
+
+- Supabase remains the default destination.
+- Eligible editors can upload a private Drive image original.
+- Public project galleries render the optimized Supabase preview.
+- Project data and browser responses exclude raw provider identifiers.
+- Retry protection avoids duplicate finalized media.
+- Failed saves clean up newly created artifacts.
+- Removing saved external media and deleting a project clean up both the Supabase preview and private Drive original.
+- Disconnected and reconnect-required states fail safely without removing the Supabase option.
 
 Do not apply SQL for Phase 4; none is introduced.
+
+The corrected Phase 5–7 sequence is maintained in `docs/external-storage-architecture.md`: production resumable uploads and controlled large media first, historical-media migration second, and provider expansion plus production hardening last.

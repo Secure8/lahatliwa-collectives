@@ -10,7 +10,7 @@ import { PublicContentProvider, usePublicContent } from './lib/contentApi';
 import PublicScrollRestoration from './components/PublicScrollRestoration';
 import PublicErrorBoundary from './components/PublicErrorBoundary';
 import { publicRouteBoundaryKey } from './lib/navigationHistory';
-import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadInquiryConfirmation, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
+import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadInquiryConfirmation, loadPrivacy, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
 import NotFound from './pages/NotFound';
 import { applyPublicMetadata } from './lib/publicMetadata';
 import ThemeToggle from './components/ThemeToggle';
@@ -30,6 +30,7 @@ const Creatives = lazy(loadCreatives);
 const CreativeDetails = lazy(loadCreativeDetails);
 const StartProject = lazy(loadStartProject);
 const InquiryConfirmation = lazy(loadInquiryConfirmation);
+const Privacy = lazy(loadPrivacy);
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
@@ -57,6 +58,7 @@ const routeMetadata = {
   '/start-a-project': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/contact': ['Contact | Lahat Liwa Collectives', 'Start a service inquiry, collaboration conversation, profile or credit question, opportunity, or general platform conversation.'],
+  '/privacy': ['Privacy Policy | Lahat Liwa Collectives', 'Learn how Lahat Liwa Collectives collects, uses, stores, and protects information, including data used by the Google Drive integration.'],
 };
 
 function SiteDocumentMetadata() {
@@ -151,6 +153,7 @@ export default function App() {
         <Route path="/inquiry" element={<StartProject />} />
         <Route path="/inquiry/confirmation/:reference" element={<InquiryConfirmation />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/set-password" element={<AdminSuspense><SetPassword /></AdminSuspense>} />

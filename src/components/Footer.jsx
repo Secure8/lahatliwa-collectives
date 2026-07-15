@@ -41,8 +41,9 @@ export default function Footer() {
           </Link>
         </div>
       </div>
-      <div className="page-shell border-t border-white/[0.08] py-5 text-xs uppercase tracking-[0.1em] text-zinc-600">
-        Copyright {new Date().getFullYear()} {content.displayName}. All rights reserved.
+      <div className="page-shell flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] py-5 text-xs uppercase tracking-[0.1em] text-zinc-600">
+        <span>Copyright {new Date().getFullYear()} {content.displayName}. All rights reserved.</span>
+        <Link className="transition hover:text-[var(--site-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]" to="/privacy">Privacy Policy</Link>
       </div>
     </footer>
   );

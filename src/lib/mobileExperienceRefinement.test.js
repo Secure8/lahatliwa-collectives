@@ -23,9 +23,10 @@ test('public bottom navigation is mobile-only, safe-area aware, keyboard-aware, 
 });
 
 test('mobile Home uses compact branch shortcuts and bounded preview rails while desktop sections remain available', async () => {
-  const [home, styles] = await Promise.all([
+  const [home, styles, restoration] = await Promise.all([
     readFile(new URL('../pages/Home.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
+    readFile(new URL('./useHorizontalScrollRestoration.js', import.meta.url), 'utf8'),
   ]);
   assert.match(home, /home-mobile-branches[\s\S]*?lg:hidden/);
   assert.match(home, /PROJECT_BRANCHES\.map/);
@@ -35,6 +36,11 @@ test('mobile Home uses compact branch shortcuts and bounded preview rails while 
   assert.match(home, /View all/);
   assert.match(styles, /\.home-project-grid,[\s\S]*?grid-auto-flow: column/);
   assert.match(styles, /\.home-project-grid > :nth-child\(n \+ 4\)/);
+  assert.match(home, /home-featured-projects/);
+  assert.match(home, /home-featured-creatives/);
+  assert.match(restoration, /horizontalPositions\.set\(positionKey, element\.scrollLeft\)/);
+  assert.match(restoration, /navigationType === 'POP'/);
+  assert.match(restoration, /\[80, 200, 500, 1000\]/);
 });
 
 test('inquiry step changes target the workflow shell and never force the document to page top', async () => {

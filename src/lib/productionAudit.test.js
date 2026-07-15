@@ -55,6 +55,15 @@ test('unknown routes retain the public shell and provide accessible recovery lin
   assert.match(notFound, /<Link to="\/projects"/);
 });
 
+test('stale lazy-route chunks recover once while genuine render failures keep a useful fallback', () => {
+  const main = readFileSync(resolve(root, 'src/main.jsx'), 'utf8');
+  const boundary = readFileSync(resolve(root, 'src/components/PublicErrorBoundary.jsx'), 'utf8');
+  assert.match(main, /installReleaseRecovery\(\)/);
+  assert.match(boundary, /recoverDynamicImportError\(error\)/);
+  assert.match(boundary, /window\.location\.reload\(\)/);
+  assert.doesNotMatch(boundary, /this\.setState\(\{ failed: false \}\)/);
+});
+
 test('production headers permit brand fonts and cache fingerprinted build assets', () => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
   const deployment = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));

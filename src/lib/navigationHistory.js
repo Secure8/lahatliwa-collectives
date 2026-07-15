@@ -3,6 +3,8 @@ export function publicLocationState(location, anchorId = '') {
 }
 export function shouldPushFilter(currentValue, nextValue) { return String(currentValue || '') !== String(nextValue || ''); }
 export function scrollPositionKey(location) { return `${location.key || 'default'}:${location.pathname}${location.search}${location.hash}`; }
+export function horizontalScrollPositionKey(location, regionId) { return `${scrollPositionKey(location)}:${String(regionId || 'region')}`; }
+export function horizontalScrollTarget(navigationType, savedPosition) { return navigationType === 'POP' && Number.isFinite(savedPosition) ? Math.max(0, savedPosition) : 0; }
 export function detailBackAction(locationState, historyIndex, fallback) { return locationState?.from || Number(historyIndex) > 0 ? { delta: -1 } : { to: fallback }; }
 
 export function navigationScrollPlan({ navigationType, previousLocation, location, savedPosition, currentPosition = 0 }) {

@@ -18,6 +18,7 @@ import BrandWordmark from '../components/BrandWordmark';
 import { isBrandWordmarkText } from '../lib/brandWordmark';
 import { defaultSiteContent } from '../data/siteContent';
 import { homeCtaPath } from '../lib/homeCta';
+import useHorizontalScrollRestoration from '../lib/useHorizontalScrollRestoration';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -46,6 +47,8 @@ export default function Home() {
   const heroIsBrandWordmark = isBrandWordmarkText(content.home.heroTitle, content.displayName, [defaultSiteContent.displayName, defaultSiteContent.legalName]);
   const primaryCtaLabel = content.home.primaryCta || 'Send an Inquiry';
   const secondaryCtaLabel = content.home.secondaryCta || 'Explore Published Work';
+  const projectRailRef = useHorizontalScrollRestoration('home-featured-projects');
+  const creativeRailRef = useHorizontalScrollRestoration('home-featured-creatives');
 
   useEffect(() => {
     let active = true;
@@ -138,7 +141,7 @@ export default function Home() {
             return <button key={branch.key} id={`home-branch-tab-${branch.key}`} type="button" role="tab" aria-selected={active} aria-controls="home-project-results" onClick={() => selectHomeBranch(branch.key)} className={`interactive-tab min-w-0 px-3 py-4 text-left sm:px-4 ${active ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
           })}
         </div>
-        <div id="home-project-results" role="tabpanel" aria-labelledby={`home-branch-tab-${selectedBranch}`} className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} className="home-project-grid" /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
+        <div id="home-project-results" role="tabpanel" aria-labelledby={`home-branch-tab-${selectedBranch}`} className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} className="home-project-grid" containerRef={projectRailRef} scrollRestorationId="home-featured-projects" /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
         <Link to={branchProjectsUrl(selectedBranch)} className="fine-link site-hover-accent mt-9 inline-flex items-center gap-2 text-sm text-zinc-300">View all {selectedBranchInfo.label} projects <ArrowRight size={16} /></Link>
       </section>
 
@@ -151,7 +154,7 @@ export default function Home() {
           <Link to="/creatives" className="fine-link site-hover-accent text-sm text-zinc-300">Explore creative profiles</Link>
         </div>
         {loading ? <LoadingState label="Loading creatives" /> : creatives.length ? (
-          <div className="home-creatives-grid grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div ref={creativeRailRef} data-scroll-restoration-id="home-featured-creatives" className="home-creatives-grid grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} />)}
           </div>
         ) : <EmptyState title="No featured creative profiles yet" message="Explore the full directory for currently published profiles." />}

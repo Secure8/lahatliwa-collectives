@@ -13,6 +13,7 @@ import {
   normalizeMediaReference,
 } from './mediaReferences.js';
 import {
+  CONNECTION_CAPABLE_STORAGE_PROVIDERS,
   OPERATIONAL_STORAGE_PROVIDERS,
   STORAGE_PROVIDER_CAPABILITIES,
   createStorageProvider,
@@ -65,15 +66,27 @@ test('normalized media supports owner, external metadata, previews, and safe def
   assert.equal(media.status, 'available');
 });
 
-test('planned providers expose stable capabilities but reject all operations', async () => {
+test('Google Drive is connection-capable but rejects every media operation', async () => {
   const provider = createStorageProvider('google_drive');
   assert.equal(provider.operational, false);
+  assert.equal(provider.connectionOperational, false);
+  assert.deepEqual(CONNECTION_CAPABLE_STORAGE_PROVIDERS, ['google_drive']);
+  assert.equal(provider.getCapabilities().connect, true);
   assert.equal(provider.getCapabilities().publicPreviewRecommended, true);
   assert.deepEqual(await provider.createUploadSession(), {
     ok: false, code: 'STORAGE_PROVIDER_UNSUPPORTED', provider: 'google_drive', operation: 'createUploadSession',
     message: 'google_drive is not configured for createUploadSession.',
   });
   assert.equal(await provider.deleteObject({ externalFileId: 'never-called' }).then((result) => result.ok), false);
+
+  const calls = [];
+  const connected = createStorageProvider('google_drive', { googleDriveConnectionClient: {
+    verifyConnection: async (input) => { calls.push(input); return { ok: true, status: 'connected' }; },
+  } });
+  assert.equal(connected.connectionOperational, true);
+  assert.equal((await connected.validateConnection({ id: 'connection' })).ok, true);
+  assert.deepEqual(calls, [{ id: 'connection' }]);
+  assert.equal((await connected.createUploadSession()).ok, false);
 });
 
 test('Supabase display and deletion adapters require an injected client and preserve the bucket', async () => {
@@ -96,10 +109,11 @@ test('capability declarations are immutable and do not imply operation enablemen
   assert.equal(storageProviderCatalog().find((item) => item.provider === 'google_drive').operational, false);
 });
 
-test('all external storage actions are disabled in Phase 1', () => {
+test('Phase 2 enables only the connection foundation and keeps data movement disabled', () => {
   assert.deepEqual(STORAGE_FEATURE_FLAGS, {
-    externalStorageEnabled: false,
+    externalStorageEnabled: true,
     googleDriveConnectorEnabled: false,
+    externalUploadsEnabled: false,
     storageMigrationEnabled: false,
   });
 });
@@ -119,14 +133,16 @@ test('Super Admin operational client fields contain no credential or private obj
   assert.equal(SAFE_STORAGE_OPERATION_FIELDS.some((field) => /credential|secret|token|file_id|path|checksum|verification/i.test(field)), false);
 });
 
-test('admin Storage foundation is non-operational and present in desktop/mobile shared navigation', async () => {
+test('admin Storage exposes safe connection actions without upload or migration controls', async () => {
   const [page, app, layout] = await Promise.all([
     source('src/pages/admin/Storage.jsx'), source('src/App.jsx'), source('src/components/admin/AdminLayout.jsx'),
   ]);
   assert.match(page, /Connect Google Drive/);
-  assert.match(page, /disabled aria-describedby="google-drive-disabled-reason"/);
-  assert.match(page, /Nothing is being moved automatically/);
-  assert.doesNotMatch(page, /from\(['"]storage_connections/);
+  assert.match(page, /Reconnect Google Drive/);
+  assert.match(page, /Check connection/);
+  assert.match(page, /Disconnect Google Drive/);
+  assert.match(page, /Google Drive uploads and migrations are not enabled/);
+  assert.match(page, /storage_connection_operations/);
   assert.doesNotMatch(page, /credential_secret_id|access_token|refresh_token/);
   assert.match(app, /allow=\{\['super_admin', 'creative'\]\}/);
   assert.match(layout, /\['Storage', '\/admin\/storage', HardDrive, canSeeStorageNavigation\]/);
@@ -144,6 +160,24 @@ test('proposed migration has ownership enforcement, safe views, and no plaintext
   assert.doesNotMatch(migration, /\b(access_token|refresh_token|oauth_token)\b/i);
 });
 
+test('Phase 2 SQL keeps OAuth state and credentials server-only and is not a migration', async () => {
+  const sql = await source('supabase/external_storage_phase2_google_drive.sql');
+  assert.match(sql, /REVIEW ONLY; DO NOT APPLY automatically/);
+  assert.match(sql, /private\.external_storage_oauth_states/);
+  assert.match(sql, /state_hash text not null unique/);
+  assert.match(sql, /pkce_verifier_secret_id uuid not null/);
+  assert.match(sql, /now\(\) \+ interval '10 minutes'/);
+  assert.match(sql, /vault\.create_secret/);
+  assert.match(sql, /private\.server_consume_external_storage_oauth_state/);
+  assert.match(sql, /consumed_at = now\(\)/);
+  assert.match(sql, /credential_secret_id = coalesce\(v_new_secret_id/);
+  assert.match(sql, /perform private\.delete_provider_secret\(v_connection\.credential_secret_id\)/);
+  assert.match(sql, /revoke all on function private\.server_read_storage_connection_secret\(uuid,uuid\) from public, anon, authenticated, service_role/);
+  assert.doesNotMatch(sql, /function public\.server_(?:create|consume|read|upsert|disconnect)/);
+  assert.match(sql, /status not in \('revoked','disabled'\)/);
+  assert.match(sql, /root_folder_health/);
+});
+
 test('existing upload, public gallery, payload, and cleanup paths remain Supabase-backed and provider-neutral code is additive', async () => {
   const [storage, projectForm, gallery, cleanup, worker] = await Promise.all([
     source('src/lib/storage.js'), source('src/components/admin/ProjectForm.jsx'), source('src/lib/galleryItems.js'),
@@ -159,10 +193,16 @@ test('existing upload, public gallery, payload, and cleanup paths remain Supabas
   assert.doesNotMatch(worker, /external_media_objects|storage_migrations|google_drive/);
 });
 
-test('the architecture keeps OAuth, copying, retention, and cleanup integration in later phases', async () => {
-  const design = await source('docs/external-storage-architecture.md');
+test('the architecture documents Phase 2 OAuth while keeping copying, retention, and cleanup later', async () => {
+  const [design, phase2] = await Promise.all([
+    source('docs/external-storage-architecture.md'), source('docs/google-drive-byos-phase2.md'),
+  ]);
   assert.match(design, /Copy → Verify → Register destination → Test preview\/display → Switch reference → Retain source → Delete source after retention/);
   assert.match(design, /7–30 days/);
   assert.match(design, /Phase 2/);
   assert.match(design, /Current cleanup is Supabase-specific and must remain unchanged in Phase 1/);
+  assert.match(phase2, /http:\/\/127\.0\.0\.1:54321\/functions\/v1\/google-drive-oauth-callback/);
+  assert.match(phase2, /https:\/\/ombmknvnllhxhxxojuam\.supabase\.co\/functions\/v1\/google-drive-oauth-callback/);
+  assert.match(phase2, /VITE_GOOGLE_DRIVE_CONNECTOR_ENABLED=true/);
+  assert.match(phase2, /No media file upload/);
 });

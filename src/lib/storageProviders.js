@@ -1,6 +1,10 @@
 import { DEFAULT_MEDIA_BUCKET, DEFAULT_STORAGE_PROVIDER, STORAGE_PROVIDERS, normalizeMediaReference, requireStorageProvider } from './mediaReferences.js';
 
 const capability = (values) => Object.freeze({
+  connect: false,
+  disconnect: false,
+  verifyConnection: false,
+  createRootFolder: false,
   directUpload: false,
   resumableUpload: false,
   publicDelivery: false,
@@ -14,13 +18,14 @@ const capability = (values) => Object.freeze({
 
 export const STORAGE_PROVIDER_CAPABILITIES = Object.freeze({
   supabase: capability({ directUpload: true, resumableUpload: true, publicDelivery: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true }),
-  google_drive: capability({ resumableUpload: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true, publicPreviewRecommended: true }),
+  google_drive: capability({ connect: true, disconnect: true, verifyConnection: true, createRootFolder: true, publicPreviewRecommended: true }),
   onedrive: capability({ resumableUpload: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true, publicPreviewRecommended: true }),
   dropbox: capability({ resumableUpload: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true, publicPreviewRecommended: true }),
   s3_compatible: capability({ directUpload: true, resumableUpload: true, publicDelivery: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true }),
 });
 
 export const OPERATIONAL_STORAGE_PROVIDERS = Object.freeze([DEFAULT_STORAGE_PROVIDER]);
+export const CONNECTION_CAPABLE_STORAGE_PROVIDERS = Object.freeze(['google_drive']);
 
 export function getStorageProviderCapabilities(provider = DEFAULT_STORAGE_PROVIDER) {
   requireStorageProvider(provider);
@@ -29,6 +34,11 @@ export function getStorageProviderCapabilities(provider = DEFAULT_STORAGE_PROVID
 
 export function isOperationalStorageProvider(provider) {
   return OPERATIONAL_STORAGE_PROVIDERS.includes(provider);
+}
+
+export function isConnectionCapableStorageProvider(provider) {
+  requireStorageProvider(provider);
+  return CONNECTION_CAPABLE_STORAGE_PROVIDERS.includes(provider);
 }
 
 function unsupported(provider, operation) {
@@ -46,11 +56,19 @@ export function createStorageProvider(provider = DEFAULT_STORAGE_PROVIDER, depen
   const reject = (operation) => Promise.resolve(unsupported(provider, operation));
 
   if (!operational) {
+    const connectionClient = provider === 'google_drive' ? dependencies.googleDriveConnectionClient : null;
+    const connectionOperation = (operation, input) => connectionClient?.[operation]
+      ? Promise.resolve(connectionClient[operation](input)).catch((error) => failed(provider, operation, error))
+      : reject(operation);
     return Object.freeze({
       id: provider,
       operational: false,
+      connectionOperational: Boolean(connectionClient),
       getCapabilities: () => capabilities,
-      validateConnection: () => reject('validateConnection'),
+      connect: (input) => connectionOperation('connect', input),
+      disconnect: (input) => connectionOperation('disconnect', input),
+      validateConnection: (input) => connectionOperation('verifyConnection', input),
+      createRootFolder: (input) => connectionOperation('createRootFolder', input),
       createUploadSession: () => reject('createUploadSession'),
       completeUpload: () => reject('completeUpload'),
       getDisplayUrl: () => reject('getDisplayUrl'),
@@ -67,8 +85,12 @@ export function createStorageProvider(provider = DEFAULT_STORAGE_PROVIDER, depen
   return Object.freeze({
     id: provider,
     operational: true,
+    connectionOperational: true,
     getCapabilities: () => capabilities,
+    connect: () => Promise.resolve({ ok: true, provider, status: 'connected' }),
+    disconnect: () => reject('disconnect'),
     validateConnection: async () => ({ ok: true, provider, status: 'connected' }),
+    createRootFolder: () => reject('createRootFolder'),
     createUploadSession: () => reject('createUploadSession'),
     completeUpload: () => reject('completeUpload'),
     async getDisplayUrl(input) {
@@ -102,6 +124,7 @@ export function storageProviderCatalog() {
   return STORAGE_PROVIDERS.map((provider) => ({
     provider,
     operational: isOperationalStorageProvider(provider),
+    connectionCapable: isConnectionCapableStorageProvider(provider),
     capabilities: getStorageProviderCapabilities(provider),
   }));
 }

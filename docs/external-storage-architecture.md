@@ -102,7 +102,7 @@ Future cleanup must distinguish Supabase media, external originals, Supabase pub
 - `verifyObject`
 - `refreshMetadata`
 
-Only `supabase` is operational. Unsupported/planned providers return a structured `STORAGE_PROVIDER_UNSUPPORTED` result and make no network request. Existing upload helpers intentionally remain the active Supabase implementation in Phase 1.
+Only `supabase` is operational for uploads and media delivery. Phase 2 makes Google Drive connection-capable through server-injected connect, verify, folder, and disconnect operations while all upload, copy, delete-object, and migration operations remain unsupported. Existing upload helpers remain the active Supabase implementation.
 
 Capability declarations describe architectural expectations, not enabled actions. Google Drive is expected to support resumable upload, private delivery, copy, verification, and deletion, while recommending a separate public preview. No capability declaration enables a provider.
 
@@ -166,11 +166,12 @@ Every migration uses an idempotency key and monotonic state transitions. Workers
 
 ## Feature flags
 
-`src/lib/storageFeatureFlags.js` keeps these flags false in Phase 1:
+`src/lib/storageFeatureFlags.js` now separates the Phase 2 connection gate from later data movement:
 
-- `externalStorageEnabled`
-- `googleDriveConnectorEnabled`
-- `storageMigrationEnabled`
+- `externalStorageEnabled` enables the connection-management foundation.
+- `googleDriveConnectorEnabled` is requested only by `VITE_GOOGLE_DRIVE_CONNECTOR_ENABLED=true` and still requires server capability verification.
+- `externalUploadsEnabled` remains false.
+- `storageMigrationEnabled` remains false.
 
 They are client visibility gates, not security controls. A future enablement requires matching server-side configuration, deployed handlers, RLS/RPC enforcement, secret setup, monitoring, and a staged rollout. The admin page may explain planned storage, but its connection control stays disabled.
 
@@ -187,11 +188,12 @@ They are client visibility gates, not security controls. A future enablement req
 
 ### Phase 2
 
-- [ ] Google Cloud project and OAuth consent screen
-- [ ] Server-side Google authorization and state validation
-- [ ] Secure refresh-token storage
-- [ ] Connection verification and root-folder creation
-- [ ] Disconnect and reconnect
+- [x] Google Cloud configuration and consent-screen runbook
+- [x] Server-side Google authorization, PKCE, and one-time state validation
+- [x] Vault-backed refresh-token references
+- [x] Connection verification and managed root-folder creation
+- [x] Disconnect and reconnect
+- [ ] Manual SQL application, secret setup, deployment, and live credential verification after review
 
 ### Phase 3
 

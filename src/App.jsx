@@ -46,6 +46,7 @@ const ServiceBranchEditor = lazy(() => import('./pages/admin/ServiceBranchEditor
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
 const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
+const Storage = lazy(() => import('./pages/admin/Storage'));
 
 const routeMetadata = {
   '/': ['Lahat Liwa Collectives', 'Practical services, published work, credited contributions, and creative profiles across four Liwa branches.'],
@@ -175,6 +176,7 @@ export default function App() {
         <Route path="/admin/content" element={<AdminSuspense><ContentIndex /></AdminSuspense>} />
         <Route path="/admin/content/:pageKey" element={<AdminSuspense><ContentEditor /></AdminSuspense>} />
         <Route path="/admin/media/icons" element={<AdminSuspense><IconsMedia /></AdminSuspense>} />
+        <Route path="/admin/storage" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'creative']}><Storage /></AdminRouteGuard></AdminSuspense>} />
       </Route>
     </Routes><ThemeToggle /></>
   );

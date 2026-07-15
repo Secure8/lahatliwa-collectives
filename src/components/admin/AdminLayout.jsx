@@ -1,4 +1,4 @@
-import { ExternalLink, FileText, FolderKanban, Images, Inbox, LayoutDashboard, LogOut, Menu, Settings, User, UserCog, Users, Workflow, X } from 'lucide-react';
+import { ExternalLink, FileText, FolderKanban, HardDrive, Images, Inbox, LayoutDashboard, LogOut, Menu, Settings, User, UserCog, Users, Workflow, X } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -10,6 +10,7 @@ import BrandWordmark from '../BrandWordmark';
 import AppearanceMenuAction from '../AppearanceMenuAction';
 import { adminPageTitle } from '../../lib/mobileAppShell';
 import useModalDrawer from '../../lib/useModalDrawer';
+import { canSeeStorageNavigation } from '../../lib/storageAdmin';
 
 const links = [
   ['Overview', [
@@ -22,6 +23,7 @@ const links = [
     ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
     ['Services', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
     ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
+    ['Storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
     ['Team', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Website', [

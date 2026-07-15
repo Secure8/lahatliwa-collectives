@@ -1,4 +1,4 @@
-import { Cloud, Database, FileCheck2, HardDrive, LockKeyhole, RefreshCw, ShieldCheck, Unplug } from 'lucide-react';
+import { Cloud, Database, FileCheck2, HardDrive, LockKeyhole, RefreshCw, ShieldCheck, Unplug, UploadCloud } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminButton, AdminNotice, AdminPageHeader, AdminStatusBadge } from '../../components/admin/AdminUI';
@@ -10,6 +10,7 @@ import {
   getGoogleDriveConnectionStatus,
   googleDriveStatusLabel,
   startGoogleDriveConnection,
+  uploadGoogleDriveTestFile,
   verifyGoogleDriveConnection,
 } from '../../lib/googleDriveStorage';
 import { STORAGE_FEATURE_FLAGS } from '../../lib/storageFeatureFlags';
@@ -60,7 +61,7 @@ export default function Storage() {
           <CurrentDestination />
           <GoogleDriveConnection />
           {mode === 'operations' && <OperationsOverview />}
-          <AdminNotice tone="success">No files will be copied, moved, uploaded, or removed by this connection phase.</AdminNotice>
+          <AdminNotice tone="success">Normal project, profile, and site uploads still use Supabase. The optional Drive test below does not change website media references.</AdminNotice>
         </div>
       )}
     </AdminLayout>
@@ -73,7 +74,7 @@ function CurrentDestination() {
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-amber-200/80">Current upload destination</p>
         <h2 className="mt-2 text-xl font-semibold text-white">Lahat Liwa storage</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">Project and profile uploads still use the existing Lahat Liwa Supabase storage. Google Drive uploads and migrations are not enabled.</p>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">Project, profile, and site uploads still use the existing Lahat Liwa Supabase storage. The isolated Drive test does not replace or migrate them.</p>
       </div>
       <AdminStatusBadge status="active">Active</AdminStatusBadge>
     </section>
@@ -81,7 +82,7 @@ function CurrentDestination() {
 }
 
 function GoogleDriveConnection() {
-  const [state, setState] = useState({ loading: true, configured: false, connection: null, notice: null, actionError: '', busy: '' });
+  const [state, setState] = useState({ loading: true, configured: false, testUploadEnabled: false, connection: null, notice: null, actionError: '', busy: '' });
   const clientGateEnabled = STORAGE_FEATURE_FLAGS.googleDriveConnectorEnabled;
 
   const loadStatus = async (notice = null) => {
@@ -91,7 +92,7 @@ function GoogleDriveConnection() {
     }
     try {
       const data = await getGoogleDriveConnectionStatus();
-      setState((current) => ({ ...current, loading: false, configured: data.configured === true, connection: data.connection, notice, actionError: '', busy: '' }));
+      setState((current) => ({ ...current, loading: false, configured: data.configured === true, testUploadEnabled: data.testUploadEnabled === true, connection: data.connection, notice, actionError: '', busy: '' }));
     } catch (error) {
       setState((current) => ({ ...current, loading: false, configured: false, notice, actionError: error.message, busy: '' }));
     }
@@ -146,6 +147,7 @@ function GoogleDriveConnection() {
             <>
               {state.notice && <AdminNotice aria-live="polite" tone={state.notice.tone} className="mt-6">{state.notice.message}</AdminNotice>}
               {connection && <ConnectionDetails connection={connection} />}
+              {connection?.status === 'connected' && STORAGE_FEATURE_FLAGS.googleDriveTestUploadEnabled && state.testUploadEnabled && <GoogleDriveTestUpload />}
               <div className="mt-6 flex flex-wrap gap-3">
                 {!connection && <AdminButton variant="primary" disabled={!canConnect || Boolean(state.busy)} aria-describedby={disabledReason ? 'google-drive-disabled-reason' : undefined} onClick={() => run('connect', () => startGoogleDriveConnection())}>Connect Google Drive</AdminButton>}
                 {reconnect && <AdminButton variant="primary" disabled={!canConnect || Boolean(state.busy)} onClick={() => run('connect', () => startGoogleDriveConnection(connection.id))}>Reconnect Google Drive</AdminButton>}
@@ -162,6 +164,52 @@ function GoogleDriveConnection() {
         </div>
       </div>
     </section>
+  );
+}
+
+function GoogleDriveTestUpload() {
+  const [file, setFile] = useState(null);
+  const [state, setState] = useState({ busy: false, error: '', uploaded: null });
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    setState({ busy: true, error: '', uploaded: null });
+    try {
+      const result = await uploadGoogleDriveTestFile(file);
+      setState({ busy: false, error: '', uploaded: result.media });
+      setFile(null);
+      form.reset();
+    } catch (error) {
+      setState({ busy: false, error: error.message, uploaded: null });
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="mt-6 rounded-lg border border-amber-200/15 bg-amber-100/[0.025] p-4">
+      <div className="flex items-start gap-3">
+        <UploadCloud size={18} className="mt-0.5 shrink-0 text-amber-200" aria-hidden="true" />
+        <div>
+          <h3 className="text-sm font-semibold text-white">Test a small Drive upload</h3>
+          <p id="google-drive-test-help" className="mt-1 text-xs leading-5 text-zinc-500">Uploads one JPEG, PNG, WebP, or PDF up to 2 MB to the managed Originals folder. It is private test media and is not attached to the website.</p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label htmlFor="google-drive-test-file" className="sr-only">Choose a test file for Google Drive</label>
+        <input
+          id="google-drive-test-file"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          aria-invalid={Boolean(state.error)}
+          aria-describedby={state.error ? 'google-drive-test-help google-drive-test-error' : 'google-drive-test-help'}
+          onChange={(event) => { setFile(event.target.files?.[0] || null); setState({ busy: false, error: '', uploaded: null }); }}
+          className="min-w-0 flex-1 text-sm text-zinc-400 file:mr-3 file:rounded-md file:border-0 file:bg-white/[0.08] file:px-3 file:py-2 file:text-sm file:font-medium file:text-zinc-100 hover:file:bg-white/[0.12]"
+        />
+        <AdminButton type="submit" variant="primary" disabled={!file || state.busy}>{state.busy ? 'Uploading...' : 'Upload test file'}</AdminButton>
+      </div>
+      {state.error && <AdminNotice id="google-drive-test-error" aria-live="assertive" className="mt-4">{state.error}</AdminNotice>}
+      {state.uploaded && <AdminNotice aria-live="polite" tone="success" className="mt-4">{state.uploaded.filename} was uploaded to the Drive Originals folder. Existing Supabase media is unchanged.</AdminNotice>}
+    </form>
   );
 }
 

@@ -22,7 +22,8 @@ export function edgeEnvironment() {
     GOOGLE_DRIVE_CLIENT_SECRET: Deno.env.get('GOOGLE_DRIVE_CLIENT_SECRET'),
     GOOGLE_DRIVE_REDIRECT_URI: Deno.env.get('GOOGLE_DRIVE_REDIRECT_URI'),
   });
-  return { siteOrigin, supabaseUrl, anonKey, serviceKey, google };
+  const googleDriveUploadEnabled = Deno.env.get('GOOGLE_DRIVE_UPLOAD_ENABLED') === 'true';
+  return { siteOrigin, supabaseUrl, anonKey, serviceKey, google, googleDriveUploadEnabled };
 }
 
 export function corsHeaders(request: Request, siteOrigin: string) {
@@ -77,4 +78,3 @@ export function safeConnection(connection: any) {
 }
 
 export const GOOGLE_CONNECTION_SELECT = 'id,owner_user_id,provider,provider_account_id,provider_account_email,display_name,root_folder_id,status,capabilities,connected_at,last_verified_at,last_error_code,last_error_message,root_folder_health,granted_scopes,created_at,updated_at';
-

@@ -113,6 +113,7 @@ test('Phase 2 enables only the connection foundation and keeps data movement dis
   assert.deepEqual(STORAGE_FEATURE_FLAGS, {
     externalStorageEnabled: true,
     googleDriveConnectorEnabled: false,
+    googleDriveTestUploadEnabled: false,
     externalUploadsEnabled: false,
     storageMigrationEnabled: false,
   });
@@ -133,7 +134,7 @@ test('Super Admin operational client fields contain no credential or private obj
   assert.equal(SAFE_STORAGE_OPERATION_FIELDS.some((field) => /credential|secret|token|file_id|path|checksum|verification/i.test(field)), false);
 });
 
-test('admin Storage exposes safe connection actions without upload or migration controls', async () => {
+test('admin Storage exposes safe connection actions and an isolated flagged test upload', async () => {
   const [page, app, layout] = await Promise.all([
     source('src/pages/admin/Storage.jsx'), source('src/App.jsx'), source('src/components/admin/AdminLayout.jsx'),
   ]);
@@ -141,12 +142,51 @@ test('admin Storage exposes safe connection actions without upload or migration 
   assert.match(page, /Reconnect Google Drive/);
   assert.match(page, /Check connection/);
   assert.match(page, /Disconnect Google Drive/);
-  assert.match(page, /Google Drive uploads and migrations are not enabled/);
+  assert.match(page, /Test a small Drive upload/);
+  assert.match(page, /does not change website media references/);
+  assert.match(page, /STORAGE_FEATURE_FLAGS\.googleDriveTestUploadEnabled/);
+  assert.match(page, /state\.testUploadEnabled/);
   assert.match(page, /storage_connection_operations/);
   assert.doesNotMatch(page, /credential_secret_id|access_token|refresh_token/);
   assert.match(app, /allow=\{\['super_admin', 'creative'\]\}/);
   assert.match(layout, /\['Storage', '\/admin\/storage', HardDrive, canSeeStorageNavigation\]/);
   assert.equal((layout.match(/visibleGroups\.map/g) || []).length >= 2, true);
+});
+
+test('Phase 3 test upload is server-authenticated, flag-gated, and leaves normal uploads unchanged', async () => {
+  const [upload, api, client, storage, content] = await Promise.all([
+    source('supabase/functions/google-drive-upload/index.ts'),
+    source('supabase/functions/_shared/googleDriveApi.js'),
+    source('src/lib/googleDriveStorage.js'),
+    source('src/lib/storage.js'),
+    source('src/lib/contentApi.js'),
+  ]);
+  assert.match(upload, /authenticatedStorageOwner/);
+  assert.match(upload, /env\.googleDriveUploadEnabled/);
+  assert.match(upload, /folder_ids\?\.\[purpose\.folderRole\]/);
+  assert.match(upload, /visibility: 'private'/);
+  assert.match(upload, /resolveDriveUploadPurpose/);
+  assert.match(upload, /verifyManagedFolder/);
+  assert.match(upload, /deleteDriveFile/);
+  assert.match(upload, /manual_cleanup_required/);
+  assert.match(api, /uploadType=multipart/);
+  assert.match(client, /google-drive-upload/);
+  assert.match(client, /admin_test_upload/);
+  assert.match(storage, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.match(content, /supabase\.storage\.from\(BUCKET\)\.upload/);
+});
+
+test('Phase 3 SQL removes sensitive provider columns from authenticated browser grants', async () => {
+  const sql = await source('supabase/external_storage_phase3_google_drive_upload.sql');
+  assert.match(sql, /revoke select on table public\.storage_connections from authenticated/);
+  assert.match(sql, /revoke select on table public\.external_media_objects from authenticated/);
+  const [connectionSection, mediaSection = ''] = sql.split('revoke select on table public.external_media_objects from authenticated;');
+  const connectionGrant = connectionSection.match(/grant select \(([\s\S]*?)\) on table public\.storage_connections/)?.[1] || '';
+  const mediaGrant = mediaSection.match(/grant select \(([\s\S]*?)\) on table public\.external_media_objects/)?.[1] || '';
+  assert.doesNotMatch(connectionGrant, /provider_account_id|credential_secret_id|root_folder_id|folder_ids|granted_scopes/);
+  assert.doesNotMatch(mediaGrant, /storage_connection_id|external_file_id|external_parent_id|storage_path|metadata/);
+  assert.match(mediaGrant, /filename/);
+  assert.match(mediaGrant, /status/);
 });
 
 test('proposed migration has ownership enforcement, safe views, and no plaintext token columns', async () => {

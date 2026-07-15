@@ -133,7 +133,7 @@ The proposed policies are:
 
 Phase 2 will use a server-generated state value bound to the authenticated owner, redirect through Google's consent screen, validate the callback server-side, store refresh credentials in Vault, register only the opaque secret reference, verify the account, create or select a root folder, and support disconnect/reconnect. The browser receives connection status—not provider tokens.
 
-Phase 3 uploads will request a short-lived server-authorized upload session for an eligible connection owned by the uploader. The provider implementation will complete/verify the upload, register metadata, and generate an optimized Supabase preview where the public policy requires it. Idempotency keys will protect retried completion calls.
+Phase 3A adds one isolated, server-authenticated multipart test upload for files up to 2 MB. It verifies ownership, Google identity, scopes, managed folders, file signatures, and returned provider metadata before marking an external-media row available. Normal project/profile/CMS uploads, resumable transport, public previews, idempotent upload sessions, and cleanup integration remain later Phase 3 work.
 
 ## Hybrid public-preview policy
 
@@ -197,7 +197,9 @@ They are client visibility gates, not security controls. A future enablement req
 
 ### Phase 3
 
-- [ ] Direct/resumable external upload
+- [x] Isolated small multipart test upload with server-selected destination
+- [x] External-media registration, verification, and finalization-failure cleanup attempt
+- [ ] Direct/resumable production upload sessions
 - [ ] Metadata registration and ownership enforcement
 - [ ] Optimized public previews
 - [ ] Upload retry and recovery

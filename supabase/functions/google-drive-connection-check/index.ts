@@ -21,7 +21,8 @@ Deno.serve(async (request) => {
     .eq('owner_user_id', owner.user.id).eq('provider', 'google_drive')
     .not('status', 'in', '(revoked,disabled)').order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (error) return fail('STATUS_UNAVAILABLE', 'Storage connection status could not be loaded.', 500, cors);
-  if (body.action !== 'verify') return reply({ success: true, configured: env.google.configured, connection: safeConnection(connection) }, 200, cors);
+  const testUploadEnabled = env.google.configured && env.googleDriveUploadEnabled;
+  if (body.action !== 'verify') return reply({ success: true, configured: env.google.configured, testUploadEnabled, connection: safeConnection(connection) }, 200, cors);
   if (!env.google.configured) return fail('GOOGLE_DRIVE_DISABLED', 'Google Drive connection is not available yet.', 503, cors);
   if (!connection) return fail('NOT_CONNECTED', 'Google Drive is not connected.', 404, cors);
 
@@ -42,7 +43,7 @@ Deno.serve(async (request) => {
       status: 'connected', root_folder_health: 'healthy', granted_scopes: scopes,
       last_verified_at: now, last_error_code: null, last_error_message: null,
     });
-    return reply({ success: true, configured: true, connection: safeConnection({ ...connection, status: 'connected', root_folder_health: 'healthy', last_verified_at: now, last_error_code: null, last_error_message: null }) }, 200, cors);
+    return reply({ success: true, configured: true, testUploadEnabled, connection: safeConnection({ ...connection, status: 'connected', root_folder_health: 'healthy', last_verified_at: now, last_error_code: null, last_error_message: null }) }, 200, cors);
   } catch (verifyError) {
     const code = verifyError?.code || 'VERIFY_FAILED';
     const reconnect = ['TOKEN_REVOKED', 'SCOPE_MISSING', 'ACCOUNT_MISMATCH'].includes(code);

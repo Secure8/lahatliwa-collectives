@@ -102,6 +102,39 @@ export function createDriveFolder(fetcher, accessToken, name, role, parentId = '
   });
 }
 
+export async function uploadSmallDriveFile(fetcher, accessToken, input) {
+  const boundary = `lahat_liwa_${crypto.randomUUID().replace(/-/g, '')}`;
+  const metadata = {
+    name: input.name,
+    parents: [input.parentId],
+    appProperties: {
+      lahatLiwaSchema: 'v1',
+      lahatLiwaMediaObjectId: input.mediaObjectId,
+      lahatLiwaPurpose: input.purpose,
+    },
+  };
+  const body = new Blob([
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
+    `--${boundary}\r\nContent-Type: ${input.mimeType}\r\n\r\n`,
+    input.bytes,
+    `\r\n--${boundary}--\r\n`,
+  ], { type: `multipart/related; boundary=${boundary}` });
+  const fields = 'id,name,mimeType,size,md5Checksum,parents,createdTime,modifiedTime';
+  return googleJson(fetcher, `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=${encodeURIComponent(fields)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': body.type },
+    body,
+  });
+}
+
+export async function deleteDriveFile(fetcher, accessToken, fileId) {
+  await googleJson(fetcher, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return { deleted: true };
+}
+
 function assertManagedRoot(folder) {
   if (!folder || folder.mimeType !== GOOGLE_FOLDER_MIME_TYPE || folder.trashed === true
     || folder.appProperties?.lahatLiwaRole !== 'root' || folder.appProperties?.lahatLiwaSchema !== 'v1') {
@@ -135,6 +168,23 @@ export async function verifyManagedRoot(fetcher, accessToken, rootFolderId) {
   return assertManagedRoot(await getDriveFolder(fetcher, accessToken, rootFolderId));
 }
 
+export async function verifyManagedFolder(fetcher, accessToken, folderId, expectedRole, rootFolderId) {
+  let folder;
+  try {
+    folder = await getDriveFolder(fetcher, accessToken, folderId);
+  } catch (error) {
+    if (error?.code === 'FOLDER_MISSING') throw new GoogleDriveError('UPLOAD_FOLDER_MISSING', 'The managed upload folder is unavailable.', 404);
+    throw error;
+  }
+  if (!folder || folder.mimeType !== GOOGLE_FOLDER_MIME_TYPE || folder.trashed === true
+    || folder.appProperties?.lahatLiwaRole !== expectedRole
+    || folder.appProperties?.lahatLiwaSchema !== 'v1'
+    || !Array.isArray(folder.parents) || !folder.parents.includes(rootFolderId)) {
+    throw new GoogleDriveError('UPLOAD_FOLDER_MISSING', 'The managed upload folder is unavailable.', 404);
+  }
+  return folder;
+}
+
 export async function revokeGoogleToken(fetcher, token) {
   const response = await fetcher('https://oauth2.googleapis.com/revoke', {
     method: 'POST',
@@ -152,4 +202,3 @@ export function tokenGrantedScopes(tokenResponse, fallback = []) {
 export function hasDriveFileScope(scopes) {
   return new Set(scopes).has(GOOGLE_DRIVE_SCOPE);
 }
-

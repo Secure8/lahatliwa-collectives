@@ -14,9 +14,20 @@ import {
 } from './googleDriveOAuth.js';
 import {
   GOOGLE_DRIVE_SUBFOLDERS,
+  deleteDriveFile,
   ensureManagedFolderTree,
   refreshGoogleAccessToken,
+  uploadSmallDriveFile,
+  verifyManagedFolder,
 } from './googleDriveApi.js';
+import {
+  SMALL_DRIVE_UPLOAD_MAX_BYTES,
+  detectSmallDriveUploadMime,
+  resolveDriveUploadPurpose,
+  safeDriveFilename,
+  validateDriveUploadResult,
+  validateSmallDriveUpload,
+} from './googleDriveUpload.js';
 
 const projectRoot = new URL('../../../', import.meta.url);
 const source = (path) => readFile(new URL(path, projectRoot), 'utf8');
@@ -135,12 +146,72 @@ test('revoked refresh token is normalized without exposing provider response det
   });
 });
 
+test('small Drive uploads sniff content, reject MIME spoofing, enforce size, and safely name files', async () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+  const valid = new File([png], ' Client / Proof?.PNG ', { type: 'image/png' });
+  assert.deepEqual(await validateSmallDriveUpload(valid), { ok: true, name: 'Client - Proof-.png', mimeType: 'image/png', size: 12 });
+  assert.equal(detectSmallDriveUploadMime(png), 'image/png');
+  assert.equal(safeDriveFilename(''), 'upload');
+  assert.equal((await validateSmallDriveUpload(new File(['x'], 'script.svg', { type: 'image/svg+xml' }))).code, 'FILE_TYPE_NOT_ALLOWED');
+  assert.equal((await validateSmallDriveUpload(new File([png], 'spoof.jpg', { type: 'image/jpeg' }))).code, 'FILE_CONTENT_MISMATCH');
+  assert.equal((await validateSmallDriveUpload(new File([new Uint8Array(SMALL_DRIVE_UPLOAD_MAX_BYTES + 1)], 'large.pdf', { type: 'application/pdf' }))).code, 'FILE_SIZE_NOT_ALLOWED');
+  assert.equal(resolveDriveUploadPurpose('admin_test_upload').folderRole, 'originals');
+  assert.equal(resolveDriveUploadPurpose('client_parent_id'), null);
+});
+
+test('small Drive upload preserves arbitrary binary bytes in multipart media and sets only managed metadata', async () => {
+  let request;
+  const binary = new Uint8Array([0x00, 0xff, 0x01, 0x80, 0x0d, 0x0a, 0xfe]);
+  const fetcher = async (url, options) => {
+    const bodyBytes = new Uint8Array(await options.body.arrayBuffer());
+    request = { url, options, bodyBytes, bodyText: new TextDecoder().decode(bodyBytes) };
+    return jsonResponse({ id: 'drive-file', name: 'proof.webp', mimeType: 'image/webp', size: String(binary.length), parents: ['originals'] });
+  };
+  const uploaded = await uploadSmallDriveFile(fetcher, 'access-token', {
+    name: 'proof.webp', mimeType: 'image/webp', parentId: 'originals', mediaObjectId: 'media-id',
+    purpose: 'admin_test_upload', bytes: binary,
+  });
+  assert.equal(uploaded.id, 'drive-file');
+  assert.match(request.url, /uploadType=multipart/);
+  assert.match(request.options.headers.Authorization, /^Bearer /);
+  assert.match(request.options.headers['Content-Type'], /^multipart\/related; boundary=/);
+  assert.match(request.bodyText, /lahatLiwaMediaObjectId/);
+  assert.match(request.bodyText, /admin_test_upload/);
+  assert.doesNotMatch(request.bodyText, /permissions|anyone|public/);
+  const containsBinary = request.bodyBytes.some((_, offset) => binary.every((byte, index) => request.bodyBytes[offset + index] === byte));
+  assert.equal(containsBinary, true);
+  assert.deepEqual(validateDriveUploadResult(uploaded, { mimeType: 'image/webp', size: binary.length, parentId: 'originals' }), { ok: true, size: binary.length });
+  assert.equal(validateDriveUploadResult({ ...uploaded, parents: ['untrusted'] }, { mimeType: 'image/webp', size: binary.length, parentId: 'originals' }).code, 'PROVIDER_METADATA_MISMATCH');
+});
+
+test('managed upload folder must retain its role, schema marker, and root parent', async () => {
+  const fetcher = async () => jsonResponse({
+    id: 'originals', name: 'Originals', mimeType: 'application/vnd.google-apps.folder', trashed: false,
+    parents: ['root-id'], appProperties: { lahatLiwaRole: 'originals', lahatLiwaSchema: 'v1' },
+  });
+  assert.equal((await verifyManagedFolder(fetcher, 'token', 'originals', 'originals', 'root-id')).id, 'originals');
+  await assert.rejects(() => verifyManagedFolder(fetcher, 'token', 'originals', 'archive', 'root-id'), (error) => error.code === 'UPLOAD_FOLDER_MISSING');
+});
+
+test('failed metadata finalization can delete the newly created private Drive file', async () => {
+  let request;
+  const fetcher = async (url, options) => {
+    request = { url, options };
+    return new Response(null, { status: 204 });
+  };
+  assert.deepEqual(await deleteDriveFile(fetcher, 'access-token', 'new-drive-file'), { deleted: true });
+  assert.equal(request.options.method, 'DELETE');
+  assert.match(request.url, /\/drive\/v3\/files\/new-drive-file$/);
+  assert.match(request.options.headers.Authorization, /^Bearer /);
+});
+
 test('Edge handlers bind owners, preserve reconnect identity, and never log or return credentials', async () => {
-  const [start, callback, check, disconnect, edge, database, page] = await Promise.all([
+  const [start, callback, check, disconnect, upload, edge, database, page] = await Promise.all([
     source('supabase/functions/google-drive-oauth-start/index.ts'),
     source('supabase/functions/google-drive-oauth-callback/index.ts'),
     source('supabase/functions/google-drive-connection-check/index.ts'),
     source('supabase/functions/google-drive-disconnect/index.ts'),
+    source('supabase/functions/google-drive-upload/index.ts'),
     source('supabase/functions/_shared/googleDriveEdge.ts'),
     source('supabase/functions/_shared/googleDriveDatabase.ts'),
     source('src/pages/admin/Storage.jsx'),
@@ -158,9 +229,19 @@ test('Edge handlers bind owners, preserve reconnect identity, and never log or r
   assert.match(disconnect, /isRecentSessionJwt/);
   assert.match(disconnect, /DISCONNECT_GOOGLE_DRIVE/);
   assert.match(disconnect, /revokeGoogleToken/);
+  assert.match(upload, /authenticatedStorageOwner/);
+  assert.match(upload, /GOOGLE_DRIVE_UPLOAD_DISABLED/);
+  assert.match(upload, /external_media_objects/);
+  assert.match(upload, /status: 'uploading'/);
+  assert.match(upload, /status: 'available'/);
+  assert.match(upload, /validateSmallDriveUpload/);
+  assert.match(upload, /verifyManagedFolder/);
+  assert.match(upload, /deleteDriveFile/);
+  assert.match(upload, /manual_cleanup_required/);
+  assert.doesNotMatch(upload, /owner(?:UserId|_user_id):\s*body/);
   assert.match(database, /SUPABASE_DB_URL/);
   assert.match(database, /private\.server_read_storage_connection_secret/);
   assert.doesNotMatch(database, /public\.server_/);
-  assert.doesNotMatch(`${start}${callback}${check}${disconnect}${edge}${database}`, /console\.(?:log|error)\([^\n]*(?:token|authorization|secret|pkce)/i);
+  assert.doesNotMatch(`${start}${callback}${check}${disconnect}${upload}${edge}${database}`, /console\.(?:log|error)\([^\n]*(?:token|authorization|secret|pkce)/i);
   assert.doesNotMatch(page, /credential_secret_id|provider_account_id|root_folder_id|folder_ids|granted_scopes/);
 });

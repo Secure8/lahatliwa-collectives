@@ -64,10 +64,27 @@ export function disconnectGoogleDriveConnection(connectionId) {
   return invoke('google-drive-disconnect', { connectionId, confirmation: 'DISCONNECT_GOOGLE_DRIVE' });
 }
 
+export const GOOGLE_DRIVE_TEST_UPLOAD_MAX_BYTES = 2 * 1024 * 1024;
+
+export function validateGoogleDriveTestFile(file) {
+  const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+  if (!file) throw new Error('Choose one file to upload.');
+  if (!allowed.has(file.type)) throw new Error('Choose a JPEG, PNG, WebP, or PDF file.');
+  if (file.size <= 0 || file.size > GOOGLE_DRIVE_TEST_UPLOAD_MAX_BYTES) throw new Error('The test file must be larger than 0 bytes and no more than 2 MB.');
+  return file;
+}
+
+export function uploadGoogleDriveTestFile(file) {
+  validateGoogleDriveTestFile(file);
+  const body = new FormData();
+  body.append('file', file, file.name);
+  body.append('purpose', 'admin_test_upload');
+  return invoke('google-drive-upload', body);
+}
+
 export function googleDriveStatusLabel(status) {
   return ({
     connected: 'Connected', reconnect_required: 'Reconnect required', error: 'Attention needed',
     pending: 'Pending', revoked: 'Disconnected', disabled: 'Disconnected',
   })[status] || 'Not connected';
 }
-

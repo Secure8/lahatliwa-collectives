@@ -20,7 +20,7 @@ export default function ProjectCard({ project, index = 0 }) {
   const creditSummary = projectCreditSummary(project);
 
   return (
-      <article id={`project-${project.id}`} className="mobile-app-card group min-w-0 scroll-mt-24">
+      <article id={`project-${project.id}`} className="mobile-app-card group flex h-full min-w-0 scroll-mt-24 flex-col">
         <Link
           to={`/projects/${project.slug}`}
           state={linkState}
@@ -35,7 +35,7 @@ export default function ProjectCard({ project, index = 0 }) {
           )}
         </Link>
 
-        <div className="relative grid border-b border-white/[0.09] pb-6 pt-4 after:absolute after:bottom-[-1px] after:left-0 after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.8)] after:transition-all after:duration-500 group-hover:after:w-24 motion-reduce:after:transition-none sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6">
+        <div className="project-card-body relative grid flex-1 border-b border-white/[0.09] pb-6 pt-4 after:absolute after:bottom-[-1px] after:left-0 after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.8)] after:transition-all after:duration-500 group-hover:after:w-24 motion-reduce:after:transition-none sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6">
           <div className="min-w-0">
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-orange-300">
               <span>{String(index + 1).padStart(2, '0')} / {branch?.label || project.category}</span>

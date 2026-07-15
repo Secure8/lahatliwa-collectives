@@ -3,10 +3,12 @@ import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@s
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ActionFeedback, FieldError } from '../components/FieldFeedback';
+import LoadingState from '../components/LoadingState';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { usePublicContent } from '../lib/contentApi';
 import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, changeInquiryBranchSelection, emptyInquiryDraft, INQUIRY_DRAFT_KEY, INQUIRY_SELECTION_STEP, INQUIRY_SPECIALIST_STEP, inquiryCopy, mergeInquiryContext, resolveInquiryEntry, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
+import useStepScroll, { motionSafeScrollBehavior } from '../lib/useStepScroll';
 
 const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
 const contactMethods = ['Email', 'Phone', 'Facebook / Messenger', 'WhatsApp', 'Other'];
@@ -59,8 +61,11 @@ export default function StartProject() {
   const [submitError, setSubmitError] = useState('');
   const [focusTarget, setFocusTarget] = useState({ key: '', request: 0 });
   const [focusStepHeadingRequest, setFocusStepHeadingRequest] = useState(0);
+  const [stepScrollRequest, setStepScrollRequest] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const stepHeadingRef = useRef(null);
+  const inquiryContainerRef = useRef(null);
+  useStepScroll({ containerRef: inquiryContainerRef, request: stepScrollRequest });
 
   useEffect(() => {
     let active = true;
@@ -123,7 +128,7 @@ export default function StartProject() {
     const timer = window.setTimeout(() => {
       const field = document.querySelector(`[data-inquiry-field="${focusTarget.key}"]`);
       if (!field) return;
-      field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      field.scrollIntoView({ behavior: motionSafeScrollBehavior(), block: 'center' });
       const focusable = field.matches('input, textarea, select, button, [tabindex]')
         ? field
         : field.querySelector('input, textarea, select, button, [tabindex]');
@@ -158,6 +163,7 @@ export default function StartProject() {
   function moveToStep(nextStep) {
     setStep(nextStep);
     setFocusStepHeadingRequest((current) => current + 1);
+    setStepScrollRequest((current) => current + 1);
   }
 
   function selectBranch(branch) {
@@ -204,10 +210,10 @@ export default function StartProject() {
       setFocusTarget((current) => ({ key: firstKey, request: current.request + 1 }));
       return;
     }
-    setErrors({}); setNotice(''); moveToStep(Math.min(step + 1, steps.length - 1)); window.scrollTo({ top: 0, behavior: 'auto' });
+    setErrors({}); setNotice(''); moveToStep(Math.min(step + 1, steps.length - 1));
   }
 
-  function goBack() { setErrors({}); setNotice(''); setSubmitError(''); moveToStep(Math.max(step - 1, 0)); window.scrollTo({ top: 0, behavior: 'auto' }); }
+  function goBack() { setErrors({}); setNotice(''); setSubmitError(''); moveToStep(Math.max(step - 1, 0)); }
 
   async function submit() {
     if (submitting) return;
@@ -217,7 +223,7 @@ export default function StartProject() {
       const firstStep = Math.max(0, validationByStep.findIndex((result) => Object.keys(result).length > 0));
       const firstKey = Object.keys(validationByStep[firstStep])[0];
       setErrors(finalErrors);
-      setStep(firstStep);
+      moveToStep(firstStep);
       setFocusTarget((current) => ({ key: firstKey, request: current.request + 1 }));
       return;
     }
@@ -246,6 +252,7 @@ export default function StartProject() {
 
     {step > INQUIRY_SELECTION_STEP && selectedBranch && selectedService && <SelectionSummary branch={selectedBranch.label} service={selectedService.name} specialist={selectedCreative?.name || (step > INQUIRY_SPECIALIST_STEP ? copy.teamOption : '')} onChange={changeSelection} onChangeSpecialist={step > INQUIRY_SPECIALIST_STEP ? changeSpecialist : null} />}
 
+    <section ref={inquiryContainerRef} className="inquiry-step-shell scroll-mt-20" aria-label="Active inquiry step">
     <StepProgress current={step} steps={steps} />
     <div className="grid gap-9 pt-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">
       <main className="min-w-0 border-y border-white/[0.09] py-7">
@@ -269,6 +276,7 @@ export default function StartProject() {
 
       <aside className="h-fit border-t border-white/[0.09] pt-5 lg:sticky lg:top-24"><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">Request summary</p><SummaryLine label="Branch" value={selectedBranch?.label} /><SummaryLine label={copy.serviceSelectionHeading} value={selectedService?.name} hint={copy.serviceSelectionDescription} /><SummaryLine label={copy.recipientLabel} value={selectedCreative?.name || copy.teamOption} /><p className="mt-5 text-xs leading-6 text-zinc-600">{copy.matchingCopy} Sending a request does not confirm a booking, schedule, support appointment, or final quotation.</p></aside>
     </div>
+    </section>
   </div>;
 }
 
@@ -286,7 +294,7 @@ function StepProgress({ current, steps }) {
 }
 
 function ServiceStep({ draft, branches, availableServices, update, selectBranch, loading, errors, copy }) {
-  if (loading) return <p className="py-8 text-sm text-zinc-500">Loading available services...</p>;
+  if (loading) return <LoadingState label="Loading available services" compact />;
   const availableKeys = new Set(branches.map(branchKeyFromRecord));
   return <div className="grid gap-8"><ChoiceGroup fieldKey="branch" legend="Choose a Liwa branch" error={errors.branch}><div className="mt-4 grid gap-3 sm:grid-cols-2">{[...SERVICE_BRANCHES.filter((branch) => availableKeys.has(branch.key)), branchMeta('general')].map((branch) => <ChoiceButton key={branch.key} selected={draft.branch === branch.key} onClick={() => selectBranch(branch.key)} title={branch.label} detail={branch.description} />)}</div></ChoiceGroup>{draft.branch && <ChoiceGroup fieldKey="serviceKey" legend={copy.serviceSelectionHeading} error={errors.serviceKey}><p className="mt-2 text-sm leading-6 text-zinc-400">{copy.serviceSelectionDescription}</p><p className="mt-2 text-xs leading-5 text-zinc-600">{copy.serviceHelper}</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{availableServices.map((service) => <ChoiceButton key={service.key} selected={draft.serviceKey === service.key} onClick={() => update('serviceKey', service.key)} title={service.name} compact />)}</div></ChoiceGroup>}</div>;
 }

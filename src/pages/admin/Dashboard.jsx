@@ -125,7 +125,7 @@ export default function Dashboard() {
             <h2 id="summary-heading" className="text-lg font-semibold text-white">System Summary</h2>
             <p className="mt-1 text-sm text-zinc-500">Live counts available to your current role.</p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3">
+          <div className="admin-dashboard-grid grid sm:grid-cols-2 lg:grid-cols-3">
             {metricItems.map(([key, label, detail]) => <Metric key={key} label={label} value={stats[key]} detail={detail} loading={loading} />)}
           </div>
         </section>
@@ -135,7 +135,7 @@ export default function Dashboard() {
             <h2 id="actions-heading" className="text-lg font-semibold text-white">Quick Actions</h2>
             <p className="mt-1 text-sm text-zinc-500">Only tools permitted for your role are shown.</p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3">
+          <div className="admin-dashboard-grid grid sm:grid-cols-2 lg:grid-cols-3">
             {quickActions.map((action) => <QuickAction key={action.to || action.href} {...action} />)}
           </div>
         </section>

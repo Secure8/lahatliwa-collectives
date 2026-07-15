@@ -41,8 +41,7 @@ export default function CreativeHero({ creative, projectCount, socials, resource
         {intro && <p className="mb-8 text-sm leading-6 text-zinc-100">{intro}</p>}
         <div className="grid gap-6">
           <HeroFact label="01 / Status" value={creative.availability_status || 'Creative profile'} accent={Boolean(creative.availability_status)} />
-          <HeroFact label="02 / Discipline" value={<SeparatedTitle value={creative.role || 'Multidisciplinary'} />} />
-          <HeroFact label="03 / Selected work" value={`${projectCount} published ${projectCount === 1 ? 'project' : 'projects'}`} />
+          <HeroFact label="02 / Selected work" value={`${projectCount} published ${projectCount === 1 ? 'project' : 'projects'}`} />
         </div>
       </aside>
       <div data-creative-hero-facts className="relative z-10 mx-3 mb-3 lg:hidden">

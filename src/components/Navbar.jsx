@@ -23,10 +23,8 @@ const links = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [headerFocused, setHeaderFocused] = useState(false);
-  const [immersiveVisible, setImmersiveVisible] = useState(false);
   const location = useLocation();
   const { content } = usePublicContent([]);
-  const immersiveProfile = /^\/creatives\/[^/]+\/?$/.test(location.pathname);
   const mobileMode = publicAppBarMode(location.pathname);
   const closeMenu = useCallback(() => setOpen(false), []);
   const mobileVisible = useMobileAppBar({ locked: open || headerFocused, routeKey: `${location.pathname}${location.search}` });
@@ -36,18 +34,6 @@ export default function Navbar() {
     setOpen(false);
     setHeaderFocused(false);
   }, [location.key, location.pathname]);
-
-  useEffect(() => {
-    if (!immersiveProfile) {
-      setImmersiveVisible(false);
-      return undefined;
-    }
-    const revealFromTopEdge = (event) => {
-      if (event.pointerType === 'mouse') setImmersiveVisible(event.clientY <= 140);
-    };
-    window.addEventListener('pointermove', revealFromTopEdge, { passive: true });
-    return () => window.removeEventListener('pointermove', revealFromTopEdge);
-  }, [immersiveProfile]);
 
   function avoidDuplicateNavigation(href) {
     return (event) => {
@@ -63,24 +49,20 @@ export default function Navbar() {
         data-mobile-app-bar-mode={mobileMode}
         onFocusCapture={() => {
           setHeaderFocused(true);
-          if (immersiveProfile) setImmersiveVisible(true);
         }}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) {
             setHeaderFocused(false);
-            if (immersiveProfile) setImmersiveVisible(false);
           }
         }}
         className={clsx(
-          'public-app-bar theme-navigation-surface fixed inset-x-0 top-0 z-50 border-b border-white/[0.08] shadow-[0_10px_35px_rgba(0,0,0,0.12)] transition-[transform,opacity,background-color] duration-200 ease-out motion-reduce:transition-none xl:inset-x-auto xl:translate-y-0 xl:bg-zinc-950/75 xl:backdrop-blur-xl',
+          'public-app-bar theme-navigation-surface fixed inset-x-0 top-0 z-50 border-b border-white/[0.08] shadow-[0_10px_35px_rgba(0,0,0,0.12)] transition-[transform,opacity,background-color] duration-200 ease-out motion-reduce:transition-none lg:inset-x-auto lg:translate-y-0 lg:opacity-100 lg:bg-zinc-950/75 lg:backdrop-blur-xl',
           mobileMode === 'overlay' ? 'public-app-bar--overlay' : 'public-app-bar--surface',
           mobileVisible ? 'translate-y-0' : '-translate-y-full',
-          immersiveProfile ? 'creative-profile-navigation xl:fixed xl:inset-x-0 xl:z-50 xl:duration-300' : 'xl:sticky xl:z-40',
-          immersiveProfile && open && 'creative-profile-navigation--open',
-          immersiveProfile && (immersiveVisible ? 'xl:translate-y-0 xl:opacity-100' : 'xl:pointer-events-none xl:-translate-y-full xl:opacity-0'),
+          'lg:sticky lg:z-40',
         )}
       >
-        <nav className="page-shell flex min-h-14 items-center justify-between gap-3 xl:min-h-16" aria-label="Primary navigation">
+        <nav className="page-shell flex min-h-14 items-center justify-between gap-3 lg:min-h-16" aria-label="Primary navigation">
           <Link to="/" onClick={avoidDuplicateNavigation('/')} className="group flex min-w-0 items-center gap-3" aria-label={`${content.displayName} home`}>
             {content.logoUrl ? (
               <BrandLogo src={content.logoUrl} alt={content.logoAlt} />
@@ -89,7 +71,7 @@ export default function Navbar() {
             )}
             <BrandWordmark name={content.displayName} variant="compact" mobileVariant="mobile-compact" />
           </Link>
-          <div className="hidden items-center gap-1 xl:flex">
+          <div className="hidden items-center gap-1 lg:flex">
             {links.map(([label, href]) => (
               <NavLink
                 key={href}
@@ -106,7 +88,7 @@ export default function Navbar() {
           <button
             ref={triggerRef}
             type="button"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/[0.12] bg-white/[0.045] text-zinc-200 transition hover:border-orange-300/35 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] xl:hidden"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/[0.12] bg-white/[0.045] text-zinc-200 transition hover:border-orange-300/35 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] lg:hidden"
             onClick={() => setOpen(true)}
             aria-label="Open main menu"
             aria-expanded={open}
@@ -120,7 +102,7 @@ export default function Navbar() {
       </header>
 
       {open && (
-        <div className="fixed inset-0 z-[60] xl:hidden">
+        <div className="fixed inset-0 z-[60] lg:hidden">
           <button type="button" tabIndex={-1} className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" onClick={closeMenu} aria-label="Close main menu" />
           <section ref={panelRef} id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Main menu" className="theme-navigation-surface absolute inset-y-0 right-0 grid w-[min(23rem,calc(100%-1rem))] grid-rows-[auto_1fr_auto] overflow-hidden border-l border-white/[0.1] bg-zinc-950/98 shadow-[-24px_0_70px_rgba(0,0,0,0.38)]">
             <div className="flex min-h-16 items-center justify-between gap-4 border-b border-white/[0.08] px-4 pt-[env(safe-area-inset-top)]">

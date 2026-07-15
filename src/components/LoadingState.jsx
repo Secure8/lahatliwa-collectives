@@ -15,11 +15,11 @@ export default function LoadingState({ label = 'Loading', delay = 180, compact =
 
   return (
     <div className={`major-border-y ${compact ? 'py-5' : 'py-8'}`} role="status" aria-live="polite" aria-label={label}>
-      <div className="mx-auto grid max-w-xl gap-3">
-        <div className="h-2 w-28 rounded-sm bg-white/[0.09]" />
-        <div className="h-2 w-full rounded-sm bg-white/[0.055]" />
-        <div className="h-2 w-2/3 rounded-sm bg-white/[0.04]" />
-        <p className="pt-1 text-xs text-zinc-600">{label}...</p>
+      <div className="mx-auto flex max-w-xl flex-col items-center justify-center gap-3 text-center">
+        <span className={`brand-loading-mark ${compact ? 'brand-loading-mark--compact' : ''}`} aria-hidden="true">
+          <img src="/official-logo.webp" alt="" width="56" height="56" className="brand-loading-mark__image" />
+        </span>
+        <p className="text-xs font-medium tracking-[0.08em] text-zinc-500">{label}...</p>
       </div>
     </div>
   );

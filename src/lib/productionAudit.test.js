@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -45,6 +46,37 @@ test('favicon and manifest references resolve to square static assets', () => {
   assert.match(html, /social-card\.jpg/);
 });
 
+test('unknown routes retain the public shell and provide accessible recovery links', () => {
+  const app = readFileSync(resolve(root, 'src/App.jsx'), 'utf8');
+  const notFound = readFileSync(resolve(root, 'src/pages/NotFound.jsx'), 'utf8');
+  assert.match(app, /<Route path="\*" element=\{<NotFound \/>\} \/>/);
+  assert.match(notFound, /<h1 id="not-found-heading"/);
+  assert.match(notFound, /<Link to="\/"/);
+  assert.match(notFound, /<Link to="\/projects"/);
+});
+
+test('production headers permit brand fonts and cache fingerprinted build assets', () => {
+  const html = readFileSync(resolve(root, 'index.html'), 'utf8');
+  const deployment = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));
+  const globalHeaders = deployment.headers.find(({ source }) => source === '/(.*)')?.headers ?? [];
+  const contentSecurityPolicy = globalHeaders.find(({ key }) => key === 'Content-Security-Policy')?.value ?? '';
+  const assetHeaders = deployment.headers.find(({ source }) => source === '/assets/(.*)')?.headers ?? [];
+  const cacheControl = assetHeaders.find(({ key }) => key === 'Cache-Control')?.value ?? '';
+
+  assert.match(contentSecurityPolicy, /style-src[^;]*https:\/\/fonts\.googleapis\.com/);
+  assert.match(contentSecurityPolicy, /font-src[^;]*https:\/\/fonts\.gstatic\.com/);
+  assert.match(contentSecurityPolicy, /object-src 'none'/);
+  assert.match(contentSecurityPolicy, /frame-ancestors 'none'/);
+  const scriptPolicy = contentSecurityPolicy.split(';').find((directive) => directive.trim().startsWith('script-src')) ?? '';
+  assert.doesNotMatch(scriptPolicy, /'unsafe-inline'/);
+  const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
+  for (const source of inlineScripts) {
+    const hash = createHash('sha256').update(source).digest('base64');
+    assert.match(scriptPolicy, new RegExp(`'sha256-${hash.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'`));
+  }
+  assert.equal(cacheControl, 'public, max-age=31536000, immutable');
+});
+
 test('public destinations reject executable schemes and preserve valid links', () => {
   assert.equal(safeExternalUrl('javascript:alert(1)'), '');
   assert.equal(safeExternalUrl('data:text/html,test'), '');
@@ -65,6 +97,9 @@ test('public image priorities match the installed React runtime and loading plac
   assert.doesNotMatch(publicSources, /fetchPriority=/);
   assert.match(publicSources, /fetchpriority=/);
   assert.doesNotMatch(loadingState, /animate-pulse/);
+  assert.match(loadingState, /\/official-logo\.webp/);
+  assert.match(loadingState, /brand-loading-mark/);
+  assert.match(loadingState, /role="status" aria-live="polite"/);
 });
 
 test('native menus follow the active theme and mobile admin actions stay distinct', () => {

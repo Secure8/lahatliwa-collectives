@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { adminPageTitle, mobileAppBarVisibility, publicAppBarMode } from './mobileAppShell.js';
+import { adminPageTitle, mobileAppBarVisibility, PUBLIC_PRIMARY_DESTINATIONS, publicAppBarMode, publicDestinationIsActive } from './mobileAppShell.js';
 
 test('public app bar uses overlay only for visual-first routes', () => {
   assert.equal(publicAppBarMode('/'), 'overlay');
@@ -17,6 +17,15 @@ test('mobile app bar follows meaningful document scroll direction without reacti
   assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 70, nextY: 50 }), { visible: true, lastY: 50 });
   assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 50, nextY: 10 }), { visible: true, lastY: 10 });
   assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 100, nextY: 130, locked: true }), { visible: true, lastY: 130 });
+});
+
+test('public bottom navigation is limited to five primary destinations with detail-route awareness', () => {
+  assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS.map(([label]) => label), ['Home', 'Services', 'Projects', 'Creatives', 'Inquiry']);
+  assert.equal(PUBLIC_PRIMARY_DESTINATIONS.length, 5);
+  assert.equal(publicDestinationIsActive('/projects/sample', '/projects'), true);
+  assert.equal(publicDestinationIsActive('/creatives/sample', '/creatives'), true);
+  assert.equal(publicDestinationIsActive('/inquiry/confirmation/ABC', '/inquiry'), true);
+  assert.equal(publicDestinationIsActive('/about', '/'), false);
 });
 
 test('admin mobile title follows the most specific permitted route', () => {

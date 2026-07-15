@@ -51,7 +51,8 @@ test('mobile profile facts match the tools dock and omit only the redundant disc
   assert.match(mobileFacts, /HeroFact label="Selected work"/);
   assert.doesNotMatch(mobileFacts, /HeroFact label="Discipline"/);
   assert.match(hero, /BrandWordmark variant="eyebrow"[\s\S]*?<SeparatedTitle value=\{creative\.role\}/);
-  assert.match(hero, /<aside[\s\S]*?<HeroFact label="02 \/ Discipline"/);
+  assert.doesNotMatch(hero, /HeroFact label="02 \/ Discipline"/);
+  assert.match(hero, /<aside[\s\S]*?<HeroFact label="01 \/ Status"[\s\S]*?<HeroFact label="02 \/ Selected work"/);
 });
 
 test('mobile cover height is independent from long profile content while overlays stay intact', async () => {
@@ -83,13 +84,13 @@ test('desktop profile rails frame the cover and content without entering mobile 
   assert.match(details, /relative mt-1/);
 });
 
-test('creative profiles reveal immersive navigation from the desktop top edge', async () => {
+test('creative profile utilities can reveal from the desktop top edge without controlling the shared navbar', async () => {
   const navbar = await readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8');
   const hero = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
   const details = await readFile(new URL('../pages/CreativeDetails.jsx', import.meta.url), 'utf8');
-  assert.match(navbar, /immersiveProfile/);
-  assert.match(navbar, /event\.clientY <= 140/);
-  assert.match(navbar, /xl:-translate-y-full xl:opacity-0/);
+  assert.doesNotMatch(navbar, /immersiveProfile|creative-profile-navigation/);
+  assert.doesNotMatch(navbar, /event\.clientY <= 140/);
+  assert.doesNotMatch(navbar, /lg:-translate-y-full lg:opacity-0/);
   assert.match(navbar, /onFocusCapture/);
   assert.match(details, /event\.clientY <= 140/);
   assert.match(details, /fixed left-3 top-\[4\.5rem\]/);
@@ -98,26 +99,28 @@ test('creative profiles reveal immersive navigation from the desktop top edge', 
   assert.match(hero, /pointer-events-none.*hidden justify-center xl:flex/);
 });
 
-test('creative-profile mobile navigation stays compact, translucent, and layered without changing desktop navigation', async () => {
+test('creative profiles use the same full desktop navbar while mobile overlay behavior stays breakpoint-scoped', async () => {
   const navbar = await readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8');
   const styles = await readFile(new URL('../index.css', import.meta.url), 'utf8');
 
-  assert.match(navbar, /immersiveProfile \? 'creative-profile-navigation xl:fixed xl:inset-x-0 xl:z-50/);
   assert.match(navbar, /publicAppBarMode\(location\.pathname\)/);
-  assert.match(navbar, /min-h-14 items-center justify-between gap-3 xl:min-h-16/);
+  assert.match(navbar, /'lg:sticky lg:z-40'/);
+  assert.doesNotMatch(navbar, /creative-profile-navigation|lg:fixed lg:inset-x-0/);
+  assert.match(navbar, /min-h-14 items-center justify-between gap-3 lg:min-h-16/);
   assert.match(navbar, /content\.logoUrl[\s\S]*?<BrandLogo/);
   assert.match(navbar, /<BrandWordmark name=\{content\.displayName\} variant="compact" mobileVariant="mobile-compact"/);
-  assert.match(navbar, /hidden items-center gap-1 xl:flex/);
-  assert.match(navbar, /focus-visible:ring-\[var\(--focus-ring\)\] xl:hidden/);
+  assert.match(navbar, /hidden items-center gap-1 lg:flex/);
+  assert.match(navbar, /focus-visible:ring-\[var\(--focus-ring\)\] lg:hidden/);
   assert.match(navbar, /aria-label="Open main menu"/);
   assert.match(navbar, /aria-label="Close main menu"/);
   assert.match(navbar, /id="public-mobile-navigation"/);
 
-  assert.match(styles, /@media \(max-width: 1279px\)[\s\S]*?\.theme-navigation-surface\.creative-profile-navigation/);
-  assert.match(styles, /background-color: rgb\(9 9 11 \/ 0\.46\) !important/);
-  assert.match(styles, /background-color: rgb\(250 247 240 \/ 0\.5\) !important/);
-  assert.match(styles, /backdrop-filter: blur\(16px\) saturate\(1\.08\)/);
-  assert.match(navbar, /xl:bg-zinc-950\/75 xl:backdrop-blur-xl/);
+  assert.match(styles, /@media \(max-width: 1023px\)[\s\S]*?\.theme-navigation-surface\.public-app-bar--overlay/);
+  assert.doesNotMatch(styles, /creative-profile-navigation/);
+  assert.match(navbar, /lg:bg-zinc-950\/75 lg:backdrop-blur-xl/);
+  assert.match(styles, /@media \(min-width: 1024px\)[\s\S]*?html,[\s\S]*?body \{[\s\S]*?overflow-x: clip/);
+  assert.match(styles, /@media \(min-width: 1024px\)[\s\S]*?\.public-app-bar[\s\S]*?min-height: 4rem;[\s\S]*?transform: translateY\(0\) !important/);
+  assert.match(styles, /\.public-app-bar > nav[\s\S]*?min-height: 4rem/);
 });
 
 test('profile hero upload retains large-image quality limits', async () => {

@@ -11,10 +11,12 @@ import PublicScrollRestoration from './components/PublicScrollRestoration';
 import PublicErrorBoundary from './components/PublicErrorBoundary';
 import { publicRouteBoundaryKey } from './lib/navigationHistory';
 import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadInquiryConfirmation, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
+import NotFound from './pages/NotFound';
 import { applyPublicMetadata } from './lib/publicMetadata';
 import ThemeToggle from './components/ThemeToggle';
 import BrandWordmark from './components/BrandWordmark';
 import { publicAppBarMode } from './lib/mobileAppShell';
+import MobileBottomNavigation from './components/MobileBottomNavigation';
 
 const Login = lazy(() => import('./pages/admin/Login'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
@@ -82,6 +84,11 @@ function PublicSiteFrame() {
   const { content, loading, resolved, error } = usePublicContent([]);
   const appBarMode = publicAppBarMode(location.pathname);
 
+  useEffect(() => {
+    document.documentElement.classList.add('public-mode');
+    return () => document.documentElement.classList.remove('public-mode');
+  }, []);
+
   if (!resolved) {
     return (
       <main className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -102,6 +109,7 @@ function PublicSiteFrame() {
       <Navbar />
       <main data-public-app-content data-app-bar-mode={appBarMode} className={`public-app-content public-app-content--${appBarMode} min-h-[60vh] overflow-x-hidden`}><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
       <Footer />
+      <MobileBottomNavigation />
     </>
   );
 }
@@ -142,6 +150,7 @@ export default function App() {
         <Route path="/inquiry" element={<StartProject />} />
         <Route path="/inquiry/confirmation/:reference" element={<InquiryConfirmation />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/set-password" element={<AdminSuspense><SetPassword /></AdminSuspense>} />
       <Route path="/forgot-password" element={<AdminSuspense><ForgotPassword /></AdminSuspense>} />

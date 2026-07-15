@@ -13,10 +13,11 @@ import { fairProjectExposure } from '../lib/fairProjectExposure';
 import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
 import { scrollPreservingNavigationState, shouldPushFilter } from '../lib/navigationHistory';
 import { AccentEyebrow } from '../components/PublicPageHeader';
-import { branchKeyFromRecord, branchMeta, publicBranchDescription } from '../lib/serviceRequest';
+import { branchKeyFromRecord, branchMeta, publicBranchDescription, servicesPath } from '../lib/serviceRequest';
 import BrandWordmark from '../components/BrandWordmark';
 import { isBrandWordmarkText } from '../lib/brandWordmark';
 import { defaultSiteContent } from '../data/siteContent';
+import { homeCtaPath } from '../lib/homeCta';
 
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -43,6 +44,8 @@ export default function Home() {
   const selectedBranchInfo = branchForKey(selectedBranch) || PROJECT_BRANCHES[0];
   const visibleProjects = useMemo(() => fairProjectExposure(projectsForBranch(projects, selectedBranch), projectLimit), [projectLimit, projects, selectedBranch]);
   const heroIsBrandWordmark = isBrandWordmarkText(content.home.heroTitle, content.displayName, [defaultSiteContent.displayName, defaultSiteContent.legalName]);
+  const primaryCtaLabel = content.home.primaryCta || 'Send an Inquiry';
+  const secondaryCtaLabel = content.home.secondaryCta || 'Explore Published Work';
 
   useEffect(() => {
     let active = true;
@@ -95,13 +98,13 @@ export default function Home() {
         <div className="max-w-2xl">
           <AccentEyebrow color={content.home.accentTextColor || content.accentColor} preserveColor>{content.home.heroEyebrow || content.hero.eyebrow}</AccentEyebrow>
           <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{heroIsBrandWordmark ? <BrandWordmark name={content.home.heroTitle} variant="hero" /> : content.home.heroTitle}</h1>
-          <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'Find focused support across visual production, digital development, social media, and technical needs—or explore the creatives and work published through the platform.'}</p>
+          <p className="home-hero-description mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{content.home.heroDescription || 'Find focused support across visual production, digital development, social media, and technical needs—or explore the creatives and work published through the platform.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/inquiry" className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
-              {content.home.primaryCta || 'Send an Inquiry'} <ArrowRight size={18} />
+            <Link to={homeCtaPath(primaryCtaLabel, '/inquiry')} className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>
+              {primaryCtaLabel} <ArrowRight size={18} />
             </Link>
-            <Link to="/projects" className="fine-link px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
-              {content.home.secondaryCta || 'Explore Published Work'}
+            <Link to={homeCtaPath(secondaryCtaLabel, '/projects')} className="fine-link px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>
+              {secondaryCtaLabel}
             </Link>
           </div>
           <p className="mt-8 max-w-xl text-sm leading-6" style={{ color: content.mutedTextColor }}>{content.tagline}</p>
@@ -114,12 +117,19 @@ export default function Home() {
       </div>
       </section>
 
+      <section className="home-mobile-branches page-shell major-border-top py-10 lg:hidden" aria-labelledby="mobile-branch-heading">
+        <div className="flex items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.2em] text-[var(--site-accent-text)]">Service branches</p><h2 id="mobile-branch-heading" className="mt-2 text-2xl font-semibold">Choose a starting point.</h2></div><Link to="/services" className="fine-link shrink-0 text-sm text-zinc-400">View all</Link></div>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          {PROJECT_BRANCHES.map((branch) => <Link key={branch.key} to={servicesPath(branch.key)} className="flex min-h-16 items-center justify-between gap-2 rounded-xl border border-white/[0.09] bg-white/[0.025] px-3 py-3 text-sm font-medium text-zinc-200 transition hover:border-orange-300/40 hover:text-orange-200"><span>{branch.label}</span><ArrowRight size={15} aria-hidden="true" /></Link>)}
+        </div>
+      </section>
+
       <section id="selected-work" className="page-shell major-border-top scroll-mt-20 py-16" aria-labelledby="selected-work-heading">
         <div className="mb-8 max-w-2xl">
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Selected work</p>
             <h2 id="selected-work-heading" className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>{content.home.featuredHeading}</h2>
-            <p className="mt-4 leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore complete project records, visible outputs, and contributor credits across the four Liwa branches.</p>
+            <p className="home-section-intro mt-4 leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore complete project records, visible outputs, and contributor credits across the four Liwa branches.</p>
           </div>
         </div>
         <div className="mb-10 grid grid-cols-2 gap-1 border-y border-white/[0.08] py-1 sm:grid-cols-4" role="tablist" aria-label="Project branches">
@@ -128,7 +138,7 @@ export default function Home() {
             return <button key={branch.key} id={`home-branch-tab-${branch.key}`} type="button" role="tab" aria-selected={active} aria-controls="home-project-results" onClick={() => selectHomeBranch(branch.key)} className={`interactive-tab min-w-0 px-3 py-4 text-left sm:px-4 ${active ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}><span className="block text-sm font-medium">{branch.label}</span><span className="mt-1 hidden text-xs leading-5 text-zinc-600 lg:block">{branch.description}</span></button>;
           })}
         </div>
-        <div id="home-project-results" role="tabpanel" aria-labelledby={`home-branch-tab-${selectedBranch}`} className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
+        <div id="home-project-results" role="tabpanel" aria-labelledby={`home-branch-tab-${selectedBranch}`} className="min-h-[28rem]">{loading ? <LoadingState label="Loading projects" /> : projectError ? <p className="border-y border-red-400/20 py-6 text-sm text-red-100">{projectError}</p> : visibleProjects.length ? <ProjectGrid projects={visibleProjects} className="home-project-grid" /> : <EmptyState title="Projects for this branch are being prepared." message="Explore another branch or view all current work." />}</div>
         <Link to={branchProjectsUrl(selectedBranch)} className="fine-link site-hover-accent mt-9 inline-flex items-center gap-2 text-sm text-zinc-300">View all {selectedBranchInfo.label} projects <ArrowRight size={16} /></Link>
       </section>
 
@@ -141,13 +151,13 @@ export default function Home() {
           <Link to="/creatives" className="fine-link site-hover-accent text-sm text-zinc-300">Explore creative profiles</Link>
         </div>
         {loading ? <LoadingState label="Loading creatives" /> : creatives.length ? (
-          <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="home-creatives-grid grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} />)}
           </div>
         ) : <EmptyState title="No featured creative profiles yet" message="Explore the full directory for currently published profiles." />}
       </section>
 
-      <section className="page-shell major-border-top py-16">
+      <section className="home-full-services page-shell major-border-top hidden py-16 lg:block">
         <div className="mb-10 max-w-2xl">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Services preview</p>
           <h2 className="mt-3 text-3xl font-semibold" style={{ color: 'var(--site-primary-text)' }}>{content.home.servicesHeading}</h2>

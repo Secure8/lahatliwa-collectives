@@ -1,8 +1,9 @@
 import ProjectCard from './ProjectCard';
+import clsx from 'clsx';
 
-export default function ProjectGrid({ projects }) {
+export default function ProjectGrid({ projects, className = '' }) {
   return (
-    <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={clsx('grid items-stretch gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3', className)}>
       {projects.map((project, index) => (
         <ProjectCard key={project.id} project={project} index={index} />
       ))}

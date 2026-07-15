@@ -27,7 +27,7 @@ export function AdminPageHeader({ eyebrow, title, description, action }) {
       <div className="max-w-3xl">
         {eyebrow && <p className="text-xs font-medium uppercase tracking-[0.24em] text-amber-200/80">{eyebrow}</p>}
         <h1 className="mt-3 text-2xl font-semibold tracking-tight text-amber-100 sm:text-4xl">{title}</h1>
-        {description && <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>}
+        {description && <p className="admin-page-intro mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>}
       </div>
       {action && <div className="flex w-full shrink-0 flex-wrap gap-3 sm:w-auto">{action}</div>}
     </div>

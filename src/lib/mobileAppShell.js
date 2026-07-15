@@ -1,6 +1,14 @@
 export const MOBILE_APP_BAR_SCROLL_THRESHOLD = 12;
 export const MOBILE_APP_BAR_TOP_OFFSET = 24;
 
+export const PUBLIC_PRIMARY_DESTINATIONS = [
+  ['Home', '/'],
+  ['Services', '/services'],
+  ['Projects', '/projects'],
+  ['Creatives', '/creatives'],
+  ['Inquiry', '/inquiry'],
+];
+
 export function publicAppBarMode(pathname = '/') {
   if (pathname === '/' || /^\/creatives\/[^/]+\/?$/.test(pathname)) return 'overlay';
   return 'surface';
@@ -23,4 +31,10 @@ export function adminPageTitle(pathname = '', groups = []) {
     .filter(([, href]) => pathname === href || pathname.startsWith(`${href}/`))
     .sort((left, right) => right[1].length - left[1].length);
   return matches[0]?.[0] || 'Dashboard';
+}
+
+export function publicDestinationIsActive(pathname = '/', href = '/') {
+  if (href === '/') return pathname === '/';
+  if (href === '/inquiry') return pathname === '/inquiry' || pathname === '/start-a-project' || pathname.startsWith('/inquiry/');
+  return pathname === href || pathname.startsWith(`${href}/`);
 }

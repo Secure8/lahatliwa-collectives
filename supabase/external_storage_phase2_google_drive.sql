@@ -14,6 +14,8 @@ alter table public.storage_connections
     check (root_folder_health in ('unknown','healthy','missing','inaccessible','ambiguous')),
   add column if not exists disconnected_at timestamptz;
 
+drop index if exists public.storage_connections_provider_account_unique_idx;
+
 create unique index if not exists storage_connections_google_account_owner_unique_idx
 on public.storage_connections(provider, provider_account_id)
 where provider = 'google_drive'
@@ -395,7 +397,9 @@ revoke all on function private.server_read_storage_connection_secret(uuid,uuid) 
 revoke all on function private.server_upsert_google_drive_connection(uuid,uuid,text,text,text,text,jsonb,text[],text) from public, anon, authenticated, service_role;
 revoke all on function private.server_disconnect_google_drive_connection(uuid,uuid,boolean) from public, anon, authenticated, service_role;
 
-create or replace view public.storage_connection_operations
+drop view if exists public.storage_connection_operations;
+
+create view public.storage_connection_operations
 with (security_barrier = true) as
 select id, owner_user_id, provider, provider_account_email, display_name, status, is_default,
        root_folder_health, connected_at, last_verified_at, disconnected_at,

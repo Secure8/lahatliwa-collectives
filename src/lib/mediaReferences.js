@@ -1,5 +1,8 @@
 export const DEFAULT_STORAGE_PROVIDER = 'supabase';
 export const DEFAULT_MEDIA_BUCKET = 'project-media';
+export const GOOGLE_DRIVE_PROVIDER = 'google_drive';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const STORAGE_PROVIDERS = Object.freeze([
   'supabase',
@@ -129,4 +132,49 @@ export function normalizeMediaReference(input, defaults = {}) {
 
 export function normalizeExistingMedia(value, options = {}) {
   return normalizeMediaReference(value, { provider: DEFAULT_STORAGE_PROVIDER, bucket: DEFAULT_MEDIA_BUCKET, ...options });
+}
+
+export function normalizeProjectGalleryMediaReference(input) {
+  const source = input?.media || input?.media_reference || input;
+  if (!source || source.provider !== GOOGLE_DRIVE_PROVIDER) return null;
+  const mediaObjectId = cleanString(source.mediaObjectId || source.media_object_id || source.id);
+  const previewSource = source.preview || {};
+  const previewProvider = previewSource.provider || source.previewProvider || source.preview_provider;
+  const previewBucket = previewSource.bucket || source.previewBucket || source.preview_bucket;
+  const previewValue = previewSource.storagePath || previewSource.storage_path || source.previewPath || source.preview_path;
+  const previewPath = previewProvider === DEFAULT_STORAGE_PROVIDER && previewBucket === DEFAULT_MEDIA_BUCKET
+    ? extractSupabaseStoragePath(previewValue, DEFAULT_MEDIA_BUCKET)
+    : '';
+  if (!UUID_PATTERN.test(mediaObjectId) || !previewPath || !previewPath.startsWith('projects/gallery/')) return null;
+  return {
+    provider: GOOGLE_DRIVE_PROVIDER,
+    mediaObjectId,
+    filename: cleanString(source.filename) || previewPath.split('/').pop() || 'gallery-image',
+    mimeType: cleanString(source.mimeType || source.mime_type),
+    status: source.status === 'available' ? 'available' : 'unavailable',
+    preview: {
+      provider: DEFAULT_STORAGE_PROVIDER,
+      bucket: DEFAULT_MEDIA_BUCKET,
+      storagePath: previewPath,
+    },
+  };
+}
+
+export function createProjectGalleryMediaReference({ mediaObjectId, filename, mimeType, status = 'available', previewPath }) {
+  return normalizeProjectGalleryMediaReference({
+    provider: GOOGLE_DRIVE_PROVIDER,
+    mediaObjectId,
+    filename,
+    mimeType,
+    status,
+    preview: { provider: DEFAULT_STORAGE_PROVIDER, bucket: DEFAULT_MEDIA_BUCKET, storagePath: previewPath },
+  });
+}
+
+export function getProjectGalleryPreviewPath(input) {
+  return normalizeProjectGalleryMediaReference(input)?.preview.storagePath || '';
+}
+
+export function getProjectGalleryMediaObjectId(input) {
+  return normalizeProjectGalleryMediaReference(input)?.mediaObjectId || '';
 }

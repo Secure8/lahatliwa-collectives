@@ -109,11 +109,12 @@ test('capability declarations are immutable and do not imply operation enablemen
   assert.equal(storageProviderCatalog().find((item) => item.provider === 'google_drive').operational, false);
 });
 
-test('Phase 2 enables only the connection foundation and keeps data movement disabled', () => {
+test('external storage flags keep Phase 4 disabled by default', () => {
   assert.deepEqual(STORAGE_FEATURE_FLAGS, {
     externalStorageEnabled: true,
     googleDriveConnectorEnabled: false,
     googleDriveTestUploadEnabled: false,
+    googleDriveProjectGalleryEnabled: false,
     externalUploadsEnabled: false,
     storageMigrationEnabled: false,
   });
@@ -176,6 +177,33 @@ test('Phase 3 test upload is server-authenticated, flag-gated, and leaves normal
   assert.match(content, /supabase\.storage\.from\(BUCKET\)\.upload/);
 });
 
+test('Phase 4 is isolated, double-gated, and does not make Google Drive globally operational', async () => {
+  const [flags, env, form, client, lifecycle, config, storagePage] = await Promise.all([
+    source('src/lib/storageFeatureFlags.js'),
+    source('.env.example'),
+    source('src/components/admin/ProjectForm.jsx'),
+    source('src/lib/googleDriveStorage.js'),
+    source('supabase/functions/google-drive-media-lifecycle/index.ts'),
+    source('supabase/config.toml'),
+    source('src/pages/admin/Storage.jsx'),
+  ]);
+  assert.match(flags, /googleDriveProjectGalleryEnabled: googleDriveConnectorRequested && googleDriveProjectGalleryRequested/);
+  assert.match(env, /VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=false/);
+  assert.match(form, /serverEnabled: status\.projectGalleryUploadEnabled/);
+  assert.match(form, /connection: status\.connection/);
+  assert.match(form, /Google Drive is not currently available\. Your files were not uploaded/);
+  assert.match(client, /project_gallery_original/);
+  assert.match(client, /request_id/);
+  assert.match(client, /google-drive-media-lifecycle/);
+  assert.match(lifecycle, /authenticatedStorageOwner/);
+  assert.match(lifecycle, /projectReferencesMediaObject/);
+  assert.match(lifecycle, /validCleanupAuthorization/);
+  assert.match(lifecycle, /env\.googleDriveUploadEnabled/);
+  assert.match(config, /\[functions\.google-drive-media-lifecycle\]/);
+  assert.match(storagePage, /uploadGoogleDriveTestFile/);
+  assert.deepEqual(OPERATIONAL_STORAGE_PROVIDERS, ['supabase']);
+});
+
 test('Phase 3 SQL removes sensitive provider columns from authenticated browser grants', async () => {
   const sql = await source('supabase/external_storage_phase3_google_drive_upload.sql');
   assert.match(sql, /revoke select on table public\.storage_connections from authenticated/);
@@ -223,12 +251,12 @@ test('existing upload, public gallery, payload, and cleanup paths remain Supabas
     source('src/lib/storage.js'), source('src/components/admin/ProjectForm.jsx'), source('src/lib/galleryItems.js'),
     source('src/lib/projectMediaCleanup.js'), source('supabase/functions/process-storage-cleanup/index.ts'),
   ]);
-  assert.match(storage, /const BUCKET = 'project-media'/);
+  assert.match(storage, /const BUCKET = PROJECT_MEDIA_BUCKET/);
   assert.match(storage, /supabase\.storage\.from\(BUCKET\)\.upload/);
   assert.match(projectForm, /cover_image: form\.cover_image/);
   assert.match(projectForm, /gallery_items: \[\.\.\.imageItems, \.\.\.externalItems\]/);
   assert.match(gallery, /normalizeProjectGallery/);
-  assert.doesNotMatch(cleanup, /external_media_objects|storage_connections|google_drive/);
+  assert.doesNotMatch(cleanup, /external_media_objects|storage_connections/);
   assert.match(worker, /const REFERENCE_SOURCES = \['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users'\]/);
   assert.doesNotMatch(worker, /external_media_objects|storage_migrations|google_drive/);
 });

@@ -1,10 +1,11 @@
-import { supabase } from './supabaseClient';
-import { optimizeImageForUpload } from './imageCompression';
-import { validateUploadFile } from './uploadLimits';
-import { normalizePublicImagePath } from './publicImages';
-export { normalizePublicImagePath } from './publicImages';
+import { supabase } from './supabaseClient.js';
+import { optimizeImageForUpload } from './imageCompression.js';
+import { validateUploadFile } from './uploadLimits.js';
+import { normalizePublicImagePath } from './publicImages.js';
+export { normalizePublicImagePath } from './publicImages.js';
 
-const BUCKET = 'project-media';
+export const PROJECT_MEDIA_BUCKET = 'project-media';
+const BUCKET = PROJECT_MEDIA_BUCKET;
 const UPLOAD_OPTIONS = { upsert: false, cacheControl: '31536000' };
 
 function validateProjectImage(file, limitKey = 'projectCover') {
@@ -35,7 +36,7 @@ export function validateExternalThumbnailUploadFile(file) {
   validateProjectImage(file, 'externalThumbnail');
 }
 
-function filePath(prefix, file) {
+export function createProjectMediaPath(prefix, file) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
   return `${prefix}/${crypto.randomUUID()}-${safeName}`;
 }
@@ -58,7 +59,7 @@ export async function uploadCoverImage(file, { onStatus } = {}) {
   validateCoverUploadFile(file);
   const prepared = await optimizeImageForUpload(file, 'projectCover', { label: 'Project cover', onStatus });
   onStatus?.({ phase: 'uploading', ...prepared });
-  const path = filePath('projects/covers', prepared.file);
+  const path = createProjectMediaPath('projects/covers', prepared.file);
   const { error } = await supabase.storage.from(BUCKET).upload(path, prepared.file, UPLOAD_OPTIONS);
   if (error) throw error;
   return path;
@@ -75,13 +76,25 @@ export async function uploadGalleryImages(files, { onStatus } = {}) {
       ? { file, optimized: false, originalBytes: file.size, finalBytes: file.size, message: '' }
       : await optimizeImageForUpload(file, 'galleryImage', { label: 'Gallery image', onStatus });
     onStatus?.({ phase: 'uploading', index, total: selectedFiles.length, ...prepared });
-    const path = filePath('projects/gallery', prepared.file);
-    const { error } = await supabase.storage.from(BUCKET).upload(path, prepared.file, UPLOAD_OPTIONS);
-    if (error) throw error;
+    const path = await uploadPreparedGalleryFile(prepared.file);
     uploadedPaths.push(path);
   }
 
   return uploadedPaths;
+}
+
+export async function prepareGalleryImageForUpload(file, { onStatus } = {}) {
+  validateGalleryFile(file);
+  if (file.type === 'application/pdf') throw new Error('Google Drive gallery originals are limited to images in this phase.');
+  return optimizeImageForUpload(file, 'galleryImage', { label: 'Gallery image', onStatus });
+}
+
+export async function uploadPreparedGalleryFile(file) {
+  validateGalleryFile(file);
+  const path = createProjectMediaPath('projects/gallery', file);
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, UPLOAD_OPTIONS);
+  if (error) throw error;
+  return path;
 }
 
 export async function uploadExternalThumbnail(file, projectSlug = 'project', { onStatus } = {}) {
@@ -90,7 +103,7 @@ export async function uploadExternalThumbnail(file, projectSlug = 'project', { o
   const prepared = await optimizeImageForUpload(file, 'externalThumbnail', { label: 'Thumbnail', onStatus });
   onStatus?.({ phase: 'uploading', ...prepared });
   const safeSlug = (projectSlug || 'project').replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
-  const path = filePath(`projects/${safeSlug}/external-thumbnails`, prepared.file);
+  const path = createProjectMediaPath(`projects/${safeSlug}/external-thumbnails`, prepared.file);
   const { error } = await supabase.storage.from(BUCKET).upload(path, prepared.file, UPLOAD_OPTIONS);
   if (error) throw error;
   return path;

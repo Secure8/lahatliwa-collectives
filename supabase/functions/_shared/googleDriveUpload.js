@@ -5,6 +5,12 @@ export const DRIVE_UPLOAD_PURPOSES = Object.freeze({
   admin_test_upload: Object.freeze({
     folderRole: 'originals',
     folderLabel: 'Originals',
+    allowedMimeTypes: Object.freeze(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  }),
+  project_gallery_original: Object.freeze({
+    folderRole: 'originals',
+    folderLabel: 'Originals',
+    allowedMimeTypes: Object.freeze(['image/jpeg', 'image/png', 'image/webp']),
   }),
 });
 
@@ -33,6 +39,10 @@ export function resolveDriveUploadPurpose(value) {
   return DRIVE_UPLOAD_PURPOSES[String(value || '').trim()] || null;
 }
 
+export function driveUploadPurposeAllowsMime(purpose, mimeType) {
+  return Boolean(purpose?.allowedMimeTypes?.includes(mimeType));
+}
+
 export function safeDriveFilename(value = '', mimeType = '') {
   const normalized = String(value).normalize('NFKC')
     .replace(/[\\/:*?"<>|\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069]/g, '-')
@@ -52,7 +62,7 @@ export async function validateSmallDriveUpload(file) {
     return { ok: false, code: 'FILE_REQUIRED', message: 'Choose one file to upload.' };
   }
   if (!Number.isFinite(file.size) || file.size <= 0 || file.size > SMALL_DRIVE_UPLOAD_MAX_BYTES) {
-    return { ok: false, code: 'FILE_SIZE_NOT_ALLOWED', message: 'The test file must be larger than 0 bytes and no more than 2 MB.' };
+    return { ok: false, code: 'FILE_SIZE_NOT_ALLOWED', message: 'The file must be larger than 0 bytes and no more than 2 MB.' };
   }
   const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
   const detectedMimeType = detectSmallDriveUploadMime(header);

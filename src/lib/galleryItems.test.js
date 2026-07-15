@@ -1,7 +1,36 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { getGalleryItemMediaUrl, normalizeProjectGallery } from './galleryItems.js';
 import { getProjectExternalLinks, getSingleProjectExternalLink, projectExternalLinkLabel } from './projectExternalLinks.js';
+
+const MEDIA_ID = '86e2a5df-e209-4e8a-a796-4fd2b3cde819';
+
+test('legacy string galleries still render and Drive-backed items use only their Supabase preview', () => {
+  const legacy = normalizeProjectGallery({ gallery_images: ['projects/gallery/legacy.webp'] });
+  assert.equal(legacy.length, 1);
+  assert.equal(legacy[0].url, 'projects/gallery/legacy.webp');
+
+  const external = normalizeProjectGallery({ gallery_items: [{
+    id: 'drive-image',
+    type: 'image',
+    url: 'https://drive.google.com/private-file',
+    media: {
+      provider: 'google_drive',
+      mediaObjectId: MEDIA_ID,
+      filename: 'preview.webp',
+      mimeType: 'image/webp',
+      status: 'available',
+      preview: { provider: 'supabase', bucket: 'project-media', storagePath: 'projects/gallery/preview.webp' },
+      externalFileId: 'private-drive-id',
+    },
+  }] });
+  assert.equal(external[0].url, 'projects/gallery/preview.webp');
+  assert.equal(JSON.stringify(external[0]).includes('private-drive-id'), false);
+  const mediaUrl = getGalleryItemMediaUrl(external[0]);
+  assert.match(mediaUrl, /projects\/gallery\/preview\.webp$/);
+  assert.doesNotMatch(mediaUrl, /drive\.google\.com|private-drive-id/);
+});
 
 test('one valid attached external link makes the detail cover eligible', () => {
   const link = getSingleProjectExternalLink({

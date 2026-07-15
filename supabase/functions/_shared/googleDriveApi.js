@@ -128,11 +128,16 @@ export async function uploadSmallDriveFile(fetcher, accessToken, input) {
 }
 
 export async function deleteDriveFile(fetcher, accessToken, fileId) {
-  await googleJson(fetcher, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return { deleted: true };
+  try {
+    await googleJson(fetcher, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return { deleted: true, alreadyMissing: false };
+  } catch (error) {
+    if (error?.status === 404) return { deleted: true, alreadyMissing: true };
+    throw error;
+  }
 }
 
 function assertManagedRoot(folder) {

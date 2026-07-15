@@ -23,6 +23,7 @@ import {
 import {
   SMALL_DRIVE_UPLOAD_MAX_BYTES,
   detectSmallDriveUploadMime,
+  driveUploadPurposeAllowsMime,
   resolveDriveUploadPurpose,
   safeDriveFilename,
   validateDriveUploadResult,
@@ -156,6 +157,9 @@ test('small Drive uploads sniff content, reject MIME spoofing, enforce size, and
   assert.equal((await validateSmallDriveUpload(new File([png], 'spoof.jpg', { type: 'image/jpeg' }))).code, 'FILE_CONTENT_MISMATCH');
   assert.equal((await validateSmallDriveUpload(new File([new Uint8Array(SMALL_DRIVE_UPLOAD_MAX_BYTES + 1)], 'large.pdf', { type: 'application/pdf' }))).code, 'FILE_SIZE_NOT_ALLOWED');
   assert.equal(resolveDriveUploadPurpose('admin_test_upload').folderRole, 'originals');
+  assert.equal(resolveDriveUploadPurpose('project_gallery_original').folderRole, 'originals');
+  assert.equal(driveUploadPurposeAllowsMime(resolveDriveUploadPurpose('project_gallery_original'), 'image/webp'), true);
+  assert.equal(driveUploadPurposeAllowsMime(resolveDriveUploadPurpose('project_gallery_original'), 'application/pdf'), false);
   assert.equal(resolveDriveUploadPurpose('client_parent_id'), null);
 });
 
@@ -199,10 +203,15 @@ test('failed metadata finalization can delete the newly created private Drive fi
     request = { url, options };
     return new Response(null, { status: 204 });
   };
-  assert.deepEqual(await deleteDriveFile(fetcher, 'access-token', 'new-drive-file'), { deleted: true });
+  assert.deepEqual(await deleteDriveFile(fetcher, 'access-token', 'new-drive-file'), { deleted: true, alreadyMissing: false });
   assert.equal(request.options.method, 'DELETE');
   assert.match(request.url, /\/drive\/v3\/files\/new-drive-file$/);
   assert.match(request.options.headers.Authorization, /^Bearer /);
+});
+
+test('Drive deletion treats an already missing provider file as an idempotent success', async () => {
+  const fetcher = async () => jsonResponse({ error: { status: 'NOT_FOUND' } }, 404);
+  assert.deepEqual(await deleteDriveFile(fetcher, 'access-token', 'missing-file'), { deleted: true, alreadyMissing: true });
 });
 
 test('Edge handlers bind owners, preserve reconnect identity, and never log or return credentials', async () => {

@@ -400,6 +400,9 @@ verify_jwt = false
 [functions.google-drive-upload]
 verify_jwt = false
 
+[functions.google-drive-media-lifecycle]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

@@ -40,7 +40,7 @@ export function serviceClient(env: ReturnType<typeof edgeEnvironment>) {
   return createClient(env.supabaseUrl, env.serviceKey, { auth: { persistSession: false } });
 }
 
-export async function authenticatedStorageOwner(request: Request, env: ReturnType<typeof edgeEnvironment>) {
+export async function authenticatedTeamMember(request: Request, env: ReturnType<typeof edgeEnvironment>) {
   const authorization = request.headers.get('Authorization') || '';
   const jwt = authorization.replace(/^Bearer\s+/i, '');
   if (!jwt || !env.supabaseUrl || !env.anonKey || !env.serviceKey) return { error: 'INVALID_SESSION', status: 401 };
@@ -52,7 +52,14 @@ export async function authenticatedStorageOwner(request: Request, env: ReturnTyp
     .select('id,role,status,creative_member_id').eq('user_id', user.id).eq('status', 'active').maybeSingle();
   if (memberError || !teamMember) return { error: 'NOT_AUTHORIZED', status: 403 };
   const role = teamMember.role === 'owner' ? 'super_admin' : teamMember.role;
-  if (role === 'super_admin') return { user, teamMember, role, jwt, admin };
+  return { user, teamMember, role, jwt, admin };
+}
+
+export async function authenticatedStorageOwner(request: Request, env: ReturnType<typeof edgeEnvironment>) {
+  const actor = await authenticatedTeamMember(request, env);
+  if ('error' in actor) return actor;
+  if (actor.role === 'super_admin') return actor;
+  const { user, teamMember, role, jwt, admin } = actor;
   if (role !== 'creative' || !teamMember.creative_member_id) return { error: 'NOT_AUTHORIZED', status: 403 };
   const { data: creative, error: creativeError } = await admin.from('creative_members')
     .select('id,is_published').eq('id', teamMember.creative_member_id).eq('is_published', true).maybeSingle();

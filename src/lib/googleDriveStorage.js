@@ -82,6 +82,45 @@ export function uploadGoogleDriveTestFile(file) {
   return invoke('google-drive-upload', body);
 }
 
+export function uploadGoogleDriveProjectGalleryOriginal(file, { requestId } = {}) {
+  const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
+  if (!file || !allowed.has(file.type)) throw new Error('Google Drive gallery originals must be JPEG, PNG, or WebP images.');
+  if (file.size <= 0 || file.size > GOOGLE_DRIVE_TEST_UPLOAD_MAX_BYTES) throw new Error('The prepared gallery image must be larger than 0 bytes and no more than 2 MB.');
+  const body = new FormData();
+  body.append('file', file, file.name);
+  body.append('purpose', 'project_gallery_original');
+  body.append('request_id', requestId);
+  return invoke('google-drive-upload', body);
+}
+
+export function attachGoogleDriveGalleryPreview(mediaObjectId, previewPath) {
+  return invoke('google-drive-media-lifecycle', { action: 'attach_preview', mediaObjectId, previewPath });
+}
+
+export function deleteGoogleDriveMedia(mediaObjectId, { projectId = '' } = {}) {
+  return invoke('google-drive-media-lifecycle', {
+    action: 'delete',
+    mediaObjectId,
+    ...(projectId ? { projectId } : {}),
+  });
+}
+
+export function prepareGoogleDriveProjectDeletion(projectId, mediaObjectIds) {
+  return invoke('google-drive-media-lifecycle', {
+    action: 'prepare_project_delete',
+    projectId,
+    mediaObjectIds,
+  });
+}
+
+export function prepareGoogleDriveProjectMediaRemoval(projectId, mediaObjectIds) {
+  return invoke('google-drive-media-lifecycle', {
+    action: 'prepare_project_media_removal',
+    projectId,
+    mediaObjectIds,
+  });
+}
+
 export function googleDriveStatusLabel(status) {
   return ({
     connected: 'Connected', reconnect_required: 'Reconnect required', error: 'Attention needed',

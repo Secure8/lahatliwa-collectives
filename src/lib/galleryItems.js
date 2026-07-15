@@ -1,5 +1,9 @@
-import { getPublicImageUrl, isPdfFile } from './storage';
+import { getPublicImageUrl, isPdfFile } from './storage.js';
 import { detectGalleryPlatform } from './galleryPlatforms.js';
+import {
+  getProjectGalleryPreviewPath,
+  normalizeProjectGalleryMediaReference,
+} from './mediaReferences.js';
 
 export { detectGalleryPlatform } from './galleryPlatforms.js';
 
@@ -53,20 +57,32 @@ export function createImageGalleryItem(path = '', order = 0) {
   };
 }
 
+export function createExternalMediaGalleryItem(mediaReference, order = 0) {
+  const media = normalizeProjectGalleryMediaReference(mediaReference);
+  if (!media) throw new Error('The external gallery media reference is invalid.');
+  return {
+    ...createImageGalleryItem(media.preview.storagePath, order),
+    media,
+  };
+}
+
 export function normalizeGalleryItem(item = {}, index = 0) {
-  const detected = item.url ? detectGalleryPlatform(item.url) : {};
+  const media = normalizeProjectGalleryMediaReference(item.media || item.media_reference);
+  const safeUrl = media ? media.preview.storagePath : item.url || '';
+  const detected = safeUrl ? detectGalleryPlatform(safeUrl) : {};
   const type = item.type || detected.type || 'external_link';
   return {
     id: item.id || makeGalleryItemId(),
     type,
     title: item.title || '',
-    url: item.url || '',
+    url: safeUrl,
     description: item.description || '',
     thumbnail_url: item.thumbnail_url || '',
     thumbnail_storage_path: item.thumbnail_storage_path || '',
     platform: item.platform || detected.platform || platformLabel(type),
     order: Number.isFinite(Number(item.order)) ? Number(item.order) : index * 100,
     created_at: item.created_at || new Date().toISOString(),
+    ...(media ? { media } : {}),
   };
 }
 
@@ -89,7 +105,7 @@ export function normalizeProjectGallery(project = {}) {
 }
 
 export function getGalleryItemMediaUrl(item = {}) {
-  return getPublicImageUrl(item.url);
+  return getPublicImageUrl(getProjectGalleryPreviewPath(item.media || item.media_reference) || item.url);
 }
 
 export function getGalleryItemThumbnailUrl(item = {}) {

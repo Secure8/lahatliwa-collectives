@@ -1,3 +1,5 @@
+import { normalizeProjectGalleryMediaReference } from './mediaReferences.js';
+
 export const PROJECT_MEDIA_BUCKET = 'project-media';
 export const ORPHAN_SAFETY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -40,6 +42,21 @@ export function collectProjectMediaPaths(project = {}) {
     ...items.flatMap((item) => [normalizeStoragePath(item.url), normalizeStoragePath(item.thumbnail_storage_path), normalizeStoragePath(item.thumbnail_url)]),
   ].filter((path) => path && !path.startsWith('creative-profiles/'));
   return [...new Set(paths)];
+}
+
+export function collectProjectExternalMediaReferences(project = {}) {
+  const references = (Array.isArray(project.gallery_items) ? project.gallery_items : [])
+    .map((item) => normalizeProjectGalleryMediaReference(item?.media || item?.media_reference))
+    .filter(Boolean);
+  return [...new Map(references.map((reference) => [reference.mediaObjectId, reference])).values()];
+}
+
+export function collectProjectExternalMediaObjectIds(project = {}) {
+  return collectProjectExternalMediaReferences(project).map((reference) => reference.mediaObjectId);
+}
+
+export function collectProjectExternalPreviewPaths(project = {}) {
+  return collectProjectExternalMediaReferences(project).map((reference) => reference.preview.storagePath);
 }
 
 export function classifyUnreferencedObject(object = {}, referencedPaths = new Set(), now = Date.now()) {

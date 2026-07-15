@@ -133,7 +133,9 @@ The proposed policies are:
 
 Phase 2 will use a server-generated state value bound to the authenticated owner, redirect through Google's consent screen, validate the callback server-side, store refresh credentials in Vault, register only the opaque secret reference, verify the account, create or select a root folder, and support disconnect/reconnect. The browser receives connection status—not provider tokens.
 
-Phase 3A adds one isolated, server-authenticated multipart test upload for files up to 2 MB. It verifies ownership, Google identity, scopes, managed folders, file signatures, and returned provider metadata before marking an external-media row available. Normal project/profile/CMS uploads, resumable transport, public previews, idempotent upload sessions, and cleanup integration remain later Phase 3 work.
+Phase 3A adds one isolated, server-authenticated multipart test upload for files up to 2 MB. It verifies ownership, Google identity, scopes, managed folders, file signatures, and returned provider metadata before marking an external-media row available.
+
+Phase 4 adds a separate, disabled-by-default project-gallery path. Eligible editors may deliberately place a newly prepared gallery image original in private Google Drive while a public optimized preview remains in the existing Supabase `project-media` bucket. Project JSON stores only a safe external-media UUID and Supabase preview reference. Covers, PDFs, thumbnails, profiles, CMS media, service media, and ordinary gallery uploads continue using Supabase.
 
 ## Hybrid public-preview policy
 
@@ -170,6 +172,8 @@ Every migration uses an idempotency key and monotonic state transitions. Workers
 
 - `externalStorageEnabled` enables the connection-management foundation.
 - `googleDriveConnectorEnabled` is requested only by `VITE_GOOGLE_DRIVE_CONNECTOR_ENABLED=true` and still requires server capability verification.
+- `googleDriveTestUploadEnabled` independently gates the Storage-page test.
+- `googleDriveProjectGalleryEnabled` requires both the connector gate and `VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=true`; the editor also requires a connected account and server upload capability.
 - `externalUploadsEnabled` remains false.
 - `storageMigrationEnabled` remains false.
 
@@ -206,11 +210,14 @@ They are client visibility gates, not security controls. A future enablement req
 
 ### Phase 4
 
-- [ ] Migration worker and idempotent copy
-- [ ] Verification and display testing
-- [ ] Reference switching
-- [ ] Retention and rollback
-- [ ] Separately authorized source deletion
+- [x] Explicit per-operation project-gallery destination with Supabase default
+- [x] Private Drive image original plus public Supabase preview
+- [x] Safe UUID-based project media reference with legacy string compatibility
+- [x] Server-verified preview attachment and idempotent provider deletion
+- [x] Partial-upload, failed-save, media-removal, and project-deletion cleanup paths
+- [x] Separate disabled-by-default frontend feature flag
+- [ ] PDF originals, raw high-resolution originals, video, and resumable uploads
+- [ ] Historical-media migration, retention, rollback, and generic provider switching
 
 ### Phase 5
 
@@ -221,7 +228,7 @@ They are client visibility gates, not security controls. A future enablement req
 ## Unresolved decisions
 
 - Final source-retention duration within the 7–30 day range.
-- Whether external originals are deleted on project deletion by default, opt-in, or never without a second confirmation.
+- Whether later phases need a separate confirmation before external-original deletion beyond the existing project-delete confirmation.
 - Per-provider folder hierarchy and filename collision policy.
 - Maximum external original sizes and resumable-upload thresholds.
 - Checksum strategy where providers do not expose a compatible digest.

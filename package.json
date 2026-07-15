@@ -24,7 +24,7 @@
     "test:production-audit": "node --test src/lib/productionAudit.test.js",
     "test:auth-redirects": "node --test src/lib/authRedirects.test.js",
     "test:reconciliation": "node --test src/lib/storageReconciliation.test.js",
-    "test:external-storage": "node --test src/lib/externalStorage.test.js supabase/functions/_shared/googleDriveOAuth.test.js",
+    "test:external-storage": "node --test src/lib/externalStorage.test.js src/lib/galleryItems.test.js src/lib/projectGalleryStorage.test.js supabase/functions/_shared/googleDriveOAuth.test.js",
     "test:service-requests": "node --test src/lib/serviceRequest.test.js supabase/functions/submit-service-request/serviceRequest.test.js",
     "test:inquiry-workspace": "node --test src/lib/teamInquiryWorkspace.test.js",
     "worker:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-storage-cleanup-worker.ps1",

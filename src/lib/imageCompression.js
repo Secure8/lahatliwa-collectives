@@ -1,4 +1,4 @@
-import { getUploadLimit, isCompressibleUploadImage, validateUploadFile } from './uploadLimits';
+import { getUploadLimit, isCompressibleUploadImage, validateUploadFile } from './uploadLimits.js';
 
 const OUTPUT_TYPE = 'image/webp';
 const QUALITY_STEPS = [0.9, 0.84, 0.78, 0.72, 0.67, 0.62];

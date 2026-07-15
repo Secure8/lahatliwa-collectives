@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ExternalLink, Plus, Save, Trash2, Upload } from 'lucide-react';
 import {
   createExternalGalleryItem,
+  createExternalMediaGalleryItem,
   createImageGalleryItem,
   detectGalleryPlatform,
   galleryItemTypes,
@@ -13,6 +14,19 @@ import { canApproveProjects, canEditProject, useAdminAccess } from '../../lib/ad
 import { categories, parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { collectProjectMediaPaths } from '../../lib/projectMediaCleanup';
+import { getProjectGalleryMediaObjectId } from '../../lib/mediaReferences';
+import {
+  deleteGoogleDriveMedia,
+  getGoogleDriveConnectionStatus,
+  prepareGoogleDriveProjectMediaRemoval,
+} from '../../lib/googleDriveStorage';
+import {
+  cleanupGoogleDriveGalleryArtifacts,
+  GALLERY_STORAGE_DESTINATIONS,
+  isGoogleDriveGalleryAvailable,
+  uploadGoogleDriveGalleryImage,
+} from '../../lib/projectGalleryStorage';
+import { STORAGE_FEATURE_FLAGS } from '../../lib/storageFeatureFlags';
 import {
   buildProjectContributorRow,
   contributorCreditRoles,
@@ -69,6 +83,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const canEditCurrent = !initialProject || canEditProject(role, initialProject, user?.id);
   const draftKey = useMemo(() => `hevv-project-form-draft-v2:${mode}:${initialProject?.id || 'new'}`, [mode, initialProject?.id]);
   const contributorDraftKey = useMemo(() => `${draftKey}:contributors`, [draftKey]);
+  const mediaCleanupDraftKey = useMemo(() => `${draftKey}:media-cleanup`, [draftKey]);
   const [form, setForm] = useState(emptyProject);
   const [slugTouched, setSlugTouched] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
@@ -78,7 +93,10 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [uploadStatus, setUploadStatus] = useState('');
   const [optimizationMessage, setOptimizationMessage] = useState('');
   const [removedGalleryPaths, setRemovedGalleryPaths] = useState([]);
+  const [removedExternalMediaIds, setRemovedExternalMediaIds] = useState([]);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
+  const [galleryStorageDestination, setGalleryStorageDestination] = useState(GALLERY_STORAGE_DESTINATIONS.supabase);
+  const [driveGalleryStatus, setDriveGalleryStatus] = useState({ loading: false, available: false });
   const [creativeMembers, setCreativeMembers] = useState([]);
   const [selectedCreativeIds, setSelectedCreativeIds] = useState([]);
   const [contributorDetails, setContributorDetails] = useState({});
@@ -92,6 +110,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [creditErrorCreativeId, setCreditErrorCreativeId] = useState('');
   const pendingGalleryFilesRef = useRef([]);
   const submitActionRef = useRef('save');
+  const submissionInFlightRef = useRef(false);
 
   useEffect(() => {
     setDraftReady(false);
@@ -101,6 +120,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     setContributorsDirty(false);
     setDirty(false);
     setRemovedGalleryPaths([]);
+    setRemovedExternalMediaIds([]);
+    setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase);
     setPendingGalleryFiles((current) => {
       current.forEach((item) => {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
@@ -120,17 +141,49 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       : emptyProject;
 
     let savedDraft = {};
+    let savedMediaCleanup = {};
     try {
       savedDraft = JSON.parse(window.localStorage.getItem(draftKey) || '{}');
+      savedMediaCleanup = JSON.parse(window.localStorage.getItem(mediaCleanupDraftKey) || '{}');
     } catch {
       savedDraft = {};
+      savedMediaCleanup = {};
     }
 
     const hasDraft = Object.keys(savedDraft).length > 0;
+    setRemovedGalleryPaths(Array.isArray(savedMediaCleanup.removedGalleryPaths) ? savedMediaCleanup.removedGalleryPaths : []);
+    setRemovedExternalMediaIds(Array.isArray(savedMediaCleanup.removedExternalMediaIds) ? savedMediaCleanup.removedExternalMediaIds : []);
     setForm({ ...baseForm, ...savedDraft });
     setDirty(hasDraft);
     setDraftReady(true);
-  }, [initialProject, draftKey]);
+  }, [initialProject, draftKey, mediaCleanupDraftKey]);
+
+  useEffect(() => {
+    if (!STORAGE_FEATURE_FLAGS.googleDriveProjectGalleryEnabled) {
+      setDriveGalleryStatus({ loading: false, available: false });
+      setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase);
+      return undefined;
+    }
+    let active = true;
+    setDriveGalleryStatus({ loading: true, available: false });
+    getGoogleDriveConnectionStatus()
+      .then((status) => {
+        if (!active) return;
+        const available = isGoogleDriveGalleryAvailable({
+          frontendEnabled: STORAGE_FEATURE_FLAGS.googleDriveProjectGalleryEnabled,
+          serverEnabled: status.projectGalleryUploadEnabled,
+          connection: status.connection,
+        });
+        setDriveGalleryStatus({ loading: false, available });
+        if (!available) setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDriveGalleryStatus({ loading: false, available: false });
+        setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase);
+      });
+    return () => { active = false; };
+  }, [initialProject?.id]);
 
   useEffect(() => {
     if (!draftReady || !dirty) return;
@@ -139,6 +192,14 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     } catch {
     }
   }, [dirty, draftKey, draftReady, form]);
+
+  useEffect(() => {
+    if (!draftReady || !dirty) return;
+    try {
+      window.localStorage.setItem(mediaCleanupDraftKey, JSON.stringify({ removedGalleryPaths, removedExternalMediaIds }));
+    } catch {
+    }
+  }, [dirty, draftReady, mediaCleanupDraftKey, removedExternalMediaIds, removedGalleryPaths]);
 
   useEffect(() => {
     if (!contributorDraftReady || !contributorsDirty) return;
@@ -310,6 +371,10 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
           file,
           isPdf: file.type === 'application/pdf',
+          storageDestination: file.type === 'application/pdf'
+            ? GALLERY_STORAGE_DESTINATIONS.supabase
+            : galleryStorageDestination,
+          uploadRequestId: crypto.randomUUID(),
           previewUrl: file.type === 'application/pdf' ? '' : URL.createObjectURL(file),
         })),
       ]);
@@ -329,13 +394,20 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   }
 
   function removeGalleryFile(path) {
+    const externalMediaId = getProjectGalleryMediaObjectId(
+      (form.gallery_items || []).find((item) => item.url === path)?.media,
+    );
     setForm((current) => ({
       ...current,
       gallery_images: (current.gallery_images || []).filter((image) => image !== path),
       gallery_items: (current.gallery_items || []).filter((item) => item.url !== path),
     }));
     setDirty(true);
-    setRemovedGalleryPaths((current) => current.includes(path) ? current : [...current, path]);
+    if (externalMediaId) {
+      setRemovedExternalMediaIds((current) => current.includes(externalMediaId) ? current : [...current, externalMediaId]);
+    } else {
+      setRemovedGalleryPaths((current) => current.includes(path) ? current : [...current, path]);
+    }
   }
 
   function toggleCreative(id) {
@@ -502,37 +574,47 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     try {
       window.localStorage.removeItem(draftKey);
       window.localStorage.removeItem(contributorDraftKey);
+      window.localStorage.removeItem(mediaCleanupDraftKey);
     } catch {
     }
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submissionInFlightRef.current) return;
+    submissionInFlightRef.current = true;
     setSaving(true);
     setActionError('');
     setCreditErrorCreativeId('');
     let uploadedGalleryPaths = [];
+    let uploadedSupabasePaths = [];
+    let uploadedDriveArtifacts = [];
+    let projectRecordSaved = false;
     const submitAction = submitActionRef.current || 'save_draft';
     submitActionRef.current = 'save_draft';
 
     if (!canEditCurrent && ['save_draft', 'submit'].includes(submitAction)) {
       setSaving(false);
       setActionError('You do not have permission to edit this project.');
+      submissionInFlightRef.current = false;
       return;
     }
     if (['approve', 'reject', 'archive'].includes(submitAction) && !canApprove) {
       setSaving(false);
       setActionError('You do not have permission to review this project.');
+      submissionInFlightRef.current = false;
       return;
     }
     if (submitAction === 'publish' && !canEditCurrent) {
       setSaving(false);
       setActionError('You do not have permission to publish this project.');
+      submissionInFlightRef.current = false;
       return;
     }
     if (selectedCreativeIds.length && creditRolesSupported === false) {
       setSaving(false);
       setActionError('Multiple credit roles need the project_credit_roles.sql migration. Run it in Supabase, then reopen this project.');
+      submissionInFlightRef.current = false;
       return;
     }
 
@@ -546,20 +628,39 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         field?.focus({ preventScroll: true });
       });
+      submissionInFlightRef.current = false;
       return;
     }
 
     try {
       setOptimizationMessage('');
-      uploadedGalleryPaths = pendingGalleryFiles.length
-        ? await uploadGalleryImages(pendingGalleryFiles.map((item) => item.file), { onStatus: trackImageUpload })
-        : [];
+      if (pendingGalleryFiles.some((item) => item.storageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive) && !driveGalleryStatus.available) {
+        throw new Error('Google Drive is not currently available. Your files were not uploaded. Choose Supabase Storage or reconnect Drive, then try again.');
+      }
+      if (removedExternalMediaIds.length && initialProject?.id) {
+        await prepareGoogleDriveProjectMediaRemoval(initialProject.id, removedExternalMediaIds);
+      }
+      const uploadedItemsByUrl = new Map();
+      for (const pendingItem of pendingGalleryFiles) {
+        if (pendingItem.storageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive && !pendingItem.isPdf) {
+          const artifact = await uploadGoogleDriveGalleryImage(pendingItem.file, { onStatus: trackImageUpload, requestId: pendingItem.uploadRequestId });
+          uploadedDriveArtifacts.push(artifact);
+          uploadedGalleryPaths.push(artifact.previewPath);
+          uploadedItemsByUrl.set(artifact.previewPath, createExternalMediaGalleryItem(artifact.mediaReference));
+        } else {
+          const [path] = await uploadGalleryImages([pendingItem.file], { onStatus: trackImageUpload });
+          uploadedSupabasePaths.push(path);
+          uploadedGalleryPaths.push(path);
+        }
+      }
       const updatedGalleryImages = [...(form.gallery_images || []), ...uploadedGalleryPaths];
       const currentItems = form.gallery_items || [];
       const existingItemByUrl = new Map(currentItems.map((item) => [item.url, normalizeGalleryItem(item)]));
-      const imageItems = updatedGalleryImages.map((path, index) => (
-        existingItemByUrl.get(path) || createImageGalleryItem(path, index * 100)
-      ));
+      const imageItems = updatedGalleryImages.map((path, index) => {
+        const uploadedItem = uploadedItemsByUrl.get(path);
+        return existingItemByUrl.get(path)
+          || (uploadedItem ? normalizeGalleryItem({ ...uploadedItem, order: index * 100 }, index) : createImageGalleryItem(path, index * 100));
+      });
       const externalItems = currentItems
         .filter((item) => !['image', 'pdf'].includes(item.type))
         .map(normalizeGalleryItem)
@@ -618,6 +719,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         : supabase.from('projects').insert(payload).select('id').single();
       const { data: savedProject, error: saveError } = await query;
       if (saveError) throw saveError;
+      projectRecordSaved = true;
       const projectId = initialProject?.id || savedProject?.id;
       if (projectId) {
         if (selectedCreativeIds.length) {
@@ -654,6 +756,21 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           setOptimizationMessage('Media was removed. Storage cleanup has been queued for retry.');
         }
       }
+      if (removedExternalMediaIds.length) {
+        const externalCleanup = await Promise.allSettled(removedExternalMediaIds.map((mediaObjectId) => (
+          deleteGoogleDriveMedia(mediaObjectId, { projectId: projectId || initialProject?.id || '' })
+        )));
+        if (externalCleanup.some((result) => result.status === 'rejected')) {
+          pendingGalleryFiles.forEach((item) => {
+            if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+          });
+          setPendingGalleryFiles([]);
+          clearDraft();
+          setDirty(false);
+          setActionError('The project was saved, but one or more removed Drive originals still need cleanup. They remain privately recorded for administrator follow-up.');
+          return;
+        }
+      }
       pendingGalleryFiles.forEach((item) => {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       });
@@ -662,16 +779,30 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       setDirty(false);
       navigate('/admin/projects');
     } catch (saveError) {
-      if (uploadedGalleryPaths.length) {
+      if (!projectRecordSaved && uploadedSupabasePaths.length) {
         try {
-          await deleteImages(uploadedGalleryPaths);
+          await deleteImages(uploadedSupabasePaths);
         } catch {
         }
       }
-      setActionError(saveError.message || 'Something went wrong while saving this project.');
+      const driveCleanup = !projectRecordSaved && uploadedDriveArtifacts.length
+        ? await cleanupGoogleDriveGalleryArtifacts(uploadedDriveArtifacts)
+        : { failed: 0 };
+      if (projectRecordSaved) {
+        pendingGalleryFiles.forEach((item) => {
+          if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+        });
+        setPendingGalleryFiles([]);
+        clearDraft();
+        setDirty(false);
+        setActionError(`The project media was saved, but a later project update failed: ${saveError.message || 'Please reopen the project and verify its details.'}`);
+      } else {
+        setActionError(`${saveError.message || 'Something went wrong while saving this project.'}${driveCleanup.failed ? ' Some private upload cleanup still needs administrator follow-up.' : ''}`);
+      }
     } finally {
       setSaving(false);
       setUploadStatus('');
+      submissionInFlightRef.current = false;
     }
   }
 
@@ -711,6 +842,34 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       </FormSection>
 
       <FormSection eyebrow="Cover and gallery" title="Media uploads" description="Upload the project cover, gallery images, PDFs, and review pending files before saving.">
+      <fieldset className="grid gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4">
+        <legend className="px-1 text-sm font-semibold text-white">Store new gallery files in</legend>
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-zinc-300">
+          <input
+            type="radio"
+            name="gallery-storage-destination"
+            value={GALLERY_STORAGE_DESTINATIONS.supabase}
+            checked={galleryStorageDestination === GALLERY_STORAGE_DESTINATIONS.supabase}
+            onChange={() => setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase)}
+            className="mt-1 accent-amber-300"
+          />
+          <span><strong className="font-medium text-zinc-100">Supabase Storage</strong><span className="mt-1 block text-xs leading-5 text-zinc-500">Default. New images and PDFs use the existing public project-media workflow.</span></span>
+        </label>
+        {driveGalleryStatus.available && (
+          <label className="flex cursor-pointer items-start gap-3 text-sm text-zinc-300">
+            <input
+              type="radio"
+              name="gallery-storage-destination"
+              value={GALLERY_STORAGE_DESTINATIONS.googleDrive}
+              checked={galleryStorageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive}
+              onChange={() => setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.googleDrive)}
+              className="mt-1 accent-amber-300"
+            />
+            <span><strong className="font-medium text-zinc-100">Google Drive Originals</strong><span className="mt-1 block text-xs leading-5 text-zinc-500">New gallery image originals stay private in Drive. A separate optimized preview is stored in Supabase for the public project gallery. PDFs continue using Supabase in this phase.</span></span>
+          </label>
+        )}
+        {driveGalleryStatus.loading && <p role="status" className="text-xs text-zinc-500">Checking whether Google Drive Originals is available…</p>}
+      </fieldset>
       <div className="grid gap-5 lg:grid-cols-2">
         <ImageUploader
           label={uploadingImages ? 'Uploading image...' : form.cover_image ? 'Replace cover image' : 'Upload cover image'}
@@ -719,7 +878,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         />
         <ImageUploader
           label={pendingGalleryFiles.length ? `${pendingGalleryFiles.length} new file(s) ready to add` : 'Add more gallery images or PDFs'}
-          hint="Images are optimized to 1 MB each. PDFs keep a 2 MB hard limit."
+          hint={galleryStorageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive
+            ? 'Images are optimized, stored privately in Drive, and receive a public Supabase preview. PDFs remain in Supabase.'
+            : 'Images are optimized to 1 MB each. PDFs keep a 2 MB hard limit.'}
           accept="image/*,application/pdf"
           multiple
           onChange={selectGalleryFiles}
@@ -772,6 +933,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                     >
                       <Trash2 size={13} />
                     </button>
+                    <span className="absolute bottom-1 left-1 max-w-[5.5rem] truncate rounded bg-zinc-950/85 px-1.5 py-0.5 text-[9px] text-zinc-300">
+                      {item.storageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive ? 'Drive original' : 'Supabase'}
+                    </span>
                   </div>
                 ))}
               </div>

@@ -7,7 +7,15 @@ import LoadingState from '../../components/LoadingState';
 import { canCreateProjects, canDeleteProject, canManageAllProjects, useAdminAccess } from '../../lib/adminAccess';
 import { supabase } from '../../lib/supabaseClient';
 import { deleteImages } from '../../lib/storage';
-import { collectProjectMediaPaths } from '../../lib/projectMediaCleanup';
+import {
+  collectProjectExternalMediaObjectIds,
+  collectProjectExternalPreviewPaths,
+  collectProjectMediaPaths,
+} from '../../lib/projectMediaCleanup';
+import {
+  deleteGoogleDriveMedia,
+  prepareGoogleDriveProjectDeletion,
+} from '../../lib/googleDriveStorage';
 
 export default function AdminProjects() {
   const [projects, setProjects] = useState([]);
@@ -107,7 +115,17 @@ export default function AdminProjects() {
     }
     const confirmed = window.confirm(`Delete "${project.title}"? This cannot be undone.`);
     if (!confirmed) return;
-    const projectMediaPaths = collectProjectMediaPaths(project);
+    const externalMediaIds = collectProjectExternalMediaObjectIds(project);
+    const externalPreviewPaths = new Set(collectProjectExternalPreviewPaths(project));
+    const projectMediaPaths = collectProjectMediaPaths(project).filter((path) => !externalPreviewPaths.has(path));
+    if (externalMediaIds.length) {
+      try {
+        await prepareGoogleDriveProjectDeletion(project.id, externalMediaIds);
+      } catch (cleanupError) {
+        setError(cleanupError.message || 'Private Google Drive media cleanup could not be prepared, so the project was not deleted.');
+        return;
+      }
+    }
     const { error: queueError } = await supabase.rpc('enqueue_project_media_cleanup', { p_project_id: project.id, p_paths: projectMediaPaths, p_reason: 'project_deleted' });
     if (queueError) { setError(queueError.message); return; }
     const { error: deleteError } = await supabase.from('projects').delete().eq('id', project.id);
@@ -116,7 +134,18 @@ export default function AdminProjects() {
       return;
     }
 
-    try { await deleteImages(projectMediaPaths); await supabase.rpc('complete_project_cleanup_paths', { p_project_id: project.id, p_paths: projectMediaPaths }); } catch { setError(`Project deleted. ${projectMediaPaths.length} media files were queued for cleanup.`); }
+    const supabaseCleanup = async () => {
+      await deleteImages(projectMediaPaths);
+      const { error: completeError } = await supabase.rpc('complete_project_cleanup_paths', { p_project_id: project.id, p_paths: projectMediaPaths });
+      if (completeError) throw completeError;
+    };
+    const cleanupResults = await Promise.allSettled([
+      ...(projectMediaPaths.length ? [supabaseCleanup()] : []),
+      ...externalMediaIds.map((mediaObjectId) => deleteGoogleDriveMedia(mediaObjectId, { projectId: project.id })),
+    ]);
+    if (cleanupResults.some((result) => result.status === 'rejected')) {
+      setError('Project deleted. Some media cleanup remains queued or privately recorded for administrator follow-up.');
+    }
     setProjects((current) => current.filter((item) => item.id !== project.id));
   }
 

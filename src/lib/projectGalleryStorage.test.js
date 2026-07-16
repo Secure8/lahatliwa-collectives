@@ -164,7 +164,8 @@ test('public renderer keeps legacy previews while the project editor exposes one
   assert.match(form, /Website media/);
   assert.match(storage, /uploadCoverImage/);
   assert.match(storage, /uploadExternalThumbnail/);
-  assert.match(content, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.doesNotMatch(content, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.match(content, /uploadManagedWebsiteImage/);
   assert.match(lifecycle, /media\.external_file_id/);
   assert.doesNotMatch(lifecycle, /externalFileId|externalParentId|folderId:\s*body/);
 });

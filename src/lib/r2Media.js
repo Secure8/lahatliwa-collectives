@@ -11,9 +11,10 @@ async function invoke(body) {
     let context = null; try { context = await error.context?.json(); } catch { context = null; }
     const failure = new Error(context?.message || error.message || 'The website media service could not complete the request.');
     failure.code = context?.code || 'MEDIA_SERVICE_ERROR';
+    failure.policy = context?.policy || null;
     throw failure;
   }
-  if (!data?.success) throw Object.assign(new Error(data?.message || 'The website media service could not complete the request.'), { code: data?.code || 'MEDIA_SERVICE_ERROR' });
+  if (!data?.success) throw Object.assign(new Error(data?.message || 'The website media service could not complete the request.'), { code: data?.code || 'MEDIA_SERVICE_ERROR', policy: data?.policy || null });
   return data;
 }
 
@@ -23,13 +24,16 @@ export async function managedMediaAvailable() {
   return capabilityPromise;
 }
 
-export async function uploadManagedWebsiteImage(file, { category, projectId = '', creativeMemberId = '', onStatus } = {}) {
-  if (!await managedMediaAvailable()) return null;
+export async function uploadManagedWebsiteImage(file, { category, projectId = '', creativeMemberId = '', onStatus, override = false, overrideReason = '' } = {}) {
+  if (!await managedMediaAvailable()) throw Object.assign(new Error('Website media uploads are temporarily unavailable. Existing images were not changed.'), { code: 'R2_UPLOAD_UNAVAILABLE' });
+  const budget = await invoke({ action: 'check_budget', category, ...(projectId ? { projectId } : {}), ...(creativeMemberId ? { creativeMemberId } : {}), estimatedBytes: Number(file?.size || 0), override, overrideReason });
+  if (budget.policy?.status && budget.policy.status !== 'normal') onStatus?.({ phase: 'warning', message: 'Storage capacity is limited. This upload will continue only within the current safety policy.', policy: budget.policy });
   const derivatives = await createWebsiteImageDerivatives(file, { label: 'Website image', onStatus });
   const started = await invoke({
     action: 'initiate', category,
     ...(projectId ? { projectId } : {}),
     ...(creativeMemberId ? { creativeMemberId } : {}),
+    override, overrideReason,
     variants: derivatives.map(({ variant, mimeType, sizeBytes, width, height }) => ({ variant, mimeType, sizeBytes, width, height })),
   });
   const groupId = started.upload?.groupId;
@@ -52,6 +56,16 @@ export async function uploadManagedWebsiteImage(file, { category, projectId = ''
     if (groupId) await invoke({ action: 'cancel', groupId }).catch(() => null);
     throw error;
   }
+}
+
+export async function createPublicMediaDraft(entityType, values = {}) {
+  const result = await invoke({ action: 'create_media_draft', entityType, ...values });
+  return result.draft;
+}
+
+export function completePublicMediaDraft(entityType, id) {
+  if (!id) return Promise.resolve({ completed: false });
+  return invoke({ action: 'complete_media_draft', entityType, id });
 }
 
 export async function commitManagedMediaReplacement(newUrl, oldUrl) {

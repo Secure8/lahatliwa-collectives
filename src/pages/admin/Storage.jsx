@@ -1,4 +1,4 @@
-import { Cloud, Database, FileCheck2, HardDrive, LockKeyhole, RefreshCw, ShieldCheck, Unplug, UploadCloud } from 'lucide-react';
+import { AlertTriangle, Cloud, Database, FileCheck2, HardDrive, LockKeyhole, Pause, Play, RefreshCw, ScanSearch, ShieldCheck, Unplug, UploadCloud } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminButton, AdminNotice, AdminPageHeader, AdminStatusBadge } from '../../components/admin/AdminUI';
@@ -17,6 +17,20 @@ import { STORAGE_FEATURE_FLAGS } from '../../lib/storageFeatureFlags';
 import { canAccessStoragePage, storagePageMode } from '../../lib/storageAdmin';
 import { supabase } from '../../lib/supabaseClient';
 import { useAdminConfirmation } from '../../components/admin/AdminDialog';
+import {
+  discoverPublicMediaMigration,
+  fetchStorageGovernanceDashboard,
+  inspectPublicMediaMigration,
+  listPublicMediaMigrations,
+  markPublicMediaMigrationManualReview,
+  pausePublicMediaMigration,
+  processPublicMediaMigrationBatch,
+  reconcilePublicMediaProviders,
+  resumePublicMediaMigration,
+  retryPublicMediaMigration,
+  updateStoragePolicy,
+  verifyPublicMediaMigration,
+} from '../../lib/storageGovernance';
 
 export default function Storage() {
   const { role, adminUser } = useAdminAccess();
@@ -60,6 +74,7 @@ export default function Storage() {
       ) : (
         <div className="grid gap-8">
           <CurrentDestination />
+          {mode === 'operations' && <StorageGovernanceOverview />}
           <GoogleDriveConnection />
           {mode === 'operations' && <OperationsOverview />}
           <AdminNotice tone="success">Normal project, profile, and site images use the unified website uploader. The optional Drive test below does not change public media references.</AdminNotice>
@@ -81,6 +96,123 @@ function CurrentDestination() {
     </section>
   );
 }
+
+function formatBytes(value) {
+  const bytes = Number(value || 0);
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+}
+
+function StorageGovernanceOverview() {
+  const [state, setState] = useState({ loading: true, snapshot: null, migrations: [], detail: null, error: '', notice: '', busy: '' });
+  const [budgetGb, setBudgetGb] = useState('9');
+  const [retentionDays, setRetentionDays] = useState('30');
+
+  const load = async (notice = '') => {
+    const [dashboard, migrations] = await Promise.all([fetchStorageGovernanceDashboard(), listPublicMediaMigrations({ pageSize: 8 })]);
+    const policy = dashboard.snapshot?.policy || {};
+    setBudgetGb(String(Math.round(Number(policy.budget_bytes || 0) / 1024 ** 3 * 10) / 10 || 9));
+    setRetentionDays(String(policy.migration_retention_days || 30));
+    setState({ loading: false, snapshot: dashboard.snapshot, migrations: migrations.rows || [], detail: null, error: '', notice, busy: '' });
+  };
+
+  useEffect(() => { load().catch((error) => setState((current) => ({ ...current, loading: false, error: error.message }))); }, []);
+
+  const run = async (busy, action, success) => {
+    setState((current) => ({ ...current, busy, error: '', notice: '' }));
+    try { const result = await action(); await load(typeof success === 'function' ? success(result) : success); }
+    catch (error) { setState((current) => ({ ...current, busy: '', error: error.message })); }
+  };
+
+  const inspect = async (id) => {
+    setState((current) => ({ ...current, busy: `inspect-${id}`, error: '', notice: '' }));
+    try {
+      const detail = await inspectPublicMediaMigration(id);
+      setState((current) => ({ ...current, detail, busy: '' }));
+    } catch (error) {
+      setState((current) => ({ ...current, busy: '', error: error.message }));
+    }
+  };
+
+  if (state.loading) return <section className="py-6"><LoadingState label="Loading public media storage" /></section>;
+  if (!state.snapshot) return <section className="py-6"><AdminNotice>{state.error || 'Public media storage monitoring is unavailable until the governance migration and Edge Functions are deployed.'}</AdminNotice></section>;
+
+  const { overview = {}, migration = {}, cleanup = {}, health = {}, policy = {}, breakdowns = {}, largestProjects = [], largestCreatives = [], largestOwners = [] } = state.snapshot;
+  const consumed = Number(overview.activeR2Bytes || 0) + Number(overview.provisionalBytes || 0) + Number(policy.reserve_bytes || 0);
+  const percent = Number(policy.budget_bytes || 0) ? consumed / Number(policy.budget_bytes) * 100 : 0;
+  const safety = percent >= Number(policy.block_percent || 100) ? 'Blocked' : percent >= Number(policy.pause_non_admin_percent || 95) ? 'Paused' : percent >= Number(policy.strong_warning_percent || 85) ? 'Strong warning' : percent >= Number(policy.warning_percent || 75) ? 'Warning' : percent >= Number(policy.info_percent || 60) ? 'Information' : 'Normal';
+  const overviewMetrics = [
+    ['Active R2', formatBytes(overview.activeR2Bytes)], ['Legacy Supabase', formatBytes(overview.activeSupabaseBytes)],
+    ['Legacy Drive', formatBytes(overview.activeDriveBytes)], ['Rollback duplicates', formatBytes(overview.duplicatedMigrationBytes)],
+    ['Total public media', formatBytes(overview.totalPublicMediaBytes)],
+    ['Remaining budget', formatBytes(Math.max(0, Number(policy.budget_bytes || 0) - consumed))], ['R2 objects', overview.r2ObjectCount || 0],
+    ['Supabase objects', overview.supabaseObjectCount || 0], ['Media groups', overview.mediaGroupCount || 0], ['Active derivatives', overview.activeDerivativeCount || 0],
+  ];
+  const migrationMetrics = [
+    ['Eligible', migration.eligible || 0], ['Completed', migration.completed || 0], ['In progress', migration.inProgress || 0],
+    ['Failed', migration.failed || 0], ['Manual review', migration.manualReview || 0], ['Unique source', formatBytes(migration.uniqueSourceBytes)],
+    ['Generated R2', formatBytes(migration.destinationBytes)], ['Retained source', formatBytes(migration.retainedSourceBytes)],
+    ['Queued deletion', formatBytes(migration.queuedDeletionBytes)], ['Remaining records', migration.estimatedRemainingRecords || 0],
+  ];
+
+  return (
+    <section aria-labelledby="public-media-storage-heading" className="grid gap-7 rounded-xl border border-white/[0.09] bg-white/[0.02] p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div><p className="text-xs font-medium uppercase tracking-[0.18em] text-amber-200/80">Super Admin · internally tracked</p><h2 id="public-media-storage-heading" className="mt-2 text-xl font-semibold text-white">Public media storage</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">Provider-verified object sizes where available. These figures describe the application ledger, not exact Cloudflare billing.</p></div>
+        <AdminStatusBadge status={safety === 'Normal' ? 'active' : 'warning'}>{safety} · {percent.toFixed(1)}%</AdminStatusBadge>
+      </div>
+      {state.error && <AdminNotice>{state.error}</AdminNotice>}{state.notice && <AdminNotice tone="success">{state.notice}</AdminNotice>}
+
+      <div className="grid gap-px overflow-hidden rounded-lg bg-white/[0.08] sm:grid-cols-2 xl:grid-cols-4">{overviewMetrics.map(([label,value])=><Metric key={label} label={label} value={value} />)}</div>
+      <p className="text-xs text-zinc-600">Last synchronized: {formatDate(overview.lastSynchronizedAt)} · Configured budget: {formatBytes(policy.budget_bytes)} · Reserve: {formatBytes(policy.reserve_bytes)}</p>
+
+      <div className="grid gap-4 border-y border-white/[0.08] py-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="grid gap-2 text-sm text-zinc-400">R2 budget in GB<input type="number" min="1" step="0.5" value={budgetGb} onChange={(event)=>setBudgetGb(event.target.value)} className="border-0 border-b border-white/[0.12] bg-transparent py-2 text-white outline-none focus:border-amber-200/60" /></label>
+          <label className="grid gap-2 text-sm text-zinc-400">Source rollback retention days<input type="number" min="1" max="365" value={retentionDays} onChange={(event)=>setRetentionDays(event.target.value)} className="border-0 border-b border-white/[0.12] bg-transparent py-2 text-white outline-none focus:border-amber-200/60" /></label>
+        </div>
+        <AdminButton disabled={Boolean(state.busy)} onClick={()=>run('policy',()=>updateStoragePolicy({budget_bytes:Math.round(Number(budgetGb)*1024**3),migration_retention_days:Number(retentionDays)}),'Storage policy updated and audited.')}>Save policy</AdminButton>
+      </div>
+
+      <div><h3 className="text-base font-semibold text-white">Migration</h3><p className="mt-1 text-sm text-zinc-500">Unique source files and generated derivatives are shown separately. Batches are deliberately small and resumable.</p></div>
+      <div className="grid gap-px overflow-hidden rounded-lg bg-white/[0.08] sm:grid-cols-2 xl:grid-cols-4">{migrationMetrics.map(([label,value])=><Metric key={label} label={label} value={value} />)}</div>
+      <div className="flex flex-wrap gap-2">
+        <AdminButton disabled={Boolean(state.busy)} onClick={()=>run('discover',()=>discoverPublicMediaMigration(50),(result)=>`${result.result.created} eligible media references registered; ${result.result.manualReview} require manual review.`)}><ScanSearch size={16}/> Preview eligible media</AdminButton>
+        {policy.migration_paused ? <AdminButton variant="primary" disabled={Boolean(state.busy)} onClick={()=>run('resume',resumePublicMediaMigration,'Migration resumed.')}><Play size={16}/> Resume</AdminButton> : <AdminButton disabled={Boolean(state.busy)} onClick={()=>run('pause',pausePublicMediaMigration,'Migration paused after the current bounded request.')}><Pause size={16}/> Pause</AdminButton>}
+        <AdminButton variant="primary" disabled={Boolean(state.busy)||policy.migration_paused} onClick={()=>run('batch',()=>processPublicMediaMigrationBatch(policy.migration_batch_size),(result)=>`${result.result.claimed} migration records processed.`)}><Play size={16}/> Start bounded batch</AdminButton>
+        <AdminButton disabled={Boolean(state.busy)} onClick={()=>run('reconcile',reconcilePublicMediaProviders,(result)=>{const findings=Number(result.providers?.r2?.findings||0)+Number(result.providers?.supabase?.findings||0);return `Reconciliation completed with ${findings} recorded findings. No suspected orphan was deleted.`;})}><RefreshCw size={16}/> Run reconciliation</AdminButton>
+      </div>
+
+      <div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="text-xs uppercase tracking-[0.12em] text-zinc-600"><tr><th className="py-2 pr-4">Source</th><th className="py-2 pr-4">State</th><th className="py-2 pr-4">Source bytes</th><th className="py-2 pr-4">R2 bytes</th><th className="py-2">Actions</th></tr></thead><tbody className="divide-y divide-white/[0.07]">{state.migrations.map((row)=><tr key={row.id}><td className="py-3 pr-4 text-zinc-300">{row.sourceName}</td><td className="py-3 pr-4 text-zinc-400">{row.status.replaceAll('_',' ')}</td><td className="py-3 pr-4 text-zinc-500">{formatBytes(row.sourceBytes)}</td><td className="py-3 pr-4 text-zinc-500">{formatBytes(row.destinationBytes)}</td><td className="py-3"><div className="flex flex-wrap gap-3"><button type="button" onClick={()=>inspect(row.id)} className="text-zinc-300 hover:text-white">Inspect</button>{['failed','manual_review'].includes(row.status)&&<button type="button" onClick={()=>run(`retry-${row.id}`,()=>retryPublicMediaMigration(row.id),'Migration queued for retry.')} className="text-amber-200 hover:text-amber-100">Retry</button>}{!['manual_review','completed','cancelled','rolled_back'].includes(row.status)&&<button type="button" onClick={()=>run(`review-${row.id}`,()=>markPublicMediaMigrationManualReview(row.id,'Flagged by Super Admin for manual inspection.'),'Migration moved to manual review.')} className="text-zinc-400 hover:text-white">Manual review</button>}{['verified','activated','retained_for_rollback','completed'].includes(row.status)&&<button type="button" onClick={()=>run(`verify-${row.id}`,()=>verifyPublicMediaMigration(row.id),'All three registered destination variants are verified.')} className="text-emerald-300 hover:text-emerald-200">Verify</button>}</div></td></tr>)}</tbody></table></div>
+
+      {state.detail&&<div className="rounded-lg border border-white/[0.08] bg-black/15 p-4"><div className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.14em] text-zinc-600">Migration inspection</p><h4 className="mt-1 text-sm font-semibold text-white">{state.detail.migration?.sourceName}</h4></div><button type="button" onClick={()=>setState((current)=>({...current,detail:null}))} className="text-xs text-zinc-400 hover:text-white">Close</button></div><dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">{[['State',state.detail.migration?.status?.replaceAll('_',' ')],['Source provider',state.detail.migration?.sourceProvider],['Destination',state.detail.migration?.destinationProvider],['Retention deadline',formatDate(state.detail.migration?.retainSourceUntil)],['Source cleanup',state.detail.migration?.sourceDeletedAt?'deleted':state.detail.migration?.sourceCleanupQueuedAt?'queued':'not queued'],['Attempts',state.detail.migration?.attemptCount],['Source bytes',formatBytes(state.detail.migration?.sourceBytes)],['Destination bytes',formatBytes(state.detail.migration?.destinationBytes)]].map(([label,value])=><div key={label}><dt className="text-zinc-600">{label}</dt><dd className="mt-1 capitalize text-zinc-300">{value??'—'}</dd></div>)}</dl><div className="mt-4 grid gap-2 sm:grid-cols-3">{(state.detail.objects||[]).map((object)=><div key={object.id} className="rounded-md bg-white/[0.025] p-3 text-xs"><p className="capitalize text-zinc-300">{object.media_variant||'source'}</p><p className="mt-1 text-zinc-600">{object.provider} · {object.verification_status} · {formatBytes(object.trusted_size_bytes)}</p></div>)}</div>{state.detail.migration?.statusMessage&&<p className="mt-4 text-xs leading-5 text-amber-100">{state.detail.migration.statusMessage}</p>}</div>}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <UsageCard title="Largest projects" rows={largestProjects.map((row)=>[row.title||'Untitled project',formatBytes(row.bytes)])}/>
+        <UsageCard title="Largest creatives" rows={largestCreatives.map((row)=>[row.name||'Unlinked creative',formatBytes(row.bytes)])}/>
+        <UsageCard title="Largest owners" rows={largestOwners.map((row)=>[row.display_name||'Unlabeled owner',formatBytes(row.bytes)])}/>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <UsageCard title="By provider" rows={(breakdowns.provider||[]).map((row)=>[row.provider,formatBytes(row.bytes)])}/>
+        <UsageCard title="By category" rows={(breakdowns.category||[]).map((row)=>[String(row.category).replaceAll('_',' '),formatBytes(row.bytes)])}/>
+        <UsageCard title="By variant" rows={(breakdowns.variant||[]).map((row)=>[row.variant,formatBytes(row.bytes)])}/>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HealthCard title="Cleanup" rows={[["Pending jobs",cleanup.pendingJobs],["Retrying",cleanup.retryingJobs],["Manual review",cleanup.manualReviewJobs],["Recoverable",formatBytes(cleanup.recoverableBytes)]]}/>
+        <HealthCard title="Provider health" rows={[["Missing objects",health.missingObjects],["Orphan findings",health.orphanedObjects],["Unverified",health.unverifiedUploads],["Failed verification",health.failedVerifications],["Last reconciliation",formatDate(health.lastReconciliation)]]}/>
+        <HealthCard title="Tracked lifecycle" rows={(breakdowns.lifecycle||[]).slice(0,4).map((row)=>[String(row.state).replaceAll('_',' '),formatBytes(row.bytes)])}/>
+      </div>
+      {(Number(health.missingObjects||0)>0||Number(health.orphanedObjects||0)>0||Number(cleanup.manualReviewJobs||0)>0)&&<div className="flex items-start gap-3 rounded-lg border border-amber-200/15 bg-amber-200/[0.035] p-4 text-sm leading-6 text-zinc-300"><AlertTriangle className="mt-0.5 shrink-0 text-amber-200" size={18}/><span>Storage health needs review. Reconciliation findings are detect-and-recheck records; they do not immediately delete objects.</span></div>}
+    </section>
+  );
+}
+
+function Metric({label,value}){return <div className="bg-zinc-950/80 p-4"><p className="text-[10px] uppercase tracking-[0.14em] text-zinc-600">{label}</p><p className="mt-2 text-xl font-semibold text-white">{value}</p></div>;}
+function HealthCard({title,rows}){return <div className="rounded-lg border border-white/[0.08] p-4"><h4 className="text-sm font-semibold text-white">{title}</h4><dl className="mt-3 grid gap-2">{rows.map(([label,value])=><div key={label} className="flex items-start justify-between gap-4 text-xs"><dt className="capitalize text-zinc-500">{label}</dt><dd className="text-right text-zinc-300">{value??0}</dd></div>)}</dl></div>;}
+function UsageCard({title,rows}){return <div className="rounded-lg border border-white/[0.08] p-4"><h4 className="text-sm font-semibold text-white">{title}</h4>{rows.length?<dl className="mt-3 grid gap-2">{rows.slice(0,5).map(([label,value],index)=><div key={`${label}-${index}`} className="flex items-start justify-between gap-4 text-xs"><dt className="truncate capitalize text-zinc-500">{label}</dt><dd className="shrink-0 text-zinc-300">{value}</dd></div>)}</dl>:<p className="mt-3 text-xs text-zinc-600">No tracked usage yet.</p>}</div>;}
 
 function GoogleDriveConnection() {
   const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
@@ -275,7 +407,7 @@ function OperationsOverview() {
           {metrics.map(([label, value]) => <div key={label} className="bg-zinc-950 p-5"><p className="text-xs uppercase tracking-[0.14em] text-zinc-600">{label}</p><p className="mt-3 text-2xl font-semibold text-white">{value}</p></div>)}
         </div>
       )}
-      <p className="mt-4 text-xs text-zinc-600">External uploads: disabled · Storage migration: disabled</p>
+      <p className="mt-4 text-xs text-zinc-600">Legacy provider connections are monitored separately from the public-media migration ledger above.</p>
     </section>
   );
 }

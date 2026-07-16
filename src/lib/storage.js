@@ -8,7 +8,6 @@ export { normalizePublicImagePath } from './publicImages.js';
 
 export const PROJECT_MEDIA_BUCKET = 'project-media';
 const BUCKET = PROJECT_MEDIA_BUCKET;
-const UPLOAD_OPTIONS = { upsert: false, cacheControl: '31536000' };
 
 function validateProjectImage(file, limitKey = 'projectCover') {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -26,8 +25,15 @@ function validateGalleryFile(file) {
   validateUploadFile(file, file.type === 'application/pdf' ? 'galleryDocument' : 'galleryImage');
 }
 
+function validatePublicGalleryImage(file) {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new Error('Public gallery uploads must be JPEG, PNG, or WebP images. Private documents belong in the optional file-storage workflow.');
+  }
+  validateUploadFile(file, 'galleryImage');
+}
+
 export function validateGalleryUploadFile(file) {
-  validateGalleryFile(file);
+  validatePublicGalleryImage(file);
 }
 
 export function validateCoverUploadFile(file) {
@@ -59,16 +65,9 @@ export function getPublicImageUrl(path) {
 export async function uploadCoverImage(file, { onStatus, projectId = '' } = {}) {
   if (!file) return '';
   validateCoverUploadFile(file);
-  if (projectId) {
-    const managed = await uploadManagedWebsiteImage(file, { category: 'project_cover', projectId, onStatus });
-    if (managed?.primaryUrl) return managed.primaryUrl;
-  }
-  const prepared = await optimizeImageForUpload(file, 'projectCover', { label: 'Project cover', onStatus });
-  onStatus?.({ phase: 'uploading', ...prepared });
-  const path = createProjectMediaPath('projects/covers', prepared.file);
-  const { error } = await supabase.storage.from(BUCKET).upload(path, prepared.file, UPLOAD_OPTIONS);
-  if (error) throw error;
-  return path;
+  if (!projectId) throw Object.assign(new Error('Prepare the project draft before uploading its cover.'), { code: 'MEDIA_DRAFT_REQUIRED' });
+  const managed = await uploadManagedWebsiteImage(file, { category: 'project_cover', projectId, onStatus });
+  return managed.primaryUrl;
 }
 
 export async function uploadGalleryImages(files, { onStatus, projectId = '' } = {}) {
@@ -77,20 +76,10 @@ export async function uploadGalleryImages(files, { onStatus, projectId = '' } = 
   const uploadedPaths = [];
 
   for (const [index, file] of selectedFiles.entries()) {
-    validateGalleryFile(file);
-    if (file.type !== 'application/pdf' && projectId) {
-      const managed = await uploadManagedWebsiteImage(file, { category: 'project_gallery', projectId, onStatus });
-      if (managed?.primaryUrl) {
-        uploadedPaths.push(managed.primaryUrl);
-        continue;
-      }
-    }
-    const prepared = file.type === 'application/pdf'
-      ? { file, optimized: false, originalBytes: file.size, finalBytes: file.size, message: '' }
-      : await optimizeImageForUpload(file, 'galleryImage', { label: 'Gallery image', onStatus });
-    onStatus?.({ phase: 'uploading', index, total: selectedFiles.length, ...prepared });
-    const path = await uploadPreparedGalleryFile(prepared.file);
-    uploadedPaths.push(path);
+    validatePublicGalleryImage(file);
+    if (!projectId) throw Object.assign(new Error('Prepare the project draft before uploading gallery images.'), { code: 'MEDIA_DRAFT_REQUIRED' });
+    const managed = await uploadManagedWebsiteImage(file, { category: 'project_gallery', projectId, onStatus: (status) => onStatus?.({ ...status, index, total: selectedFiles.length }) });
+    uploadedPaths.push(managed.primaryUrl);
   }
 
   return uploadedPaths;
@@ -102,28 +91,19 @@ export async function prepareGalleryImageForUpload(file, { onStatus } = {}) {
   return optimizeImageForUpload(file, 'galleryImage', { label: 'Gallery image', onStatus });
 }
 
-export async function uploadPreparedGalleryFile(file) {
+export async function uploadPreparedGalleryFile(file, { projectId = '', onStatus } = {}) {
   validateGalleryFile(file);
-  const path = createProjectMediaPath('projects/gallery', file);
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, UPLOAD_OPTIONS);
-  if (error) throw error;
-  return path;
+  if (!projectId) throw Object.assign(new Error('A project draft is required before creating a public preview.'), { code: 'MEDIA_DRAFT_REQUIRED' });
+  const managed = await uploadManagedWebsiteImage(file, { category: 'project_gallery', projectId, onStatus });
+  return managed.primaryUrl;
 }
 
 export async function uploadExternalThumbnail(file, projectSlug = 'project', { onStatus, projectId = '' } = {}) {
   if (!file) return '';
   validateExternalThumbnailUploadFile(file);
-  if (projectId) {
-    const managed = await uploadManagedWebsiteImage(file, { category: 'external_thumbnail', projectId, onStatus });
-    if (managed?.primaryUrl) return managed.primaryUrl;
-  }
-  const prepared = await optimizeImageForUpload(file, 'externalThumbnail', { label: 'Thumbnail', onStatus });
-  onStatus?.({ phase: 'uploading', ...prepared });
-  const safeSlug = (projectSlug || 'project').replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
-  const path = createProjectMediaPath(`projects/${safeSlug}/external-thumbnails`, prepared.file);
-  const { error } = await supabase.storage.from(BUCKET).upload(path, prepared.file, UPLOAD_OPTIONS);
-  if (error) throw error;
-  return path;
+  if (!projectId) throw Object.assign(new Error('Prepare the project draft before uploading a thumbnail.'), { code: 'MEDIA_DRAFT_REQUIRED' });
+  const managed = await uploadManagedWebsiteImage(file, { category: 'external_thumbnail', projectId, onStatus });
+  return managed.primaryUrl;
 }
 
 export async function deleteImages(paths) {

@@ -16,7 +16,7 @@ import { deleteImages, prepareGalleryImageForUpload, uploadPreparedGalleryFile }
 import { useAdminConfirmation } from './AdminDialog';
 
 const CATEGORY_GROUPS = [
-  { key: 'public', title: 'Public gallery media', description: 'Private Drive originals linked to public Supabase previews.' },
+  { key: 'public', title: 'Public gallery media', description: 'Private Drive originals linked to managed public previews.' },
   { key: 'originals', title: 'Private originals', description: 'Untouched source files kept private without a public preview.' },
   { key: 'project_files', title: 'Drive-only project files', description: 'Source packages, documents, raw media, and deliverables.' },
   { key: 'archived', title: 'Archived files', description: 'Private files moved into the managed Drive Archive folder.' },
@@ -82,7 +82,7 @@ export default function ExternalProjectFiles({ project, enabled, onGalleryReplac
         let previewPath = '';
         try {
           const prepared = await prepareGalleryImageForUpload(file);
-          previewPath = await uploadPreparedGalleryFile(prepared.file);
+          previewPath = await uploadPreparedGalleryFile(prepared.file, { projectId: project.id });
           const attached = await attachGoogleDriveExternalPreview(uploaded.id, previewPath);
           const media = attached.media;
           const reference = createProjectGalleryMediaReference({
@@ -181,7 +181,7 @@ export default function ExternalProjectFiles({ project, enabled, onGalleryReplac
           )}
         </section>
       ))}
-      <div className="flex items-start gap-2 rounded-lg bg-amber-200/[0.05] p-3 text-xs leading-5 text-zinc-400 ring-1 ring-amber-200/10"><FileArchive size={16} className="mt-0.5 shrink-0 text-amber-200" /><span><strong className="text-zinc-200">Archive is reversible.</strong> Removing a preview affects only the public Supabase copy. Permanent delete removes the private Drive file and any linked preview.</span></div>
+      <div className="flex items-start gap-2 rounded-lg bg-amber-200/[0.05] p-3 text-xs leading-5 text-zinc-400 ring-1 ring-amber-200/10"><FileArchive size={16} className="mt-0.5 shrink-0 text-amber-200" /><span><strong className="text-zinc-200">Archive is reversible.</strong> Removing a preview affects only the managed public copy. Permanent delete removes the private Drive file and any linked preview.</span></div>
       {confirmationDialog}
     </div>
   );

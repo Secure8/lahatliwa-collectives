@@ -144,6 +144,27 @@ export async function signedR2Request(fetcher, config, method, objectKey) {
   } });
 }
 
+export async function listR2Objects(fetcher, config, { prefix = '', continuationToken = '', maxKeys = 1000 } = {}) {
+  if (!config?.configured) throw new Error('R2 list configuration is invalid.');
+  const host = `${config.accountId}.r2.cloudflarestorage.com`;
+  const { amzDate, dateStamp } = awsTime();
+  const scope = `${dateStamp}/auto/s3/aws4_request`;
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+  const payloadHash = 'UNSIGNED-PAYLOAD';
+  const queryValues = [['list-type','2'],['max-keys',String(Math.max(1,Math.min(Number(maxKeys || 1000),1000)))]];
+  if (prefix) queryValues.push(['prefix', String(prefix)]);
+  if (continuationToken) queryValues.push(['continuation-token', String(continuationToken)]);
+  const query = queryValues.map(([name,value]) => `${amzEncode(name)}=${amzEncode(value)}`).sort().join('&');
+  const path = `/${amzEncode(config.bucketName)}`;
+  const canonical = ['GET', path, query, `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`, signedHeaders, payloadHash].join('\n');
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, await sha256(canonical)].join('\n');
+  const signature = hex(await hmac(await signingKey(config.secretAccessKey, dateStamp), stringToSign));
+  return fetcher(`https://${host}${path}?${query}`, { method: 'GET', headers: {
+    Authorization: `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+    'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate,
+  } });
+}
+
 export async function uploadR2Object(fetcher, config, objectKey, mimeType, value) {
   const key = safeR2ObjectKey(objectKey);
   const bytes = value instanceof Uint8Array ? value : new Uint8Array(value || []);

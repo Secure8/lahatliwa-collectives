@@ -1,5 +1,7 @@
 # Cloudflare R2 public-media deployment runbook
 
+> Historical phase-one runbook. The fallback and first-media instructions in this document are superseded by `public-media-governance-deployment.md`. Do not re-enable ordinary Supabase public-media uploads.
+
 This runbook describes a staged deployment. It does not authorize production changes. Existing Supabase and Google Drive files are not migrated or deleted by this rollout.
 
 ## 1. Architecture and security boundary
@@ -8,10 +10,10 @@ This runbook describes a staged deployment. It does not authorize production cha
 - `r2-media` authenticates the user, verifies project/profile/site permission, selects every object key, and creates private metadata records.
 - The browser sends each small derivative to `r2-media-upload`. That function validates the registered ID, group, extension, MIME type, byte size, WebP signature, category, owner, and current permission before it signs a server-to-server R2 request.
 - No R2 access key ID, secret, object key, Authorization header, or unrestricted signed URL is returned to the browser.
-- Supabase stores provider-neutral lifecycle metadata. Public project/profile records store only a trusted public R2 URL, or an existing Supabase reference during fallback.
+- Supabase stores provider-neutral lifecycle metadata. Public project/profile records store a trusted public R2 URL, while existing legacy Supabase references remain renderable.
 - The public site changes `expanded.webp` to the appropriate sibling derivative for cards and gallery display. It uses ordinary unauthenticated HTTPS GET requests to the configured media domain.
 - `process-storage-cleanup` deletes queued R2 objects, retries failures, treats 404 as success, and cleans expired incomplete/unreferenced uploads.
-- A brand-new project or creative profile has no database ID that the server can authorize yet, so its first media selection uses the Supabase rollout fallback. Once the record exists, replacements and additional images use R2 when the feature is enabled. This avoids accepting client-selected, unattached R2 destinations.
+- Brand-new projects and creative profiles now use server-created incomplete drafts before their first upload. First media, replacements, and later additions use R2.
 
 ## 2. Cloudflare account, bucket, and public delivery
 
@@ -61,7 +63,7 @@ Do not configure any R2 account ID, bucket, access key, secret, object key, or s
 6. Deploy the changed `process-storage-cleanup` worker.
 7. Verify the existing cleanup schedule still calls the changed worker and its status endpoint is healthy.
 8. Add/verify the Supabase secrets, leaving the Vercel frontend flag false.
-9. Deploy the frontend with `VITE_R2_MEDIA_ENABLED=false`; confirm all existing Supabase URLs still render and uploads use the fallback.
+9. Deploy the frontend with `VITE_R2_MEDIA_ENABLED=false`; confirm all existing Supabase URLs still render and new uploads fail clearly without changing existing references.
 10. Perform the disposable test below in a controlled environment. Only then enable `VITE_R2_MEDIA_ENABLED=true` for a limited production cohort/build.
 
 The migration adds R2 provider metadata, derivative/group/public URL fields, provider-aware cleanup jobs, and a provider-aware job claim response. It does not copy, rewrite, or delete existing media.
@@ -81,7 +83,7 @@ Use one draft project that can be deleted and one noncritical creative profile.
 9. Remove a gallery image and confirm it is not deleted while still referenced, then is queued after the reference is removed.
 10. Replace and remove the creative profile photo. Confirm the thumbnail/display behavior and cleanup.
 11. Delete the disposable draft. Confirm cleanup preparation occurs before the database deletion and the R2 group is queued only after deletion authorization is finalized.
-12. Disable only `VITE_R2_MEDIA_ENABLED`, redeploy the frontend test build, and confirm new uploads fall back to Supabase while existing R2 media continues to render and cleanup still works.
+12. Disable only `VITE_R2_MEDIA_ENABLED`, redeploy the frontend test build, and confirm new uploads are unavailable while existing R2 and Supabase media continue rendering and cleanup still works.
 
 Do not declare production readiness until upload, delivery, replacement, deletion, worker retry, and rollback have all been observed against the live Cloudflare/Supabase configuration.
 
@@ -95,7 +97,7 @@ Do not declare production readiness until upload, delivery, replacement, deletio
 
 ## 9. Rollback
 
-1. Set `VITE_R2_MEDIA_ENABLED=false` and redeploy the frontend. This sends new uploads through the existing Supabase fallback.
+1. Set `VITE_R2_MEDIA_ENABLED=false` and redeploy the frontend. This pauses new public-media uploads; it does not fall back to Supabase.
 2. Keep R2 secrets and `R2_MEDIA_ENABLED=true` in Supabase so existing delivery, project deletion, and cleanup continue.
 3. Do not roll back the database migration while R2 metadata or cleanup jobs exist.
 4. Do not remove the custom domain while published records reference it.

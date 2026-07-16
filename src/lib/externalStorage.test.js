@@ -156,7 +156,7 @@ test('admin Storage exposes safe connection actions and an isolated flagged test
   assert.equal((layout.match(/visibleGroups\.map/g) || []).length >= 2, true);
 });
 
-test('Phase 3 test upload is server-authenticated, flag-gated, and leaves normal uploads unchanged', async () => {
+test('Phase 3 Drive test upload stays isolated while normal public uploads are mandatory R2', async () => {
   const [upload, api, client, storage, content] = await Promise.all([
     source('supabase/functions/google-drive-upload/index.ts'),
     source('supabase/functions/_shared/googleDriveApi.js'),
@@ -175,11 +175,13 @@ test('Phase 3 test upload is server-authenticated, flag-gated, and leaves normal
   assert.match(api, /uploadType=multipart/);
   assert.match(client, /google-drive-upload/);
   assert.match(client, /admin_test_upload/);
-  assert.match(storage, /supabase\.storage\.from\(BUCKET\)\.upload/);
-  assert.match(content, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.doesNotMatch(storage, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.doesNotMatch(content, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.match(storage, /uploadManagedWebsiteImage/);
+  assert.match(content, /uploadManagedWebsiteImage/);
 });
 
-test('legacy Drive project media is isolated while the unified uploader is R2-gated with fallback', async () => {
+test('legacy Drive project media is isolated while the unified public uploader is R2-gated without fallback', async () => {
   const [flags, env, form, client, lifecycle, config, storagePage] = await Promise.all([
     source('src/lib/storageFeatureFlags.js'),
     source('.env.example'),
@@ -249,13 +251,14 @@ test('Phase 2 SQL keeps OAuth state and credentials server-only and is not a mig
   assert.match(sql, /root_folder_health/);
 });
 
-test('existing upload, public gallery, payload, and cleanup paths remain Supabase-backed and provider-neutral code is additive', async () => {
+test('new public uploads are R2-only while legacy rendering and provider-aware cleanup remain compatible', async () => {
   const [storage, projectForm, gallery, cleanup, worker] = await Promise.all([
     source('src/lib/storage.js'), source('src/components/admin/ProjectForm.jsx'), source('src/lib/galleryItems.js'),
     source('src/lib/projectMediaCleanup.js'), source('supabase/functions/process-storage-cleanup/index.ts'),
   ]);
   assert.match(storage, /const BUCKET = PROJECT_MEDIA_BUCKET/);
-  assert.match(storage, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.doesNotMatch(storage, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.match(storage, /uploadManagedWebsiteImage/);
   assert.match(projectForm, /cover_image: form\.cover_image/);
   assert.match(projectForm, /gallery_items: \[\.\.\.imageItems, \.\.\.externalItems\]/);
   assert.match(gallery, /normalizeProjectGallery/);
@@ -264,7 +267,8 @@ test('existing upload, public gallery, payload, and cleanup paths remain Supabas
   assert.match(worker, /cleanupExpiredExternalUploads/);
   assert.match(worker, /external_media_objects/);
   assert.match(worker, /cancelResumableDriveUpload/);
-  assert.doesNotMatch(worker, /storage_migrations/);
+  assert.match(worker, /storage_migrations/);
+  assert.match(worker, /retained_for_rollback/);
 });
 
 test('the architecture documents the production state and preserves the corrected Phase 5–7 roadmap', async () => {

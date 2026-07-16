@@ -110,7 +110,7 @@ test('provider-neutral normalization preserves an R2 public reference without ex
   assert.equal(media.storagePath, null);
 });
 
-test('rollout remains provider-agnostic, keeps Supabase fallback, and leaks no upload authorization', () => {
+test('new public media is R2-only, keeps legacy rendering, and leaks no upload authorization', () => {
   const client = source('src/lib/r2Media.js');
   const storage = source('src/lib/storage.js');
   const form = source('src/components/admin/ProjectForm.jsx');
@@ -122,7 +122,9 @@ test('rollout remains provider-agnostic, keeps Supabase fallback, and leaks no u
   assert.doesNotMatch(edge, /uploadUrl|X-Amz-Credential/);
   assert.match(uploadEdge, /file\.name\.toLowerCase\(\)/);
   assert.match(storage, /uploadManagedWebsiteImage/);
-  assert.match(storage, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.doesNotMatch(storage, /supabase\.storage\.from\(BUCKET\)\.upload/);
+  assert.match(client, /R2_UPLOAD_UNAVAILABLE/);
+  assert.doesNotMatch(client, /fallback:\s*true/);
   assert.doesNotMatch(form, /ExternalProjectFiles|Upload original|Drive-only project files/);
   assert.match(edge, /REFERENCE_NOT_SWITCHED/);
   assert.match(worker, /deleteR2Object/);

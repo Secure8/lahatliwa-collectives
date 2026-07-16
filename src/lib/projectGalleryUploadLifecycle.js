@@ -40,7 +40,7 @@ export async function runGoogleDriveGalleryImageUpload(file, { onStatus, request
         message: prepared.message,
       };
     }
-    previewPath = await deps.uploadPreview(prepared.file);
+    previewPath = await deps.uploadPreview(prepared.file, { projectId, onStatus });
     const finalized = await deps.attachPreview(media.id, previewPath);
     const mediaReference = createProjectGalleryMediaReference({
       mediaObjectId: finalized?.media?.id,

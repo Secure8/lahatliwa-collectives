@@ -13,7 +13,7 @@ import {
 } from '../_shared/r2Media.js';
 import { authenticatedTeamMember, corsHeaders, edgeEnvironment, fail, reply } from '../_shared/googleDriveEdge.ts';
 
-const MEDIA_FIELDS = 'id,owner_user_id,provider,external_file_id,filename,mime_type,size_bytes,width,height,status,file_category,project_id,creative_member_id,media_group_id,media_variant,public_url,cleanup_status,cleanup_attempt_count,cleanup_error,metadata,created_at,updated_at';
+const MEDIA_FIELDS = 'id,owner_user_id,provider,external_file_id,filename,mime_type,size_bytes,trusted_size_bytes,width,height,status,file_category,project_id,creative_member_id,media_group_id,media_variant,public_url,reservation_id,verification_status,accounting_state,cleanup_status,cleanup_attempt_count,cleanup_error,metadata,created_at,updated_at';
 
 function config() {
   return r2Configuration({
@@ -28,6 +28,7 @@ function config() {
 
 function cleanBody(value: any) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 function only(body: any, fields: string[]) { const allowed = new Set(fields); return Object.keys(body).every((key) => allowed.has(key)); }
+function cleanText(value: any, fallback: string, max = 120) { const text = String(value || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim(); return (text || fallback).slice(0, max); }
 
 async function tokenHash(value: string) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
@@ -101,7 +102,9 @@ async function queueGroupCleanup(actor: any, cfg: any, rows: any[], reason: stri
     });
     if (error && error.code !== '23505') throw error;
   }
-  await actor.admin.from('external_media_objects').update({ status: 'deleting', cleanup_status: 'pending', cleanup_error: null }).eq('media_group_id', rows[0].media_group_id).eq('provider', R2_PROVIDER);
+  await actor.admin.from('external_media_objects').update({ status: 'deleting', accounting_state: 'pending_cleanup',
+    ...(reason.includes('replaced') ? { replaced_at: new Date().toISOString() } : {}), cleanup_status: 'pending', cleanup_error: null })
+    .eq('media_group_id', rows[0].media_group_id).eq('provider', R2_PROVIDER);
 }
 
 Deno.serve(async (request) => {
@@ -115,7 +118,7 @@ Deno.serve(async (request) => {
   const actor = await authenticatedTeamMember(request, env);
   if ('error' in actor) return fail(actor.error, actor.status === 401 ? 'Your session has expired. Please sign in again.' : 'Your account cannot manage website media.', actor.status, cors);
 
-  if (body.action === 'capability') return reply({ success: true, enabled: cfg.configured, provider: cfg.configured ? 'managed_media' : 'supabase_fallback' }, 200, cors);
+  if (body.action === 'capability') return reply({ success: true, enabled: cfg.configured, provider: cfg.configured ? 'managed_media' : 'unavailable', fallback: false }, 200, cors);
 
   if (body.action === 'prepare_project_delete') {
     if (!only(body, ['action','projectId'])) return fail('INVALID_REQUEST', 'The project cleanup request is invalid.', 400, cors);
@@ -138,7 +141,53 @@ Deno.serve(async (request) => {
     return reply({ success: true, count: rows.length, authorization }, 200, cors);
   }
 
-  if (!cfg.configured) return fail('R2_MEDIA_DISABLED', 'Managed website media is not enabled on the server.', 503, cors);
+  if (body.action === 'create_media_draft') {
+    if (!only(body, ['action','entityType','title','category','description','name','role'])) return fail('INVALID_REQUEST', 'The media draft request is invalid.', 400, cors);
+    const entityType = String(body.entityType || '');
+    const { data: policy } = await actor.admin.from('storage_policies').select('draft_retention_hours').eq('singleton', true).maybeSingle();
+    const expiresAt = new Date(Date.now() + Number(policy?.draft_retention_hours || 72) * 60 * 60 * 1000).toISOString();
+    const id = crypto.randomUUID();
+    if (entityType === 'project') {
+      if (!['super_admin','admin','editor','creative'].includes(actor.role)) return fail('TARGET_NOT_AUTHORIZED', 'You cannot create a project media draft.', 403, cors);
+      const { error } = await actor.admin.from('projects').insert({ id, title: cleanText(body.title, 'Untitled project'), slug: `draft-${id}`,
+        category: cleanText(body.category, 'Liwa Studio', 80), description: cleanText(body.description, '', 2000), status: 'draft', review_status: 'draft',
+        created_by: actor.user.id, owner_user_id: actor.user.id, updated_by: actor.user.id, media_creation_state: 'incomplete', media_draft_expires_at: expiresAt });
+      if (error) return fail('DRAFT_CREATION_FAILED', 'The project draft could not be prepared for media.', 500, cors);
+    } else if (entityType === 'creative') {
+      if (!['super_admin','admin'].includes(actor.role)) return fail('TARGET_NOT_AUTHORIZED', 'Only an administrator can create a creative profile draft.', 403, cors);
+      const { error } = await actor.admin.from('creative_members').insert({ id, name: cleanText(body.name, 'Untitled creative'), slug: `draft-${id}`,
+        role: cleanText(body.role, 'Creative'), is_published: false, media_creation_state: 'incomplete', media_draft_expires_at: expiresAt, media_draft_owner_user_id: actor.user.id });
+      if (error) return fail('DRAFT_CREATION_FAILED', 'The creative profile draft could not be prepared for media.', 500, cors);
+    } else return fail('DRAFT_TYPE_INVALID', 'The requested draft type is unavailable.', 400, cors);
+    await actor.admin.from('storage_audit_events').insert({ actor_user_id: actor.user.id, action: 'public_media_draft_created', target_type: entityType, target_id: id, outcome: 'allowed', details: { expiresAt } });
+    return reply({ success: true, draft: { id, entityType, expiresAt } }, 201, cors);
+  }
+
+  if (body.action === 'complete_media_draft') {
+    if (!only(body, ['action','entityType','id'])) return fail('INVALID_REQUEST', 'The media draft completion request is invalid.', 400, cors);
+    const entityType = String(body.entityType || ''); const id = String(body.id || '');
+    if (entityType === 'project') {
+      if (!await authorizeProjectEdit(actor, id)) return fail('TARGET_NOT_AUTHORIZED', 'You cannot complete this project draft.', 403, cors);
+      await actor.admin.from('projects').update({ media_creation_state: 'complete', media_draft_expires_at: null }).eq('id', id);
+    } else if (entityType === 'creative') {
+      if (!await authorizeProfileEdit(actor, id)) return fail('TARGET_NOT_AUTHORIZED', 'You cannot complete this creative draft.', 403, cors);
+      await actor.admin.from('creative_members').update({ media_creation_state: 'complete', media_draft_expires_at: null, media_draft_owner_user_id: null }).eq('id', id);
+    } else return fail('DRAFT_TYPE_INVALID', 'The requested draft type is unavailable.', 400, cors);
+    return reply({ success: true, completed: true }, 200, cors);
+  }
+
+  if (!cfg.configured) return fail('R2_MEDIA_DISABLED', 'Managed website media is temporarily unavailable. Existing images were not changed.', 503, cors);
+
+  if (body.action === 'check_budget') {
+    if (!only(body, ['action','category','projectId','creativeMemberId','estimatedBytes','override','overrideReason'])) return fail('INVALID_REQUEST', 'The storage check request is invalid.', 400, cors);
+    const category = String(body.category || '');
+    if (!R2_MEDIA_CATEGORIES[category] || !await authorizeTarget(actor, category, String(body.projectId || ''), String(body.creativeMemberId || ''))) return fail('TARGET_NOT_AUTHORIZED', 'You cannot upload media to this destination.', 403, cors);
+    const { data: policy, error } = await actor.admin.rpc('evaluate_public_media_budget', { p_actor_user_id: actor.user.id, p_actor_role: actor.role,
+      p_operation_kind: 'upload', p_estimated_bytes: Math.max(0, Number(body.estimatedBytes || 0)), p_override: body.override === true, p_override_reason: String(body.overrideReason || '') || null });
+    if (error) return fail('STORAGE_POLICY_UNAVAILABLE', 'Storage capacity could not be checked. Nothing was uploaded.', 503, cors);
+    if (!policy?.allowed) return reply({ success: false, code: policy?.code || 'STORAGE_UPLOAD_RESTRICTED', message: 'Website media uploads are temporarily restricted. Existing images were not changed.', policy }, 409, cors);
+    return reply({ success: true, policy }, 200, cors);
+  }
 
   if (body.action === 'finalize_project_delete') {
     if (!only(body, ['action','projectId','authorization'])) return fail('INVALID_REQUEST', 'The project cleanup confirmation is invalid.', 400, cors);
@@ -160,11 +209,18 @@ Deno.serve(async (request) => {
   }
 
   if (body.action === 'initiate') {
-    if (!only(body, ['action','category','projectId','creativeMemberId','variants'])) return fail('INVALID_REQUEST', 'The media upload request contains unsupported fields.', 400, cors);
+    if (!only(body, ['action','category','projectId','creativeMemberId','variants','override','overrideReason'])) return fail('INVALID_REQUEST', 'The media upload request contains unsupported fields.', 400, cors);
     const validation: any = validateR2UploadRequest(body);
     if (!validation.ok) return fail(validation.code, validation.message, 400, cors);
     if (!await authorizeTarget(actor, validation.categoryKey, validation.projectId, validation.creativeMemberId)) return fail('TARGET_NOT_AUTHORIZED', 'You do not have permission to upload media here.', 403, cors);
     const groupId = crypto.randomUUID();
+    const estimatedBytes = validation.variants.reduce((sum: number, variant: any) => sum + Number(variant.sizeBytes || 0), 0);
+    const { data: reservation, error: reservationError } = await actor.admin.rpc('reserve_public_media_bytes', { p_operation_id: groupId,
+      p_operation_kind: 'upload', p_owner_user_id: actor.user.id, p_project_id: validation.projectId || null,
+      p_creative_member_id: validation.creativeMemberId || null, p_actor_role: actor.role, p_estimated_bytes: estimatedBytes,
+      p_override: body.override === true, p_override_reason: String(body.overrideReason || '') || null });
+    if (reservationError) return fail('STORAGE_POLICY_UNAVAILABLE', 'Storage capacity could not be reserved. Nothing was uploaded.', 503, cors);
+    if (!reservation?.allowed) return reply({ success: false, code: reservation?.code || 'STORAGE_UPLOAD_RESTRICTED', message: 'Website media uploads are temporarily restricted. Existing images were not changed.', policy: reservation }, 409, cors);
     const targetId = validation.projectId || validation.creativeMemberId || actor.user.id;
     const rows = validation.variants.map((variant: any) => {
       const objectKey = createR2ObjectKey(validation.categoryKey, targetId, groupId, variant.variant);
@@ -175,12 +231,16 @@ Deno.serve(async (request) => {
         file_category: validation.categoryKey, project_id: validation.projectId || null,
         creative_member_id: validation.creativeMemberId || null, media_group_id: groupId,
         media_variant: variant.variant, public_url: r2PublicUrl(cfg, objectKey), upload_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        reservation_id: reservation.reservationId, destination_bucket: cfg.bucketName, verification_status: 'pending', accounting_state: 'provisional',
         metadata: { upload_transport: 'authenticated_edge_proxy_v1' },
       };
     });
     const { error } = await actor.admin.from('external_media_objects').insert(rows);
-    if (error) return fail('MEDIA_REGISTRATION_FAILED', 'The website media upload could not be registered.', 500, cors);
-    return reply({ success: true, upload: { groupId, uploads: rows.map((row: any) => ({ mediaId: row.id, variant: row.media_variant })) } }, 201, cors);
+    if (error) {
+      await actor.admin.rpc('reconcile_storage_reservation', { p_reservation_id: reservation.reservationId, p_actual_bytes: 0, p_success: false, p_error: 'MEDIA_REGISTRATION_FAILED' });
+      return fail('MEDIA_REGISTRATION_FAILED', 'The website media upload could not be registered.', 500, cors);
+    }
+    return reply({ success: true, upload: { groupId, uploads: rows.map((row: any) => ({ mediaId: row.id, variant: row.media_variant })) }, policy: reservation }, 201, cors);
   }
 
   if (body.action === 'finalize') {
@@ -190,21 +250,31 @@ Deno.serve(async (request) => {
     const category = rows[0].file_category;
     if (!await authorizeTarget(actor, category, rows[0].project_id, rows[0].creative_member_id)) return fail('TARGET_NOT_AUTHORIZED', 'You no longer have permission to finalize this media.', 403, cors);
     try {
+      let actualBytes = 0;
       for (const row of rows) {
         const response = await signedR2Request(fetch, cfg, 'HEAD', row.external_file_id);
-        const valid = response.ok && Number(response.headers.get('content-length') || 0) === Number(row.size_bytes)
+        const verifiedBytes = Number(response.headers.get('content-length') || 0);
+        const valid = response.ok && verifiedBytes === Number(row.size_bytes)
           && String(response.headers.get('content-type') || '').split(';')[0].toLowerCase() === row.mime_type;
         if (!valid) throw Object.assign(new Error('R2 verification failed'), { code: 'R2_OBJECT_VERIFICATION_FAILED' });
+        actualBytes += verifiedBytes;
+        row.verifiedBytes = verifiedBytes;
+        row.verifiedEtag = String(response.headers.get('etag') || '').replace(/"/g, '');
       }
       for (const row of rows) {
-        const { error } = await actor.admin.from('external_media_objects').update({ status: 'available', uploaded_bytes: row.size_bytes, upload_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), cleanup_status: 'none', cleanup_error: null }).eq('id', row.id);
+        const { error } = await actor.admin.from('external_media_objects').update({ status: 'available', size_bytes: row.verifiedBytes,
+          trusted_size_bytes: row.verifiedBytes, uploaded_bytes: row.verifiedBytes, checksum_algorithm: row.verifiedEtag ? 'etag' : null,
+          checksum_value: row.verifiedEtag || null, verification_status: 'verified', last_verified_at: new Date().toISOString(),
+          upload_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), cleanup_status: 'none', cleanup_error: null }).eq('id', row.id);
         if (error) throw Object.assign(new Error('Media finalization failed'), { code: 'MEDIA_FINALIZATION_FAILED' });
       }
+      if (rows[0].reservation_id) await actor.admin.rpc('reconcile_storage_reservation', { p_reservation_id: rows[0].reservation_id, p_actual_bytes: actualBytes, p_success: true, p_error: null });
       const data = await loadGroup(actor, rows[0].media_group_id);
       if (!data?.length) throw Object.assign(new Error('Media finalization failed'), { code: 'MEDIA_FINALIZATION_FAILED' });
       return reply({ success: true, media: safeGroupResponse(data, category) }, 200, cors);
     } catch (error) {
-      await actor.admin.from('external_media_objects').update({ status: 'error', cleanup_status: 'retry_required', cleanup_error: error?.code || 'R2_OBJECT_VERIFICATION_FAILED' }).eq('media_group_id', rows[0].media_group_id);
+      await actor.admin.from('external_media_objects').update({ status: 'error', verification_status: 'failed', accounting_state: 'failed', cleanup_status: 'retry_required', cleanup_error: error?.code || 'R2_OBJECT_VERIFICATION_FAILED' }).eq('media_group_id', rows[0].media_group_id);
+      if (rows[0].reservation_id) await actor.admin.rpc('reconcile_storage_reservation', { p_reservation_id: rows[0].reservation_id, p_actual_bytes: 0, p_success: false, p_error: error?.code || 'R2_OBJECT_VERIFICATION_FAILED' });
       return fail(error?.code || 'R2_OBJECT_VERIFICATION_FAILED', 'The uploaded website images could not be verified. Existing live media was not changed.', 502, cors);
     }
   }
@@ -216,6 +286,7 @@ Deno.serve(async (request) => {
     let failed = false;
     for (const row of rows) { try { await deleteR2Object(fetch, cfg, row.external_file_id); } catch { failed = true; } }
     await actor.admin.from('external_media_objects').update({ status: failed ? 'error' : 'cancelled', cleanup_status: failed ? 'retry_required' : 'complete', cleanup_error: failed ? 'R2_CANCEL_CLEANUP_FAILED' : null }).eq('media_group_id', rows[0].media_group_id);
+    if (rows[0].reservation_id) await actor.admin.rpc('reconcile_storage_reservation', { p_reservation_id: rows[0].reservation_id, p_actual_bytes: 0, p_success: false, p_error: failed ? 'R2_CANCEL_CLEANUP_FAILED' : 'UPLOAD_CANCELLED' });
     return reply({ success: !failed, cancelled: !failed, cleanupRequired: failed }, failed ? 207 : 200, cors);
   }
 
@@ -223,11 +294,11 @@ Deno.serve(async (request) => {
     if (!only(body, ['action','groupId','oldUrl'])) return fail('INVALID_REQUEST', 'The replacement request is invalid.', 400, cors);
     const rows = await loadGroup(actor, String(body.groupId || ''));
     const oldUrl = String(body.oldUrl || '');
-    if (!rows || rows.some((row: any) => row.owner_user_id !== actor.user.id || row.status !== 'available') || (oldUrl && !oldUrl.startsWith(`${cfg.publicBaseUrl}/`))) return fail('REPLACEMENT_NOT_AVAILABLE', 'The replacement cleanup request is unavailable.', 409, cors);
+    if (!rows || rows.some((row: any) => row.owner_user_id !== actor.user.id || row.status !== 'available') || (oldUrl && (!/^https:\/\//i.test(oldUrl) || oldUrl.length > 2048))) return fail('REPLACEMENT_NOT_AVAILABLE', 'The replacement cleanup request is unavailable.', 409, cors);
     if (!await authorizeTarget(actor, rows[0].file_category, rows[0].project_id, rows[0].creative_member_id)) return fail('TARGET_NOT_AUTHORIZED', 'You do not have permission to finish this replacement.', 403, cors);
     const next = safeGroupResponse(rows, rows[0].file_category);
     if (!await targetReferences(actor, rows[0], next.primaryUrl) || (oldUrl && await targetReferences(actor, rows[0], oldUrl))) return fail('REFERENCE_NOT_SWITCHED', 'The live reference has not safely switched to the replacement yet.', 409, cors);
-    await actor.admin.from('external_media_objects').update({ upload_expires_at: null }).eq('provider', R2_PROVIDER).eq('media_group_id', rows[0].media_group_id);
+    await actor.admin.from('external_media_objects').update({ upload_expires_at: null, accounting_state: 'active', activated_at: new Date().toISOString() }).eq('provider', R2_PROVIDER).eq('media_group_id', rows[0].media_group_id);
     if (!oldUrl) return reply({ success: true, queued: 0, activated: true }, 200, cors);
     const { data: oldRow } = await actor.admin.from('external_media_objects').select(MEDIA_FIELDS).eq('provider', R2_PROVIDER).eq('public_url', oldUrl).eq('status', 'available').maybeSingle();
     if (!oldRow) return reply({ success: true, queued: 0 }, 200, cors);

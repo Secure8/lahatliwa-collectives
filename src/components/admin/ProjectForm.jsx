@@ -14,7 +14,7 @@ import { categories, parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { collectProjectMediaPaths } from '../../lib/projectMediaCleanup';
 import { getProjectGalleryMediaObjectId } from '../../lib/mediaReferences';
-import { commitManagedMediaReplacement } from '../../lib/r2Media';
+import { commitManagedMediaReplacement, completePublicMediaDraft, createPublicMediaDraft } from '../../lib/r2Media';
 import {
   archiveGoogleDriveProjectFiles,
   deleteGoogleDriveMedia,
@@ -89,6 +89,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [removedGalleryPaths, setRemovedGalleryPaths] = useState([]);
   const [removedExternalMediaIds, setRemovedExternalMediaIds] = useState([]);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
+  const [mediaDraftId, setMediaDraftId] = useState('');
   const [creativeMembers, setCreativeMembers] = useState([]);
   const [selectedCreativeIds, setSelectedCreativeIds] = useState([]);
   const [contributorDetails, setContributorDetails] = useState({});
@@ -101,10 +102,31 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [actionError, setActionError] = useState('');
   const [creditErrorCreativeId, setCreditErrorCreativeId] = useState('');
   const pendingGalleryFilesRef = useRef([]);
+  const mediaDraftRef = useRef({ id: '', promise: null });
   const submitActionRef = useRef('save');
   const submissionInFlightRef = useRef(false);
 
+  async function ensureProjectMediaDraft() {
+    if (initialProject?.id) return initialProject.id;
+    if (mediaDraftRef.current.id) return mediaDraftRef.current.id;
+    if (!mediaDraftRef.current.promise) {
+      mediaDraftRef.current.promise = createPublicMediaDraft('project', {
+        title: form.title, category: form.category, description: form.description,
+      }).then((draft) => {
+        mediaDraftRef.current = { id: draft.id, promise: null };
+        setMediaDraftId(draft.id);
+        setOptimizationMessage('Secure project draft prepared. Media will stay provisional until you save.');
+        return draft.id;
+      }).catch((error) => {
+        mediaDraftRef.current.promise = null;
+        throw error;
+      });
+    }
+    return mediaDraftRef.current.promise;
+  }
+
   useEffect(() => {
+    mediaDraftRef.current = { id: initialProject?.id || '', promise: null };
     setDraftReady(false);
     setContributorDraftReady(false);
     setActionError('');
@@ -142,6 +164,9 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     }
 
     const hasDraft = Object.keys(savedDraft).length > 0;
+    const restoredMediaDraftId = !initialProject?.id && typeof savedMediaCleanup.mediaDraftId === 'string' ? savedMediaCleanup.mediaDraftId : '';
+    mediaDraftRef.current = { id: initialProject?.id || restoredMediaDraftId, promise: null };
+    setMediaDraftId(restoredMediaDraftId);
     setRemovedGalleryPaths(Array.isArray(savedMediaCleanup.removedGalleryPaths) ? savedMediaCleanup.removedGalleryPaths : []);
     setRemovedExternalMediaIds(Array.isArray(savedMediaCleanup.removedExternalMediaIds) ? savedMediaCleanup.removedExternalMediaIds : []);
     setForm({ ...baseForm, ...savedDraft });
@@ -160,10 +185,10 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   useEffect(() => {
     if (!draftReady || !dirty) return;
     try {
-      window.localStorage.setItem(mediaCleanupDraftKey, JSON.stringify({ removedGalleryPaths, removedExternalMediaIds }));
+      window.localStorage.setItem(mediaCleanupDraftKey, JSON.stringify({ removedGalleryPaths, removedExternalMediaIds, mediaDraftId }));
     } catch {
     }
-  }, [dirty, draftReady, mediaCleanupDraftKey, removedExternalMediaIds, removedGalleryPaths]);
+  }, [dirty, draftReady, mediaCleanupDraftKey, mediaDraftId, removedExternalMediaIds, removedGalleryPaths]);
 
   useEffect(() => {
     if (!contributorDraftReady || !contributorsDirty) return;
@@ -300,7 +325,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     try {
       validateCoverUploadFile(file);
       setUploadingImages(true);
-      const path = await uploadCoverImage(file, { onStatus: trackImageUpload, projectId: initialProject?.id || '' });
+      const mediaProjectId = await ensureProjectMediaDraft();
+      const path = await uploadCoverImage(file, { onStatus: trackImageUpload, projectId: mediaProjectId });
       if (form.cover_image && form.cover_image !== path) {
         setRemovedGalleryPaths((current) => current.includes(form.cover_image) ? current : [...current, form.cover_image]);
       }
@@ -473,7 +499,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     try {
       validateExternalThumbnailUploadFile(file);
       setUploadingImages(true);
-      const path = await uploadExternalThumbnail(file, form.slug || slugify(form.title), { onStatus: trackImageUpload, projectId: initialProject?.id || '' });
+      const mediaProjectId = await ensureProjectMediaDraft();
+      const path = await uploadExternalThumbnail(file, form.slug || slugify(form.title), { onStatus: trackImageUpload, projectId: mediaProjectId });
       const oldPath = item.thumbnail_storage_path;
       updateExternalItem(item.id, {
         thumbnail_url: getPublicImageUrl(path),
@@ -584,11 +611,13 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
     try {
       setOptimizationMessage('');
+      let mediaProjectId = initialProject?.id || mediaDraftRef.current.id || '';
+      if (!mediaProjectId) mediaProjectId = await ensureProjectMediaDraft();
       if (removedExternalMediaIds.length && initialProject?.id) {
         await prepareGoogleDriveProjectMediaRemoval(initialProject.id, removedExternalMediaIds);
       }
       for (const pendingItem of pendingGalleryFiles) {
-        const [path] = await uploadGalleryImages([pendingItem.file], { onStatus: trackImageUpload, projectId: initialProject?.id || '' });
+        const [path] = await uploadGalleryImages([pendingItem.file], { onStatus: trackImageUpload, projectId: mediaProjectId });
         if (/^https?:\/\//i.test(path)) uploadedManagedUrls.push(path);
         else uploadedSupabasePaths.push(path);
         uploadedGalleryPaths.push(path);
@@ -652,13 +681,13 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         updated_at: now,
       };
 
-      const query = mode === 'edit'
-        ? supabase.from('projects').update(payload).eq('id', initialProject.id).select('id').single()
+      const query = mode === 'edit' || mediaProjectId
+        ? supabase.from('projects').update(payload).eq('id', initialProject?.id || mediaProjectId).select('id').single()
         : supabase.from('projects').insert(payload).select('id').single();
       const { data: savedProject, error: saveError } = await query;
       if (saveError) throw saveError;
       projectRecordSaved = true;
-      const projectId = initialProject?.id || savedProject?.id;
+      const projectId = initialProject?.id || mediaProjectId || savedProject?.id;
       const activationUrls = [...new Set([
         form.cover_image,
         ...uploadedManagedUrls,
@@ -733,6 +762,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       });
       setPendingGalleryFiles([]);
+      if (mediaDraftRef.current.id && !initialProject?.id) await completePublicMediaDraft('project', mediaDraftRef.current.id);
       clearDraft();
       setDirty(false);
       navigate('/admin/projects');

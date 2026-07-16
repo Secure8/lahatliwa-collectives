@@ -171,7 +171,7 @@ export async function optimizeImageForUpload(file, limitKey, { label = 'Image', 
 }
 
 export async function createWebsiteImageDerivatives(file, { label = 'Image', onStatus } = {}) {
-  if (!file || !isCompressibleUploadImage(file)) throw new Error(`${label} must be a JPEG, PNG, or WebP image.`);
+  if (!file || !['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'].includes(file.type)) throw new Error(`${label} must be a JPEG, PNG, WebP, or SVG image.`);
   onStatus?.({ phase: 'compressing', originalBytes: file.size, fileName: file.name, message: 'Preparing website image sizes…' });
   await yieldToBrowser();
   const image = await loadImage(file);

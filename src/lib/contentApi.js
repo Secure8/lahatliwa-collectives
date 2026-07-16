@@ -1,6 +1,5 @@
 import { createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
 import { defaultPageContent, defaultSiteContent } from '../data/siteContent.js';
-import { optimizeImageForUpload } from './imageCompression.js';
 import { supabase } from './supabaseClient.js';
 import { validateUploadFile } from './uploadLimits.js';
 import { collectReferencedStoragePaths, normalizeStoragePath } from './projectMediaCleanup.js';
@@ -12,7 +11,6 @@ const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
 const MEDIA_TABLE = 'media_assets';
 const BUCKET = 'project-media';
-const UPLOAD_OPTIONS = { upsert: false, cacheControl: '31536000' };
 const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache-v3';
 const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache', 'hevv-public-content-cache-v2'];
 const PUBLIC_CONTENT_UPDATED_EVENT = 'hevv-public-content-updated';
@@ -262,20 +260,9 @@ export async function uploadSiteAssetWithDetails(file, folder = 'site', limitKey
     label: 'Image',
   });
   validateUploadFile(file, limitKey);
-  if (file.type !== 'image/svg+xml') {
-    const category = ['serviceMedia','mediaIcon','siteLogo'].includes(limitKey) ? 'service_image' : 'site_image';
-    const managed = await uploadManagedWebsiteImage(file, { category, onStatus });
-    if (managed?.primaryUrl) return { url: managed.primaryUrl, path: managed.primaryUrl, prepared: null, managedMedia: managed };
-  }
-  const prepared = await optimizeImageForUpload(file, limitKey, { label: 'Image', onStatus });
-  onStatus?.({ phase: 'uploading', ...prepared });
-  const uploadFile = prepared.file;
-  const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
-  const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, UPLOAD_OPTIONS);
-  if (error) throw error;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return { url: data.publicUrl, path, prepared };
+  const category = ['serviceMedia','mediaIcon','siteLogo'].includes(limitKey) ? 'service_image' : 'site_image';
+  const managed = await uploadManagedWebsiteImage(file, { category, onStatus });
+  return { url: managed.primaryUrl, path: managed.primaryUrl, prepared: null, managedMedia: managed };
 }
 
 export async function createMediaAsset({ name, type = 'icon', category = '', url, storagePath = '', altText = '' }) {
@@ -337,19 +324,8 @@ export async function uploadMediaAssetFile(file, folder = 'icons', { onStatus } 
     label: 'Icon',
   });
   validateUploadFile(file, 'mediaIcon');
-  if (file.type !== 'image/svg+xml') {
-    const managed = await uploadManagedWebsiteImage(file, { category: 'service_image', onStatus });
-    if (managed?.primaryUrl) return { url: managed.primaryUrl, path: '' };
-  }
-  const prepared = await optimizeImageForUpload(file, 'mediaIcon', { label: 'Icon', onStatus });
-  onStatus?.({ phase: 'uploading', ...prepared });
-  const uploadFile = prepared.file;
-  const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
-  const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, UPLOAD_OPTIONS);
-  if (error) throw error;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return { url: data.publicUrl, path };
+  const managed = await uploadManagedWebsiteImage(file, { category: 'service_image', onStatus });
+  return { url: managed.primaryUrl, path: '' };
 }
 
 export function mergePublicContent(settings = {}, pages = {}) {

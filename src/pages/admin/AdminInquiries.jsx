@@ -24,6 +24,18 @@ async function functionErrorMessage(error, fallback) {
   return error?.message || fallback;
 }
 
+async function invokeInquiryWorkflow(body) {
+  const { data, error } = await supabase.functions.invoke('inquiry-workflow', { body });
+  if (error) return { data: null, error };
+  if (!data?.success) return { data: null, error: new Error(data?.message || 'The inquiry request failed.') };
+  return { data, error: null };
+}
+
+async function loadInquiryTeamMembers() {
+  const result = await invokeInquiryWorkflow({ action: 'list_team_members' });
+  return { data: result.data?.team || null, error: result.error };
+}
+
 export default function AdminInquiries() {
   const [params] = useSearchParams();
   const { role, adminUser } = useAdminAccess();
@@ -61,7 +73,7 @@ export default function AdminInquiries() {
     setLoadError('');
     const requests = [
       supabase.from('project_inquiries').select(inquiryColumns).order('created_at', { ascending: false }),
-      supabase.rpc('list_inquiry_team_members'),
+      loadInquiryTeamMembers(),
       supabase.from('inquiry_member_responses').select('*').order('updated_at', { ascending: false }),
       supabase.from('inquiry_assignments').select('*').order('created_at', { ascending: false }),
       supabase.from('inquiry_assignment_requests').select('*').order('created_at', { ascending: false }),
@@ -108,9 +120,9 @@ export default function AdminInquiries() {
     if (!selected || working) return false;
     const actionScope = options.scope || (action === 'respond' ? 'responses' : ['approve_request', 'reject_request'].includes(action) ? 'requests' : 'workflow');
     setWorking(true); setError(''); setMessage(''); setFeedbackScope(actionScope);
-    const { error: actionError } = await supabase.rpc('perform_team_inquiry_action', { p_inquiry_id: selected.id, p_action: action, p_payload: { ...payload, expected_workflow_status: selected.workflow_status } });
+    const { error: actionError } = await invokeInquiryWorkflow({ action: 'team_action', inquiryId: selected.id, teamAction: action, payload: { ...payload, expected_workflow_status: selected.workflow_status } });
     if (actionError) {
-      setError(actionError.message || 'The inquiry action could not be completed. Reload and try again.');
+      setError(await functionErrorMessage(actionError, 'The inquiry action could not be completed. Reload and try again.'));
       setWorking(false); await loadWorkspace({ quiet: true }); return false;
     }
     if (options.notifyAssignment) {
@@ -130,7 +142,7 @@ export default function AdminInquiries() {
     setSelectedId(inquiry.id); setError(''); setMessage(''); setFeedbackScope(''); setActionNote(''); setTargetMemberId('');
     setPrivateNote(data.privateNotes.find((note) => note.inquiry_id === inquiry.id)?.note || '');
     if (unreadForInquiry(data.receipts, inquiry.id, memberId)) {
-      await supabase.rpc('perform_team_inquiry_action', { p_inquiry_id: inquiry.id, p_action: 'mark_read', p_payload: { expected_workflow_status: inquiry.workflow_status } });
+      await invokeInquiryWorkflow({ action: 'team_action', inquiryId: inquiry.id, teamAction: 'mark_read', payload: { expected_workflow_status: inquiry.workflow_status } });
       loadWorkspace({ quiet: true });
     }
   }

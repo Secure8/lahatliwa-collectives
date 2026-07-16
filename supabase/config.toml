@@ -385,6 +385,9 @@ deno_version = 2
 [functions.submit-service-request]
 verify_jwt = false
 
+[functions.inquiry-public-options]
+verify_jwt = false
+
 [functions.google-drive-oauth-start]
 verify_jwt = false
 

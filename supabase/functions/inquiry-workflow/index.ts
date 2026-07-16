@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { assignmentDeliveryStatus, canPermanentlyDeleteInquiry, constantTimeTextMatch } from './inquiryWorkflow.js';
+import { assignmentDeliveryStatus, canPermanentlyDeleteInquiry, constantTimeTextMatch, safeTeamInquiryPayload, TEAM_INQUIRY_ACTIONS } from './inquiryWorkflow.js';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 const reply = (body: unknown, status = 200, cors = {}) => new Response(JSON.stringify(body), { status, headers: { ...jsonHeaders, ...cors } });
@@ -74,17 +74,66 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const action = clean(body.action, 50);
-    const inquiryId = clean(body.inquiryId, 80);
-    if (!inquiryId) return fail('INQUIRY_NOT_FOUND', 'The inquiry could not be found.', 404, cors);
-
     const callerClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } });
     const { data: { user }, error: userError } = await callerClient.auth.getUser();
     if (userError || !user) return fail('INVALID_SESSION', 'Your session has expired. Please sign in again.', 401, cors);
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
     const { data: caller, error: callerError } = await admin.from('admin_users').select('id, role, status').eq('user_id', user.id).eq('status', 'active').maybeSingle();
-    if (callerError || !caller) return fail('NOT_AUTHORIZED', 'Only an active Team member may perform this action.', 403, cors);
+    if (callerError || !caller || !['super_admin', 'owner', 'admin', 'editor', 'creative', 'viewer'].includes(caller.role)) return fail('NOT_AUTHORIZED', 'Only an active Team member may perform this action.', 403, cors);
+
+    if (action === 'list_team_members') {
+      const { data: team, error: teamError } = await admin.from('admin_users')
+        .select('id, display_name, role, creative_member_id, avatar_url')
+        .eq('status', 'active')
+        .not('user_id', 'is', null)
+        .in('role', ['super_admin', 'owner', 'admin', 'editor', 'creative', 'viewer'])
+        .order('display_name', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: true });
+      if (teamError) return fail('TEAM_LIST_FAILED', 'The active Team member list could not be loaded.', 500, cors);
+      return reply({
+        success: true,
+        team: (team || []).map((member: any) => ({
+          id: member.id,
+          display_name: clean(member.display_name, 160) || 'Team member',
+          role: member.role === 'owner' ? 'super_admin' : member.role,
+          creative_member_id: member.creative_member_id,
+          avatar_url: member.avatar_url,
+        })),
+      }, 200, cors);
+    }
+
+    const inquiryId = clean(body.inquiryId, 80);
+    if (!inquiryId) return fail('INQUIRY_NOT_FOUND', 'The inquiry could not be found.', 404, cors);
     const { data: inquiry, error: inquiryError } = await admin.from('project_inquiries').select('id, public_reference, name, client_email, summary, details, workflow_status, current_assignee_id').eq('id', inquiryId).maybeSingle();
     if (inquiryError || !inquiry) return fail('INQUIRY_NOT_FOUND', 'The inquiry could not be found.', 404, cors);
+
+    if (action === 'team_action') {
+      const teamAction = clean(body.teamAction, 50);
+      const payload = safeTeamInquiryPayload(body.payload);
+      if (!TEAM_INQUIRY_ACTIONS.has(teamAction) || payload === null) return fail('INVALID_ACTION', 'The requested inquiry action or payload is invalid.', 400, cors);
+      let { data, error } = await admin.rpc('perform_team_inquiry_action_as_service', {
+        p_actor_user_id: user.id,
+        p_inquiry_id: inquiry.id,
+        p_action: teamAction,
+        p_payload: payload,
+      });
+      // Zero-downtime bridge: before the hardening migration exists, use the
+      // caller's verified JWT against the existing actor-authorized RPC. Never
+      // fall back for authorization, validation, or database failures.
+      if (error?.code === 'PGRST202') {
+        ({ data, error } = await callerClient.rpc('perform_team_inquiry_action', {
+          p_inquiry_id: inquiry.id,
+          p_action: teamAction,
+          p_payload: payload,
+        }));
+      }
+      if (error) {
+        console.error('[inquiry-workflow] team action failed', { inquiryId, action: teamAction, code: error.code });
+        const status = ['42501', 'PGRST301'].includes(error.code) ? 403 : ['40001', '23505'].includes(error.code) ? 409 : ['22023', 'P0002'].includes(error.code) ? 400 : 500;
+        return fail('TEAM_ACTION_FAILED', status === 403 ? 'You are not authorized to perform this inquiry action.' : status === 409 ? 'The inquiry changed. Reload and try again.' : status === 400 ? 'The inquiry action is invalid.' : 'The inquiry action could not be completed.', status, cors);
+      }
+      return reply({ success: true, result: data }, 200, cors);
+    }
 
     if (action === 'permanent_delete') {
       if (!canPermanentlyDeleteInquiry(caller.role, inquiry.workflow_status, body.confirmation)) return fail('DELETE_NOT_ALLOWED', 'Only a completed or closed inquiry can be permanently deleted by the Super Admin.', 409, cors);

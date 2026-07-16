@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { canAcceptInquiry, canCompleteInquiry, canDeleteInquiry, inquiryMatchesView, responseSummary, unreadForInquiry } from './teamInquiryWorkspace.js';
-import { assignmentDeliveryStatus, canPermanentlyDeleteInquiry } from '../../supabase/functions/inquiry-workflow/inquiryWorkflow.js';
+import { assignmentDeliveryStatus, canPermanentlyDeleteInquiry, safeTeamInquiryPayload, TEAM_INQUIRY_ACTIONS } from '../../supabase/functions/inquiry-workflow/inquiryWorkflow.js';
 
 const files = Promise.all([
   readFile(new URL('../../supabase/team_inquiry_workspace.sql', import.meta.url), 'utf8'),
@@ -47,6 +47,21 @@ test('accept, transfer, request, and completion permissions are enforced server-
   assert.equal(canAcceptInquiry({ current_assignee_id: 'a', workflow_status: 'awaiting_response' }, 'a'), true);
   assert.equal(canCompleteInquiry({ current_assignee_id: 'a', workflow_status: 'accepted' }, 'a', 'creative'), true);
   assert.equal(canCompleteInquiry({ current_assignee_id: 'a', workflow_status: 'accepted' }, 'b', 'creative'), false);
+});
+
+test('protected inquiry endpoint allowlists actions and bounds every accepted payload field', async () => {
+  const [, ui, , , workflowEdge] = await files;
+  assert.equal(TEAM_INQUIRY_ACTIONS.has('admin_assign'), true);
+  assert.equal(TEAM_INQUIRY_ACTIONS.has('execute_sql'), false);
+  assert.equal(safeTeamInquiryPayload({ unexpected: 'value' }), null);
+  assert.equal(safeTeamInquiryPayload([]), null);
+  assert.equal(safeTeamInquiryPayload({ note: `ok\u0000${'x'.repeat(2100)}` }).note.length, 2000);
+  assert.deepEqual(safeTeamInquiryPayload({ response: ' available ', expected_workflow_status: ' open ' }), { response: 'available', expected_workflow_status: 'open' });
+  assert.match(workflowEdge, /TEAM_INQUIRY_ACTIONS\.has\(teamAction\)/);
+  assert.match(workflowEdge, /perform_team_inquiry_action_as_service/);
+  assert.match(workflowEdge, /if \(error\?\.code === 'PGRST202'\)[\s\S]*callerClient\.rpc\('perform_team_inquiry_action'/);
+  assert.doesNotMatch(workflowEdge, /if \(error\)[\s\S]{0,100}callerClient\.rpc\('perform_team_inquiry_action'/);
+  assert.match(ui, /action: 'team_action'/);
 });
 
 test('unread state is independent per member and initialized for every active Team member', async () => {

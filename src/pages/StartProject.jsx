@@ -71,11 +71,11 @@ export default function StartProject() {
     let active = true;
     Promise.all([
       supabase.from('service_branches').select('name, slug, included_services').eq('is_published', true).order('display_order', { ascending: true, nullsFirst: false }),
-      supabase.rpc('list_eligible_inquiry_creatives'),
+      supabase.functions.invoke('inquiry-public-options', { body: { action: 'list' } }),
     ]).then(([branchResult, creativeResult]) => {
       if (!active) return;
       setBranches(branchResult.data || []);
-      setCreatives(creativeResult.data || []);
+      setCreatives(creativeResult.data?.creatives || []);
       if (branchResult.error || creativeResult.error) setChoiceLoadError('Some current service choices could not be verified. Unavailable options have been hidden for safety.');
       setLoadingChoices(false);
     });

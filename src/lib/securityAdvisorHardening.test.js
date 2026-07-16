@@ -34,20 +34,20 @@ test('invoker prerequisites expose only safe storage columns', async () => {
   }
 });
 
-test('public and authenticated inquiry RPC grants match actual application callers', async () => {
+test('inquiry callers use narrow Edge endpoints instead of directly exposed definer RPCs', async () => {
   const [sql, startProject, adminInquiries] = await Promise.all([
-    source('supabase/security_advisor_hardening.sql'),
+    source('supabase/migrations/20260717100000_security_advisor_findings_hardening.sql'),
     source('src/pages/StartProject.jsx'),
     source('src/pages/admin/AdminInquiries.jsx'),
   ]);
 
-  assert.match(startProject, /supabase\.rpc\('list_eligible_inquiry_creatives'\)/);
-  assert.match(sql, /grant execute on function public\.list_eligible_inquiry_creatives\(\)\s+to anon, authenticated/);
-  assert.match(adminInquiries, /supabase\.rpc\('list_inquiry_team_members'\)/);
-  assert.equal((adminInquiries.match(/supabase\.rpc\('perform_team_inquiry_action'/g) || []).length, 2);
-  assert.match(sql, /grant execute on function public\.list_inquiry_team_members\(\)\s+to authenticated/);
-  assert.match(sql, /grant execute on function public\.perform_team_inquiry_action\(uuid, text, jsonb\)\s+to authenticated/);
-  assert.doesNotMatch(sql, /grant execute on function public\.(?:list_inquiry_team_members|perform_team_inquiry_action)[\s\S]{0,100}\bto anon\b/);
+  assert.match(startProject, /functions\.invoke\('inquiry-public-options'/);
+  assert.doesNotMatch(startProject, /rpc\('list_eligible_inquiry_creatives'/);
+  assert.match(adminInquiries, /functions\.invoke\('inquiry-workflow'/);
+  assert.doesNotMatch(adminInquiries, /rpc\('(?:list_inquiry_team_members|perform_team_inquiry_action)'/);
+  for (const signature of ['list_eligible_inquiry_creatives\\(\\)', 'list_inquiry_team_members\\(\\)', 'perform_team_inquiry_action\\(uuid, text, jsonb\\)']) {
+    assert.match(sql, new RegExp(`revoke all on function public\\.${signature} from public, anon, authenticated, service_role`));
+  }
 });
 
 test('SECURITY DEFINER functions keep explicit authorization and safe resolution', async () => {
@@ -76,38 +76,42 @@ test('SECURITY DEFINER functions keep explicit authorization and safe resolution
 });
 
 test('public, authenticated, owner, Team-member, and admin access remain distinct', async () => {
-  const [hardening, portal, workspace, rbac] = await Promise.all([
-    source('supabase/security_advisor_hardening.sql'),
+  const [hardening, portal, workspace, rbac, publicEdge, teamEdge] = await Promise.all([
+    source('supabase/migrations/20260717100000_security_advisor_findings_hardening.sql'),
     source('supabase/service_request_portal.sql'),
     source('supabase/team_inquiry_workspace.sql'),
     source('supabase/team_rbac_upgrade.sql'),
+    source('supabase/functions/inquiry-public-options/index.ts'),
+    source('supabase/functions/inquiry-workflow/index.ts'),
   ]);
 
-  assert.match(hardening, /list_eligible_inquiry_creatives\(\)\s+to anon, authenticated/);
+  assert.match(hardening, /list_eligible_inquiry_creatives\(\) from public, anon, authenticated, service_role/);
   assert.match(portal, /returns table \(id uuid, name text, slug text, role text, profile_image_url text\)/);
+  assert.match(publicEdge, /select\('id, name, slug, role, profile_image_url'\)/);
+  assert.doesNotMatch(publicEdge, /select\([^)]*(?:email|user_id|availability_note)/);
   assert.match(workspace, /where private\.is_active_inquiry_team_member\(auth\.uid\(\)\)/);
   assert.match(workspace, /member\.role in \('super_admin', 'owner', 'admin', 'editor', 'creative', 'viewer'\)/);
   assert.match(workspace, /actor\.role not in \('super_admin', 'owner', 'admin', 'editor', 'creative', 'viewer'\)/);
   assert.match(workspace, /is_super_admin := actor\.role in \('super_admin', 'owner'\)/);
   assert.match(rbac, /when role = 'owner' then 'super_admin'/);
-  assert.match(hardening, /private\.has_role\(auth\.uid\(\), array\['super_admin'\]\)/);
+  assert.match(teamEdge, /auth\.getUser\(\)/);
+  assert.match(teamEdge, /eq\('user_id', user\.id\)\.eq\('status', 'active'\)/);
 });
 
-test('role matrix and Phase 4 isolation are encoded without touching pg_net', async () => {
+test('new hardening is isolated from public-media redesign and does not touch pg_net', async () => {
   const [sql, flags, phase4, cron] = await Promise.all([
-    source('supabase/security_advisor_hardening.sql'),
+    source('supabase/migrations/20260717100000_security_advisor_findings_hardening.sql'),
     source('.env.example'),
     source('docs/google-drive-byos-phase4-project-gallery.md'),
     source('supabase/storage_cleanup_worker_cron.sql'),
   ]);
 
-  assert.match(sql, /has_function_privilege\('anon', 'public\.list_eligible_inquiry_creatives\(\)', 'execute'\)/);
-  assert.match(sql, /has_function_privilege\('authenticated', 'public\.list_inquiry_team_members\(\)', 'execute'\)/);
-  assert.match(sql, /has_function_privilege\('authenticated', 'public\.perform_team_inquiry_action\(uuid,text,jsonb\)', 'execute'\)/);
-  assert.match(sql, /private\.has_role\(auth\.uid\(\), array\['super_admin'\]\)/);
+  assert.match(sql, /has_function_privilege\('anon', 'public\.list_eligible_inquiry_creatives\(\)', 'EXECUTE'\)/);
+  assert.match(sql, /has_function_privilege\('authenticated', 'public\.list_inquiry_team_members\(\)', 'EXECUTE'\)/);
+  assert.match(sql, /has_function_privilege\('authenticated', 'public\.perform_team_inquiry_action\(uuid,text,jsonb\)', 'EXECUTE'\)/);
   assert.match(flags, /VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=false/);
   assert.match(phase4, /No new SQL is required/);
   assert.match(cron, /net\.http_post/);
   assert.doesNotMatch(sql, /(?:create|alter|drop)\s+extension\s+(?:if\s+(?:not\s+)?exists\s+)?pg_net/i);
-  assert.doesNotMatch(sql, /external_media_objects|google-drive-media-lifecycle|VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED/);
+  assert.doesNotMatch(sql, /google-drive-media-lifecycle|VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED|imagemagick|cpu.limit/i);
 });

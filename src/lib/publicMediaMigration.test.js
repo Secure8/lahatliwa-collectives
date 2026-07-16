@@ -22,6 +22,14 @@ test('prepare claims exactly one record and stale tasks become recoverable', () 
   assert.doesNotMatch(edge, /process_batch/);
 });
 
+test('prepare uses one bounded ranged GET instead of HEAD or full-file buffering', () => {
+  const probe = edge.match(/async function sourceProbe[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(probe, /Range: 'bytes=0-31'/);
+  assert.match(probe, /inspectSourceImageProbe/);
+  assert.doesNotMatch(probe, /method: 'HEAD'|arrayBuffer\(|\.download\(/);
+  assert.match(edge, /sourceProbe: probe\.diagnostics/);
+});
+
 test('retry preserves stable destination identity and does not expose object keys', () => {
   assert.match(edge, /migration\.destination_media_group_id/);
   assert.match(edge, /knownGroups/);

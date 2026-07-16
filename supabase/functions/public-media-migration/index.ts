@@ -4,6 +4,7 @@ import {
   r2Configuration, r2PublicUrl, safeR2ObjectKey, signedR2Request, validateR2UploadRequest,
 } from '../_shared/r2Media.js';
 import { migrationIdentity, validateLegacyImageSource } from '../_shared/storageGovernance.js';
+import { inspectSourceImageProbe } from '../_shared/sourceImageProbe.js';
 
 const BUCKET = 'project-media';
 const TASK_TTL_MS = 8 * 60 * 1000;
@@ -104,16 +105,17 @@ async function validateTask(actor: any, migrationId: string, token: string, { al
 }
 
 async function sourceProbe(url: string, migration: any) {
-  const head = await fetch(url, { method: 'HEAD', redirect: 'error' });
-  if (!head.ok) throw Object.assign(new Error('The selected Supabase source is unavailable.'), { code: 'MISSING_SUPABASE_SOURCE', manual: true });
-  const bytes = Number(head.headers.get('content-length') || 0); const mime = String(head.headers.get('content-type') || '').split(';')[0].toLowerCase();
-  if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > MAX_BROWSER_SOURCE_BYTES) throw Object.assign(new Error('This source is too large for safe browser migration.'), { code: 'SOURCE_TOO_LARGE_FOR_BROWSER', manual: true });
-  const range = await fetch(url, { headers: { Range: 'bytes=0-31' }, redirect: 'error' });
-  if (!range.ok) throw Object.assign(new Error('The selected Supabase source could not be inspected.'), { code: 'SOURCE_PROBE_FAILED', manual: true });
-  const reader = range.body?.getReader(); const first = reader ? (await reader.read()).value || new Uint8Array() : new Uint8Array(); await reader?.cancel();
-  const validation = validateLegacyImageSource({ path: migration.source_path, mimeType: mime, sizeBytes: bytes, signature: first.slice(0, 16) });
-  if (!validation.eligible) throw Object.assign(new Error('The source image format is unsupported or does not match its signature.'), { code: cleanError(validation.reason, 'SOURCE_INVALID'), manual: true });
-  return { bytes, mime: validation.mimeType };
+  const response = await fetch(url, { headers: { Range: 'bytes=0-31', Accept: 'image/jpeg,image/png,image/webp' }, redirect: 'error' });
+  let probe: any;
+  try { probe = await inspectSourceImageProbe(response); }
+  catch (error) { throw Object.assign(error, { manual: ['SOURCE_PROBE_NON_IMAGE_RESPONSE','SOURCE_PROBE_TOO_SHORT','SOURCE_SIGNATURE_MISMATCH'].includes(error?.code) }); }
+  if (probe.sizeBytes > MAX_BROWSER_SOURCE_BYTES) throw Object.assign(new Error('This source is too large for safe browser migration.'), { code: 'SOURCE_TOO_LARGE_FOR_BROWSER', manual: true, diagnostics: probe.diagnostics });
+  const validation = validateLegacyImageSource({ path: migration.source_path, mimeType: probe.mimeType, sizeBytes: probe.sizeBytes, signature: probe.bytes.slice(0, 32) });
+  if (!validation.eligible) {
+    const code = validation.reason === 'signature_mismatch' ? 'SOURCE_SIGNATURE_MISMATCH' : 'SOURCE_FORMAT_UNSUPPORTED';
+    throw Object.assign(new Error(code === 'SOURCE_SIGNATURE_MISMATCH' ? 'The source image signature does not match its declared type.' : 'The source image format is unsupported.'), { code, manual: true, diagnostics: probe.diagnostics });
+  }
+  return { bytes: probe.sizeBytes, mime: validation.mimeType, diagnostics: probe.diagnostics };
 }
 
 async function prepareOne(actor: any, cfg: any) {
@@ -165,13 +167,13 @@ async function prepareOne(actor: any, cfg: any) {
       prepared.push({ mediaId: row.id, variant, objectKey: row.external_file_id });
     }
     const token = secureToken(); const expiresAt = new Date(Date.now() + TASK_TTL_MS).toISOString();
-    const update = await actor.admin.from('storage_migrations').update({ migration_phase: 'prepared', destination_media_group_id: groupId, destination_bucket: cfg.bucketName, task_token_hash: await sha256(token), task_expires_at: expiresAt, task_actor_user_id: actor.user.id, task_prepared_at: new Date().toISOString(), task_consumed_at: null, migration_operation_id: operationId, reservation_id: reservation.reservationId, prepared_objects: prepared, prepared_source_reference: reference, browser_transform_status: 'waiting', bytes_total: probe.bytes, source_mime_type: probe.mime, last_finalization_error: null, updated_at: new Date().toISOString() }).eq('id', migration.id).eq('lock_token', migration.lock_token); if (update.error) throw update.error;
+    const update = await actor.admin.from('storage_migrations').update({ migration_phase: 'prepared', destination_media_group_id: groupId, destination_bucket: cfg.bucketName, task_token_hash: await sha256(token), task_expires_at: expiresAt, task_actor_user_id: actor.user.id, task_prepared_at: new Date().toISOString(), task_consumed_at: null, migration_operation_id: operationId, reservation_id: reservation.reservationId, prepared_objects: prepared, prepared_source_reference: reference, browser_transform_status: 'waiting', bytes_total: probe.bytes, source_mime_type: probe.mime, verification_details: { ...(migration.verification_details || {}), sourceProbe: probe.diagnostics }, last_finalization_error: null, updated_at: new Date().toISOString() }).eq('id', migration.id).eq('lock_token', migration.lock_token); if (update.error) throw update.error;
     await actor.admin.from('external_media_objects').update({ mime_type: probe.mime, size_bytes: probe.bytes, trusted_size_bytes: probe.bytes, status: 'available', verification_status: 'verified', last_verified_at: new Date().toISOString() }).eq('id', migration.source_media_object_id);
     await actor.admin.from('storage_audit_events').insert({ actor_user_id: actor.user.id, action: 'public_media_migration_prepared', target_type: 'storage_migration', target_id: migration.id, outcome: 'allowed', details: { mediaGroupId: groupId, expiresAt, sourceBytes: probe.bytes, resumed: Boolean(migration.destination_media_group_id || existingRows.length), providerObjectsFound, reusableProviderObjects, retryStrategy: existingRows.length ? 'reuse_identity_and_overwrite_verified_keys' : 'new_group' } });
     return { claimed: 1, task: { migrationId: migration.id, token, expiresAt, source: { url: signed.signedUrl, filename: String(migration.source_path).split('/').pop() || 'source-image', mimeType: probe.mime, sizeBytes: probe.bytes, maxBytes: MAX_BROWSER_SOURCE_BYTES }, mediaGroupId: groupId, category: migration.media_category, uploads: prepared.map(({ mediaId, variant }) => ({ mediaId, variant })), rules: R2_VARIANTS } };
   } catch (problem) {
     if (activeReservationId) await actor.admin.rpc('reconcile_storage_reservation', { p_reservation_id: activeReservationId, p_actual_bytes: 0, p_success: false, p_error: problem?.code || 'MIGRATION_PREPARE_FAILED' });
-    const status = problem?.manual ? 'manual_review' : 'failed'; await actor.admin.from('storage_migrations').update({ status, migration_phase: problem?.manual ? 'manual_review' : 'recoverable', recoverable_at: problem?.manual ? null : new Date().toISOString(), last_error_code: problem?.code || 'MIGRATION_PREPARE_FAILED', last_error_message: String(problem?.message || 'Migration preparation failed.').slice(0, 500), manual_review_reason: problem?.manual ? String(problem.message).slice(0, 500) : null, lock_token: null, locked_at: null, locked_by: null, updated_at: new Date().toISOString() }).eq('id', migration.id); throw problem;
+    const status = problem?.manual ? 'manual_review' : 'failed'; await actor.admin.from('storage_migrations').update({ status, migration_phase: problem?.manual ? 'manual_review' : 'recoverable', recoverable_at: problem?.manual ? null : new Date().toISOString(), last_error_code: problem?.code || 'MIGRATION_PREPARE_FAILED', last_error_message: String(problem?.message || 'Migration preparation failed.').slice(0, 500), manual_review_reason: problem?.manual ? String(problem.message).slice(0, 500) : null, verification_details: { ...(migration.verification_details || {}), ...(problem?.diagnostics ? { sourceProbe: problem.diagnostics } : {}) }, lock_token: null, locked_at: null, locked_by: null, updated_at: new Date().toISOString() }).eq('id', migration.id); throw problem;
   }
 }
 

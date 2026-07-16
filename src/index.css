@@ -629,6 +629,13 @@ summary::-webkit-details-marker {
   margin-top: 0.625rem;
 }
 
+.grid > .admin-surface + .admin-surface,
+.flex > .admin-surface + .admin-surface,
+.grid > article + article,
+.flex > article + article {
+  margin-top: 0;
+}
+
 .admin-record-card,
 .admin-shell article {
   margin-block: 0;
@@ -645,6 +652,18 @@ summary::-webkit-details-marker {
 .admin-shell article:hover {
   border-color: rgb(255 255 255 / 0.08) !important;
   background: rgb(255 255 255 / 0.025);
+}
+
+.admin-shell article.admin-project-box {
+  border: 1px solid rgb(255 255 255 / 0.1) !important;
+  border-radius: 0.5rem;
+  background: rgb(9 9 11 / 0.48);
+  padding: 1rem !important;
+}
+
+.admin-shell article.admin-project-box:hover {
+  border-color: rgb(255 255 255 / 0.16) !important;
+  background: rgb(255 255 255 / 0.035);
 }
 
 .admin-sidebar-link[aria-current="page"] .admin-sidebar-icon {
@@ -719,6 +738,30 @@ summary::-webkit-details-marker {
   border-color: color-mix(in srgb, var(--theme-focus-ring) 68%, transparent);
   background-color: var(--theme-primary-surface);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-focus-ring) 16%, transparent), inset 0 1px 2px rgb(0 0 0 / 0.12);
+  outline: none;
+}
+
+.admin-shell input[type="search"]:focus {
+  box-shadow: none;
+}
+
+.admin-shell [data-search-shell] {
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.admin-shell [data-search-shell]:focus-within {
+  border-color: color-mix(in srgb, var(--theme-focus-ring) 68%, transparent);
+}
+
+.admin-shell [data-search-shell] > input[type="search"],
+.admin-shell [data-search-shell] > input[type="search"]:hover,
+.admin-shell [data-search-shell] > input[type="search"]:focus {
+  min-height: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent;
+  padding-inline: 0;
+  box-shadow: none !important;
   outline: none;
 }
 
@@ -1297,6 +1340,10 @@ html.theme-transition::view-transition-new(root) { z-index: 2; }
 [data-theme="light"] .admin-shell article:hover {
   border-bottom-color: rgb(65 57 49 / 0.12) !important;
   background: rgb(65 57 49 / 0.035);
+}
+[data-theme="light"] .admin-shell article.admin-project-box {
+  border-color: rgb(65 57 49 / 0.13) !important;
+  background: #fffdf8;
 }
 [data-theme="light"] .admin-form-section,
 [data-theme="light"] .admin-surface {

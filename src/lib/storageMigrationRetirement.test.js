@@ -43,7 +43,7 @@ test('monitoring remains provider-authoritative and independent from migration t
   assert.match(reconciliation, /external_media_objects/);
   assert.match(reconciliation, /missing_supabase_source/);
   assert.doesNotMatch(reconciliation, /storage_migrations|migration_id/);
-  assert.match(page, /Provider overview/);
-  assert.match(page, /Existing Supabase media/);
+  assert.match(page, /Storage usage/);
+  assert.match(page, /Existing public media stays in Supabase/);
   assert.doesNotMatch(page, /migration_paused|migration_retention_days|Rollback days/);
 });

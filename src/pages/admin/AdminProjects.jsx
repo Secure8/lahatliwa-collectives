@@ -197,18 +197,19 @@ export default function AdminProjects() {
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Homepage curation</p>
                   <h2 className="mt-2 text-xl font-semibold text-white">Featured order</h2>
-                  <p className="mt-2 text-sm text-zinc-500">Use the Up and Down buttons, or drag with a pointer, to arrange how projects appear on the homepage.</p>
+                  <p className="mt-2 text-sm text-zinc-500">Use the arrow buttons, or drag with a pointer, to arrange how projects appear on the homepage.</p>
                 </div>
                 {savingOrder && <span className="text-sm text-amber-200">Saving order...</span>}
               </div>
               {featuredProjects.length ? (
-                <div className="overflow-hidden rounded-md border border-white/[0.08]">
+                <div data-featured-project-grid className="grid gap-3 sm:gap-4">
                   <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{orderAnnouncement}</p>
                   {featuredProjects.map((project, index) => (
                     <AdminProjectCard
                       key={`featured-${project.id}`}
                       project={project}
                       onDelete={deleteProject}
+                      separated
                       draggable={!savingOrder}
                       isDragging={draggingProjectId === project.id}
                       orderLabel={`#${index + 1}`}
@@ -237,11 +238,11 @@ export default function AdminProjects() {
               <div className="border-b border-white/[0.1] p-4 sm:p-5">
                 <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-zinc-600">Content library</p><h2 className="mt-1 text-lg font-semibold text-white">All projects</h2></div><span className="text-xs tabular-nums text-zinc-500">{filteredProjects.length} shown</span></div>
                 <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(16rem,1fr)_auto] xl:items-center">
-                  <label className="flex h-10 items-center gap-2 rounded-md border border-white/[0.12] bg-zinc-950 px-3"><Search size={15} className="text-zinc-600" /><span className="sr-only">Search projects</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title, category, or slug" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600" /></label>
+                  <label data-search-shell className="flex h-10 items-center gap-2 rounded-md border border-white/[0.12] bg-zinc-950 px-3"><Search size={15} className="text-zinc-600" /><span className="sr-only">Search projects</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title, category, or slug" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600" /></label>
                   <div className="flex gap-1 overflow-x-auto" aria-label="Filter admin projects">{[['all','All'],['published','Published'],['draft','Drafts'],['archived','Archived'],['owned','Mine']].map(([key,label])=><button key={key} type="button" aria-pressed={filter===key} onClick={()=>setFilter(key)} className={`interactive-tab h-10 shrink-0 px-3 text-xs ${filter===key?'text-white':'text-zinc-500 hover:text-white'}`}>{label}</button>)}</div>
                 </div>
               </div>
-              <div>{filteredProjects.map((project) => <AdminProjectCard key={project.id} project={project} onDelete={deleteProject} />)}</div>
+              <div data-project-card-grid className="grid gap-3 p-4 sm:gap-4 sm:p-5">{filteredProjects.map((project) => <AdminProjectCard key={project.id} project={project} onDelete={deleteProject} separated />)}</div>
               {!filteredProjects.length && <p className="px-5 py-12 text-center text-sm text-zinc-500">{search ? 'No projects match this search.' : filter === 'owned' ? 'You have not created any projects yet.' : `No ${filter === 'all' ? 'team' : filter} projects yet.`}</p>}
             </section>
           </div>

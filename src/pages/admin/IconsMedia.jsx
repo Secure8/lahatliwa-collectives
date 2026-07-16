@@ -196,7 +196,7 @@ export default function IconsMedia() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,1fr)_12rem_12rem]">
             <label className="grid gap-1.5 text-sm text-zinc-300">
               <span>Search assets</span>
-              <span className="flex items-center gap-2 border-b border-white/[0.12]">
+              <span data-search-shell className="flex items-center gap-2 border-b border-white/[0.12]">
                 <Search size={15} className="shrink-0 text-zinc-600" />
                 <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, alt text, category, or filename" className={lineInput} />
               </span>

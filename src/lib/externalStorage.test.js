@@ -146,7 +146,7 @@ test('admin Storage exposes safe connection actions and an isolated flagged test
   assert.match(page, /Public media is unchanged/);
   assert.match(page, /STORAGE_FEATURE_FLAGS\.googleDriveTestUploadEnabled/);
   assert.match(page, /state\.testUploadEnabled/);
-  assert.match(page, /storage_connection_operations/);
+  assert.doesNotMatch(page, /storage_connection_operations|Connection overview/);
   assert.doesNotMatch(page, /credential_secret_id|access_token|refresh_token/);
   assert.match(app, /allow=\{\['super_admin', 'creative'\]\}/);
   assert.match(layout, /\['Storage', '\/admin\/storage', HardDrive, canSeeStorageNavigation\]/);

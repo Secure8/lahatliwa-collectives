@@ -128,6 +128,47 @@ test('adjacent admin content holders keep a small visual separation', async () =
   assert.match(styles, /\.admin-form-section \+ \.admin-form-section,[\s\S]*?margin-top:\s*0\.625rem/);
   assert.match(styles, /\.admin-surface \+ \.admin-surface/);
   assert.match(styles, /\.admin-record-card \+ \.admin-record-card/);
+  assert.match(styles, /\.grid > \.admin-surface \+ \.admin-surface,[\s\S]*?\.flex > \.admin-surface \+ \.admin-surface[\s\S]*?margin-top:\s*0/);
+});
+
+test('All projects and featured ordering use separated project card holders', async () => {
+  const [projects, card, styles] = await Promise.all([
+    source('../pages/admin/AdminProjects.jsx'),
+    source('../components/admin/AdminProjectCard.jsx'),
+    source('../index.css'),
+  ]);
+  assert.match(projects, /data-project-card-grid className="grid gap-3 p-4 sm:gap-4 sm:p-5"/);
+  assert.match(projects, /data-featured-project-grid className="grid gap-3 sm:gap-4"/);
+  assert.match(projects, /key=\{`featured-\$\{project\.id\}`\}[\s\S]*?onDelete=\{deleteProject\}[\s\S]*?separated[\s\S]*?draggable=/);
+  assert.match(projects, /onDelete=\{deleteProject\} separated/);
+  assert.match(card, /separated \? 'admin-project-box'/);
+  assert.match(styles, /\.admin-shell article\.admin-project-box[\s\S]*?border-radius:\s*0\.5rem/);
+  assert.match(styles, /\.grid > article \+ article,[\s\S]*?margin-top:\s*0/);
+});
+
+test('admin search fields render one boundary with a single restrained focus state', async () => {
+  const [projects, creatives, directory, media, palette, styles] = await Promise.all([
+    source('../pages/admin/AdminProjects.jsx'),
+    source('../pages/admin/AdminCreatives.jsx'),
+    source('../pages/admin/CreativeDirectory.jsx'),
+    source('../pages/admin/IconsMedia.jsx'),
+    source('../components/admin/AdminCommandPalette.jsx'),
+    source('../index.css'),
+  ]);
+  for (const screen of [projects, creatives, directory, media, palette]) assert.match(screen, /data-search-shell/);
+  assert.match(styles, /input\[type="search"\]:focus[\s\S]*?box-shadow:\s*none/);
+  assert.match(styles, /\[data-search-shell\] > input\[type="search"\][\s\S]*?border:\s*0 !important[\s\S]*?box-shadow:\s*none !important/);
+});
+
+test('service branch admin previews reuse real uploaded public media without generated icons', async () => {
+  const adminBranches = await source('../pages/admin/AdminServiceBranches.jsx');
+  assert.match(adminBranches, /usePublicContent\(\['services'\]\)/);
+  assert.match(adminBranches, /<BranchIconPreview branch=\{branch\} groups=\{content\.servicesPage\?\.groups\}/);
+  assert.match(adminBranches, /groups\.find\(\(group\) => branchKeyFromRecord\(group\) === branchKey\)/);
+  assert.match(adminBranches, /branch\.icon_url \|\| branch\.image_url \|\| publicGroup\?\.customIconUrl \|\| publicGroup\?\.iconUrl \|\| publicGroup\?\.serviceLogoUrl/);
+  assert.doesNotMatch(adminBranches, /branch\.name\?\.slice\(0,1\)\|\|'L'/);
+  assert.doesNotMatch(adminBranches, /serviceBranchIcon|<Icon size=/);
+  assert.match(adminBranches, />No icon</);
 });
 
 test('dashboard prioritizes summary, urgent work, and a small primary action set', async () => {

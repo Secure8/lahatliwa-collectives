@@ -11,5 +11,5 @@ async function invoke(body) {
   return data;
 }
 
-export const fetchStorageGovernanceDashboard = () => invoke({ action: 'dashboard' });
+export const fetchStorageGovernanceDashboard = ({ forceRefresh = false } = {}) => invoke({ action: 'dashboard', forceRefresh });
 export const updateStoragePolicy = (policy) => invoke({ action: 'update_policy', policy });

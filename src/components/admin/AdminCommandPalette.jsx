@@ -56,7 +56,7 @@ export default function AdminCommandPalette({ groups = [] }) {
         <div className="fixed inset-0 z-[80] flex items-start justify-center bg-black/70 px-4 pt-[max(6rem,12vh)]" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
           <section ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="admin-command-title" className="w-full max-w-xl overflow-hidden rounded-lg border border-white/[0.13] bg-zinc-950 shadow-2xl shadow-black/50">
             <h2 id="admin-command-title" className="sr-only">Admin command palette</h2>
-            <div className="flex items-center gap-3 border-b border-white/[0.1] px-4">
+            <div data-search-shell className="flex items-center gap-3 border-b border-white/[0.1] px-4">
               <Search size={18} className="text-zinc-500" aria-hidden="true" />
               <input
                 data-drawer-initial-focus

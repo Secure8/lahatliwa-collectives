@@ -20,6 +20,7 @@ export default function AdminProjectCard({
   moving = false,
   onMoveUp,
   onMoveDown,
+  separated = false,
 }) {
   const mediaCount = (project.gallery_images || []).length + (project.gallery_items || []).length;
   const { role, user } = useAdminAccess();
@@ -35,7 +36,8 @@ export default function AdminProjectCard({
       onDragOver={onDragOver}
       onDrop={onDrop}
       className={clsx(
-        'group grid gap-4 border-b border-white/[0.06] px-1 py-4 transition-colors duration-150 last:border-b-0 md:grid-cols-[1fr_auto] md:items-center md:px-2',
+        'group grid gap-4 transition-colors duration-150 md:grid-cols-[1fr_auto] md:items-center',
+        separated ? 'admin-project-box' : 'border-b border-white/[0.06] px-1 py-4 last:border-b-0 md:px-2',
         draggable && 'cursor-grab active:cursor-grabbing',
         isDragging && 'bg-amber-200/[0.08] opacity-75 ring-amber-200/30'
       )}
@@ -68,11 +70,11 @@ export default function AdminProjectCard({
       </div>
       <AdminActionGroup className="admin-record-actions md:justify-end">
         {draggable && <>
-          <AdminActionButton onClick={onMoveUp} disabled={moving || position === 0} aria-label={`Move ${project.title} up`}>
-            <ArrowUp size={14} aria-hidden="true" /> Up
+          <AdminActionButton className="w-9 px-0" onClick={onMoveUp} disabled={moving || position === 0} aria-label={`Move ${project.title} up`} title="Move up">
+            <ArrowUp size={16} aria-hidden="true" />
           </AdminActionButton>
-          <AdminActionButton onClick={onMoveDown} disabled={moving || position === total - 1} aria-label={`Move ${project.title} down`}>
-            <ArrowDown size={14} aria-hidden="true" /> Down
+          <AdminActionButton className="w-9 px-0" onClick={onMoveDown} disabled={moving || position === total - 1} aria-label={`Move ${project.title} down`} title="Move down">
+            <ArrowDown size={16} aria-hidden="true" />
           </AdminActionButton>
         </>}
         {canEdit && <AdminActionButton to={`/admin/projects/${project.id}/edit`}>

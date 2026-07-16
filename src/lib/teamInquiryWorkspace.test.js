@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { canAcceptInquiry, canCompleteInquiry, canDeleteInquiry, inquiryMatchesView, responseSummary, unreadForInquiry } from './teamInquiryWorkspace.js';
+import { canAcceptInquiry, canCompleteInquiry, canDeleteInquiry, inquiryMatchesView, responseSummary, unreadForInquiry, WORKFLOW_VIEWS } from './teamInquiryWorkspace.js';
 import { assignmentDeliveryStatus, canPermanentlyDeleteInquiry, safeTeamInquiryPayload, TEAM_INQUIRY_ACTIONS } from '../../supabase/functions/inquiry-workflow/inquiryWorkflow.js';
 
 const files = Promise.all([
@@ -112,6 +112,16 @@ test('dashboard uses authoritative refresh with cleaned-up Realtime subscription
   assert.match(layout, /supabase\.removeChannel\(channel\)/);
   assert.match(ui, /overflow-x-hidden/);
   assert.doesNotMatch(ui, /w-screen|min-w-screen/);
+});
+
+test('inquiry filters use uniform responsive controls without a sideways button strip', async () => {
+  const [, ui] = await files;
+  assert.deepEqual(WORKFLOW_VIEWS.map(([, label]) => label), ['All', 'General', 'Mine', 'Open', 'Awaiting', 'Accepted', 'In Progress', 'Completed', 'Closed']);
+  assert.match(ui, /data-inquiry-filter-panel/);
+  assert.match(ui, /grid-cols-3 gap-2 xl:grid-cols-9/);
+  assert.match(ui, /h-12 w-full rounded-md/);
+  assert.match(ui, /aria-pressed=\{showArchived\}/);
+  assert.doesNotMatch(ui, /public-filter-scroll|overflow-x-auto/);
 });
 
 test('inquiry details use a dedicated native-momentum scroll surface without backdrop blur', async () => {

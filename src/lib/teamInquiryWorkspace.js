@@ -1,9 +1,9 @@
 export const WORKFLOW_VIEWS = [
-  ['all', 'All Inquiries'],
+  ['all', 'All'],
   ['general', 'General'],
-  ['mine', 'Assigned to Me'],
+  ['mine', 'Mine'],
   ['open', 'Open'],
-  ['awaiting_response', 'Awaiting Response'],
+  ['awaiting_response', 'Awaiting'],
   ['accepted', 'Accepted'],
   ['in_progress', 'In Progress'],
   ['completed', 'Completed'],

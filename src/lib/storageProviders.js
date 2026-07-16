@@ -19,6 +19,7 @@ const capability = (values) => Object.freeze({
 export const STORAGE_PROVIDER_CAPABILITIES = Object.freeze({
   supabase: capability({ directUpload: true, resumableUpload: true, publicDelivery: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true }),
   google_drive: capability({ connect: true, disconnect: true, verifyConnection: true, createRootFolder: true, publicPreviewRecommended: true }),
+  cloudflare_r2: capability({ publicDelivery: true, checksumVerification: true, delete: true }),
   onedrive: capability({ resumableUpload: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true, publicPreviewRecommended: true }),
   dropbox: capability({ resumableUpload: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true, publicPreviewRecommended: true }),
   s3_compatible: capability({ directUpload: true, resumableUpload: true, publicDelivery: true, privateDelivery: true, serverSideCopy: true, checksumVerification: true, delete: true }),

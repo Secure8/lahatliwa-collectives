@@ -149,7 +149,7 @@ test('artifact cleanup deduplicates media UUIDs and records failures without acc
   assert.deepEqual(result, { cleaned: 1, failed: 1 });
 });
 
-test('public renderer and project editor use previews while unrelated upload flows remain unchanged', async () => {
+test('public renderer keeps legacy previews while the project editor exposes one provider-neutral upload flow', async () => {
   const [gallery, form, storage, content, lifecycle] = await Promise.all([
     source('src/lib/galleryItems.js'),
     source('src/components/admin/ProjectForm.jsx'),
@@ -159,11 +159,9 @@ test('public renderer and project editor use previews while unrelated upload flo
   ]);
   assert.match(gallery, /getProjectGalleryPreviewPath/);
   assert.match(gallery, /media \? media\.preview\.storagePath/);
-  assert.match(form, /galleryStorageDestination.*GALLERY_STORAGE_DESTINATIONS\.supabase/);
-  assert.match(form, /STORAGE_FEATURE_FLAGS\.googleDriveProjectGalleryEnabled/);
-  assert.match(form, /Private original \+ public preview/);
-  assert.match(form, /Untouched images go privately to Drive/);
-  assert.match(form, /ExternalProjectFiles/);
+  assert.doesNotMatch(form, /galleryStorageDestination|GALLERY_STORAGE_DESTINATIONS|ExternalProjectFiles/);
+  assert.doesNotMatch(form, /Private original \+ public preview|Untouched images go privately to Drive/);
+  assert.match(form, /Website media/);
   assert.match(storage, /uploadCoverImage/);
   assert.match(storage, /uploadExternalThumbnail/);
   assert.match(content, /supabase\.storage\.from\(BUCKET\)\.upload/);

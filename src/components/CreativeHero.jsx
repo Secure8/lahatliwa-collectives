@@ -2,13 +2,14 @@ import { ArrowRight } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPublicImageUrl } from '../lib/storage';
+import { publicImageVariant } from '../lib/publicImages';
 import { resourceMeta } from '../lib/profileResources';
 import { inquiryUrl } from '../lib/serviceRequest';
 import BrandWordmark from './BrandWordmark';
 
 export default function CreativeHero({ creative, socials, resources = [], renderSocial, adminPreview = false }) {
-  const profileImage = getPublicImageUrl(creative.profile_image_url);
-  const coverImage = getPublicImageUrl(creative.cover_image) || profileImage;
+  const profileImage = publicImageVariant(getPublicImageUrl(creative.profile_image_url), 'display');
+  const coverImage = publicImageVariant(getPublicImageUrl(creative.cover_image), 'expanded') || profileImage;
   const intro = creative.short_bio || creative.full_bio;
   return (
     <header className="theme-inverse relative isolate w-full overflow-hidden rounded-[10px] bg-[#09090b] lg:flex lg:aspect-video lg:min-h-[32.5rem] lg:max-h-[45rem] lg:flex-col">

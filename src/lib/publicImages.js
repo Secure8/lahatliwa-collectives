@@ -7,3 +7,11 @@ export function normalizePublicImagePath(value) {
   const portable = path.replace(/\\/g, '/').replace(/^\/+/, '');
   return portable.toLowerCase().startsWith(`${BUCKET}/`) ? portable.slice(BUCKET.length + 1) : portable;
 }
+
+export function publicImageVariant(value, variant = 'display') {
+  const image = normalizePublicImagePath(value);
+  if (!['thumbnail', 'display', 'expanded'].includes(variant)) return image;
+  return /^https:\/\//i.test(image) && /\/(?:thumbnail|display|expanded)\.webp(?:[?#]|$)/i.test(image)
+    ? image.replace(/\/(?:thumbnail|display|expanded)\.webp(?=([?#]|$))/i, `/${variant}.webp`)
+    : image;
+}

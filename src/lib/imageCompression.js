@@ -2,6 +2,11 @@ import { getUploadLimit, isCompressibleUploadImage, validateUploadFile } from '.
 
 const OUTPUT_TYPE = 'image/webp';
 const QUALITY_STEPS = [0.9, 0.84, 0.78, 0.72, 0.67, 0.62];
+const WEBSITE_DERIVATIVES = Object.freeze({
+  thumbnail: { maxBytes: 350 * 1024, maxDimension: 640, quality: 0.82 },
+  display: { maxBytes: 1_200 * 1024, maxDimension: 1800, quality: 0.86 },
+  expanded: { maxBytes: 2_500 * 1024, maxDimension: 2800, quality: 0.9 },
+});
 
 export function formatFileSize(bytes) {
   const kb = bytes / 1024;
@@ -73,6 +78,21 @@ async function renderCompressedBlob(image, maxSide, quality) {
   context.drawImage(image, 0, 0, width, height);
 
   return canvasToBlob(canvas, OUTPUT_TYPE, quality);
+}
+
+async function renderWebsiteDerivative(image, variant, rule) {
+  let smallest = null;
+  const qualities = [rule.quality, 0.82, 0.76, 0.7, 0.64];
+  for (const maxSide of dimensionSteps(rule.maxDimension)) {
+    const dimensions = dimensionsWithin(image, maxSide);
+    for (const quality of qualities) {
+      const blob = await renderCompressedBlob(image, maxSide, quality);
+      const candidate = { blob, width: dimensions.width, height: dimensions.height };
+      if (!smallest || blob.size < smallest.blob.size) smallest = candidate;
+      if (blob.size <= rule.maxBytes) return candidate;
+    }
+  }
+  throw new Error(`${variant} image could not be prepared without reducing quality too far.`);
 }
 
 function yieldToBrowser() {
@@ -148,6 +168,27 @@ export async function optimizeImageForUpload(file, limitKey, { label = 'Image', 
       ? `Image optimized from ${formatFileSize(file.size)} to ${formatFileSize(optimizedFile.size)}`
       : '',
   };
+}
+
+export async function createWebsiteImageDerivatives(file, { label = 'Image', onStatus } = {}) {
+  if (!file || !isCompressibleUploadImage(file)) throw new Error(`${label} must be a JPEG, PNG, or WebP image.`);
+  onStatus?.({ phase: 'compressing', originalBytes: file.size, fileName: file.name, message: 'Preparing website image sizes…' });
+  await yieldToBrowser();
+  const image = await loadImage(file);
+  const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase() || 'image';
+  const derivatives = [];
+  for (const [variant, rule] of Object.entries(WEBSITE_DERIVATIVES)) {
+    const rendered = await renderWebsiteDerivative(image, variant, rule);
+    derivatives.push({
+      variant,
+      file: new File([rendered.blob], `${baseName}-${variant}.webp`, { type: OUTPUT_TYPE, lastModified: Date.now() }),
+      mimeType: OUTPUT_TYPE,
+      sizeBytes: rendered.blob.size,
+      width: rendered.width,
+      height: rendered.height,
+    });
+  }
+  return derivatives;
 }
 
 export function uploadStatusText(status) {

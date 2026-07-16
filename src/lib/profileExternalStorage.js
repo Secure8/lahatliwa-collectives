@@ -6,6 +6,20 @@ import {
   permanentlyDeleteGoogleDriveFile,
   uploadGoogleDriveResumableFile,
 } from './googleDriveStorage.js';
+import { commitManagedMediaReplacement, requestManagedMediaDeletion, uploadManagedWebsiteImage } from './r2Media.js';
+
+export async function uploadProfileWebsiteMedia(file, { creativeMemberId, kind, userId, onStatus } = {}) {
+  const category = kind === 'cover' ? 'profile_cover' : 'profile_photo';
+  const managed = await uploadManagedWebsiteImage(file, { category, creativeMemberId, onStatus });
+  if (managed?.primaryUrl) return { url: managed.primaryUrl, managedMedia: managed, provider: 'managed_media' };
+  const isCover = kind === 'cover';
+  const preview = await uploadSiteAssetWithDetails(file, `creative-profiles/${userId}/${isCover ? 'cover' : 'profile'}`, isCover ? 'creativeCover' : 'creativeProfile', { onStatus });
+  return { url: preview.url, managedMedia: null, provider: 'supabase' };
+}
+
+export function cleanupReplacedProfileWebsiteMedia(oldUrl, newUrl = '') {
+  return newUrl ? commitManagedMediaReplacement(newUrl, oldUrl) : requestManagedMediaDeletion(oldUrl);
+}
 
 export async function runProfileMediaUpload(file, {
   driveAvailable,

@@ -29,7 +29,7 @@ import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
 import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 import { useAdminAccess } from '../../lib/adminAccess';
 import { copyText } from '../../lib/clipboard';
-import { uploadProfileMediaWithPrivateOriginal } from '../../lib/profileExternalStorage';
+import { cleanupReplacedProfileWebsiteMedia, uploadProfileWebsiteMedia } from '../../lib/profileExternalStorage';
 import { parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { socialLinkMeta, socialLinksFromText } from '../../lib/socialLinks';
@@ -435,7 +435,8 @@ export default function MyProfile() {
     });
 
     try {
-      const upload = await uploadProfileMediaWithPrivateOriginal(file, {
+      const previousUrl = isCover ? form.cover_image : form.profile_image_url;
+      const upload = await uploadProfileWebsiteMedia(file, {
         creativeMemberId: profile.id,
         kind,
         userId: user.id,
@@ -452,12 +453,13 @@ export default function MyProfile() {
         .single();
 
       if (error) throw error;
+      await cleanupReplacedProfileWebsiteMedia(previousUrl, url).catch(() => null);
 
       const nextForm = formFromProfile({ ...data, notification_email: form.notification_email });
       setProfile({ ...data, notification_email: form.notification_email });
       setForm((current) => ({ ...current, [field]: url }));
       setSavedSignature(formSignature(nextForm));
-      setFlash({ tone: 'success', text: `${isCover ? 'Cover photo' : 'Profile photo'} updated.${upload.externallyBackedUp ? ' Untouched original stored privately in Google Drive.' : ' Supabase-only fallback used because external storage was unavailable.'}` });
+      setFlash({ tone: 'success', text: `${isCover ? 'Cover photo' : 'Profile photo'} updated. Website-ready image sizes were prepared automatically${upload.provider === 'supabase' ? ' using the rollout fallback' : ''}.` });
     } catch (uploadError) {
       setFlash({ tone: 'error', text: uploadError.message || `${isCover ? 'Cover' : 'Profile'} photo upload failed.` });
     } finally {
@@ -480,6 +482,7 @@ export default function MyProfile() {
     setUploadingKind(field);
     setUploadMessage('');
     try {
+      const previousUrl = form[field];
       const { data, error } = await supabase
         .from('creative_members')
         .update({ [field]: null })
@@ -488,6 +491,7 @@ export default function MyProfile() {
         .single();
 
       if (error) throw error;
+      if (previousUrl) await cleanupReplacedProfileWebsiteMedia(previousUrl).catch(() => null);
 
       const nextForm = formFromProfile({ ...data, notification_email: form.notification_email });
       setProfile({ ...data, notification_email: form.notification_email });

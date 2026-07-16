@@ -2,6 +2,8 @@ import { supabase } from './supabaseClient.js';
 import { optimizeImageForUpload } from './imageCompression.js';
 import { validateUploadFile } from './uploadLimits.js';
 import { normalizePublicImagePath } from './publicImages.js';
+import { requestManagedMediaDeletion, uploadManagedWebsiteImage } from './r2Media.js';
+import { extractSupabaseStoragePath } from './mediaReferences.js';
 export { normalizePublicImagePath } from './publicImages.js';
 
 export const PROJECT_MEDIA_BUCKET = 'project-media';
@@ -54,9 +56,13 @@ export function getPublicImageUrl(path) {
 }
 
 
-export async function uploadCoverImage(file, { onStatus } = {}) {
+export async function uploadCoverImage(file, { onStatus, projectId = '' } = {}) {
   if (!file) return '';
   validateCoverUploadFile(file);
+  if (projectId) {
+    const managed = await uploadManagedWebsiteImage(file, { category: 'project_cover', projectId, onStatus });
+    if (managed?.primaryUrl) return managed.primaryUrl;
+  }
   const prepared = await optimizeImageForUpload(file, 'projectCover', { label: 'Project cover', onStatus });
   onStatus?.({ phase: 'uploading', ...prepared });
   const path = createProjectMediaPath('projects/covers', prepared.file);
@@ -65,13 +71,20 @@ export async function uploadCoverImage(file, { onStatus } = {}) {
   return path;
 }
 
-export async function uploadGalleryImages(files, { onStatus } = {}) {
+export async function uploadGalleryImages(files, { onStatus, projectId = '' } = {}) {
   if (!files || files.length === 0) return [];
   const selectedFiles = Array.from(files);
   const uploadedPaths = [];
 
   for (const [index, file] of selectedFiles.entries()) {
     validateGalleryFile(file);
+    if (file.type !== 'application/pdf' && projectId) {
+      const managed = await uploadManagedWebsiteImage(file, { category: 'project_gallery', projectId, onStatus });
+      if (managed?.primaryUrl) {
+        uploadedPaths.push(managed.primaryUrl);
+        continue;
+      }
+    }
     const prepared = file.type === 'application/pdf'
       ? { file, optimized: false, originalBytes: file.size, finalBytes: file.size, message: '' }
       : await optimizeImageForUpload(file, 'galleryImage', { label: 'Gallery image', onStatus });
@@ -97,9 +110,13 @@ export async function uploadPreparedGalleryFile(file) {
   return path;
 }
 
-export async function uploadExternalThumbnail(file, projectSlug = 'project', { onStatus } = {}) {
+export async function uploadExternalThumbnail(file, projectSlug = 'project', { onStatus, projectId = '' } = {}) {
   if (!file) return '';
   validateExternalThumbnailUploadFile(file);
+  if (projectId) {
+    const managed = await uploadManagedWebsiteImage(file, { category: 'external_thumbnail', projectId, onStatus });
+    if (managed?.primaryUrl) return managed.primaryUrl;
+  }
   const prepared = await optimizeImageForUpload(file, 'externalThumbnail', { label: 'Thumbnail', onStatus });
   onStatus?.({ phase: 'uploading', ...prepared });
   const safeSlug = (projectSlug || 'project').replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
@@ -110,8 +127,12 @@ export async function uploadExternalThumbnail(file, projectSlug = 'project', { o
 }
 
 export async function deleteImages(paths) {
-  const removable = (Array.isArray(paths) ? paths : [paths]).filter((path) => path && !path.startsWith('http'));
-  if (removable.length === 0) return;
-  const { error } = await supabase.storage.from(BUCKET).remove([...new Set(removable)]);
-  if (error) throw error;
+  const values = [...new Set((Array.isArray(paths) ? paths : [paths]).filter(Boolean))];
+  const managed = values.filter((path) => /^https:\/\//i.test(path));
+  const removable = [...new Set(values.map((path) => extractSupabaseStoragePath(path, BUCKET)).filter(Boolean))];
+  if (removable.length) {
+    const { error } = await supabase.storage.from(BUCKET).remove(removable);
+    if (error) throw error;
+  }
+  for (const url of managed) await requestManagedMediaDeletion(url);
 }

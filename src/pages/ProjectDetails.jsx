@@ -9,6 +9,7 @@ import { usePublicContent } from '../lib/contentApi';
 import { detailBackAction } from '../lib/navigationHistory';
 import { supabase } from '../lib/supabaseClient';
 import { getPublicImageUrl } from '../lib/storage';
+import { publicImageVariant } from '../lib/publicImages';
 import { safeExternalUrl } from '../lib/externalUrls';
 import { applyPublicMetadata } from '../lib/publicMetadata';
 import { getSingleProjectExternalLink, projectExternalLinkLabel, projectExternalLinkText } from '../lib/projectExternalLinks';
@@ -131,7 +132,7 @@ export default function ProjectDetails() {
           <div className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
             {contributors.map((creative) => (
               <Link key={creative.id} to={`/creatives/${creative.slug}`} className="group flex min-w-0 items-start gap-3 border-b border-white/[0.09] px-1 py-3 text-sm text-zinc-200 transition hover:border-orange-300/50">
-                {creative.profile_image_url && <img src={creative.profile_image_url} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 shrink-0 rounded-full object-cover" />}
+                {creative.profile_image_url && <img src={publicImageVariant(creative.profile_image_url, 'thumbnail')} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 shrink-0 rounded-full object-cover" />}
                 <span className="min-w-0">
                   <span className="block font-medium group-hover:text-[var(--site-accent)]">{creative.name}</span>
                   <span className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1 text-[10px] font-medium uppercase leading-5 tracking-[0.12em] text-orange-200">
@@ -183,7 +184,7 @@ function GalleryItem({ item, projectTitle }) {
   const externalUrl = safeExternalUrl(item.url);
 
   if (item.type === 'image') {
-    return <img className="mb-5 h-auto w-full break-inside-avoid rounded-[10px] bg-zinc-900" src={mediaUrl} alt={item.title || `${projectTitle} gallery`} loading="lazy" decoding="async" />;
+    return <a href={publicImageVariant(mediaUrl, 'expanded')} target="_blank" rel="noopener noreferrer" className="mb-5 block break-inside-avoid"><img className="h-auto w-full rounded-[10px] bg-zinc-900" src={publicImageVariant(mediaUrl, 'display')} alt={item.title || `${projectTitle} gallery`} loading="lazy" decoding="async" /></a>;
   }
 
   if (item.type === 'pdf') {

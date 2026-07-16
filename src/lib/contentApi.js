@@ -6,6 +6,7 @@ import { validateUploadFile } from './uploadLimits.js';
 import { collectReferencedStoragePaths, normalizeStoragePath } from './projectMediaCleanup.js';
 import { cachedContentMatchesScope, publicContentScope } from './publicContentScope.js';
 import { safeExternalUrl } from './externalUrls.js';
+import { requestManagedMediaDeletion, uploadManagedWebsiteImage } from './r2Media.js';
 
 const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
@@ -261,6 +262,11 @@ export async function uploadSiteAssetWithDetails(file, folder = 'site', limitKey
     label: 'Image',
   });
   validateUploadFile(file, limitKey);
+  if (file.type !== 'image/svg+xml') {
+    const category = ['serviceMedia','mediaIcon','siteLogo'].includes(limitKey) ? 'service_image' : 'site_image';
+    const managed = await uploadManagedWebsiteImage(file, { category, onStatus });
+    if (managed?.primaryUrl) return { url: managed.primaryUrl, path: managed.primaryUrl, prepared: null, managedMedia: managed };
+  }
   const prepared = await optimizeImageForUpload(file, limitKey, { label: 'Image', onStatus });
   onStatus?.({ phase: 'uploading', ...prepared });
   const uploadFile = prepared.file;
@@ -310,6 +316,16 @@ export async function deleteMediaAsset(asset) {
     const { error: storageError } = await supabase.storage.from(BUCKET).remove([path]);
     if (storageError) throw new Error(`The storage file could not be removed, so its media record was kept: ${storageError.message}`);
   }
+  if (!path && /^https:\/\//i.test(asset.url || '')) {
+    const { error: detachError } = await supabase.from(MEDIA_TABLE).update({ url: '', storage_path: null }).eq('id', asset.id);
+    if (detachError) throw new Error(`The media record could not be prepared for removal: ${detachError.message}`);
+    try {
+      await requestManagedMediaDeletion(asset.url);
+    } catch (cleanupError) {
+      await supabase.from(MEDIA_TABLE).update({ url: asset.url, storage_path: asset.storage_path || null }).eq('id', asset.id);
+      throw cleanupError;
+    }
+  }
   const { error } = await supabase.from(MEDIA_TABLE).delete().eq('id', asset.id);
   if (error) throw new Error(path ? `The storage file was removed, but the media record could not be deleted: ${error.message}` : error.message);
 }
@@ -321,6 +337,10 @@ export async function uploadMediaAssetFile(file, folder = 'icons', { onStatus } 
     label: 'Icon',
   });
   validateUploadFile(file, 'mediaIcon');
+  if (file.type !== 'image/svg+xml') {
+    const managed = await uploadManagedWebsiteImage(file, { category: 'service_image', onStatus });
+    if (managed?.primaryUrl) return { url: managed.primaryUrl, path: '' };
+  }
   const prepared = await optimizeImageForUpload(file, 'mediaIcon', { label: 'Icon', onStatus });
   onStatus?.({ phase: 'uploading', ...prepared });
   const uploadFile = prepared.file;

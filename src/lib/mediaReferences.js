@@ -1,12 +1,14 @@
 export const DEFAULT_STORAGE_PROVIDER = 'supabase';
 export const DEFAULT_MEDIA_BUCKET = 'project-media';
 export const GOOGLE_DRIVE_PROVIDER = 'google_drive';
+export const CLOUDFLARE_R2_PROVIDER = 'cloudflare_r2';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const STORAGE_PROVIDERS = Object.freeze([
   'supabase',
   'google_drive',
+  'cloudflare_r2',
   'onedrive',
   'dropbox',
   's3_compatible',
@@ -118,6 +120,9 @@ export function normalizeMediaReference(input, defaults = {}) {
     storagePath: storagePath || null,
     externalFileId: source.externalFileId || source.external_file_id || null,
     externalParentId: source.externalParentId || source.external_parent_id || null,
+    mediaGroupId: source.mediaGroupId || source.media_group_id || null,
+    mediaVariant: source.mediaVariant || source.media_variant || null,
+    publicUrl: source.publicUrl || source.public_url || (provider === CLOUDFLARE_R2_PROVIDER ? originalValue : null),
     filename: source.filename || (storagePath ? storagePath.split('/').pop() : null),
     mimeType: source.mimeType || source.mime_type || null,
     sizeBytes: source.sizeBytes ?? source.size_bytes ?? null,

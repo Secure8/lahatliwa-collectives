@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ExternalLink, Plus, Save, Trash2, Upload } from 'lucide-react';
 import {
   createExternalGalleryItem,
-  createExternalMediaGalleryItem,
   createImageGalleryItem,
   detectGalleryPlatform,
   galleryItemTypes,
@@ -15,19 +14,12 @@ import { categories, parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { collectProjectMediaPaths } from '../../lib/projectMediaCleanup';
 import { getProjectGalleryMediaObjectId } from '../../lib/mediaReferences';
+import { commitManagedMediaReplacement } from '../../lib/r2Media';
 import {
   archiveGoogleDriveProjectFiles,
   deleteGoogleDriveMedia,
-  getGoogleDriveConnectionStatus,
   prepareGoogleDriveProjectMediaRemoval,
 } from '../../lib/googleDriveStorage';
-import {
-  cleanupGoogleDriveGalleryArtifacts,
-  GALLERY_STORAGE_DESTINATIONS,
-  isGoogleDriveGalleryAvailable,
-  uploadGoogleDriveGalleryImage,
-} from '../../lib/projectGalleryStorage';
-import { STORAGE_FEATURE_FLAGS } from '../../lib/storageFeatureFlags';
 import {
   buildProjectContributorRow,
   contributorCreditRoles,
@@ -52,7 +44,6 @@ import { AdminCheckbox, ResponsiveFormSection, StickyMobileActions } from './Adm
 import ImageUploader from './ImageUploader';
 import { ActionFeedback, FieldError } from '../FieldFeedback';
 import UnsavedChangesGuard from './UnsavedChangesGuard';
-import ExternalProjectFiles from './ExternalProjectFiles';
 
 const emptyProject = {
   title: '',
@@ -98,8 +89,6 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const [removedGalleryPaths, setRemovedGalleryPaths] = useState([]);
   const [removedExternalMediaIds, setRemovedExternalMediaIds] = useState([]);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
-  const [galleryStorageDestination, setGalleryStorageDestination] = useState(GALLERY_STORAGE_DESTINATIONS.supabase);
-  const [driveGalleryStatus, setDriveGalleryStatus] = useState({ loading: false, available: false });
   const [creativeMembers, setCreativeMembers] = useState([]);
   const [selectedCreativeIds, setSelectedCreativeIds] = useState([]);
   const [contributorDetails, setContributorDetails] = useState({});
@@ -124,7 +113,6 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     setDirty(false);
     setRemovedGalleryPaths([]);
     setRemovedExternalMediaIds([]);
-    setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase);
     setPendingGalleryFiles((current) => {
       current.forEach((item) => {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
@@ -160,33 +148,6 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     setDirty(hasDraft);
     setDraftReady(true);
   }, [initialProject, draftKey, mediaCleanupDraftKey]);
-
-  useEffect(() => {
-    if (!STORAGE_FEATURE_FLAGS.googleDriveProjectGalleryEnabled) {
-      setDriveGalleryStatus({ loading: false, available: false });
-      setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase);
-      return undefined;
-    }
-    let active = true;
-    setDriveGalleryStatus({ loading: true, available: false });
-    getGoogleDriveConnectionStatus()
-      .then((status) => {
-        if (!active) return;
-        const available = Boolean(initialProject?.id) && isGoogleDriveGalleryAvailable({
-          frontendEnabled: STORAGE_FEATURE_FLAGS.googleDriveProjectGalleryEnabled,
-          serverEnabled: status.projectGalleryUploadEnabled,
-          connection: status.connection,
-        });
-        setDriveGalleryStatus({ loading: false, available });
-        if (!available) setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase);
-      })
-      .catch(() => {
-        if (!active) return;
-        setDriveGalleryStatus({ loading: false, available: false });
-        setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase);
-      });
-    return () => { active = false; };
-  }, [initialProject?.id]);
 
   useEffect(() => {
     if (!draftReady || !dirty) return;
@@ -339,7 +300,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     try {
       validateCoverUploadFile(file);
       setUploadingImages(true);
-      const path = await uploadCoverImage(file, { onStatus: trackImageUpload });
+      const path = await uploadCoverImage(file, { onStatus: trackImageUpload, projectId: initialProject?.id || '' });
       if (form.cover_image && form.cover_image !== path) {
         setRemovedGalleryPaths((current) => current.includes(form.cover_image) ? current : [...current, form.cover_image]);
       }
@@ -364,10 +325,6 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
           file,
           isPdf: file.type === 'application/pdf',
-          storageDestination: file.type === 'application/pdf'
-            ? GALLERY_STORAGE_DESTINATIONS.supabase
-            : galleryStorageDestination,
-          uploadRequestId: crypto.randomUUID(),
           previewUrl: file.type === 'application/pdf' ? '' : URL.createObjectURL(file),
         })),
       ]);
@@ -401,16 +358,6 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     } else {
       setRemovedGalleryPaths((current) => current.includes(path) ? current : [...current, path]);
     }
-  }
-
-  function applyExternalGalleryReplacement({ oldPreviewPath, newPreviewPath, mediaReference }) {
-    setForm((current) => ({
-      ...current,
-      gallery_images: (current.gallery_images || []).map((path) => path === oldPreviewPath ? newPreviewPath : path),
-      gallery_items: (current.gallery_items || []).map((item, index) => item.url === oldPreviewPath
-        ? normalizeGalleryItem({ ...item, url: newPreviewPath, media: mediaReference }, index)
-        : item),
-    }));
   }
 
   function toggleCreative(id) {
@@ -526,7 +473,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     try {
       validateExternalThumbnailUploadFile(file);
       setUploadingImages(true);
-      const path = await uploadExternalThumbnail(file, form.slug || slugify(form.title), { onStatus: trackImageUpload });
+      const path = await uploadExternalThumbnail(file, form.slug || slugify(form.title), { onStatus: trackImageUpload, projectId: initialProject?.id || '' });
       const oldPath = item.thumbnail_storage_path;
       updateExternalItem(item.id, {
         thumbnail_url: getPublicImageUrl(path),
@@ -591,7 +538,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     setCreditErrorCreativeId('');
     let uploadedGalleryPaths = [];
     let uploadedSupabasePaths = [];
-    let uploadedDriveArtifacts = [];
+    let uploadedManagedUrls = [];
     let projectRecordSaved = false;
     const submitAction = submitActionRef.current || 'save_draft';
     submitActionRef.current = 'save_draft';
@@ -637,36 +584,20 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
 
     try {
       setOptimizationMessage('');
-      if (pendingGalleryFiles.some((item) => item.storageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive) && !driveGalleryStatus.available) {
-        throw new Error('Google Drive is not currently available. Your files were not uploaded. Choose Supabase Storage or reconnect Drive, then try again.');
-      }
       if (removedExternalMediaIds.length && initialProject?.id) {
         await prepareGoogleDriveProjectMediaRemoval(initialProject.id, removedExternalMediaIds);
       }
-      const uploadedItemsByUrl = new Map();
       for (const pendingItem of pendingGalleryFiles) {
-        if (pendingItem.storageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive && !pendingItem.isPdf) {
-          const artifact = await uploadGoogleDriveGalleryImage(pendingItem.file, {
-            onStatus: trackImageUpload,
-            requestId: pendingItem.uploadRequestId,
-            projectId: initialProject?.id,
-          });
-          uploadedDriveArtifacts.push(artifact);
-          uploadedGalleryPaths.push(artifact.previewPath);
-          uploadedItemsByUrl.set(artifact.previewPath, createExternalMediaGalleryItem(artifact.mediaReference));
-        } else {
-          const [path] = await uploadGalleryImages([pendingItem.file], { onStatus: trackImageUpload });
-          uploadedSupabasePaths.push(path);
-          uploadedGalleryPaths.push(path);
-        }
+        const [path] = await uploadGalleryImages([pendingItem.file], { onStatus: trackImageUpload, projectId: initialProject?.id || '' });
+        if (/^https?:\/\//i.test(path)) uploadedManagedUrls.push(path);
+        else uploadedSupabasePaths.push(path);
+        uploadedGalleryPaths.push(path);
       }
       const updatedGalleryImages = [...(form.gallery_images || []), ...uploadedGalleryPaths];
       const currentItems = form.gallery_items || [];
       const existingItemByUrl = new Map(currentItems.map((item) => [item.url, normalizeGalleryItem(item)]));
       const imageItems = updatedGalleryImages.map((path, index) => {
-        const uploadedItem = uploadedItemsByUrl.get(path);
-        return existingItemByUrl.get(path)
-          || (uploadedItem ? normalizeGalleryItem({ ...uploadedItem, order: index * 100 }, index) : createImageGalleryItem(path, index * 100));
+        return existingItemByUrl.get(path) || createImageGalleryItem(path, index * 100);
       });
       const externalItems = currentItems
         .filter((item) => !['image', 'pdf'].includes(item.type))
@@ -728,6 +659,15 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       if (saveError) throw saveError;
       projectRecordSaved = true;
       const projectId = initialProject?.id || savedProject?.id;
+      const activationUrls = [...new Set([
+        form.cover_image,
+        ...uploadedManagedUrls,
+        ...externalItems.map((item) => item.thumbnail_url),
+      ].filter(Boolean))];
+      await Promise.all(activationUrls.map((url) => commitManagedMediaReplacement(
+        url,
+        url === form.cover_image ? (initialProject?.cover_image || '') : '',
+      )));
       if (projectId) {
         if (selectedCreativeIds.length) {
           const contributorRows = selectedCreativeIds.map((creativeId, index) => buildProjectContributorRow({
@@ -753,12 +693,14 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       }
       if (removedGalleryPaths.length) {
         const cleanupPaths = collectProjectMediaPaths({ gallery_images: removedGalleryPaths });
-        const { error: queueError } = await supabase.rpc('enqueue_project_media_cleanup', { p_project_id: projectId, p_paths: cleanupPaths, p_reason: 'media_removed' });
-        if (queueError) throw queueError;
+        if (cleanupPaths.length) {
+          const { error: queueError } = await supabase.rpc('enqueue_project_media_cleanup', { p_project_id: projectId, p_paths: cleanupPaths, p_reason: 'media_removed' });
+          if (queueError) throw queueError;
+        }
         try {
-          await deleteImages(cleanupPaths);
-          await supabase.rpc('complete_project_cleanup_paths', { p_project_id: projectId, p_paths: cleanupPaths });
-          setOptimizationMessage('Removed media and Storage cleanup completed.');
+          await deleteImages(removedGalleryPaths);
+          if (cleanupPaths.length) await supabase.rpc('complete_project_cleanup_paths', { p_project_id: projectId, p_paths: cleanupPaths });
+          setOptimizationMessage('Removed media cleanup completed or queued safely.');
         } catch (cleanupError) {
           setOptimizationMessage('Media was removed. Storage cleanup has been queued for retry.');
         }
@@ -795,15 +737,12 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       setDirty(false);
       navigate('/admin/projects');
     } catch (saveError) {
-      if (!projectRecordSaved && uploadedSupabasePaths.length) {
+      if (!projectRecordSaved && (uploadedSupabasePaths.length || uploadedManagedUrls.length)) {
         try {
-          await deleteImages(uploadedSupabasePaths);
+          await deleteImages([...uploadedSupabasePaths, ...uploadedManagedUrls]);
         } catch {
         }
       }
-      const driveCleanup = !projectRecordSaved && uploadedDriveArtifacts.length
-        ? await cleanupGoogleDriveGalleryArtifacts(uploadedDriveArtifacts)
-        : { failed: 0 };
       if (projectRecordSaved) {
         pendingGalleryFiles.forEach((item) => {
           if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
@@ -813,7 +752,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         setDirty(false);
         setActionError(`The project media was saved, but a later project update failed: ${saveError.message || 'Please reopen the project and verify its details.'}`);
       } else {
-        setActionError(`${saveError.message || 'Something went wrong while saving this project.'}${driveCleanup.failed ? ' Some private upload cleanup still needs administrator follow-up.' : ''}`);
+        setActionError(saveError.message || 'Something went wrong while saving this project.');
       }
     } finally {
       setSaving(false);
@@ -860,35 +799,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       </FormSection>
 
       <FormSection eyebrow="Cover and gallery" title="Media uploads" description="Upload the project cover, gallery images, PDFs, and review pending files before saving.">
-      <fieldset className="grid gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4">
-        <legend className="px-1 text-sm font-semibold text-white">Store new gallery files in</legend>
-        <label className="flex cursor-pointer items-start gap-3 text-sm text-zinc-300">
-          <input
-            type="radio"
-            name="gallery-storage-destination"
-            value={GALLERY_STORAGE_DESTINATIONS.supabase}
-            checked={galleryStorageDestination === GALLERY_STORAGE_DESTINATIONS.supabase}
-            onChange={() => setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.supabase)}
-            className="mt-1 accent-amber-300"
-          />
-          <span><strong className="font-medium text-zinc-100">Supabase Storage</strong><span className="mt-1 block text-xs leading-5 text-zinc-500">Default. New images and PDFs use the existing public project-media workflow.</span></span>
-        </label>
-        {driveGalleryStatus.available && (
-          <label className="flex cursor-pointer items-start gap-3 text-sm text-zinc-300">
-            <input
-              type="radio"
-              name="gallery-storage-destination"
-              value={GALLERY_STORAGE_DESTINATIONS.googleDrive}
-              checked={galleryStorageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive}
-              onChange={() => setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.googleDrive)}
-              className="mt-1 accent-amber-300"
-            />
-            <span><strong className="font-medium text-zinc-100">Private original + public preview</strong><span className="mt-1 block text-xs leading-5 text-zinc-500">The untouched image goes privately to Drive. Only a separate optimized preview goes to Supabase for the public gallery.</span></span>
-          </label>
-        )}
-        {driveGalleryStatus.loading && <p role="status" className="text-xs text-zinc-500">Checking whether Google Drive Originals is available…</p>}
-        {!initialProject?.id && <p className="text-xs leading-5 text-zinc-500">Save this project as a draft first. Private originals and large project files become available in the project editor.</p>}
-      </fieldset>
+      <p className="text-sm leading-6 text-zinc-400">Choose images normally. Lahat Liwa prepares the appropriate website sizes automatically and uses the configured managed-media service, with the existing storage path as a safe fallback.</p>
       <div className="grid gap-5 lg:grid-cols-2">
         <ImageUploader
           label={uploadingImages ? 'Uploading image...' : form.cover_image ? 'Replace cover image' : 'Upload cover image'}
@@ -897,9 +808,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         />
         <ImageUploader
           label={pendingGalleryFiles.length ? `${pendingGalleryFiles.length} new file(s) ready to add` : 'Add more gallery images or PDFs'}
-          hint={galleryStorageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive
-            ? 'Untouched images go privately to Drive. Optimized previews go to Supabase. PDFs can be added later as private project files.'
-            : 'Images are optimized to 1 MB each. PDFs keep a 2 MB hard limit.'}
+          hint="Images are prepared in thumbnail, display, and expanded sizes. PDFs keep the existing 2 MB limit."
           accept="image/*,application/pdf"
           multiple
           onChange={selectGalleryFiles}
@@ -952,9 +861,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
                     >
                       <Trash2 size={13} />
                     </button>
-                    <span className="absolute bottom-1 left-1 max-w-[5.5rem] truncate rounded bg-zinc-950/85 px-1.5 py-0.5 text-[9px] text-zinc-300">
-                      {item.storageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive ? 'Drive original' : 'Supabase'}
-                    </span>
+                    <span className="absolute bottom-1 left-1 max-w-[5.5rem] truncate rounded bg-zinc-950/85 px-1.5 py-0.5 text-[9px] text-zinc-300">Website media</span>
                   </div>
                 ))}
               </div>
@@ -962,24 +869,6 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           )}
         </div>
       )}
-      </FormSection>
-
-      <FormSection
-        eyebrow="Private storage"
-        title="Originals and project files"
-        description="Manage untouched originals, Drive-only source files, authorized downloads, replacement, Archive, and cleanup without exposing Google Drive identifiers."
-      >
-        {initialProject?.id ? (
-          <ExternalProjectFiles
-            project={initialProject}
-            enabled={driveGalleryStatus.available}
-            onGalleryReplacement={applyExternalGalleryReplacement}
-          />
-        ) : (
-          <div className="rounded-lg bg-white/[0.025] p-4 text-sm leading-6 text-zinc-500 ring-1 ring-white/[0.07]">
-            Save this project as a draft first. Private originals and large project files are linked to the saved project so permissions can be checked before upload.
-          </div>
-        )}
       </FormSection>
 
       <FormSection eyebrow="External gallery links" title="Linked media" description="Add posts, videos, gallery links, or live references without uploading the full media set.">

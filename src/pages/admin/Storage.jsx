@@ -62,7 +62,7 @@ export default function Storage() {
           <CurrentDestination />
           <GoogleDriveConnection />
           {mode === 'operations' && <OperationsOverview />}
-          <AdminNotice tone="success">Normal project, profile, and site uploads still use Supabase. The optional Drive test below does not change website media references.</AdminNotice>
+          <AdminNotice tone="success">Normal project, profile, and site images use the unified website uploader. The optional Drive test below does not change public media references.</AdminNotice>
         </div>
       )}
     </AdminLayout>
@@ -75,7 +75,7 @@ function CurrentDestination() {
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-amber-200/80">Current upload destination</p>
         <h2 className="mt-2 text-xl font-semibold text-white">Lahat Liwa storage</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">Project, profile, and site uploads still use the existing Lahat Liwa Supabase storage. The isolated Drive test does not replace or migrate them.</p>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">Project, profile, and site images use one managed website-media flow with a safe rollout fallback. The isolated Drive test does not replace or migrate them.</p>
       </div>
       <AdminStatusBadge status="active">Active</AdminStatusBadge>
     </section>

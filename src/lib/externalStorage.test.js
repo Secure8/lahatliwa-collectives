@@ -25,7 +25,7 @@ import { SAFE_STORAGE_OPERATION_FIELDS, canAccessStoragePage, canSeeStorageNavig
 const projectRoot = new URL('../../', import.meta.url);
 const source = (path) => readFile(new URL(path, projectRoot), 'utf8');
 
-test('Supabase remains the only operational and default provider', () => {
+test('the legacy generic adapter remains Supabase-default while managed R2 uses its dedicated media service', () => {
   assert.equal(DEFAULT_STORAGE_PROVIDER, 'supabase');
   assert.equal(DEFAULT_MEDIA_BUCKET, 'project-media');
   assert.deepEqual(OPERATIONAL_STORAGE_PROVIDERS, ['supabase']);
@@ -33,7 +33,7 @@ test('Supabase remains the only operational and default provider', () => {
 });
 
 test('provider, connection, media, and migration values are closed allowlists', () => {
-  assert.deepEqual(STORAGE_PROVIDERS, ['supabase', 'google_drive', 'onedrive', 'dropbox', 's3_compatible']);
+  assert.deepEqual(STORAGE_PROVIDERS, ['supabase', 'google_drive', 'cloudflare_r2', 'onedrive', 'dropbox', 's3_compatible']);
   assert.equal(STORAGE_CONNECTION_STATUSES.includes('reconnect_required'), true);
   assert.equal(MEDIA_OBJECT_STATUSES.includes('verification_required'), true);
   assert.equal(STORAGE_MIGRATION_STATUSES.includes('retention_period'), true);
@@ -106,6 +106,7 @@ test('capability declarations are immutable and do not imply operation enablemen
   assert.equal(Object.isFrozen(STORAGE_PROVIDER_CAPABILITIES.supabase), true);
   assert.equal(STORAGE_PROVIDER_CAPABILITIES.supabase.publicDelivery, true);
   assert.equal(STORAGE_PROVIDER_CAPABILITIES.google_drive.publicDelivery, false);
+  assert.equal(STORAGE_PROVIDER_CAPABILITIES.cloudflare_r2.publicDelivery, true);
   assert.equal(storageProviderCatalog().find((item) => item.provider === 'google_drive').operational, false);
 });
 
@@ -115,6 +116,7 @@ test('external storage flags keep Phase 4 disabled by default', () => {
     googleDriveConnectorEnabled: false,
     googleDriveTestUploadEnabled: false,
     googleDriveProjectGalleryEnabled: false,
+    r2MediaEnabled: false,
     externalUploadsEnabled: false,
     storageMigrationEnabled: false,
   });
@@ -144,7 +146,7 @@ test('admin Storage exposes safe connection actions and an isolated flagged test
   assert.match(page, /Check connection/);
   assert.match(page, /Disconnect Google Drive/);
   assert.match(page, /Test a small Drive upload/);
-  assert.match(page, /does not change website media references/);
+  assert.match(page, /does not change public media references/);
   assert.match(page, /STORAGE_FEATURE_FLAGS\.googleDriveTestUploadEnabled/);
   assert.match(page, /state\.testUploadEnabled/);
   assert.match(page, /storage_connection_operations/);
@@ -177,7 +179,7 @@ test('Phase 3 test upload is server-authenticated, flag-gated, and leaves normal
   assert.match(content, /supabase\.storage\.from\(BUCKET\)\.upload/);
 });
 
-test('Phase 4 is isolated, double-gated, and does not make Google Drive globally operational', async () => {
+test('legacy Drive project media is isolated while the unified uploader is R2-gated with fallback', async () => {
   const [flags, env, form, client, lifecycle, config, storagePage] = await Promise.all([
     source('src/lib/storageFeatureFlags.js'),
     source('.env.example'),
@@ -189,9 +191,10 @@ test('Phase 4 is isolated, double-gated, and does not make Google Drive globally
   ]);
   assert.match(flags, /googleDriveProjectGalleryEnabled: googleDriveConnectorRequested && googleDriveProjectGalleryRequested/);
   assert.match(env, /VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=false/);
-  assert.match(form, /serverEnabled: status\.projectGalleryUploadEnabled/);
-  assert.match(form, /connection: status\.connection/);
-  assert.match(form, /Google Drive is not currently available\. Your files were not uploaded/);
+  assert.match(flags, /r2MediaEnabled: r2MediaRequested/);
+  assert.match(env, /VITE_R2_MEDIA_ENABLED=false/);
+  assert.doesNotMatch(form, /ExternalProjectFiles|Upload original|Drive-only project files/);
+  assert.match(form, /uploadGalleryImages/);
   assert.match(client, /project_gallery_original/);
   assert.match(client, /request_id/);
   assert.match(client, /google-drive-media-lifecycle/);

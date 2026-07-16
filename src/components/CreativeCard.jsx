@@ -4,11 +4,12 @@ import { getPublicImageUrl } from '../lib/storage';
 import { publicLocationState } from '../lib/navigationHistory';
 import { useState } from 'react';
 import { preloadPublicRoute } from '../lib/publicRoutePreload';
+import { publicImageVariant } from '../lib/publicImages';
 
 export default function CreativeCard({ creative, headingLevel = 'h3' }) {
   const location = useLocation();
   const linkState = publicLocationState(location, `creative-${creative.id}`);
-  const profileImage = getPublicImageUrl(creative.profile_image_url);
+  const profileImage = publicImageVariant(getPublicImageUrl(creative.profile_image_url), 'thumbnail');
   const [imageFailed, setImageFailed] = useState(false);
   const allSkills = Array.isArray(creative.skills) ? creative.skills : [];
   const skills = allSkills.slice(0, 4);

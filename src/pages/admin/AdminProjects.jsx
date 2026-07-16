@@ -18,6 +18,7 @@ import {
   prepareGoogleDriveProjectDeletion,
 } from '../../lib/googleDriveStorage';
 import { moveProjectBefore, moveProjectByOffset } from '../../lib/adminProjectOrdering';
+import { finalizeManagedProjectDeletion, prepareManagedProjectDeletion } from '../../lib/r2Media';
 
 export default function AdminProjects() {
   const [projects, setProjects] = useState([]);
@@ -144,6 +145,14 @@ export default function AdminProjects() {
         return;
       }
     }
+    let r2DeletionAuthorization = null;
+    try {
+      const prepared = await prepareManagedProjectDeletion(project.id);
+      r2DeletionAuthorization = prepared.authorization;
+    } catch (cleanupError) {
+      setError(cleanupError.message || 'Managed website media cleanup could not be prepared, so the project was not deleted.');
+      return;
+    }
     const { error: queueError } = await supabase.rpc('enqueue_project_media_cleanup', { p_project_id: project.id, p_paths: projectMediaPaths, p_reason: 'project_deleted' });
     if (queueError) { setError(queueError.message); return; }
     const { error: deleteError } = await supabase.from('projects').delete().eq('id', project.id);
@@ -160,6 +169,7 @@ export default function AdminProjects() {
     const cleanupResults = await Promise.allSettled([
       ...(projectMediaPaths.length ? [supabaseCleanup()] : []),
       ...externalMediaIds.map((mediaObjectId) => deleteGoogleDriveMedia(mediaObjectId, { projectId: project.id })),
+      ...(r2DeletionAuthorization ? [finalizeManagedProjectDeletion(project.id, r2DeletionAuthorization)] : []),
     ]);
     if (cleanupResults.some((result) => result.status === 'rejected')) {
       setError('Project deleted. Some media cleanup remains queued or privately recorded for administrator follow-up.');

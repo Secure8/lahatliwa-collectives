@@ -23,6 +23,15 @@ const policySections = [
     ),
   },
   {
+    title: 'Public website media',
+    content: (
+      <>
+        <p>Images selected for publication may be resized and converted into website-ready copies. These public copies can be stored and delivered through Cloudflare R2 or through our existing Supabase media storage during a staged transition.</p>
+        <p>Public media URLs are intended to be accessible without signing in. Private credentials, storage authorization headers, and private Google Drive file identifiers are not included in public website records.</p>
+      </>
+    ),
+  },
+  {
     title: 'How we use information',
     content: (
       <>
@@ -35,7 +44,7 @@ const policySections = [
     title: 'Sharing and service providers',
     content: (
       <>
-        <p>We may share information with service providers that help us host, secure, and operate Lahat Liwa, including Google for Google Drive functionality and Supabase for authentication, database, server functions, secrets management, and media storage. These providers process information under their own terms and privacy commitments.</p>
+        <p>We may share information with service providers that help us host, secure, and operate Lahat Liwa, including Google for optional Google Drive functionality, Cloudflare for public website media delivery, and Supabase for authentication, database, server functions, secrets management, and fallback media storage. These providers process information under their own terms and privacy commitments.</p>
         <p>We may also disclose information when required by law, to protect rights and safety, or as part of an organizational transaction with appropriate safeguards. We do not transfer Google user data to data brokers, advertising platforms, or information resellers.</p>
         <p>Lahat Liwa personnel do not access the contents of private Google Drive files except when you give explicit permission for support, when access is necessary to investigate security or abuse, when required by law, or when you intentionally publish or share the content through the service.</p>
       </>

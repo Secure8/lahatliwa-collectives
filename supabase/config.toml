@@ -412,6 +412,12 @@ verify_jwt = false
 [functions.google-drive-file-access]
 verify_jwt = false
 
+[functions.r2-media]
+verify_jwt = false
+
+[functions.r2-media-upload]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

@@ -3,6 +3,7 @@ import { BUCKET, classifyStorageObject, collectReferencePaths, deduplicateQueueP
 import { cancelResumableDriveUpload, deleteDriveFile, fetchGoogleIdentity, refreshGoogleAccessToken, tokenGrantedScopes } from '../_shared/googleDriveApi.js';
 import { deleteExternalUploadSession, readConnectionSecret, readExternalUploadSession } from '../_shared/googleDriveDatabase.ts';
 import { hasRequiredGoogleScopes, oauthConfiguration } from '../_shared/googleDriveOAuth.js';
+import { R2_PROVIDER, deleteR2Object, r2CleanupStatus, r2Configuration, safeR2ObjectKey } from '../_shared/r2Media.js';
 
 const prefix = '[storage-cleanup-worker]';
 const MAX_DB_ROWS_PER_SOURCE = 10000;
@@ -88,10 +89,10 @@ async function queueReviewed(admin: any, payload: any) {
     if (!object) { rejected.push({ path, reason: 'Storage object was not found.' }); continue; }
     const classification = classifyStorageObject(object, references);
     if (classification.classification !== 'confirmed_orphan') { rejected.push({ path, reason: classification.reason, classification: classification.classification }); continue; }
-    const { data: existing, error: existingError } = await admin.from('storage_cleanup_jobs').select('id, status').eq('bucket_name', BUCKET).eq('object_path', path).in('status', ['pending', 'processing', 'failed']).limit(1);
+    const { data: existing, error: existingError } = await admin.from('storage_cleanup_jobs').select('id, status').eq('provider', 'supabase').eq('bucket_name', BUCKET).eq('object_path', path).in('status', ['pending', 'processing', 'failed']).limit(1);
     if (existingError) throw existingError;
     if (hasActiveCleanupJob(existing || [])) { rejected.push({ path, reason: 'An active cleanup job already exists.', classification: 'duplicate' }); continue; }
-    const { error: insertError } = await admin.from('storage_cleanup_jobs').insert({ bucket_name: BUCKET, object_path: path, project_id: null, reason: 'Reviewed storage reconciliation orphan', created_by: null });
+    const { error: insertError } = await admin.from('storage_cleanup_jobs').insert({ provider: 'supabase', bucket_name: BUCKET, object_path: path, project_id: null, reason: 'Reviewed storage reconciliation orphan', created_by: null });
     if (insertError?.code === '23505') { rejected.push({ path, reason: 'An active cleanup job already exists.', classification: 'duplicate' }); continue; }
     if (insertError) throw insertError;
     queued.push(path);
@@ -142,6 +143,66 @@ async function cleanupExpiredExternalUploads(admin: any) {
   return results;
 }
 
+function containsExactReference(value: any, url: string): boolean {
+  if (!url) return false;
+  if (typeof value === 'string') return value === url;
+  if (Array.isArray(value)) return value.some((item) => containsExactReference(item, url));
+  return Boolean(value && typeof value === 'object' && Object.values(value).some((item) => containsExactReference(item, url)));
+}
+
+async function r2MediaStillReferenced(admin: any, media: any) {
+  const { data: groupRows, error: groupError } = await admin.from('external_media_objects').select('public_url')
+    .eq('provider', R2_PROVIDER).eq('media_group_id', media.media_group_id);
+  if (groupError) throw groupError;
+  const urls = (groupRows || []).map((row: any) => row.public_url).filter(Boolean);
+  const containsGroupReference = (value: any) => urls.some((url: string) => containsExactReference(value, url));
+  if (media.project_id) {
+    const { data, error } = await admin.from('projects').select('cover_image,gallery_images,gallery_items').eq('id', media.project_id).maybeSingle();
+    if (error) throw error;
+    return containsGroupReference(data);
+  }
+  if (media.creative_member_id) {
+    const { data, error } = await admin.from('creative_members').select('profile_image_url,cover_image').eq('id', media.creative_member_id).maybeSingle();
+    if (error) throw error;
+    return containsGroupReference(data);
+  }
+  const results = await Promise.all([
+    admin.from('site_settings').select('*'), admin.from('page_content').select('content'),
+    admin.from('service_branches').select('icon_url,image_url'), admin.from('media_assets').select('url,storage_path'),
+  ]);
+  if (results.some((result: any) => result.error)) throw Object.assign(new Error('R2 reference verification failed.'), { code: 'REFERENCE_CHECK_FAILED' });
+  return results.some((result: any) => containsGroupReference(result.data));
+}
+
+async function cleanupExpiredR2Uploads(admin: any, r2: any) {
+  const { data: mediaRows, error } = await admin.from('external_media_objects')
+    .select('id,external_file_id,public_url,project_id,creative_member_id,media_group_id,status,cleanup_attempt_count')
+    .eq('provider', R2_PROVIDER).in('status', ['uploading','available','error'])
+    .neq('cleanup_status', 'manual_required').lt('upload_expires_at', new Date().toISOString()).limit(50);
+  if (error) throw error;
+  const results = [];
+  for (const media of mediaRows || []) {
+    try {
+      if (media.status === 'available' && await r2MediaStillReferenced(admin, media)) {
+        await admin.from('external_media_objects').update({ upload_expires_at: null, cleanup_status: 'none', cleanup_error: null }).eq('id', media.id);
+        results.push({ id: media.id, ok: true, retained: true });
+        continue;
+      }
+      if (!r2.configured || safeR2ObjectKey(media.external_file_id) !== media.external_file_id) {
+        throw Object.assign(new Error('R2 cleanup configuration is unavailable.'), { code: 'R2_CONFIGURATION_MISSING' });
+      }
+      await deleteR2Object(fetch, r2, media.external_file_id);
+      await admin.from('external_media_objects').update({ status: 'deleted', external_file_id: null, public_url: null, upload_expires_at: null, cleanup_status: 'complete', cleanup_error: null, cleanup_attempt_count: Number(media.cleanup_attempt_count || 0) + 1 }).eq('id', media.id);
+      results.push({ id: media.id, ok: true });
+    } catch (cleanupError) {
+      const attempts = Number(media.cleanup_attempt_count || 0) + 1;
+      await admin.from('external_media_objects').update({ status: 'error', cleanup_status: r2CleanupStatus(attempts), cleanup_error: cleanupError?.code || 'R2_ABANDONED_UPLOAD_CLEANUP_FAILED', cleanup_attempt_count: attempts }).eq('id', media.id);
+      results.push({ id: media.id, ok: false });
+    }
+  }
+  return results;
+}
+
 Deno.serve(async (request) => {
   console.log(prefix, JSON.stringify({ event: 'request_received', method: request.method }));
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -163,6 +224,11 @@ Deno.serve(async (request) => {
     return Response.json({ ok: false, stage: 'authorization', error: 'Unauthorized', code: 'WORKER_UNAUTHORIZED' }, { status: 401 });
   }
   const admin = createClient(supabaseUrl, serviceRole, { auth: { persistSession: false } });
+  const r2 = r2Configuration({
+    R2_MEDIA_ENABLED: Deno.env.get('R2_MEDIA_ENABLED'), R2_ACCOUNT_ID: Deno.env.get('R2_ACCOUNT_ID'),
+    R2_ACCESS_KEY_ID: Deno.env.get('R2_ACCESS_KEY_ID'), R2_SECRET_ACCESS_KEY: Deno.env.get('R2_SECRET_ACCESS_KEY'),
+    R2_BUCKET_NAME: Deno.env.get('R2_BUCKET_NAME'), R2_PUBLIC_BASE_URL: Deno.env.get('R2_PUBLIC_BASE_URL'),
+  });
   try {
     if (payload.action === 'dry_run_reconciliation') return await dryRun(admin, payload);
     if (payload.action === 'queue_reviewed_orphans') return await queueReviewed(admin, payload);
@@ -172,19 +238,35 @@ Deno.serve(async (request) => {
       const status = data?.[0];
       return Response.json({ ok: true, stage: 'status', worker: { healthy: true }, cron: { jobName: status?.job_name, schedule: status?.schedule, active: status?.active, count: status?.schedule_count, lastRunStatus: status?.last_run_status, lastRunAt: status?.last_run_at }, vault: { projectUrlExists: status?.project_url_exists, workerSecretExists: status?.worker_secret_exists }, queue: { pending: Number(status?.pending_count || 0), processing: Number(status?.processing_count || 0), failed: Number(status?.failed_count || 0), manualReview: Number(status?.manual_review_count || 0), completed: Number(status?.completed_count || 0) } });
     }
-    const externalResults = await cleanupExpiredExternalUploads(admin);
+    const [externalResults, r2UploadResults] = await Promise.all([cleanupExpiredExternalUploads(admin), cleanupExpiredR2Uploads(admin, r2)]);
     const workerId = crypto.randomUUID();
     const { data: jobs, error: claimError } = await admin.rpc('claim_storage_cleanup_jobs', { p_batch_size: 50, p_worker_id: workerId });
     if (claimError) return responseError('claim_jobs', claimError);
     const results = [];
     for (const job of jobs || []) {
-      const valid = job.bucket_name === BUCKET && typeof job.object_path === 'string' && normalizeProjectMediaPath(job.object_path) === job.object_path;
-      const deletion = valid ? await admin.storage.from(job.bucket_name).remove([job.object_path]) : { error: { message: 'Invalid cleanup path.', code: 'INVALID_PATH' } };
+      const provider = job.provider || 'supabase';
+      let deletion: any = { error: null };
+      if (provider === R2_PROVIDER) {
+        const valid = r2.configured && job.bucket_name === r2.bucketName && safeR2ObjectKey(job.object_path) === job.object_path;
+        if (!valid) deletion = { error: { message: 'Invalid R2 cleanup target.', code: 'INVALID_R2_PATH' } };
+        else {
+          try { await deleteR2Object(fetch, r2, job.object_path); }
+          catch (error) { deletion = { error }; }
+        }
+      } else {
+        const valid = provider === 'supabase' && job.bucket_name === BUCKET && typeof job.object_path === 'string' && normalizeProjectMediaPath(job.object_path) === job.object_path;
+        deletion = valid ? await admin.storage.from(job.bucket_name).remove([job.object_path]) : { error: { message: 'Invalid cleanup path.', code: 'INVALID_PATH' } };
+      }
       const { error: finishError } = await admin.rpc('finish_storage_cleanup_job', { p_job_id: job.id, p_success: !deletion.error, p_error: deletion.error?.message || null });
       if (finishError) return responseError('finish_job', finishError);
-      results.push({ id: job.id, ok: !deletion.error });
+      if (!deletion.error && provider === R2_PROVIDER) {
+        await admin.from('external_media_objects').update({ status: 'deleted', external_file_id: null, public_url: null, cleanup_status: 'complete', cleanup_error: null }).eq('provider', R2_PROVIDER).eq('external_file_id', job.object_path);
+      } else if (deletion.error && provider === R2_PROVIDER) {
+        await admin.from('external_media_objects').update({ cleanup_status: r2CleanupStatus(Number(job.attempt_count || 0) + 1), cleanup_error: deletion.error?.code || 'R2_DELETE_FAILED', cleanup_attempt_count: Number(job.attempt_count || 0) + 1 }).eq('provider', R2_PROVIDER).eq('external_file_id', job.object_path);
+      }
+      results.push({ id: job.id, provider, ok: !deletion.error });
     }
-    return Response.json({ ok: true, stage: 'completed', processed: results.length, results, externalUploads: { processed: externalResults.length, failed: externalResults.filter((item) => !item.ok).length } });
+    return Response.json({ ok: true, stage: 'completed', processed: results.length, results, externalUploads: { processed: externalResults.length, failed: externalResults.filter((item) => !item.ok).length }, r2Uploads: { processed: r2UploadResults.length, failed: r2UploadResults.filter((item) => !item.ok).length } });
   } catch (error) {
     return responseError(payload.action || 'worker', error);
   }

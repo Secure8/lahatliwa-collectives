@@ -8,13 +8,14 @@ import { projectCreditSummary } from '../lib/fairProjectExposure';
 import { publicLocationState } from '../lib/navigationHistory';
 import { useState } from 'react';
 import { preloadPublicRoute } from '../lib/publicRoutePreload';
+import { publicImageVariant } from '../lib/publicImages';
 
 export default function ProjectCard({ project, index = 0 }) {
   const location = useLocation();
   const linkState = publicLocationState(location, `project-${project.id}`);
   const [imageFailed, setImageFailed] = useState(false);
   const galleryPreview = normalizeProjectGallery(project).find((item) => item.type === 'image' || getGalleryItemThumbnailUrl(item));
-  const image = getPublicImageUrl(project.cover_image)
+  const image = publicImageVariant(getPublicImageUrl(project.cover_image), 'display')
     || (galleryPreview?.type === 'image' ? getGalleryItemMediaUrl(galleryPreview) : getGalleryItemThumbnailUrl(galleryPreview));
   const branch = branchForKey(projectBranchKey(project.category));
   const creditSummary = projectCreditSummary(project);

@@ -5,8 +5,10 @@ import { AdminButton, AdminNotice, AdminPageHeader, ResponsiveFormSection, Stick
 import { mergePublicContent, settingsFormFromRow, settingsFromSiteContent, updateSiteSettings, uploadSiteAsset, usePublicContent } from '../../lib/contentApi';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { createHeroBackgroundRender } from '../../lib/heroBackground';
+import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 
-const lineInput = 'w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60';
+const lineInput = 'w-full rounded-md border border-white/[0.14] bg-zinc-950 px-3 py-2.5 text-white outline-none transition placeholder:text-zinc-700 hover:border-white/[0.22] focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/15';
 const lineTextarea = `${lineInput} min-h-28 resize-y leading-6`;
 
 const socialFields = [
@@ -16,6 +18,14 @@ const socialFields = [
   { key: 'linkedinUrl', label: 'LinkedIn URL', placeholder: 'https://linkedin.com/in/username' },
   { key: 'youtubeUrl', label: 'YouTube URL', placeholder: 'https://youtube.com/@username' },
   { key: 'tiktokUrl', label: 'TikTok URL', placeholder: 'https://tiktok.com/@username' },
+];
+
+const settingsSections = [
+  ['brand-identity', 'Brand identity'],
+  ['logos-and-brand-media', 'Brand media'],
+  ['global-colors', 'Global colors'],
+  ['contact-or-global-links', 'Global links'],
+  ['save-actions', 'Save actions'],
 ];
 
 function isValidHexColor(value = '') {
@@ -45,7 +55,7 @@ function isValidEmail(value = '') {
 }
 
 function lineButtonClasses({ subtle = false, disabled = false } = {}) {
-  return `inline-flex h-10 items-center gap-2 border-b px-2 text-sm transition ${subtle ? 'border-white/[0.08] text-zinc-400 hover:border-amber-200/35 hover:text-white' : 'border-white/[0.12] text-zinc-300 hover:border-amber-200/40 hover:text-white'} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`;
+  return `inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium transition ${subtle ? 'border-white/[0.1] bg-transparent text-zinc-400 hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white' : 'border-white/[0.15] bg-zinc-800/80 text-zinc-100 hover:border-amber-200/35 hover:bg-zinc-700/80 hover:text-white'} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`;
 }
 
 function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false, type = 'button' }) {
@@ -57,7 +67,8 @@ function LineButton({ children, to, href, onClick, subtle = false, external = fa
 }
 
 function Section({ title, description, children }) {
-  return <ResponsiveFormSection title={title} description={description}>{children}</ResponsiveFormSection>;
+  const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  return <ResponsiveFormSection id={id} title={title} description={description}>{children}</ResponsiveFormSection>;
 }
 
 function Field({ label, value, onChange, placeholder, type = 'text', error, hint, onBlur, required = false, disabled = false, min, max, step, autoComplete }) {
@@ -133,7 +144,7 @@ function ColorField({ label, value, savedValue, onChange, onReset, error, hint }
   );
 }
 
-function UploadField({ label, hint, value, previewClassName = '', previewAlt = '', renderPreview, onFile, onClear, confirmText, uploading = false, error }) {
+function UploadField({ label, hint, value, previewClassName = '', previewAlt = '', renderPreview, onFile, onClear, uploading = false, error }) {
   return (
     <div className="grid gap-3 border-t border-white/[0.07] pt-4">
       <div className="grid gap-1.5 text-sm text-zinc-300">
@@ -154,10 +165,7 @@ function UploadField({ label, hint, value, previewClassName = '', previewAlt = '
         {value && (
           <button
             type="button"
-            onClick={() => {
-              if (!window.confirm(confirmText || 'Remove this image?')) return;
-              onClear();
-            }}
+            onClick={onClear}
             className={lineButtonClasses({ subtle: true, disabled: uploading })}
             disabled={uploading}
           >
@@ -166,6 +174,34 @@ function UploadField({ label, hint, value, previewClassName = '', previewAlt = '
         )}
       </div>
     </div>
+  );
+}
+
+function SettingsPreview({ form }) {
+  const accent = isValidHexColor(form.accentColor) ? normalizeHexColor(form.accentColor) : '#f0c46a';
+  const primary = isValidHexColor(form.primaryTextColor) ? normalizeHexColor(form.primaryTextColor) : '#f4f4f5';
+  const secondary = isValidHexColor(form.secondaryTextColor) ? normalizeHexColor(form.secondaryTextColor) : '#a1a1aa';
+  const muted = isValidHexColor(form.mutedTextColor) ? normalizeHexColor(form.mutedTextColor) : '#71717a';
+  return (
+    <aside className="hidden xl:block" aria-label="Live brand preview">
+      <div className="sticky top-24 rounded-lg border border-white/[0.1] bg-zinc-900 p-4">
+        <div className="mb-4"><p className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-amber-200/70">Live preview</p><p className="mt-1 text-xs leading-5 text-zinc-500">Updates as you edit. Save to publish.</p></div>
+        <div className="overflow-hidden rounded-md border border-white/[0.1] bg-[#0b0c0e]">
+          <div className="border-b border-white/[0.08] p-3">
+            {form.logoUrl ? <img src={form.logoUrl} alt="" className="h-7 max-w-full object-contain object-left" /> : <span className="text-xs font-bold" style={{ color: accent }}>{String(form.displayName || 'LL').split(/\s+/).map((word) => word[0]).join('').slice(0, 3)}</span>}
+          </div>
+          <div className="p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: accent }}>Creative collective</p>
+            <h3 className="mt-2 text-lg font-semibold leading-tight" style={{ color: primary }}>{form.displayName || 'Your brand name'}</h3>
+            <p className="mt-2 text-xs leading-5" style={{ color: secondary }}>{form.tagline || 'Your brand tagline appears here.'}</p>
+            <span className="mt-4 inline-flex rounded-md px-2.5 py-1.5 text-xs font-semibold text-zinc-950" style={{ backgroundColor: accent }}>Primary action</span>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-4 gap-2" aria-label="Current color palette">
+          {[primary, secondary, muted, accent].map((color, index) => <span key={`${color}-${index}`} className="aspect-square rounded-md border border-white/[0.1]" style={{ backgroundColor: color }} title={color} />)}
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -188,6 +224,7 @@ export default function SiteSettings() {
   const [fieldErrors, setFieldErrors] = useState({});
   const skipNextDraftSave = useRef(false);
   const pendingImageActions = useRef({});
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
 
   useEffect(() => {
     if (dirty) return;
@@ -216,16 +253,6 @@ export default function SiteSettings() {
     } catch {
     }
   }, [dirty, draftKey, draftReady, form]);
-
-  useEffect(() => {
-    if (!draftReady || !dirty) return undefined;
-    const warnBeforeLeaving = (event) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', warnBeforeLeaving);
-    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
-  }, [dirty, draftReady]);
 
   const currentSnapshot = JSON.stringify(form);
   const isDirty = dirty && currentSnapshot !== savedSnapshot;
@@ -371,7 +398,16 @@ export default function SiteSettings() {
 
   function discardChanges() {
     if (!dirty) return;
-    if (!window.confirm('Discard your unsaved changes and reload the saved site settings?')) return;
+    requestConfirmation({
+      title: 'Discard unsaved site settings?',
+      description: 'The form will reload the last saved settings. Your current changes will be lost.',
+      confirmLabel: 'Discard changes',
+      destructive: true,
+      onConfirm: performDiscardChanges,
+    });
+  }
+
+  function performDiscardChanges() {
     const base = normalizeSettingsForm(content);
     setForm(base);
     setSavedSnapshot(JSON.stringify(base));
@@ -386,10 +422,25 @@ export default function SiteSettings() {
     }
   }
 
+  function confirmImageRemoval(field, label) {
+    requestConfirmation({
+      title: `Remove the current ${label}?`,
+      description: 'The image will be removed when you save these site settings.',
+      confirmLabel: 'Remove image',
+      destructive: true,
+      onConfirm: () => {
+        pendingImageActions.current[field] = 'remove';
+        update(field, null);
+      },
+    });
+  }
+
   const headerActions = <LineButton href="/" subtle external>Open Public Site</LineButton>;
 
   return (
     <AdminLayout>
+      <div className="w-full max-w-6xl">
+      <UnsavedChangesGuard dirty={draftReady && isDirty && !saving} />
       <AdminPageHeader
         eyebrow="Website CMS"
         title="Site Settings"
@@ -403,8 +454,15 @@ export default function SiteSettings() {
         {!contentLoading && !content.settingsId && <span className="text-xs uppercase tracking-[0.18em] text-zinc-600">Using current site defaults</span>}
       </div>
 
-      <form onSubmit={save} className="w-full max-w-5xl">
-        <div className="min-w-0">
+      <div className="grid gap-5 xl:grid-cols-[11rem_minmax(0,1fr)_15rem] xl:items-start">
+      <aside className="hidden xl:block" aria-label="Settings sections">
+        <nav className="sticky top-24 grid gap-1 border-l border-white/[0.1] pl-3">
+          <p className="mb-2 text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-zinc-600">Sections</p>
+          {settingsSections.map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-md px-2 py-2 text-sm text-zinc-500 transition hover:bg-white/[0.04] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50">{label}</a>)}
+        </nav>
+      </aside>
+      <form onSubmit={save} className="w-full min-w-0">
+        <div className="grid min-w-0 gap-4">
           <Section title="Brand Identity" description="These settings define the global brand text and labels used across the public site and admin shell.">
             <div className="grid gap-6 md:grid-cols-2">
               <Field label="Brand name" value={form.displayName || ''} onChange={(value) => update('displayName', value)} error={fieldErrors.displayName} hint="Shown in the navbar and browser-facing branding." required />
@@ -418,10 +476,10 @@ export default function SiteSettings() {
 
           <Section title="Logos and Brand Media" description="Upload and manage the main logo, hero portrait, and background image without changing any saved asset paths unless you remove them explicitly.">
             <div className="grid gap-6">
-              <UploadField label="Logo" hint="Large raster logos are optimized to 300 KB. SVG files keep a 300 KB hard limit." value={form.logoUrl || ''} previewAlt={form.logoAlt || 'Logo preview'} previewClassName="h-24 object-contain" onFile={(file) => uploadImage('logoUrl', file, 'logos', 'siteLogo')} onClear={() => { pendingImageActions.current.logoUrl = 'remove'; update('logoUrl', null); }} confirmText="Remove your current logo?" uploading={uploadingField === 'logoUrl'} error={fieldErrors.logoUrl} />
+              <UploadField label="Logo" hint="Large raster logos are optimized to 300 KB. SVG files keep a 300 KB hard limit." value={form.logoUrl || ''} previewAlt={form.logoAlt || 'Logo preview'} previewClassName="h-24 object-contain" onFile={(file) => uploadImage('logoUrl', file, 'logos', 'siteLogo')} onClear={() => confirmImageRemoval('logoUrl', 'logo')} uploading={uploadingField === 'logoUrl'} error={fieldErrors.logoUrl} />
 
               <div className="grid gap-6 md:grid-cols-2">
-                <UploadField label="Portrait / profile photo" hint="Large photos are resized and optimized to 300 KB automatically." value={form.heroImageUrl || ''} previewAlt={form.heroImageAlt || 'Portrait preview'} previewClassName="block h-auto max-h-[320px] w-auto max-w-[240px] object-contain" onFile={(file) => uploadImage('heroImageUrl', file, 'heroes', 'creativeProfile')} onClear={() => { pendingImageActions.current.heroImageUrl = 'remove'; update('heroImageUrl', null); }} confirmText="Remove your current portrait image?" uploading={uploadingField === 'heroImageUrl'} error={fieldErrors.heroImageUrl} />
+                <UploadField label="Portrait / profile photo" hint="Large photos are resized and optimized to 300 KB automatically." value={form.heroImageUrl || ''} previewAlt={form.heroImageAlt || 'Portrait preview'} previewClassName="block h-auto max-h-[320px] w-auto max-w-[240px] object-contain" onFile={(file) => uploadImage('heroImageUrl', file, 'heroes', 'creativeProfile')} onClear={() => confirmImageRemoval('heroImageUrl', 'portrait image')} uploading={uploadingField === 'heroImageUrl'} error={fieldErrors.heroImageUrl} />
 
                 <div className="grid gap-4 border-t border-white/[0.07] pt-4">
                   <label className="flex items-start gap-3 border-b border-white/[0.08] py-3 text-sm text-zinc-300">
@@ -432,7 +490,7 @@ export default function SiteSettings() {
                     </span>
                   </label>
 
-                  <UploadField label="Home background image" hint="Large backgrounds are resized and optimized to 1 MB automatically." value={form.defaultBackgroundImageUrl || ''} previewAlt="Background preview" renderPreview={(imageUrl) => { const background = createHeroBackgroundRender({ imageUrl, overlayOpacity: Number(form.defaultBackgroundOverlayOpacity ?? 0.55) }); return <div className="relative aspect-video w-full max-w-2xl overflow-hidden border border-white/[0.08] bg-zinc-950"><div className="absolute inset-0" style={background.style} aria-hidden="true" /><div className="hero-background-overlay absolute inset-0" style={background.overlayStyle} aria-hidden="true" /></div>; }} onFile={(file) => uploadImage('defaultBackgroundImageUrl', file, 'backgrounds', 'siteImage')} onClear={() => { pendingImageActions.current.defaultBackgroundImageUrl = 'remove'; update('defaultBackgroundImageUrl', null); }} confirmText="Remove your current background image?" uploading={uploadingField === 'defaultBackgroundImageUrl'} error={fieldErrors.defaultBackgroundImageUrl} />
+                  <UploadField label="Home background image" hint="Large backgrounds are resized and optimized to 1 MB automatically." value={form.defaultBackgroundImageUrl || ''} previewAlt="Background preview" renderPreview={(imageUrl) => { const background = createHeroBackgroundRender({ imageUrl, overlayOpacity: Number(form.defaultBackgroundOverlayOpacity ?? 0.55) }); return <div className="relative aspect-video w-full max-w-2xl overflow-hidden border border-white/[0.08] bg-zinc-950"><div className="absolute inset-0" style={background.style} aria-hidden="true" /><div className="hero-background-overlay absolute inset-0" style={background.overlayStyle} aria-hidden="true" /></div>; }} onFile={(file) => uploadImage('defaultBackgroundImageUrl', file, 'backgrounds', 'siteImage')} onClear={() => confirmImageRemoval('defaultBackgroundImageUrl', 'background image')} uploading={uploadingField === 'defaultBackgroundImageUrl'} error={fieldErrors.defaultBackgroundImageUrl} />
 
                   <Field label="Background overlay opacity" type="number" min="0" max="1" step="0.05" value={form.defaultBackgroundOverlayOpacity ?? 0.55} onChange={(value) => update('defaultBackgroundOverlayOpacity', value)} error={fieldErrors.defaultBackgroundOverlayOpacity} hint="Controls how strongly the background image is muted behind the hero." />
                 </div>
@@ -447,26 +505,6 @@ export default function SiteSettings() {
               <ColorField label="Muted text" value={form.mutedTextColor || ''} savedValue={normalizeSettingsForm(content).mutedTextColor} onChange={(value) => update('mutedTextColor', value)} onReset={() => resetColor('mutedTextColor')} error={fieldErrors.mutedTextColor} />
               <ColorField label="Accent" value={form.accentColor || ''} savedValue={normalizeSettingsForm(content).accentColor} onChange={(value) => update('accentColor', value)} onReset={() => resetColor('accentColor')} error={fieldErrors.accentColor} />
               <ColorField label="Divider lines" value={form.dividerLineColor || ''} savedValue={normalizeSettingsForm(content).dividerLineColor} onChange={(value) => update('dividerLineColor', value)} onReset={() => resetColor('dividerLineColor')} error={fieldErrors.dividerLineColor} />
-            </div>
-          </Section>
-
-          <Section title="Hero Appearance" description="These controls affect the global hero media look and preserve the current public behavior.">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Field label="Hero portrait alt text" value={form.heroImageAlt || ''} onChange={(value) => update('heroImageAlt', value)} error={fieldErrors.heroImageAlt} hint="Shown anywhere the portrait is rendered as an image." />
-              <Field label="Default background overlay opacity" type="number" min="0" max="1" step="0.05" value={form.defaultBackgroundOverlayOpacity ?? 0.55} onChange={(value) => update('defaultBackgroundOverlayOpacity', value)} error={fieldErrors.defaultBackgroundOverlayOpacity} hint="Same overlay value used on the public hero background." />
-            </div>
-          </Section>
-
-          <Section title="Image Display and Positioning" description="The current site stores a simple show/hide toggle for the portrait and a default background image. Those values remain compatible here.">
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="flex items-start gap-3 border-b border-white/[0.08] py-3 text-sm text-zinc-300">
-                <input type="checkbox" checked={form.showHeroPortrait === true} onChange={(event) => update('showHeroPortrait', event.target.checked)} className="mt-1 h-4 w-4 accent-amber-300" />
-                <span className="grid gap-1">
-                  <span className="text-white">Show portrait on homepage</span>
-                  <span className="text-xs leading-5 text-zinc-500">This preserves the existing homepage portrait visibility behavior.</span>
-                </span>
-              </label>
-              <Field label="Background image URL" value={form.defaultBackgroundImageUrl || ''} onChange={(value) => update('defaultBackgroundImageUrl', value)} error={fieldErrors.defaultBackgroundImageUrl} hint="Leave blank to fall back to the default site background." />
             </div>
           </Section>
 
@@ -501,6 +539,14 @@ export default function SiteSettings() {
         </div>
 
       </form>
+      <SettingsPreview form={form} />
+      </div>
+
+      <nav aria-label="Jump to settings section" className="settings-mobile-nav -mx-4 mb-5 flex gap-2 overflow-x-auto border-b border-white/[0.08] px-4 pb-4 xl:hidden">
+        {settingsSections.map(([id, label]) => <a key={id} href={`#${id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-white/[0.1] bg-zinc-900 px-4 text-sm font-medium text-zinc-400 transition hover:border-amber-200/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50">{label}</a>)}
+      </nav>
+      {confirmationDialog}
+      </div>
     </AdminLayout>
   );
 }

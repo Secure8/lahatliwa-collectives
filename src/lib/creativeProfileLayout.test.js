@@ -48,11 +48,11 @@ test('mobile profile facts match the tools dock and omit only the redundant disc
   assert.match(mobileFacts, /shadow-\[0_10px_35px_rgba\(0,0,0,0\.35\)\]/);
   assert.match(mobileFacts, /sm:grid-cols-2/);
   assert.match(mobileFacts, /HeroFact label="Status"/);
-  assert.match(mobileFacts, /HeroFact label="Selected work"/);
+  assert.match(mobileFacts, /HeroFact label="Portfolio" value="Explore credited work"/);
   assert.doesNotMatch(mobileFacts, /HeroFact label="Discipline"/);
   assert.match(hero, /BrandWordmark variant="eyebrow"[\s\S]*?<SeparatedTitle value=\{creative\.role\}/);
-  assert.doesNotMatch(hero, /HeroFact label="02 \/ Discipline"/);
-  assert.match(hero, /<aside[\s\S]*?<HeroFact label="01 \/ Status"[\s\S]*?<HeroFact label="02 \/ Selected work"/);
+  assert.doesNotMatch(hero, /HeroFact label="Discipline"/);
+  assert.match(hero, /<aside[\s\S]*?<HeroFact label="Status"[\s\S]*?<HeroFact label="Portfolio" value="Explore credited work"/);
 });
 
 test('mobile cover height is independent from long profile content while overlays stay intact', async () => {
@@ -93,7 +93,7 @@ test('creative profile utilities can reveal from the desktop top edge without co
   assert.doesNotMatch(navbar, /lg:-translate-y-full lg:opacity-0/);
   assert.match(navbar, /onFocusCapture/);
   assert.match(details, /event\.clientY <= 140/);
-  assert.match(details, /fixed left-3 top-\[4\.5rem\]/);
+  assert.match(details, /fixed left-3 top-\[7\.25rem\][\s\S]*?xl:top-\[4\.5rem\]/);
   assert.match(details, /xl:pointer-events-none xl:-translate-y-2 xl:opacity-0/);
   assert.match(hero, />DISCOVER MORE<\/span>/);
   assert.match(details, /CreativeProfileQuickNav/);
@@ -106,7 +106,7 @@ test('creative profile utilities can reveal from the desktop top edge without co
   assert.doesNotMatch(hero, /ChevronUp|bg-gradient-to-[rl] from-transparent to-orange-200\/55/);
 });
 
-test('creative profiles use the same full desktop navbar while mobile overlay behavior stays breakpoint-scoped', async () => {
+test('creative profiles use the same desktop navbar while mobile controls remain breakpoint-scoped', async () => {
   const navbar = await readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8');
   const styles = await readFile(new URL('../index.css', import.meta.url), 'utf8');
 
@@ -117,9 +117,9 @@ test('creative profiles use the same full desktop navbar while mobile overlay be
   assert.match(navbar, /content\.logoUrl[\s\S]*?<BrandLogo/);
   assert.match(navbar, /<BrandWordmark name=\{content\.displayName\} variant="compact" mobileVariant="mobile-compact"/);
   assert.match(navbar, /hidden items-center gap-1 lg:flex/);
-  assert.match(navbar, /focus-visible:ring-\[var\(--focus-ring\)\] lg:hidden/);
-  assert.match(navbar, /aria-label="Open main menu"/);
-  assert.match(navbar, /aria-label="Close main menu"/);
+  assert.match(navbar, /flex items-center gap-2 lg:hidden/);
+  assert.match(navbar, /aria-label="Open more links"/);
+  assert.match(navbar, /aria-label="Close more links"/);
   assert.match(navbar, /id="public-mobile-navigation"/);
 
   assert.match(styles, /@media \(max-width: 1023px\)[\s\S]*?\.theme-navigation-surface\.public-app-bar--overlay/);

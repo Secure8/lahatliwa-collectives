@@ -5,9 +5,11 @@ import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader } from '../.
 import { createMediaAsset, deleteMediaAsset, fetchMediaAssets, uploadMediaAssetFile } from '../../lib/contentApi';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { validateUploadFile } from '../../lib/uploadLimits';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog';
+import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
 
 const lineInput = 'w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60';
-const actionClass = 'inline-flex h-9 items-center gap-2 border-b border-white/[0.09] px-1 text-sm text-zinc-400 transition hover:border-amber-200/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50';
+const actionClass = 'inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.13] bg-zinc-800/75 px-3 text-sm font-medium text-zinc-200 shadow-sm transition hover:border-amber-200/35 hover:bg-zinc-700/80 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50';
 
 export default function IconsMedia() {
   const [assets, setAssets] = useState([]);
@@ -23,6 +25,7 @@ export default function IconsMedia() {
   const [uploadStatus, setUploadStatus] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
 
   async function loadAssets() {
     setLoading(true);
@@ -114,9 +117,17 @@ export default function IconsMedia() {
     }
   }
 
-  async function remove(asset) {
-    const confirmed = window.confirm(`Delete “${asset.name}”? This URL may be used in Page Content, service branches, or public pages. Deleting it may break those references.`);
-    if (!confirmed) return;
+  function remove(asset) {
+    requestConfirmation({
+      title: `Delete “${asset.name}”?`,
+      description: 'This URL may be used in Page Content, service branches, or public pages. Deleting it may break those references.',
+      confirmLabel: 'Delete asset',
+      destructive: true,
+      onConfirm: () => performRemove(asset),
+    });
+  }
+
+  async function performRemove(asset) {
     setDeletingId(asset.id);
     setError('');
     setMessage('');
@@ -143,6 +154,7 @@ export default function IconsMedia() {
 
   return (
     <AdminLayout>
+      <UnsavedChangesGuard dirty={!saving && Boolean(file || form.name || form.category || form.altText)} />
       <div className="w-full max-w-6xl">
         <AdminPageHeader eyebrow="Website CMS" title="Media and Icons" description="Upload and manage reusable visual assets for service and content areas." />
 
@@ -186,7 +198,7 @@ export default function IconsMedia() {
               <span>Search assets</span>
               <span className="flex items-center gap-2 border-b border-white/[0.12]">
                 <Search size={15} className="shrink-0 text-zinc-600" />
-                <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, alt text, category, or filename" className={lineInput} />
+                <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, alt text, category, or filename" className={lineInput} />
               </span>
             </label>
             <SelectField label="Category" value={category} onChange={setCategory}>
@@ -226,6 +238,7 @@ export default function IconsMedia() {
           )}
         </section>
       </div>
+      {confirmationDialog}
     </AdminLayout>
   );
 }
@@ -255,7 +268,7 @@ function AssetItem({ asset, deleting, onCopy, onDelete }) {
 }
 
 function AssetSkeletons() {
-  return <div className="grid gap-x-6 sm:grid-cols-2 xl:grid-cols-3" aria-label="Loading media assets">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="grid grid-cols-[4.5rem_1fr] gap-4 border-t border-white/[0.08] py-5"><div className="h-[4.5rem] animate-pulse bg-white/[0.04]" /><div className="grid content-start gap-3 pt-1"><div className="h-3 w-2/3 animate-pulse bg-white/[0.05]" /><div className="h-2 w-1/2 animate-pulse bg-white/[0.04]" /></div></div>)}</div>;
+  return <div className="grid gap-x-6 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-live="polite" aria-label="Loading media assets">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="grid grid-cols-[4.5rem_1fr] gap-4 border-t border-white/[0.08] py-5"><div className="h-[4.5rem] animate-pulse bg-white/[0.04]" /><div className="grid content-start gap-3 pt-1"><div className="h-3 w-2/3 animate-pulse bg-white/[0.05]" /><div className="h-2 w-1/2 animate-pulse bg-white/[0.04]" /></div></div>)}</div>;
 }
 
 function Field({ label, value, onChange, placeholder }) {

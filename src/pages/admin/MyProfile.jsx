@@ -25,6 +25,8 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import CreativeProfileView from '../../components/CreativeProfileView';
 import { AdminButton, AdminNotice, AdminPageHeader, AdminStatusBadge, ResponsiveFormSection, StickyMobileActions } from '../../components/admin/AdminUI';
 import LoadingState from '../../components/LoadingState';
+import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 import { useAdminAccess } from '../../lib/adminAccess';
 import { copyText } from '../../lib/clipboard';
 import { uploadSiteAsset } from '../../lib/contentApi';
@@ -150,7 +152,7 @@ function ProfileSection({ title, description, children }) {
 }
 
 function InlineActionButton({ children, onClick, href, disabled = false, subtle = false }) {
-  const classes = `inline-flex h-10 items-center gap-2 border-b px-2 text-sm transition ${subtle ? 'border-white/[0.08] text-zinc-400 hover:border-amber-200/35 hover:text-white' : 'border-white/[0.12] text-zinc-300 hover:border-amber-200/40 hover:text-white'} disabled:cursor-not-allowed disabled:opacity-50`;
+  const classes = `inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition ${subtle ? 'border-white/[0.1] bg-transparent text-zinc-400 shadow-none hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white' : 'border-white/[0.15] bg-zinc-800/80 text-zinc-100 hover:border-amber-200/35 hover:bg-zinc-700/80 hover:text-white'} disabled:cursor-not-allowed disabled:opacity-50`;
 
   if (href) {
     return href.startsWith('/') ? <Link to={href} className={classes}>{children}</Link> : <a href={href} className={classes}>{children}</a>;
@@ -162,6 +164,7 @@ function InlineActionButton({ children, onClick, href, disabled = false, subtle 
 export default function MyProfile() {
   const { adminUser, user } = useAdminAccess();
   const [profile, setProfile] = useState(null);
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
   const [form, setForm] = useState({});
   const [savedSignature, setSavedSignature] = useState('');
   const [loading, setLoading] = useState(true);
@@ -241,17 +244,6 @@ export default function MyProfile() {
   const visibilityLabel = form.is_published ? 'Published publicly' : 'Hidden from public view';
   const hasAdminManagedFields = typeof profile?.is_featured === 'boolean' || profile?.display_order !== null || profile?.display_order !== undefined;
 
-  useEffect(() => {
-    const warn = (event) => {
-      if (!isDirty) return;
-      event.preventDefault();
-      event.returnValue = '';
-    };
-
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [isDirty]);
-
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
     setFieldErrors((current) => {
@@ -301,7 +293,20 @@ export default function MyProfile() {
 
   function resetToSaved() {
     if (!profile) return;
-    if (isDirty && !window.confirm('Discard your unsaved changes and reload the saved profile?')) return;
+    if (isDirty) {
+      requestConfirmation({
+        title: 'Discard unsaved profile changes?',
+        description: 'Your profile will reload its last saved content. Your current changes will be lost.',
+        confirmLabel: 'Discard changes',
+        destructive: true,
+        onConfirm: performResetToSaved,
+      });
+      return;
+    }
+    performResetToSaved();
+  }
+
+  function performResetToSaved() {
     const nextForm = formFromProfile(profile);
     setForm(nextForm);
     setSavedSignature(formSignature(nextForm));
@@ -462,8 +467,17 @@ export default function MyProfile() {
     }
   }
 
-  async function removeImage(field, label) {
-    if (!window.confirm(`Remove your current ${label}?`)) return;
+  function removeImage(field, label) {
+    requestConfirmation({
+      title: `Remove your current ${label}?`,
+      description: 'The image will be removed from your saved public profile.',
+      confirmLabel: 'Remove image',
+      destructive: true,
+      onConfirm: () => performRemoveImage(field, label),
+    });
+  }
+
+  async function performRemoveImage(field, label) {
     setUploadingKind(field);
     setUploadMessage('');
     try {
@@ -556,6 +570,7 @@ export default function MyProfile() {
 
   return (
     <AdminLayout>
+      <UnsavedChangesGuard dirty={Boolean(isDirty) && !saving} />
       <AdminPageHeader
         eyebrow="Creative profile"
         title="My Profile"
@@ -916,6 +931,7 @@ export default function MyProfile() {
           </StickyMobileActions>
         </ProfileSection>
       </form>
+      {confirmationDialog}
     </AdminLayout>
   );
 }

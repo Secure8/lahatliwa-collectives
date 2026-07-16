@@ -46,7 +46,7 @@ function formatDate(value) {
 }
 
 function LineButton({ children, to, href, onClick, subtle = false, external = false }) {
-  const classes = `inline-flex h-10 items-center gap-2 border-b px-2 text-sm transition ${subtle ? 'border-white/[0.08] text-zinc-400 hover:border-amber-200/35 hover:text-white' : 'border-white/[0.12] text-zinc-300 hover:border-amber-200/40 hover:text-white'}`;
+  const classes = `inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition ${subtle ? 'border-white/[0.1] bg-transparent text-zinc-400 shadow-none hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white' : 'border-white/[0.15] bg-zinc-800/80 text-zinc-100 hover:border-amber-200/35 hover:bg-zinc-700/80 hover:text-white'}`;
 
   if (to) return <Link to={to} className={classes}>{children}</Link>;
   if (href && !external) return <Link to={href} className={classes}>{children}</Link>;

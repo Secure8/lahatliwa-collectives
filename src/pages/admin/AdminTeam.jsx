@@ -20,6 +20,8 @@ import { copyText } from '../../lib/clipboard';
 import { supabase } from '../../lib/supabaseClient';
 import { buildTeamMemberPayload, canAssignTeamRole, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
 import { filterVisibleTeamMembers } from '../../lib/teamVisibility';
+import AdminDialog from '../../components/admin/AdminDialog';
+import AdminPeopleNav from '../../components/admin/AdminPeopleNav';
 
 const roleOptions = TEAM_ROLES;
 const teamFilters = ['all', 'active', 'disabled', 'invited'];
@@ -107,7 +109,7 @@ export default function AdminTeam() {
         .order('created_at', { ascending: false }),
       supabase
         .from('creative_members')
-        .select('id, name, role, slug, is_published')
+        .select('id, name, role, slug, is_published, profile_image_url')
         .order('display_order', { ascending: true, nullsFirst: false })
         .order('name', { ascending: true }),
     ]);
@@ -365,7 +367,7 @@ export default function AdminTeam() {
         setActiveFilter(nextStatus);
         const { data: restoredCreatives } = await supabase
           .from('creative_members')
-          .select('id, name, role, slug, is_published')
+          .select('id, name, role, slug, is_published, profile_image_url')
           .order('display_order', { ascending: true, nullsFirst: false })
           .order('name', { ascending: true });
         if (restoredCreatives) setCreatives(restoredCreatives);
@@ -388,15 +390,20 @@ export default function AdminTeam() {
     return creatives.find((creative) => creative.id === id)?.name || 'Not linked';
   }
 
+  function memberPhoto(member) {
+    return member.avatar_url || creatives.find((creative) => creative.id === member.creative_member_id)?.profile_image_url || '';
+  }
+
   return (
     <AdminLayout>
       <div className="w-full max-w-6xl">
       <AdminPageHeader
-        eyebrow="Team CMS"
-        title="Team Management"
-        description="Manage platform accounts, roles, linked creative profiles, and access. Platform access is separate from being published as a creative."
+        eyebrow="People"
+        title="Team Access"
+        description="Manage sign-in access, roles, and permissions. Public profile content remains in the adjacent Creative Profiles view."
         action={isSuperAdmin && <AdminButton onClick={openAddMember} variant="primary"><Plus size={17} /> Add Member</AdminButton>}
       />
+      <AdminPeopleNav />
 
       {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
       {message && <AdminNotice tone="success" className="mb-5">{message}</AdminNotice>}
@@ -419,11 +426,11 @@ export default function AdminTeam() {
       <section className="grid gap-4 border-b border-white/[0.08] py-6 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,1fr)_12rem]">
         <label className="grid gap-1.5 text-sm text-zinc-300">
           <span>Search members</span>
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email" className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60" />
+          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email" className="w-full rounded-md border border-white/[0.14] bg-zinc-950 px-3 py-2.5 text-white outline-none transition placeholder:text-zinc-700 hover:border-white/[0.22] focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/15" />
         </label>
         <label className="grid gap-1.5 text-sm text-zinc-300">
           <span>Role</span>
-          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none [color-scheme:dark] focus:border-amber-200/60">
+          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="w-full rounded-md border border-white/[0.14] bg-zinc-950 px-3 py-2.5 text-white outline-none [color-scheme:dark] hover:border-white/[0.22] focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/15">
             <option value="all">All roles</option>
             {Object.keys(TEAM_ROLE_LABELS).map((option) => <option key={option} value={option}>{TEAM_ROLE_LABELS[option]}</option>)}
           </select>
@@ -465,12 +472,13 @@ export default function AdminTeam() {
                 const canDisable = isSuperAdmin && member.status === 'active' && !currentAccount && !protectedSuperAdmin;
                 const canRestore = isSuperAdmin && member.status === 'disabled';
                 const canDelete = isSuperAdmin && !currentAccount && !isSuperAdminMember(member);
+                const photoUrl = memberPhoto(member);
                 return (
                 <article key={member.id} className={`grid gap-4 border-b border-white/[0.06] px-4 py-4 last:border-b-0 sm:px-5 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-center xl:gap-6 ${updatingMemberId === member.id ? 'opacity-60' : ''}`}>
                   <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(8rem,0.65fr)_minmax(0,0.9fr)] md:items-center md:gap-6">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-white/[0.04] text-sm font-medium text-zinc-500">
-                        {member.avatar_url ? <img src={member.avatar_url} alt="" className="h-full w-full object-cover" /> : String(member.display_name || member.email || '?').slice(0, 1).toUpperCase()}
+                        {photoUrl ? <img src={photoUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : String(member.display_name || member.email || '?').slice(0, 1).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-2">
@@ -491,7 +499,7 @@ export default function AdminTeam() {
                     </div>
                   </div>
                   <div className="grid min-w-0 gap-3 border-t border-white/[0.1] pt-3 xl:w-full xl:self-stretch xl:border-l xl:border-t-0 xl:py-1 xl:pl-5">
-                    <AdminActionGroup className="w-full min-w-0 gap-2 xl:justify-start">
+                    <AdminActionGroup className="admin-record-actions w-full min-w-0 gap-2 xl:justify-start">
                       {canManageMember && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>}
                       {isSuperAdmin && member.status === 'invited' && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => resendInvitation(member)}><Mail size={14} /> {updatingMemberId === member.id ? 'Sending...' : 'Resend invitation'}</AdminActionButton>}
                       {isSuperAdmin && member.status === 'active' && member.user_id && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => sendPasswordReset(member)}><Mail size={14} /> {updatingMemberId === member.id ? 'Sending...' : 'Send password reset'}</AdminActionButton>}
@@ -499,7 +507,7 @@ export default function AdminTeam() {
                       {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton onClick={() => copyMemberProfile(member)}><Copy size={14} /> Copy link</AdminActionButton>}
                       {member.status !== 'disabled' && creatives.find((creative) => creative.id === member.creative_member_id)?.is_published && <AdminActionButton to={`/creatives/${creatives.find((creative) => creative.id === member.creative_member_id).slug}`}><ExternalLink size={14} /> Public</AdminActionButton>}
                     </AdminActionGroup>
-                    <AdminActionGroup className="w-full min-w-0 gap-2 border-t border-red-300/10 pt-3 xl:justify-start">
+                    <AdminActionGroup className="admin-record-actions w-full min-w-0 gap-2 border-t border-red-300/10 pt-3 xl:justify-start">
                       {canDisable && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('remove_access', member)} variant="danger"><ShieldOff size={14} /> Deactivate member</AdminActionButton>}
                       {canRestore && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('restore_access', member)}><RotateCcw size={14} /> Reactivate member</AdminActionButton>}
                       {canDelete && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => openLifecycle('permanent_delete', member)} variant="danger"><Trash2 size={14} /> Delete member</AdminActionButton>}
@@ -511,7 +519,7 @@ export default function AdminTeam() {
           </div>
         ) : <AdminEmptyState title={emptyFilterCopy[activeFilter]} />
       )}
-      {showMemberForm && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="member-form-title">
+      <AdminDialog open={showMemberForm} onClose={resetForm} title={editingId ? 'Edit Team Member' : 'Add Member'} description={editingId ? 'Update this member’s existing team record.' : 'Invite a person and assign their initial team access.'} panelClassName="max-w-2xl" busy={saving}>
         <AdminSurface as="form" onSubmit={save} className="grid max-h-[calc(100vh-2rem)] w-full max-w-2xl gap-5 overflow-y-auto border-amber-200/25 bg-zinc-950/98 shadow-2xl">
           <div className="flex items-start justify-between gap-4 border-b border-amber-200/15 pb-4">
             <div>
@@ -541,8 +549,9 @@ export default function AdminTeam() {
             <AdminButton disabled={saving} onClick={resetForm} variant="ghost">Cancel</AdminButton>
           </div>
         </AdminSurface>
-      </div>}
-      {lifecycle && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="lifecycle-dialog-title">
+      </AdminDialog>
+      <AdminDialog open={Boolean(lifecycle)} onClose={() => setLifecycle(null)} title={lifecycle?.action === 'permanent_delete' ? 'Delete member' : lifecycle?.action === 'restore_access' ? 'Reactivate member' : 'Deactivate member'} destructive={lifecycle?.action === 'permanent_delete'} busy={Boolean(lifecycle && updatingMemberId === lifecycle.member.id)}>
+        {lifecycle && (
         <AdminSurface as="form" onSubmit={runLifecycle} className="grid w-full max-w-lg gap-5 border-amber-200/25 bg-zinc-950/98 shadow-2xl">
           <div className="flex items-start justify-between gap-4 border-b border-amber-200/15 pb-4"><div><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">PIN-protected action</p><h2 id="lifecycle-dialog-title" className="mt-2 text-xl font-semibold text-white">{lifecycle.action === 'permanent_delete' ? 'Delete member' : lifecycle.action === 'restore_access' ? 'Reactivate member' : 'Deactivate member'}</h2></div><button type="button" onClick={() => setLifecycle(null)} aria-label="Close lifecycle dialog" className="text-zinc-400 hover:text-white"><X size={20} /></button></div>
           <p className="text-sm leading-6 text-zinc-300">{lifecycle.action === 'permanent_delete' ? 'Permanent deletion removes the member’s login account, profile, and eligible account records. This cannot be undone.' : lifecycle.action === 'restore_access' ? 'This restores access and visibility saved when the member was deactivated.' : 'This revokes application access while preserving profiles, credits, ownership, and history. It can be reversed.'}</p>
@@ -551,13 +560,14 @@ export default function AdminTeam() {
           {lifecycle.action === 'permanent_delete' && <AdminInput label="Type DELETE to confirm" required value={confirmation} onChange={setConfirmation} />}
           <div className="flex gap-3"><AdminButton type="submit" variant={lifecycle.action === 'permanent_delete' ? 'danger' : 'primary'} disabled={!pin || (lifecycle.action === 'permanent_delete' && confirmation !== 'DELETE') || updatingMemberId === lifecycle.member.id}>{updatingMemberId ? 'Working...' : 'Confirm action'}</AdminButton><AdminButton onClick={() => setLifecycle(null)} variant="ghost">Cancel</AdminButton></div>
         </AdminSurface>
-      </div>}
+        )}
+      </AdminDialog>
       </div>
     </AdminLayout>
   );
 }
 
 function TeamSkeleton() {
-  return <div className="py-5" aria-label="Loading team members">{[0, 1, 2, 3].map((item) => <div key={item} className="grid grid-cols-[2.5rem_1fr] gap-3 border-b border-white/[0.08] py-5"><div className="h-10 w-10 animate-pulse rounded-full bg-white/[0.05]" /><div className="grid content-center gap-3"><div className="h-3 w-40 max-w-full animate-pulse bg-white/[0.05]" /><div className="h-2 w-56 max-w-full animate-pulse bg-white/[0.04]" /></div></div>)}</div>;
+  return <div className="py-5" role="status" aria-live="polite" aria-label="Loading team members">{[0, 1, 2, 3].map((item) => <div key={item} className="grid grid-cols-[2.5rem_1fr] gap-3 border-b border-white/[0.08] py-5"><div className="h-10 w-10 animate-pulse rounded-full bg-white/[0.05]" /><div className="grid content-center gap-3"><div className="h-3 w-40 max-w-full animate-pulse bg-white/[0.05]" /><div className="h-2 w-56 max-w-full animate-pulse bg-white/[0.04]" /></div></div>)}</div>;
 }
 

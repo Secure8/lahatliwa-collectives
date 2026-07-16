@@ -16,7 +16,6 @@ import { applyPublicMetadata } from './lib/publicMetadata';
 import ThemeToggle from './components/ThemeToggle';
 import BrandWordmark from './components/BrandWordmark';
 import { publicAppBarMode } from './lib/mobileAppShell';
-import MobileBottomNavigation from './components/MobileBottomNavigation';
 
 const Login = lazy(() => import('./pages/admin/Login'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
@@ -109,10 +108,10 @@ function PublicSiteFrame() {
     <>
       <SiteDocumentMetadata />
       <PublicScrollRestoration />
+      <a href="#public-main-content" className="skip-link">Skip to main content</a>
       <Navbar />
-      <main data-public-app-content data-app-bar-mode={appBarMode} className={`public-app-content public-app-content--${appBarMode} min-h-[60vh] overflow-x-hidden`}><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
+      <main id="public-main-content" tabIndex={-1} data-public-app-content data-app-bar-mode={appBarMode} className={`public-app-content public-app-content--${appBarMode} min-h-[60vh] overflow-x-hidden`}><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
       <Footer />
-      <MobileBottomNavigation />
     </>
   );
 }

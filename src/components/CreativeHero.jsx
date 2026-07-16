@@ -6,7 +6,7 @@ import { resourceMeta } from '../lib/profileResources';
 import { inquiryUrl } from '../lib/serviceRequest';
 import BrandWordmark from './BrandWordmark';
 
-export default function CreativeHero({ creative, projectCount, socials, resources = [], renderSocial, adminPreview = false }) {
+export default function CreativeHero({ creative, socials, resources = [], renderSocial, adminPreview = false }) {
   const profileImage = getPublicImageUrl(creative.profile_image_url);
   const coverImage = getPublicImageUrl(creative.cover_image) || profileImage;
   const intro = creative.short_bio || creative.full_bio;
@@ -40,15 +40,15 @@ export default function CreativeHero({ creative, projectCount, socials, resource
       <aside className="absolute right-8 top-[58%] z-10 hidden w-[23%] -translate-y-1/2 border-l border-orange-300/60 pl-7 lg:block">
         {intro && <p className="mb-8 text-sm leading-6 text-zinc-100">{intro}</p>}
         <div className="grid gap-6">
-          <HeroFact label="01 / Status" value={creative.availability_status || 'Creative profile'} accent={Boolean(creative.availability_status)} />
-          <HeroFact label="02 / Selected work" value={`${projectCount} published ${projectCount === 1 ? 'project' : 'projects'}`} />
+          <HeroFact label="Status" value={creative.availability_status || 'Creative profile'} accent={Boolean(creative.availability_status)} />
+          <HeroFact label="Portfolio" value="Explore credited work" />
         </div>
       </aside>
       <div data-creative-hero-facts className="relative z-10 mx-3 mb-3 lg:hidden">
         {resources.length > 0 && <ResourceDock resources={resources} mobile />}
         <div data-creative-facts-box className="grid overflow-hidden rounded-xl border border-white/15 bg-black/55 shadow-[0_10px_35px_rgba(0,0,0,0.35)] backdrop-blur-md sm:grid-cols-2">
           <HeroFact label="Status" value={creative.availability_status || 'Creative profile'} accent={Boolean(creative.availability_status)} />
-          <HeroFact label="Selected work" value={`${projectCount} published ${projectCount === 1 ? 'project' : 'projects'}`} />
+          <HeroFact label="Portfolio" value="Explore credited work" />
         </div>
       </div>
       {resources.length > 0 && <ResourceDock resources={resources} />}

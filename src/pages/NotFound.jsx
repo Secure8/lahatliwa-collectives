@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <section className="page-shell grid min-h-[60vh] place-items-center py-20" aria-labelledby="not-found-heading">
       <div className="w-full max-w-2xl border-y border-white/[0.1] py-12">
-        <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">404 / Page not found</p>
+        <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Page unavailable</p>
         <h1 id="not-found-heading" className="mt-4 text-4xl font-semibold text-[var(--site-primary-text)] sm:text-5xl">This page is not available.</h1>
         <p className="mt-5 max-w-xl leading-7 text-[var(--site-secondary-text)]">The address may be outdated or incomplete. Return home or continue browsing the published work.</p>
         <div className="mt-8 flex flex-wrap gap-3">

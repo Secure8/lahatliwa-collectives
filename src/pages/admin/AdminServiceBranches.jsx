@@ -8,12 +8,15 @@ import { isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
 import { resolvePublicAssetUrl } from '../../lib/contentApi';
 import { branchKeyFromRecord, serviceCategoriesForBranch } from '../../lib/serviceRequest';
 import { supabase } from '../../lib/supabaseClient';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 
 export default function AdminServiceBranches() {
   const { role } = useAdminAccess(); const navigate = useNavigate();
   const [branches,setBranches]=useState([]); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
   useEffect(()=>{supabase.from('service_branches').select('*').order('display_order',{ascending:true,nullsFirst:false}).order('created_at',{ascending:false}).then(({data,error:loadError})=>{if(loadError)setError(loadError.message);else setBranches(data||[]);setLoading(false);});},[]);
-  async function deleteBranch(branch){if(!window.confirm(`Delete "${branch.name}"?`))return;const{error:deleteError}=await supabase.from('service_branches').delete().eq('id',branch.id);if(deleteError)setError(deleteError.message);else setBranches((current)=>current.filter((item)=>item.id!==branch.id));}
+  function deleteBranch(branch){requestConfirmation({title:`Delete “${branch.name}”?`,description:'This service branch will be removed from the public service structure. This cannot be undone.',confirmLabel:'Delete branch',destructive:true,onConfirm:()=>performDeleteBranch(branch)});}
+  async function performDeleteBranch(branch){const{error:deleteError}=await supabase.from('service_branches').delete().eq('id',branch.id);if(deleteError)setError(deleteError.message);else setBranches((current)=>current.filter((item)=>item.id!==branch.id));}
   if(!isPrivilegedRole(role))return <Navigate to="/admin/dashboard" replace/>;
   return <AdminLayout>
     <AdminPageHeader eyebrow="Service structure" title="Service Branches" description="Manage the branch content shown on the public Services page. Public branches describe service paths, not staffed departments." action={<AdminButton to="/admin/service-branches/new" variant="primary"><Plus size={17}/> Add Branch</AdminButton>}/>
@@ -35,5 +38,6 @@ export default function AdminServiceBranches() {
         action={<AdminButton to="/admin/service-branches/new" variant="primary"><Plus size={17}/> Add Branch</AdminButton>}
       />
     )}
+    {confirmationDialog}
   </AdminLayout>;
 }

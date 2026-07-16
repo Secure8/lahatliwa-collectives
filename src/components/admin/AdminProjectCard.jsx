@@ -1,7 +1,8 @@
-import { Calendar, Edit, GripVertical, Images, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Calendar, Edit, GripVertical, Images, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 import { canDeleteProject, canEditProject, useAdminAccess } from '../../lib/adminAccess';
 import { formatDate } from '../../lib/helpers';
+import { getPublicImageUrl } from '../../lib/storage';
 import { AdminActionButton, AdminActionGroup, AdminStatusBadge } from './AdminUI';
 
 export default function AdminProjectCard({
@@ -14,11 +15,17 @@ export default function AdminProjectCard({
   onDragOver,
   onDrop,
   orderLabel,
+  position,
+  total,
+  moving = false,
+  onMoveUp,
+  onMoveDown,
 }) {
   const mediaCount = (project.gallery_images || []).length + (project.gallery_items || []).length;
   const { role, user } = useAdminAccess();
   const canEdit = canEditProject(role, project, user?.id);
   const canDelete = canDeleteProject(role, project);
+  const coverImage = getPublicImageUrl(project.cover_image);
 
   return (
     <article
@@ -35,10 +42,13 @@ export default function AdminProjectCard({
     >
       <div className="flex items-start gap-3">
         {draggable && (
-          <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/[0.055] text-zinc-500 ring-1 ring-white/[0.07] transition group-hover:text-amber-100" aria-hidden="true">
+          <span className="mt-1 hidden h-9 w-9 shrink-0 place-items-center rounded-md bg-white/[0.055] text-zinc-500 ring-1 ring-white/[0.07] transition group-hover:text-amber-100 md:grid" aria-hidden="true">
             <GripVertical size={16} />
           </span>
         )}
+        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border border-white/[0.08] bg-zinc-950 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-600">
+          {coverImage ? <img src={coverImage} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : 'No image'}
+        </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold text-white">{project.title}</h3>
@@ -56,7 +66,15 @@ export default function AdminProjectCard({
           <p className="mt-2 truncate text-sm text-zinc-600">/{project.slug}</p>
         </div>
       </div>
-      <AdminActionGroup className="md:justify-end">
+      <AdminActionGroup className="admin-record-actions md:justify-end">
+        {draggable && <>
+          <AdminActionButton onClick={onMoveUp} disabled={moving || position === 0} aria-label={`Move ${project.title} up`}>
+            <ArrowUp size={14} aria-hidden="true" /> Up
+          </AdminActionButton>
+          <AdminActionButton onClick={onMoveDown} disabled={moving || position === total - 1} aria-label={`Move ${project.title} down`}>
+            <ArrowDown size={14} aria-hidden="true" /> Down
+          </AdminActionButton>
+        </>}
         {canEdit && <AdminActionButton to={`/admin/projects/${project.id}/edit`}>
           <Edit size={14} /> Edit
         </AdminActionButton>}

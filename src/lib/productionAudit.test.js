@@ -139,3 +139,25 @@ test('shared interaction treatments expose persistent focus, active, and disclos
   assert.match(inquiries, /group-open:rotate-180/);
   assert.match(services, /aria-label=\{`Choose \$\{service\.name\} for \$\{branch\.label\}`\}/);
 });
+
+test('editorial labels use meaningful language instead of decorative ordinal counters', () => {
+  const sources = [
+    'src/components/CreativeHero.jsx',
+    'src/components/CreativeProfileView.jsx',
+    'src/components/ProjectCard.jsx',
+    'src/pages/About.jsx',
+    'src/pages/Creatives.jsx',
+    'src/pages/Privacy.jsx',
+    'src/pages/Services.jsx',
+    'src/pages/NotFound.jsx',
+    'src/pages/admin/ContentEditor.jsx',
+  ]
+    .map((file) => readFileSync(resolve(root, file), 'utf8'))
+    .join('\n');
+
+  assert.doesNotMatch(sources, /\b0[1-9]\s*\/|padStart\(2,\s*['"]0['"]\)|404\s*\//);
+  assert.doesNotMatch(sources, /projectCount|Published profiles|\$\{skills\.length\} capabilities/);
+  assert.match(sources, /Service category/);
+  assert.match(sources, /Untitled service group/);
+  assert.match(sources, /Profile focus/);
+});

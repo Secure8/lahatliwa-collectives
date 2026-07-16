@@ -10,7 +10,7 @@ export const PUBLIC_PRIMARY_DESTINATIONS = [
 ];
 
 export function publicAppBarMode(pathname = '/') {
-  if (pathname === '/' || /^\/creatives\/[^/]+\/?$/.test(pathname)) return 'overlay';
+  if (pathname === '/') return 'overlay';
   return 'surface';
 }
 

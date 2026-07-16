@@ -101,10 +101,9 @@ export default function Privacy() {
             </div>
           </section>
 
-          {policySections.map((section, index) => (
+          {policySections.map((section) => (
             <section key={section.title} className="major-border-top pt-10">
-              <AccentEyebrow>{String(index + 1).padStart(2, '0')}</AccentEyebrow>
-              <h2 className="mt-4 text-2xl font-medium text-[var(--site-primary-text)]">{section.title}</h2>
+              <h2 className="text-2xl font-medium text-[var(--site-primary-text)]">{section.title}</h2>
               <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--site-secondary-text)] [&_a]:text-[var(--site-accent-text)] [&_a]:underline [&_a]:underline-offset-4 [&_code]:rounded [&_code]:bg-white/[0.06] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[var(--site-primary-text)]">
                 {section.content}
               </div>

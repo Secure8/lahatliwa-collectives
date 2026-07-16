@@ -16,6 +16,7 @@ import {
 import { STORAGE_FEATURE_FLAGS } from '../../lib/storageFeatureFlags';
 import { canAccessStoragePage, storagePageMode } from '../../lib/storageAdmin';
 import { supabase } from '../../lib/supabaseClient';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 
 export default function Storage() {
   const { role, adminUser } = useAdminAccess();
@@ -82,6 +83,7 @@ function CurrentDestination() {
 }
 
 function GoogleDriveConnection() {
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
   const [state, setState] = useState({ loading: true, configured: false, testUploadEnabled: false, connection: null, notice: null, actionError: '', busy: '' });
   const clientGateEnabled = STORAGE_FEATURE_FLAGS.googleDriveConnectorEnabled;
 
@@ -156,13 +158,19 @@ function GoogleDriveConnection() {
               {disabledReason && <p id="google-drive-disabled-reason" className="mt-2 text-xs leading-5 text-zinc-500">{disabledReason}</p>}
               {state.actionError && <AdminNotice aria-live="assertive" className="mt-3">{state.actionError}</AdminNotice>}
               {connection && <DisconnectSection connection={connection} busy={state.busy} onDisconnect={() => {
-                if (!window.confirm('Disconnect Google Drive? Lahat Liwa will remove its saved authorization. Files and folders in Drive will remain.')) return;
-                run('disconnect', () => disconnectGoogleDriveConnection(connection.id));
+                requestConfirmation({
+                  title: 'Disconnect Google Drive?',
+                  description: 'Lahat Liwa will remove its saved authorization. Files and folders in Drive will remain.',
+                  confirmLabel: 'Disconnect Drive',
+                  destructive: true,
+                  onConfirm: () => run('disconnect', () => disconnectGoogleDriveConnection(connection.id)),
+                });
               }} />}
             </>
           )}
         </div>
       </div>
+      {confirmationDialog}
     </section>
   );
 }

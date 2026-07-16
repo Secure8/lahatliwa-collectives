@@ -1,8 +1,9 @@
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminProjectCard from '../../components/admin/AdminProjectCard';
 import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 import LoadingState from '../../components/LoadingState';
 import { canCreateProjects, canDeleteProject, canManageAllProjects, useAdminAccess } from '../../lib/adminAccess';
 import { supabase } from '../../lib/supabaseClient';
@@ -16,6 +17,7 @@ import {
   deleteGoogleDriveMedia,
   prepareGoogleDriveProjectDeletion,
 } from '../../lib/googleDriveStorage';
+import { moveProjectBefore, moveProjectByOffset } from '../../lib/adminProjectOrdering';
 
 export default function AdminProjects() {
   const [projects, setProjects] = useState([]);
@@ -23,10 +25,13 @@ export default function AdminProjects() {
   const [savingOrder, setSavingOrder] = useState(false);
   const [draggingProjectId, setDraggingProjectId] = useState('');
   const [error, setError] = useState('');
+  const [orderAnnouncement, setOrderAnnouncement] = useState('');
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const { role, user } = useAdminAccess();
   const canCreate = canCreateProjects(role);
   const canManageAll = canManageAllProjects(role);
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
 
   async function loadProjects() {
     setLoading(true);
@@ -48,25 +53,19 @@ export default function AdminProjects() {
   }, []);
 
   const featuredProjects = useMemo(() => projects.filter((project) => project.featured), [projects]);
-  const filteredProjects = useMemo(() => projects.filter((project) => (
-    filter === 'all'
-    || (filter === 'owned' && (project.owner_user_id === user?.id || project.created_by === user?.id))
-    || (filter === 'published' && project.status === 'published')
-    || (filter === 'draft' && project.status === 'draft')
-    || (filter === 'archived' && project.review_status === 'archived')
-  )), [filter, projects, user?.id]);
+  const filteredProjects = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return projects.filter((project) => (
+      (filter === 'all'
+      || (filter === 'owned' && (project.owner_user_id === user?.id || project.created_by === user?.id))
+      || (filter === 'published' && project.status === 'published')
+      || (filter === 'draft' && project.status === 'draft')
+      || (filter === 'archived' && project.review_status === 'archived'))
+      && (!query || [project.title, project.category, project.slug].some((value) => String(value || '').toLowerCase().includes(query)))
+    ));
+  }, [filter, projects, search, user?.id]);
 
-  function moveProject(items, activeId, targetId) {
-    const fromIndex = items.findIndex((project) => project.id === activeId);
-    const toIndex = items.findIndex((project) => project.id === targetId);
-    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return items;
-    const next = [...items];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    return next;
-  }
-
-  async function saveFeaturedOrder(orderedProjects) {
+  async function saveFeaturedOrder(orderedProjects, announcement = '') {
     const orderedWithPositions = orderedProjects.map((project, index) => ({
       ...project,
       display_order: (index + 1) * 100,
@@ -91,6 +90,7 @@ export default function AdminProjects() {
         ...orderedWithPositions,
         ...current.filter((project) => !orderMap.has(project.id)),
       ]);
+      if (announcement) setOrderAnnouncement(announcement);
     } catch (orderError) {
       setError(orderError.message || 'Could not save the featured project order.');
     } finally {
@@ -104,8 +104,18 @@ export default function AdminProjects() {
       setDraggingProjectId('');
       return;
     }
-    const reordered = moveProject(featuredProjects, draggingProjectId, targetId);
-    saveFeaturedOrder(reordered);
+    const reordered = moveProjectBefore(featuredProjects, draggingProjectId, targetId);
+    const movedIndex = reordered.findIndex((project) => project.id === draggingProjectId);
+    const movedProject = reordered[movedIndex];
+    saveFeaturedOrder(reordered, `${movedProject.title} moved to position ${movedIndex + 1} of ${reordered.length}.`);
+  }
+
+  function moveFeaturedProject(project, offset) {
+    if (savingOrder) return;
+    const reordered = moveProjectByOffset(featuredProjects, project.id, offset);
+    if (reordered === featuredProjects) return;
+    const nextIndex = reordered.findIndex((item) => item.id === project.id);
+    saveFeaturedOrder(reordered, `${project.title} moved to position ${nextIndex + 1} of ${reordered.length}.`);
   }
 
   async function deleteProject(project) {
@@ -113,8 +123,16 @@ export default function AdminProjects() {
       setError('You do not have permission to delete this project.');
       return;
     }
-    const confirmed = window.confirm(`Delete "${project.title}"? This cannot be undone.`);
-    if (!confirmed) return;
+    requestConfirmation({
+      title: `Delete “${project.title}”?`,
+      description: 'This project and its connected media records will be removed. This cannot be undone.',
+      confirmLabel: 'Delete project',
+      destructive: true,
+      onConfirm: () => performDeleteProject(project),
+    });
+  }
+
+  async function performDeleteProject(project) {
     const externalMediaIds = collectProjectExternalMediaObjectIds(project);
     const externalPreviewPaths = new Set(collectProjectExternalPreviewPaths(project));
     const projectMediaPaths = collectProjectMediaPaths(project).filter((path) => !externalPreviewPaths.has(path));
@@ -164,17 +182,18 @@ export default function AdminProjects() {
       {!loading && (
         projects.length ? (
           <div className="grid gap-6">
-            {canManageAll && <section className="grid gap-4 border-y border-white/[0.07] py-5">
+            {canManageAll && <section className="grid gap-4 rounded-lg border border-white/[0.1] bg-zinc-900 p-4 sm:p-5">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Homepage curation</p>
                   <h2 className="mt-2 text-xl font-semibold text-white">Featured order</h2>
-                  <p className="mt-2 text-sm text-zinc-500">Drag selected projects to arrange how they appear on the homepage.</p>
+                  <p className="mt-2 text-sm text-zinc-500">Use the Up and Down buttons, or drag with a pointer, to arrange how projects appear on the homepage.</p>
                 </div>
                 {savingOrder && <span className="text-sm text-amber-200">Saving order...</span>}
               </div>
               {featuredProjects.length ? (
-                <div className="grid gap-3">
+                <div className="overflow-hidden rounded-md border border-white/[0.08]">
+                  <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{orderAnnouncement}</p>
                   {featuredProjects.map((project, index) => (
                     <AdminProjectCard
                       key={`featured-${project.id}`}
@@ -183,6 +202,11 @@ export default function AdminProjects() {
                       draggable={!savingOrder}
                       isDragging={draggingProjectId === project.id}
                       orderLabel={`#${index + 1}`}
+                      position={index}
+                      total={featuredProjects.length}
+                      moving={savingOrder}
+                      onMoveUp={() => moveFeaturedProject(project, -1)}
+                      onMoveDown={() => moveFeaturedProject(project, 1)}
                       onDragStart={(event) => {
                         event.dataTransfer.effectAllowed = 'move';
                         setDraggingProjectId(project.id);
@@ -199,18 +223,21 @@ export default function AdminProjects() {
               ) : <AdminEmptyState title="No featured projects yet" message="Mark projects as featured to arrange them here." />}
             </section>}
 
-            <section className="grid gap-4 border-y border-white/[0.07] py-5">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Content library</p>
-                <h2 className="mt-2 text-xl font-semibold text-white">All projects</h2>
+            <section className="overflow-hidden rounded-lg border border-white/[0.1] bg-zinc-900">
+              <div className="border-b border-white/[0.1] p-4 sm:p-5">
+                <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-zinc-600">Content library</p><h2 className="mt-1 text-lg font-semibold text-white">All projects</h2></div><span className="text-xs tabular-nums text-zinc-500">{filteredProjects.length} shown</span></div>
+                <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(16rem,1fr)_auto] xl:items-center">
+                  <label className="flex h-10 items-center gap-2 rounded-md border border-white/[0.12] bg-zinc-950 px-3"><Search size={15} className="text-zinc-600" /><span className="sr-only">Search projects</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title, category, or slug" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600" /></label>
+                  <div className="flex gap-1 overflow-x-auto" aria-label="Filter admin projects">{[['all','All'],['published','Published'],['draft','Drafts'],['archived','Archived'],['owned','Mine']].map(([key,label])=><button key={key} type="button" aria-pressed={filter===key} onClick={()=>setFilter(key)} className={`interactive-tab h-10 shrink-0 px-3 text-xs ${filter===key?'text-white':'text-zinc-500 hover:text-white'}`}>{label}</button>)}</div>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2" aria-label="Filter admin projects">{[['all','All projects'],['published','Published'],['draft','Drafts'],['archived','Archived'],['owned','My projects']].map(([key,label])=><AdminButton key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)} variant={filter===key?'primary':'secondary'}>{label}</AdminButton>)}</div>
-              {filteredProjects.map((project) => <AdminProjectCard key={project.id} project={project} onDelete={deleteProject} />)}
-              {!filteredProjects.length && <p className="text-sm text-zinc-500">{filter === 'owned' ? 'You have not created any projects yet.' : `No ${filter === 'all' ? 'team' : filter} projects yet.`}</p>}
+              <div>{filteredProjects.map((project) => <AdminProjectCard key={project.id} project={project} onDelete={deleteProject} />)}</div>
+              {!filteredProjects.length && <p className="px-5 py-12 text-center text-sm text-zinc-500">{search ? 'No projects match this search.' : filter === 'owned' ? 'You have not created any projects yet.' : `No ${filter === 'all' ? 'team' : filter} projects yet.`}</p>}
             </section>
           </div>
         ) : <AdminEmptyState title="No projects yet" message="Add your first project from the dashboard." action={canCreate && <AdminButton to="/admin/projects/new" variant="primary"><Plus size={17} /> Add project</AdminButton>} />
       )}
+      {confirmationDialog}
     </AdminLayout>
   );
 }

@@ -92,7 +92,7 @@ export default function ProjectDetails() {
 
   return (
     <article className="page-shell py-20">
-      <button type="button" onClick={goBack} className="fine-link site-hover-accent min-h-11 text-sm text-zinc-400">Back</button>
+      <button type="button" onClick={goBack} className="fine-link site-hover-accent inline-flex min-h-11 min-w-11 items-center justify-center px-3 text-sm text-zinc-400">Back</button>
       <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.88fr)] lg:items-center' : 'lg:grid-cols-1'}`}>
         {cover && (
           <ProjectCover cover={cover} title={project.title} externalLink={coverExternalLink} />

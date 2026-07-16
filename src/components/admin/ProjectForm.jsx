@@ -50,6 +50,7 @@ import {
 import { AdminCheckbox, ResponsiveFormSection, StickyMobileActions } from './AdminUI';
 import ImageUploader from './ImageUploader';
 import { ActionFeedback, FieldError } from '../FieldFeedback';
+import UnsavedChangesGuard from './UnsavedChangesGuard';
 
 const emptyProject = {
   title: '',
@@ -208,16 +209,6 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     } catch {
     }
   }, [contributorDetails, contributorDraftKey, contributorDraftReady, contributorsDirty, selectedCreativeIds]);
-
-  useEffect(() => {
-    if (!draftReady || !dirty) return undefined;
-    const warnBeforeLeaving = (event) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', warnBeforeLeaving);
-    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
-  }, [dirty, draftReady]);
 
   useEffect(() => {
     if (initialProject) {
@@ -809,6 +800,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
   const externalItems = externalGalleryItems().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return (
+    <>
+    <UnsavedChangesGuard dirty={draftReady && (dirty || contributorsDirty) && !saving} />
     <form onSubmit={handleSubmit} className="grid gap-6">
       {error && <div role="alert" className="rounded-md bg-red-300/10 p-4 text-sm text-red-100 ring-1 ring-red-300/20">{error}</div>}
       {uploadStatus && <div role="status" className="rounded-md bg-white/[0.045] p-3 text-sm text-zinc-300 ring-1 ring-white/[0.07]">{uploadStatus}</div>}
@@ -1084,6 +1077,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         </button>
       </StickyMobileActions>
     </form>
+    </>
   );
 }
 

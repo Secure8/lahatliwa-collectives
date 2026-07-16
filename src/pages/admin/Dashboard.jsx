@@ -1,9 +1,9 @@
-import { ExternalLink, FileText, FolderKanban, Images, Inbox, Plus, Settings, User, Users, Workflow } from 'lucide-react';
+import { ArrowRight, FolderKanban, Plus, User, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminStatusBadge } from '../../components/admin/AdminUI';
-import { canCreateProjects, canManageAllProjects, canManageSettings, canManageTeam, isPrivilegedRole, roleLabel, useAdminAccess } from '../../lib/adminAccess';
+import { canCreateProjects, canManageAllProjects, roleLabel, useAdminAccess } from '../../lib/adminAccess';
 import { formatDate } from '../../lib/helpers';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -13,7 +13,6 @@ export default function Dashboard() {
   const { role, user, adminUser } = useAdminAccess();
   const canSeeAll = canManageAllProjects(role);
   const canViewInquiries = ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role);
-  const canManageMedia = isPrivilegedRole(role) || ['editor', 'creative'].includes(role);
   const canEditProfile = ['super_admin', 'admin', 'editor', 'creative'].includes(role);
   const [stats, setStats] = useState({ total: null, published: null, draft: null, featured: null, creatives: null, newInquiries: null, serviceBranches: null });
   const [recentProjects, setRecentProjects] = useState([]);
@@ -29,7 +28,6 @@ export default function Dashboard() {
     async function loadDashboard() {
       setLoading(true);
       setErrors([]);
-
       let projectQuery = supabase
         .from('projects')
         .select('id, title, status, featured, category, created_at, updated_at, review_status, owner_user_id, created_by')
@@ -45,7 +43,6 @@ export default function Dashboard() {
 
       const settled = await Promise.allSettled(requests.map(([, request]) => request));
       if (!active) return;
-
       const nextErrors = [];
       const resultByName = {};
       settled.forEach((result, index) => {
@@ -53,9 +50,7 @@ export default function Dashboard() {
         if (result.status === 'rejected' || result.value?.error) {
           nextErrors.push(`Unable to load ${name}.`);
           resultByName[name] = null;
-        } else {
-          resultByName[name] = result.value.data || [];
-        }
+        } else resultByName[name] = result.value.data || [];
       });
 
       const projects = resultByName.projects;
@@ -81,106 +76,81 @@ export default function Dashboard() {
 
   const displayName = adminUser?.display_name || adminUser?.name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'there';
   const metricItems = [
-    ['total', canSeeAll ? 'Total projects' : 'Accessible projects', 'Projects available to your role'],
+    ['total', canSeeAll ? 'Total projects' : 'Accessible projects', 'Available to your role'],
     ['published', 'Published', 'Currently public'],
     ['draft', 'Drafts', 'Still in progress'],
-    ...(canSeeAll ? [
-      ['creatives', 'Creatives', 'Profiles in the directory'],
-      ['serviceBranches', 'Service branches', 'Configured service areas'],
-    ] : []),
-    ...(canViewInquiries ? [['newInquiries', 'New inquiries', 'Awaiting review']] : []),
+    ...(canViewInquiries ? [['newInquiries', 'New inquiries', 'Awaiting review']] : canSeeAll ? [['creatives', 'Creative profiles', 'People in the directory']] : []),
   ];
-
   const quickActions = [
-    ...(canCreateProjects(role) ? [{ to: '/admin/projects/new', icon: Plus, label: 'Create Project', detail: 'Add new portfolio work' }] : []),
-    { to: '/admin/projects', icon: FolderKanban, label: 'Manage Projects', detail: canSeeAll ? 'Review all projects' : 'Open accessible projects' },
-    ...(canEditProfile ? [{ to: '/admin/my-profile', icon: User, label: 'Edit My Profile', detail: 'Update your creative profile' }] : []),
-    ...(canSeeAll ? [{ to: '/admin/creatives', icon: Users, label: 'Manage Creatives', detail: 'Edit creative profiles' }, { to: '/admin/service-branches', icon: Workflow, label: 'Service Branches', detail: 'Manage public services' }] : []),
-    ...(canViewInquiries ? [{ to: '/admin/inquiries', icon: Inbox, label: 'Review Inquiries', detail: 'Open the client pipeline' }] : []),
-    ...(isPrivilegedRole(role) ? [{ to: '/admin/content', icon: FileText, label: 'Edit Page Content', detail: 'Update public copy' }] : []),
-    ...(canManageMedia ? [{ to: '/admin/media/icons', icon: Images, label: 'Manage Media', detail: 'Upload reusable assets' }] : []),
-    ...(canManageTeam(role) ? [{ to: '/admin/team', icon: Users, label: 'Manage Team', detail: 'Review member access' }] : []),
-    ...(canManageSettings(role) ? [{ to: '/admin/settings', icon: Settings, label: 'Site Settings', detail: 'Manage global appearance' }] : []),
-    { href: '/', icon: ExternalLink, label: 'View Public Site', detail: 'Open the live website' },
-  ];
+    ...(canCreateProjects(role) ? [{ to: '/admin/projects/new', icon: Plus, label: 'New project', tone: 'primary' }] : []),
+    { to: '/admin/projects', icon: FolderKanban, label: 'Open projects' },
+    ...(canSeeAll ? [{ to: '/admin/creatives', icon: Users, label: 'Manage people' }] : canEditProfile ? [{ to: '/admin/my-profile', icon: User, label: 'Edit my profile' }] : []),
+  ].slice(0, 3);
+  const nothingUrgent = !loading && !stats.draft && (!canViewInquiries || !stats.newInquiries);
 
   return (
     <AdminLayout>
-      <div className="w-full max-w-6xl">
-        <AdminPageHeader
-          eyebrow={`${roleLabel(role)} access`}
-          title={`Welcome, ${displayName}`}
-          description={canSeeAll ? 'A focused overview of current projects, people, services, and client activity.' : 'Your accessible projects, profile, and current activity in one place.'}
-          action={canCreateProjects(role) && <AdminButton to="/admin/projects/new" variant="primary"><Plus size={16} /> New Project</AdminButton>}
-        />
+      <AdminPageHeader
+        eyebrow={`${roleLabel(role)} workspace`}
+        title={`Welcome, ${displayName}`}
+        description={canSeeAll ? 'Projects, people, services, and client activity at a glance.' : 'Your accessible projects, profile, and current activity.'}
+        action={canCreateProjects(role) && <AdminButton to="/admin/projects/new" variant="primary"><Plus size={16} /> New project</AdminButton>}
+      />
 
-        <div className="mb-5 border-y border-white/[0.08] py-3 text-xs uppercase tracking-[0.16em] text-zinc-600">
-          Signed in as {roleLabel(role)}
+      {errors.length > 0 && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{errors.join(' ')}</span><button type="button" onClick={() => setReloadKey((current) => current + 1)} className={`border-b border-red-200/30 pb-1 text-sm text-red-100 ${focusLink}`}>Retry dashboard data</button></div></AdminNotice>}
+
+      <nav aria-label="Primary dashboard actions" className="admin-dashboard-actions mb-6 flex flex-wrap gap-2">
+        {quickActions.map((action) => <QuickAction key={action.to} {...action} />)}
+      </nav>
+
+      <section aria-labelledby="summary-heading">
+        <h2 id="summary-heading" className="sr-only">System summary</h2>
+        <div className="admin-dashboard-grid grid gap-px overflow-hidden rounded-lg border border-white/[0.1] bg-white/[0.1] sm:grid-cols-2 lg:grid-cols-4">
+          {metricItems.map(([key, label, detail]) => <Metric key={key} label={label} value={stats[key]} detail={detail} loading={loading} />)}
         </div>
+      </section>
 
-        {errors.length > 0 && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{errors.join(' ')}</span><button type="button" onClick={() => setReloadKey((current) => current + 1)} className={`border-b border-red-200/30 pb-1 text-sm text-red-100 ${focusLink}`}>Retry dashboard data</button></div></AdminNotice>}
-
-        <section className="border-b border-white/[0.08] py-7 first:pt-2" aria-labelledby="summary-heading">
-          <div className="mb-5">
-            <h2 id="summary-heading" className="text-lg font-semibold text-white">System Summary</h2>
-            <p className="mt-1 text-sm text-zinc-500">Live counts available to your current role.</p>
-          </div>
-          <div className="admin-dashboard-grid grid sm:grid-cols-2 lg:grid-cols-3">
-            {metricItems.map(([key, label, detail]) => <Metric key={key} label={label} value={stats[key]} detail={detail} loading={loading} />)}
-          </div>
-        </section>
-
-        <section className="border-b border-white/[0.08] py-7" aria-labelledby="actions-heading">
-          <div className="mb-5">
-            <h2 id="actions-heading" className="text-lg font-semibold text-white">Quick Actions</h2>
-            <p className="mt-1 text-sm text-zinc-500">Only tools permitted for your role are shown.</p>
-          </div>
-          <div className="admin-dashboard-grid grid sm:grid-cols-2 lg:grid-cols-3">
-            {quickActions.map((action) => <QuickAction key={action.to || action.href} {...action} />)}
-          </div>
-        </section>
-
-        <section className="grid gap-8 border-b border-white/[0.08] py-7 lg:grid-cols-2">
-          <ActivitySection title="Recent Projects" description={canSeeAll ? 'Latest portfolio additions.' : 'Latest projects available to you.'} actionTo="/admin/projects" actionLabel="View all projects">
+      <section className="mt-6 grid gap-6 lg:grid-cols-12">
+        <div className="rounded-lg border border-white/[0.1] bg-zinc-900 p-4 sm:p-5 lg:col-span-8">
+          <ActivitySection title="Recent projects" description={canSeeAll ? 'Latest portfolio additions.' : 'Latest projects available to you.'} actionTo="/admin/projects" actionLabel="View all">
             {loading ? <ActivitySkeleton /> : recentProjects.length ? recentProjects.map((project) => (
-              <Link key={project.id} to={`/admin/projects/${project.id}/edit`} className={`grid cursor-pointer gap-2 border-t border-white/[0.1] px-2 py-4 transition hover:border-amber-200/25 hover:bg-white/[0.025] focus-visible:bg-white/[0.025] first:border-t-0 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-start ${focusLink}`}>
+              <Link key={project.id} to={`/admin/projects/${project.id}/edit`} className={`grid cursor-pointer gap-2 border-t border-white/[0.1] px-2 py-4 transition hover:bg-white/[0.025] first:border-t-0 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-start ${focusLink}`}>
                 <div className="min-w-0"><h3 className="truncate font-medium text-white">{project.title}</h3><p className="mt-1 text-xs text-zinc-500">{project.category || 'Uncategorized'} · {formatDate(project.updated_at || project.created_at)}</p></div>
                 <div className="flex flex-wrap gap-2"><AdminStatusBadge status={project.review_status || project.status} />{project.featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}</div>
               </Link>
             )) : <AdminEmptyState title="No projects yet" message={canCreateProjects(role) ? 'Create a project to begin building the portfolio.' : 'No projects are currently available to your account.'} />}
           </ActivitySection>
+        </div>
 
-          {canViewInquiries && <ActivitySection title="Latest Inquiries" description="Newest messages in the client pipeline." actionTo="/admin/inquiries" actionLabel="View all inquiries">
-            {loading ? <ActivitySkeleton /> : latestInquiries.length ? latestInquiries.map((inquiry) => (
-              <Link key={inquiry.id} to="/admin/inquiries" className={`grid cursor-pointer gap-2 border-t border-white/[0.1] px-2 py-4 transition hover:border-amber-200/25 hover:bg-white/[0.025] focus-visible:bg-white/[0.025] first:border-t-0 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-start ${focusLink}`}>
-                <div className="min-w-0"><h3 className="truncate font-medium text-white">{inquiry.name}</h3><p className="mt-1 text-xs text-zinc-500">{inquiry.project_type || 'General inquiry'} · {formatDate(inquiry.created_at)}</p><p className="mt-2 line-clamp-1 text-sm text-zinc-500">{inquiry.message}</p></div>
-                <AdminStatusBadge status={inquiry.status} />
-              </Link>
-            )) : <AdminEmptyState title="No inquiries yet" message="New project inquiries will appear here." />}
-          </ActivitySection>}
-        </section>
-
-        <section className="py-7">
-          <h2 className="text-lg font-semibold text-white">Working Safely</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">Use Team for access changes, Projects for portfolio work, and My Profile for your linked public identity. Dashboard counts reflect only data available to your current permissions.</p>
-        </section>
-      </div>
+        <aside className="rounded-lg border border-white/[0.1] bg-zinc-900 p-4 sm:p-5 lg:col-span-4" aria-labelledby="attention-heading">
+          <div className="mb-4"><p className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-amber-200/70">Priorities</p><h2 id="attention-heading" className="mt-1 text-lg font-semibold text-white">Needs attention</h2></div>
+          <div className="divide-y divide-white/[0.08]">
+            {stats.draft > 0 && <AttentionLink to="/admin/projects" label="Draft projects" value={stats.draft} />}
+            {canViewInquiries && stats.newInquiries > 0 && <AttentionLink to="/admin/inquiries" label="New inquiries" value={stats.newInquiries} />}
+            {canViewInquiries && latestInquiries.slice(0, 2).map((inquiry) => <AttentionLink key={inquiry.id} to="/admin/inquiries" label={inquiry.name} meta={inquiry.project_type || 'General inquiry'} status={inquiry.status} />)}
+            {nothingUrgent && <p className="py-8 text-center text-sm text-zinc-500">Nothing urgent right now.</p>}
+          </div>
+        </aside>
+      </section>
     </AdminLayout>
   );
 }
 
 function Metric({ label, value, detail, loading }) {
-  return <div className="border-t border-white/[0.08] py-4 sm:px-4"><p className="text-xs uppercase tracking-[0.14em] text-zinc-600">{label}</p>{loading ? <div className="mt-3 h-7 w-12 animate-pulse bg-white/[0.05]" /> : <p className="mt-2 text-2xl font-semibold text-white">{value ?? '—'}</p>}<p className="mt-1 text-xs text-zinc-500">{detail}</p></div>;
+  return <div className="flex min-h-32 min-w-0 flex-col gap-3 bg-zinc-900 px-4 py-4"><p className="min-w-0 break-words text-[0.66rem] font-semibold uppercase leading-4 tracking-[0.14em] text-zinc-600">{label}</p><div className="mt-auto min-w-0">{loading ? <div className="h-7 w-12 animate-pulse bg-white/[0.05]" /> : <p className="text-2xl font-semibold leading-none tabular-nums text-white">{value ?? '—'}</p>}{detail && <p className="mt-2 min-w-0 break-words text-xs leading-5 text-zinc-500">{detail}</p>}</div></div>;
 }
 
-function QuickAction({ to, href, icon: Icon, label, detail }) {
-  const classes = `group grid grid-cols-[2rem_1fr] gap-3 border-t border-white/[0.08] py-4 text-left transition hover:border-amber-200/30 ${focusLink} sm:px-4 sm:first:pl-0`;
-  const content = <><span className="grid h-8 w-8 place-items-center text-zinc-500 transition group-hover:text-amber-100"><Icon size={17} /></span><span><span className="block text-sm font-medium text-zinc-200 group-hover:text-white">{label}</span><span className="mt-1 block text-xs text-zinc-600">{detail}</span></span></>;
-  return href ? <a href={href} target="_blank" rel="noreferrer noopener" className={classes}>{content}</a> : <Link to={to} className={classes}>{content}</Link>;
+function QuickAction({ to, icon: Icon, label, tone = 'default' }) {
+  const primary = tone === 'primary';
+  return <Link to={to} className={`group inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold transition ${focusLink} ${primary ? 'border-amber-200/60 bg-amber-300 text-zinc-950 hover:bg-amber-200' : 'border-white/[0.12] bg-zinc-900 text-zinc-300 hover:border-white/[0.22] hover:text-white'}`}><Icon size={15} /><span>{label}</span><ArrowRight size={14} className="ml-1 opacity-50 transition group-hover:translate-x-0.5 group-hover:opacity-100" /></Link>;
+}
+
+function AttentionLink({ to, label, value, meta, status }) {
+  return <Link to={to} className={`flex items-center gap-3 py-3.5 text-sm transition hover:text-white ${focusLink}`}><span className="min-w-0 flex-1"><span className="block truncate font-medium text-zinc-300">{label}</span>{meta && <span className="mt-0.5 block truncate text-xs text-zinc-600">{meta}</span>}</span>{value != null ? <span className="rounded-md bg-amber-300/10 px-2 py-1 text-xs font-semibold tabular-nums text-amber-100">{value}</span> : status ? <AdminStatusBadge status={status} /> : null}<ArrowRight size={14} className="text-zinc-600" /></Link>;
 }
 
 function ActivitySection({ title, description, actionTo, actionLabel, children }) {
-  return <div className="min-w-0"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-white">{title}</h2><p className="mt-1 text-sm text-zinc-500">{description}</p></div><Link to={actionTo} className={`shrink-0 border-b border-white/[0.1] pb-1 text-xs text-zinc-400 hover:border-amber-200/40 hover:text-white ${focusLink}`}>{actionLabel}</Link></div>{children}</div>;
+  return <div className="min-w-0"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-white">{title}</h2><p className="mt-1 text-sm text-zinc-500">{description}</p></div><Link to={actionTo} className={`shrink-0 rounded-md px-2 py-1 text-xs text-zinc-400 hover:bg-white/[0.05] hover:text-white ${focusLink}`}>{actionLabel}</Link></div>{children}</div>;
 }
 
 function ActivitySkeleton() {

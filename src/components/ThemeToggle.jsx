@@ -15,6 +15,8 @@ export default function ThemeToggle() {
   const nextTheme = nextThemePreference(resolvedTheme);
   const label = nextTheme === 'light' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
   const Icon = nextTheme === 'light' ? Sun : Moon;
+  const adminWorkspaceHasIntegratedToggle = location.pathname.startsWith('/admin')
+    && location.pathname !== '/admin/login';
 
   useEffect(() => {
     const controller = createThemeToggleVisibilityController({ onHiddenChange: setScrollHidden });
@@ -37,6 +39,8 @@ export default function ThemeToggle() {
     const focusVisible = button === document.activeElement && button.matches(':focus-visible');
     controllerRef.current?.onThemeChange({ focusVisible });
   }, [resolvedTheme]);
+
+  if (adminWorkspaceHasIntegratedToggle) return null;
 
   return (
     <button

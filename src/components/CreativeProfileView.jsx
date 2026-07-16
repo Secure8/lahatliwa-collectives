@@ -18,7 +18,7 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
   return <article className="relative isolate min-w-0 overflow-hidden">
     {!adminPreview && <ProfileRails />}
     {adminPreview && <p className="mb-4 text-xs uppercase tracking-[0.2em] text-amber-200">Admin preview</p>}
-    <CreativeHero creative={creative} projectCount={projects.length} socials={socials} resources={resources} adminPreview={adminPreview} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
+    <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
     <div className="mx-auto w-full max-w-[1120px]">
     {!adminPreview && (projects.length || bio || skills.length) > 0 && <nav aria-label="Profile sections" className="public-filter-scroll flex min-w-0 gap-7 overflow-x-auto border-b border-white/[0.09] py-4 text-xs uppercase tracking-[0.16em] text-zinc-500">
@@ -29,30 +29,29 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
     </nav>}
 
     {!adminPreview && <section id="work" className="scroll-mt-24 py-8 sm:py-10">
-      <SectionHeading number="01" eyebrow="Selected work" title="Portfolio" detail={`${projects.length} published ${projects.length === 1 ? 'project' : 'projects'}`} />
+      <SectionHeading eyebrow="Selected work" title="Portfolio" />
       {projects.length ? <div className="mx-auto mt-7 grid max-w-[1040px] gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-12">{projects.map((project, index) => <ProfileProject key={project.id} project={project} layout={projectLayout(index, projects.length)} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div> : <div className="mt-7 border-y border-white/[0.08] py-8"><p className="text-sm text-zinc-400">Work in progress.</p><p className="mt-2 text-sm text-zinc-600">Published credited projects will appear here.</p></div>}
     </section>}
 
     {bio && <section id="about" className="scroll-mt-24 border-t border-white/[0.09] py-8 sm:py-10">
-      <SectionHeading number="02" eyebrow="About" title="Creative perspective" />
+      <SectionHeading eyebrow="About" title="Creative perspective" />
       <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-12">
         <div className="max-w-[44rem] whitespace-pre-line text-base leading-7 text-zinc-200 sm:text-lg sm:leading-8">{bio}</div>
         <dl className="self-start border-t border-orange-300/70 text-sm">
           <Fact label="Discipline" value={creative.role} />
           {creative.availability_status && <Fact label="Availability" value={creative.availability_status} />}
           {creative.location && <Fact label="Location" value={creative.location} />}
-          <Fact label="Selected work" value={`${projects.length} published`} />
         </dl>
       </div>
     </section>}
 
     {skills.length > 0 && <section id="skills" className="scroll-mt-24 border-t border-white/[0.09] bg-white/[0.018] px-4 py-8 sm:px-5 sm:py-10">
-      <SectionHeading number="03" eyebrow="Capabilities" title="Selected disciplines" detail={`${skills.length} capabilities`} />
-      <ol className="mt-7 grid border-t border-white/[0.1] sm:grid-cols-2 lg:grid-cols-3">{skills.map((skill, index) => <li key={skill} className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] gap-2 border-b border-white/[0.09] py-3.5 sm:pr-5"><span className="text-[11px] text-orange-300">{String(index + 1).padStart(2, '0')}</span><span className="[overflow-wrap:anywhere] text-sm text-zinc-200">{skill}</span></li>)}</ol>
+      <SectionHeading eyebrow="Capabilities" title="Selected disciplines" />
+      <ul className="mt-7 grid border-t border-white/[0.1] sm:grid-cols-2 lg:grid-cols-3">{skills.map((skill) => <li key={skill} className="grid min-w-0 grid-cols-[0.75rem_minmax(0,1fr)] items-start gap-3 border-b border-white/[0.09] py-3.5 sm:pr-5"><span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.55)]" aria-hidden="true" /><span className="[overflow-wrap:anywhere] text-sm text-zinc-200">{skill}</span></li>)}</ul>
     </section>}
 
     {!adminPreview && <footer id="contact" className="scroll-mt-24 border-t border-orange-300/60 py-8 sm:py-10">
-      <p className="text-xs uppercase tracking-[0.2em] text-orange-300">04 / Collaboration</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-orange-300">Collaboration</p>
       <div className="mt-5 grid gap-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div><h2 className="max-w-2xl text-[clamp(1.85rem,3.5vw,3.25rem)] font-medium leading-[1.05] tracking-[-0.035em] text-white">Explore a possible collaboration.</h2>{creative.availability_status && <p className="mt-3 text-sm text-zinc-400">{creative.availability_status}</p>}<p className="mt-3 max-w-xl text-xs leading-6 text-zinc-500">Selecting this profile expresses a preference and does not guarantee availability or assignment.</p></div>
         <div className="flex flex-wrap gap-4"><Link to={inquiryUrl({ creative: creative.slug })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">Send an inquiry <ArrowRight size={16} /></Link><Link to="/creatives" className="inline-flex min-h-11 items-center border-b border-white/20 text-sm text-zinc-300 hover:text-white">Explore creative profiles</Link></div>
@@ -62,8 +61,8 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
   </article>;
 }
 
-function SectionHeading({ number, eyebrow, title, detail }) {
-  return <div className="grid gap-3 border-l border-orange-300/70 pl-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"><div><p className="text-[11px] uppercase tracking-[0.18em] text-orange-300">{number} / {eyebrow}</p><h2 className="mt-2 text-[clamp(1.7rem,3vw,2.65rem)] font-medium leading-none tracking-[-0.03em] text-white">{title}</h2></div>{detail && <p className="text-[11px] uppercase tracking-[0.13em] text-zinc-600">{detail}</p>}</div>;
+function SectionHeading({ eyebrow, title }) {
+  return <div className="border-l border-orange-300/70 pl-4"><p className="text-[11px] uppercase tracking-[0.18em] text-orange-300">{eyebrow}</p><h2 className="mt-2 text-[clamp(1.7rem,3vw,2.65rem)] font-medium leading-none tracking-[-0.03em] text-white">{title}</h2></div>;
 }
 function ProfileRails() {
   return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 hidden xl:block">

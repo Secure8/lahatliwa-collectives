@@ -5,7 +5,7 @@ import { adminPageTitle, mobileAppBarVisibility, PUBLIC_PRIMARY_DESTINATIONS, pu
 
 test('public app bar uses overlay only for visual-first routes', () => {
   assert.equal(publicAppBarMode('/'), 'overlay');
-  assert.equal(publicAppBarMode('/creatives/mara'), 'overlay');
+  assert.equal(publicAppBarMode('/creatives/mara'), 'surface');
   assert.equal(publicAppBarMode('/services'), 'surface');
   assert.equal(publicAppBarMode('/projects/example'), 'surface');
   assert.equal(publicAppBarMode('/inquiry'), 'surface');
@@ -19,7 +19,7 @@ test('mobile app bar follows meaningful document scroll direction without reacti
   assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 100, nextY: 130, locked: true }), { visible: true, lastY: 130 });
 });
 
-test('public bottom navigation is limited to five primary destinations with detail-route awareness', () => {
+test('public top navigation is limited to five primary destinations with detail-route awareness', () => {
   assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS.map(([label]) => label), ['Home', 'Services', 'Projects', 'Creatives', 'Inquiry']);
   assert.equal(PUBLIC_PRIMARY_DESTINATIONS.length, 5);
   assert.equal(publicDestinationIsActive('/projects/sample', '/projects'), true);
@@ -35,9 +35,10 @@ test('admin mobile title follows the most specific permitted route', () => {
   assert.equal(adminPageTitle('/admin/unknown', groups), 'Dashboard');
 });
 
-test('public and admin drawers provide modal keyboard behavior and keep theme controls inside', async () => {
-  const [navbar, admin, drawer, app, styles] = await Promise.all([
+test('public and admin drawers provide modal keyboard behavior while mobile theme controls stay reachable', async () => {
+  const [navbar, footer, admin, drawer, app, styles] = await Promise.all([
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/Footer.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
     readFile(new URL('./useModalDrawer.js', import.meta.url), 'utf8'),
     readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
@@ -50,6 +51,16 @@ test('public and admin drawers provide modal keyboard behavior and keep theme co
     assert.match(source, /AppearanceMenuAction/);
     assert.match(source, /safe-area-inset-bottom/);
   }
+  assert.match(navbar, /mobileSecondaryLinks/);
+  assert.match(navbar, /aria-label="Secondary mobile navigation"/);
+  assert.doesNotMatch(navbar, /mobileSecondaryLinks[\s\S]*?\['Home', '\/'\]/);
+  assert.match(navbar, /LockKeyhole/);
+  assert.match(navbar, /to="\/admin\/dashboard"/);
+  assert.match(navbar, /AppearanceMenuAction[\s\S]*?iconOnly/);
+  assert.doesNotMatch(footer, /to="\/admin\/dashboard"|Platform admin access/);
+  assert.match(admin, /AppearanceMenuAction[\s\S]*?iconOnly/);
+  assert.match(admin, /data-admin-mobile-top-navigation[\s\S]*?min-h-\[3\.25rem\]/);
+  assert.doesNotMatch(admin, /data-admin-mobile-bottom-navigation/);
   assert.match(drawer, /event\.key === 'Escape'/);
   assert.match(drawer, /event\.key !== 'Tab'/);
   assert.match(drawer, /document\.body\.style\.overflow = 'hidden'/);
@@ -58,15 +69,17 @@ test('public and admin drawers provide modal keyboard behavior and keep theme co
   assert.match(styles, /mobile-navigation-open \.theme-toggle--global/);
 });
 
-test('admin bar stays stable while the public app bar owns direction-aware scroll behavior', async () => {
+test('public and admin mobile app bars share direction-aware scroll behavior', async () => {
   const [navbar, admin] = await Promise.all([
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
   ]);
   assert.match(navbar, /useMobileAppBar/);
   assert.match(navbar, /data-mobile-app-bar/);
-  assert.match(admin, /admin-app-bar[\s\S]*?fixed inset-x-0 top-0/);
-  assert.doesNotMatch(admin, /useMobileAppBar/);
+  assert.match(admin, /useMobileAppBar/);
+  assert.match(admin, /data-admin-mobile-app-bar/);
+  assert.match(admin, /locked: mobileOpen \|\| headerFocused/);
+  assert.match(admin, /mobileVisible \? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'/);
 });
 
 test('existing manifest remains install-ready without introducing a service worker', async () => {

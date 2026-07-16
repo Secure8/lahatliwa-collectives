@@ -62,7 +62,7 @@ export default function Projects() {
   }
 
   return (
-    <main className="page-shell pb-16 pt-14 sm:pb-20 sm:pt-20">
+    <div className="page-shell pb-16 pt-14 sm:pb-20 sm:pt-20">
       <header className="border-b border-white/[0.09] pb-9 sm:pb-11">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
           <div className="max-w-4xl">
@@ -97,6 +97,6 @@ export default function Projects() {
         {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}
         {!loading && !error && (visible.length ? <ProjectGrid projects={visible} /> : <EmptyState title={selectedBranch ? 'Projects for this branch are being prepared.' : 'No projects found'} message={selectedBranch ? 'Explore another branch or view all current work.' : 'Try another search term.'} />)}
       </section>
-    </main>
+    </div>
   );
 }

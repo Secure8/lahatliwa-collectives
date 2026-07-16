@@ -97,6 +97,8 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.match(toggle, /nextTheme === 'light' \? 'Switch to Light Mode' : 'Switch to Dark Mode'/);
   assert.match(toggle, /nextTheme === 'light' \? Sun : Moon/);
   assert.match(toggle, /setPreference\(nextTheme, \{ event, element: event\.currentTarget \}\)/);
+  assert.match(toggle, /adminWorkspaceHasIntegratedToggle/);
+  assert.match(toggle, /if \(adminWorkspaceHasIntegratedToggle\) return null/);
   assert.match(toggle, /window\.addEventListener\('scroll', controller\.onScroll, \{ passive: true \}\)/);
   assert.match(toggle, /window\.removeEventListener\('scroll', controller\.onScroll\)/);
   assert.match(toggle, /ref=\{buttonRef\}/);

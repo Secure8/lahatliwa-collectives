@@ -8,6 +8,8 @@ import { defaultPageContent } from '../../data/siteContent';
 import { fetchPageContent, updatePageContent, uploadSiteAsset } from '../../lib/contentApi';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { branchKeyFromRecord } from '../../lib/serviceRequest';
+import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 
 const pageMeta = {
   home: {
@@ -36,7 +38,7 @@ const lineInput = 'w-full border-0 border-b border-white/[0.12] bg-transparent p
 const lineTextarea = `${lineInput} min-h-28 resize-y leading-6`;
 
 function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false }) {
-  const classes = `inline-flex h-10 items-center gap-2 border-b px-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${subtle ? 'border-white/[0.08] text-zinc-400 hover:border-amber-200/35 hover:text-white' : 'border-white/[0.12] text-zinc-300 hover:border-amber-200/40 hover:text-white'}`;
+  const classes = `inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${subtle ? 'border-white/[0.1] bg-transparent text-zinc-400 shadow-none hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white' : 'border-white/[0.15] bg-zinc-800/80 text-zinc-100 hover:border-amber-200/35 hover:bg-zinc-700/80 hover:text-white'}`;
   if (to) return <Link to={to} className={classes}>{children}</Link>;
   if (href && !external) return <Link to={href} className={classes}>{children}</Link>;
   if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes}>{children}</a>;
@@ -226,6 +228,7 @@ export default function ContentEditor() {
   const [loading, setLoading] = useState(true);
   const [draftReady, setDraftReady] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
   const [saving, setSaving] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [message, setMessage] = useState('');
@@ -281,16 +284,6 @@ export default function ContentEditor() {
     } catch {
     }
   }, [content, dirty, draftKey, draftReady]);
-
-  useEffect(() => {
-    if (!draftReady || !dirty) return undefined;
-    const warnBeforeLeaving = (event) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', warnBeforeLeaving);
-    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
-  }, [dirty, draftReady]);
 
   function patch(updates) {
     setContent((current) => {
@@ -412,7 +405,16 @@ export default function ContentEditor() {
   }
 
   function discardDraft() {
-    if (!window.confirm('Discard your unsaved changes and reload the saved page content?')) return;
+    requestConfirmation({
+      title: 'Discard unsaved page content?',
+      description: 'The editor will reload the last saved page content. Your current changes will be lost.',
+      confirmLabel: 'Discard changes',
+      destructive: true,
+      onConfirm: performDiscardDraft,
+    });
+  }
+
+  function performDiscardDraft() {
     const next = fallback;
     setContent(next);
     setDirty(false);
@@ -435,6 +437,7 @@ export default function ContentEditor() {
 
   return (
     <AdminLayout>
+      <UnsavedChangesGuard dirty={draftReady && dirty && !saving} />
       <AdminPageHeader
         eyebrow="Website CMS"
         title={meta.title}
@@ -484,6 +487,7 @@ export default function ContentEditor() {
           </div>
         </form>
       )}
+      {confirmationDialog}
     </AdminLayout>
   );
 }
@@ -558,7 +562,7 @@ function PageFields({ pageKey, content, patch, patchServiceGroup, uploadHomeBack
           {(content.groups || []).map((group, index) => (
             <section key={`${group.name || 'service'}-${index}`} className="grid gap-5 border-t border-white/[0.07] py-5 first:border-t-0 first:pt-0">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-medium text-zinc-200">Service Group {index + 1}</p>
+                <p className="text-sm font-medium text-zinc-200">{group.name?.trim() || 'Untitled service group'}</p>
                 <button
                   type="button"
                   onClick={() => patch({ groups: (content.groups || []).filter((_, groupIndex) => groupIndex !== index) })}

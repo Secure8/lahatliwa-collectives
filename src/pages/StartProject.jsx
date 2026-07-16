@@ -255,8 +255,8 @@ export default function StartProject() {
     <section ref={inquiryContainerRef} className="inquiry-step-shell scroll-mt-20" aria-label="Active inquiry step">
     <StepProgress current={step} steps={steps} />
     <div className="grid gap-9 pt-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12">
-      <main className="min-w-0 border-y border-white/[0.09] py-7">
-        <div className="mb-7 flex items-start justify-between gap-5"><div><p className="text-[10px] uppercase tracking-[0.2em] text-orange-300">Step {step + 1} of {steps.length}</p><h1 ref={stepHeadingRef} tabIndex="-1" className="mt-2 text-2xl font-medium text-white outline-none">{steps[step]}</h1></div>{step > 0 && <button type="button" onClick={goBack} className="inline-flex min-h-11 items-center gap-2 border-b border-white/[0.12] text-sm text-zinc-400 hover:border-orange-300/45 hover:text-white"><ArrowLeft size={15} />Back to {steps[step - 1]}</button>}</div>
+      <section aria-labelledby="inquiry-step-heading" className="min-w-0 border-y border-white/[0.09] py-7">
+        <div className="mb-7 flex items-start justify-between gap-5"><div><p className="hidden text-[10px] uppercase tracking-[0.2em] text-orange-300 sm:block">Step {step + 1} of {steps.length}</p><h1 id="inquiry-step-heading" ref={stepHeadingRef} tabIndex="-1" className="text-2xl font-medium text-white outline-none sm:mt-2">{steps[step]}</h1></div>{step > 0 && <button type="button" onClick={goBack} className="inline-flex min-h-11 items-center gap-2 border-b border-white/[0.12] text-sm text-zinc-400 hover:border-orange-300/45 hover:text-white"><ArrowLeft size={15} />Back to {steps[step - 1]}</button>}</div>
         {choiceLoadError && <div role="status" className="mb-6 flex items-start gap-3 border-y border-amber-300/20 bg-amber-300/[0.05] px-3 py-3 text-sm leading-6 text-amber-100"><CircleAlert size={17} className="mt-0.5 shrink-0" />{choiceLoadError}</div>}
         {notice && <div role="status" className="mb-6 flex items-start gap-3 border-y border-amber-300/20 bg-amber-300/[0.05] px-3 py-3 text-sm leading-6 text-amber-100"><CircleAlert size={17} className="mt-0.5 shrink-0" />{notice}</div>}
 
@@ -272,7 +272,7 @@ export default function StartProject() {
             {step < steps.length - 1 ? <button type="button" onClick={goNext} className="inline-flex min-h-12 items-center justify-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">Next: {steps[step + 1]}<ArrowRight size={16} /></button> : <button type="button" onClick={submit} disabled={submitting} className="inline-flex min-h-12 items-center justify-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200 disabled:cursor-not-allowed disabled:opacity-60"><Send size={16} />{submitting ? 'Sending securely...' : copy.submitLabel}</button>}
           </div>
         </div>
-      </main>
+      </section>
 
       <aside className="h-fit border-t border-white/[0.09] pt-5 lg:sticky lg:top-24"><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">Request summary</p><SummaryLine label="Branch" value={selectedBranch?.label} /><SummaryLine label={copy.serviceSelectionHeading} value={selectedService?.name} hint={copy.serviceSelectionDescription} /><SummaryLine label={copy.recipientLabel} value={selectedCreative?.name || copy.teamOption} /><p className="mt-5 text-xs leading-6 text-zinc-600">{copy.matchingCopy} Sending a request does not confirm a booking, schedule, support appointment, or final quotation.</p></aside>
     </div>
@@ -290,7 +290,13 @@ function SelectionSummary({ branch, service, specialist = '', onChange, onChange
 }
 
 function StepProgress({ current, steps }) {
-  return <ol className="public-filter-scroll mt-10 flex min-w-0 gap-0 overflow-x-auto border-y border-white/[0.08]" aria-label="Inquiry progress">{steps.map((label, index) => <li key={label} aria-current={index === current ? 'step' : undefined} className={`flex min-h-14 min-w-[9rem] flex-1 items-center gap-2 border-b px-3 text-xs ${index === current ? 'border-orange-300 text-white' : index < current ? 'border-emerald-300/40 text-emerald-100' : 'border-transparent text-zinc-600'}`}>{index < current ? <Check size={14} /> : <span>{String(index + 1).padStart(2, '0')}</span>}<span>{label}</span></li>)}</ol>;
+  return <>
+    <div className="mt-9 border-y border-white/[0.08] py-4 sm:hidden" role="progressbar" aria-label="Inquiry progress" aria-valuemin="1" aria-valuemax={steps.length} aria-valuenow={current + 1} aria-valuetext={`Step ${current + 1} of ${steps.length}: ${steps[current]}`}>
+      <div className="flex items-center justify-between gap-4"><p className="text-[10px] font-semibold uppercase tracking-[0.17em] text-orange-300">Step {current + 1} of {steps.length}</p><p className="text-xs tabular-nums text-zinc-500">{Math.round(((current + 1) / steps.length) * 100)}% complete</p></div>
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-300/20"><span className="block h-full rounded-full bg-orange-300 transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${((current + 1) / steps.length) * 100}%` }} /></div>
+    </div>
+    <ol className="public-filter-scroll mt-10 hidden min-w-0 gap-0 overflow-x-auto border-y border-white/[0.08] sm:flex" aria-label="Inquiry progress">{steps.map((label, index) => <li key={label} aria-current={index === current ? 'step' : undefined} className={`flex min-h-14 min-w-[9rem] flex-1 items-center gap-2 border-b px-3 text-xs ${index === current ? 'border-orange-300 text-white' : index < current ? 'border-emerald-300/40 text-emerald-100' : 'border-transparent text-zinc-600'}`}>{index < current ? <Check size={14} /> : <span>{String(index + 1).padStart(2, '0')}</span>}<span>{label}</span></li>)}</ol>
+  </>;
 }
 
 function ServiceStep({ draft, branches, availableServices, update, selectBranch, loading, errors, copy }) {

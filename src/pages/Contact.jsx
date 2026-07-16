@@ -27,14 +27,14 @@ export default function Contact() {
           <div className="mt-7 flex flex-wrap gap-4"><Link to="/inquiry" className="inline-flex min-h-11 items-center gap-2 bg-[var(--site-accent)] px-5 text-sm font-semibold text-zinc-950 transition hover:bg-[var(--site-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">Start an inquiry <ArrowRight size={17} /></Link>{hasEmail && <a href={`mailto:${content.email}`} className="inline-flex min-h-11 items-center gap-2 border-b border-white/[0.15] text-sm text-zinc-300 hover:text-white"><Mail size={17} /> {content.contactPage.ctaText}</a>}</div>
           {content.contactPage.notes && <p className="mt-5 max-w-xl text-sm leading-6 text-zinc-500">{content.contactPage.notes}</p>}
         </div>
-        {hasLinks && <div className="border-y border-white/[0.09] py-6">
+        {hasLinks && <div className="py-6">
           <h2 className="text-xl font-medium">Direct links</h2>
           <div className="mt-6 grid gap-4">
-            {hasEmail && <a href={`mailto:${content.email}`} className="site-hover-accent group inline-flex min-h-11 items-center gap-3 border-b border-white/[0.08] pb-4 text-zinc-200 transition"><span className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-black/20 transition group-hover:border-orange-300/35 group-hover:shadow-[0_0_16px_rgba(251,146,60,0.22)]"><Mail size={17} /></span> {content.email}</a>}
+            {hasEmail && <a href={`mailto:${content.email}`} className="site-hover-accent group inline-flex min-h-11 items-center gap-3 pb-4 text-zinc-200 transition"><span className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-black/20 transition group-hover:border-orange-300/35 group-hover:shadow-[0_0_16px_rgba(251,146,60,0.22)]"><Mail size={17} /></span> {content.email}</a>}
             {socialLinks.map((link) => {
               const Icon = socialIconMap[link.label] || Globe;
               return (
-                <a key={`${link.label}-${link.href}`} href={link.href} target="_blank" rel="noopener noreferrer" className="site-hover-accent group inline-flex min-h-11 items-center gap-3 border-b border-white/[0.08] pb-4 text-zinc-200 transition">
+                <a key={`${link.label}-${link.href}`} href={link.href} target="_blank" rel="noopener noreferrer" className="site-hover-accent group inline-flex min-h-11 items-center gap-3 pb-4 text-zinc-200 transition">
                   <span className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-black/20 transition group-hover:border-orange-300/35 group-hover:shadow-[0_0_16px_rgba(251,146,60,0.22)]"><Icon size={17} /></span> {link.label}
                 </a>
               );

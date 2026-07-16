@@ -30,7 +30,7 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
 
     {!adminPreview && <section id="work" className="scroll-mt-24 py-8 sm:py-10">
       <SectionHeading eyebrow="Selected work" title="Portfolio" />
-      {projects.length ? <div className="mx-auto mt-7 grid max-w-[1040px] gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-12">{projects.map((project, index) => <ProfileProject key={project.id} project={project} layout={projectLayout(index, projects.length)} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div> : <div className="mt-7 border-y border-white/[0.08] py-8"><p className="text-sm text-zinc-400">Work in progress.</p><p className="mt-2 text-sm text-zinc-600">Published credited projects will appear here.</p></div>}
+      {projects.length ? <div className="mx-auto mt-7 grid max-w-[1040px] gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-12">{projects.map((project, index) => <ProfileProject key={project.id} project={project} layout={projectLayout(index, projects.length)} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div> : <div className="mt-7 py-8"><p className="text-sm text-zinc-400">Work in progress.</p><p className="mt-2 text-sm text-zinc-600">Published credited projects will appear here.</p></div>}
     </section>}
 
     {bio && <section id="about" className="scroll-mt-24 border-t border-white/[0.09] py-8 sm:py-10">

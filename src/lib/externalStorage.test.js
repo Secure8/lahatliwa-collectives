@@ -258,7 +258,10 @@ test('existing upload, public gallery, payload, and cleanup paths remain Supabas
   assert.match(gallery, /normalizeProjectGallery/);
   assert.doesNotMatch(cleanup, /external_media_objects|storage_connections/);
   assert.match(worker, /const REFERENCE_SOURCES = \['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users'\]/);
-  assert.doesNotMatch(worker, /external_media_objects|storage_migrations|google_drive/);
+  assert.match(worker, /cleanupExpiredExternalUploads/);
+  assert.match(worker, /external_media_objects/);
+  assert.match(worker, /cancelResumableDriveUpload/);
+  assert.doesNotMatch(worker, /storage_migrations/);
 });
 
 test('the architecture documents the production state and preserves the corrected Phase 5–7 roadmap', async () => {

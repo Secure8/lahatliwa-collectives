@@ -35,7 +35,7 @@ export default function InquiryConfirmation() {
 
   return <div className="page-shell py-16 sm:py-20">
     <PublicPageHeader eyebrow="Inquiry received" title={copy.confirmationTitle} description={copy.confirmationDescription} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
-    <section className="mt-10 grid gap-8 border-y border-white/[0.09] py-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+    <section className="mt-10 grid gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <div>
         <CheckCircle2 size={30} className="text-emerald-300" aria-hidden="true" />
         <p className="mt-5 text-[10px] uppercase tracking-[0.2em] text-zinc-600">Public reference</p>

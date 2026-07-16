@@ -24,7 +24,7 @@ import {
 } from '../_shared/googleDriveMediaLifecycle.js';
 import { hasRequiredGoogleScopes } from '../_shared/googleDriveOAuth.js';
 
-const MEDIA_FIELDS = 'id,owner_user_id,storage_connection_id,provider,external_file_id,external_parent_id,filename,mime_type,size_bytes,status,visibility,preview_provider,preview_bucket,preview_path,metadata';
+const MEDIA_FIELDS = 'id,owner_user_id,storage_connection_id,provider,external_file_id,external_parent_id,filename,mime_type,size_bytes,status,visibility,preview_provider,preview_bucket,preview_path,file_category,project_id,metadata';
 const CONNECTION_FIELDS = 'id,owner_user_id,provider,provider_account_id,status,granted_scopes';
 const MAX_PROJECT_MEDIA = 50;
 
@@ -104,7 +104,7 @@ async function prepareProjectDelete(request: Request, env: ReturnType<typeof edg
     return fail('PROJECT_CLEANUP_NOT_ALLOWED', 'The project media could not be authorized for deletion.', 409, cors);
   }
   const { data: mediaRows, error: mediaError } = await actor.admin.from('external_media_objects').select(MEDIA_FIELDS).in('id', mediaObjectIds).eq('provider', 'google_drive');
-  if (mediaError || (mediaRows || []).length !== mediaObjectIds.length || (mediaRows || []).some((row: any) => row.metadata?.purpose !== PROJECT_GALLERY_ORIGINAL_PURPOSE)) {
+  if (mediaError || (mediaRows || []).length !== mediaObjectIds.length || (mediaRows || []).some((row: any) => row.metadata?.purpose !== PROJECT_GALLERY_ORIGINAL_PURPOSE && row.file_category !== 'project_original')) {
     return fail('MEDIA_LOOKUP_FAILED', 'The project media could not be verified for cleanup.', 409, cors);
   }
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
@@ -127,7 +127,7 @@ async function deleteMedia(request: Request, env: ReturnType<typeof edgeEnvironm
   if (!isSafeUuid(mediaObjectId) || (projectId && !isSafeUuid(projectId))) return fail('INVALID_REQUEST', 'The media reference is invalid.', 400, cors);
   const { data: media, error } = await actor.admin.from('external_media_objects').select(MEDIA_FIELDS).eq('id', mediaObjectId).eq('provider', 'google_drive').maybeSingle();
   if (error) return fail('MEDIA_LOOKUP_FAILED', 'The media could not be verified for deletion.', 500, cors);
-  if (!media || media.metadata?.purpose !== PROJECT_GALLERY_ORIGINAL_PURPOSE) return fail('MEDIA_NOT_FOUND', 'The project media was not found.', 404, cors);
+  if (!media || (media.metadata?.purpose !== PROJECT_GALLERY_ORIGINAL_PURPOSE && media.file_category !== 'project_original')) return fail('MEDIA_NOT_FOUND', 'The project media was not found.', 404, cors);
   if (media.status === 'deleted') return reply({ success: true, deleted: true, mediaObjectId }, 200, cors);
 
   const ownsMedia = media.owner_user_id === actor.user.id;

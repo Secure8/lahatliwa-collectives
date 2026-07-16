@@ -16,7 +16,7 @@ export default function About() {
         <p className="max-w-4xl border-l border-white/[0.09] pl-5 text-lg leading-8 sm:pl-7" style={{ color: 'var(--site-secondary-text)' }}>{content.about.journey}</p>
       </section>
 
-      <section className="major-border-top grid gap-8 py-12 md:grid-cols-[0.38fr_1fr] md:py-16">
+      <section className="grid gap-8 py-12 md:grid-cols-[0.38fr_1fr] md:py-16">
         <div>
           <AccentEyebrow color={content.about.accentColor || content.accentColor}>How it works</AccentEyebrow>
           <h2 className="mt-4 text-2xl font-medium">Clear paths for both audiences</h2>
@@ -27,7 +27,7 @@ export default function About() {
         </div>
       </section>
 
-      <section className="major-border-top grid gap-8 py-12 md:grid-cols-[0.38fr_1fr] md:py-16">
+      <section className="grid gap-8 py-12 md:grid-cols-[0.38fr_1fr] md:py-16">
         <div>
           <AccentEyebrow color={content.about.accentColor || content.accentColor}>Relationship</AccentEyebrow>
           <h2 className="mt-4 text-2xl font-medium">Publication with clear credit</h2>
@@ -38,7 +38,7 @@ export default function About() {
         </div>
       </section>
 
-      <section className="major-border-top py-12 md:py-16">
+      <section className="py-12 md:py-16">
         <AccentEyebrow color={content.about.accentColor || content.accentColor}>Direction</AccentEyebrow>
         <h2 className="mt-4 max-w-3xl text-3xl font-medium leading-tight">Built from Aklan, open to ideas, work, and connections beyond it.</h2>
         <p className="mt-5 max-w-3xl text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>The platform will continue to grow through useful work, thoughtful collaboration, clearer creative records, and opportunities that make sense for the people involved.</p>

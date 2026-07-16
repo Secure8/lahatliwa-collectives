@@ -16,6 +16,7 @@ import { uploadStatusText } from '../../lib/imageCompression';
 import { collectProjectMediaPaths } from '../../lib/projectMediaCleanup';
 import { getProjectGalleryMediaObjectId } from '../../lib/mediaReferences';
 import {
+  archiveGoogleDriveProjectFiles,
   deleteGoogleDriveMedia,
   getGoogleDriveConnectionStatus,
   prepareGoogleDriveProjectMediaRemoval,
@@ -51,6 +52,7 @@ import { AdminCheckbox, ResponsiveFormSection, StickyMobileActions } from './Adm
 import ImageUploader from './ImageUploader';
 import { ActionFeedback, FieldError } from '../FieldFeedback';
 import UnsavedChangesGuard from './UnsavedChangesGuard';
+import ExternalProjectFiles from './ExternalProjectFiles';
 
 const emptyProject = {
   title: '',
@@ -170,7 +172,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     getGoogleDriveConnectionStatus()
       .then((status) => {
         if (!active) return;
-        const available = isGoogleDriveGalleryAvailable({
+        const available = Boolean(initialProject?.id) && isGoogleDriveGalleryAvailable({
           frontendEnabled: STORAGE_FEATURE_FLAGS.googleDriveProjectGalleryEnabled,
           serverEnabled: status.projectGalleryUploadEnabled,
           connection: status.connection,
@@ -399,6 +401,16 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
     } else {
       setRemovedGalleryPaths((current) => current.includes(path) ? current : [...current, path]);
     }
+  }
+
+  function applyExternalGalleryReplacement({ oldPreviewPath, newPreviewPath, mediaReference }) {
+    setForm((current) => ({
+      ...current,
+      gallery_images: (current.gallery_images || []).map((path) => path === oldPreviewPath ? newPreviewPath : path),
+      gallery_items: (current.gallery_items || []).map((item, index) => item.url === oldPreviewPath
+        ? normalizeGalleryItem({ ...item, url: newPreviewPath, media: mediaReference }, index)
+        : item),
+    }));
   }
 
   function toggleCreative(id) {
@@ -634,7 +646,11 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       const uploadedItemsByUrl = new Map();
       for (const pendingItem of pendingGalleryFiles) {
         if (pendingItem.storageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive && !pendingItem.isPdf) {
-          const artifact = await uploadGoogleDriveGalleryImage(pendingItem.file, { onStatus: trackImageUpload, requestId: pendingItem.uploadRequestId });
+          const artifact = await uploadGoogleDriveGalleryImage(pendingItem.file, {
+            onStatus: trackImageUpload,
+            requestId: pendingItem.uploadRequestId,
+            projectId: initialProject?.id,
+          });
           uploadedDriveArtifacts.push(artifact);
           uploadedGalleryPaths.push(artifact.previewPath);
           uploadedItemsByUrl.set(artifact.previewPath, createExternalMediaGalleryItem(artifact.mediaReference));
@@ -762,6 +778,15 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           return;
         }
       }
+      if (submitAction === 'archive' && projectId) {
+        try {
+          await archiveGoogleDriveProjectFiles(projectId);
+          setOptimizationMessage('Project archived. Private Drive files moved to Archive; public previews were preserved.');
+        } catch {
+          setActionError('The project was archived, but one or more private Drive files still need an archive retry. They were not permanently deleted.');
+          return;
+        }
+      }
       pendingGalleryFiles.forEach((item) => {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       });
@@ -858,10 +883,11 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
               onChange={() => setGalleryStorageDestination(GALLERY_STORAGE_DESTINATIONS.googleDrive)}
               className="mt-1 accent-amber-300"
             />
-            <span><strong className="font-medium text-zinc-100">Google Drive Originals</strong><span className="mt-1 block text-xs leading-5 text-zinc-500">New gallery image originals stay private in Drive. A separate optimized preview is stored in Supabase for the public project gallery. PDFs continue using Supabase in this phase.</span></span>
+            <span><strong className="font-medium text-zinc-100">Private original + public preview</strong><span className="mt-1 block text-xs leading-5 text-zinc-500">The untouched image goes privately to Drive. Only a separate optimized preview goes to Supabase for the public gallery.</span></span>
           </label>
         )}
         {driveGalleryStatus.loading && <p role="status" className="text-xs text-zinc-500">Checking whether Google Drive Originals is available…</p>}
+        {!initialProject?.id && <p className="text-xs leading-5 text-zinc-500">Save this project as a draft first. Private originals and large project files become available in the project editor.</p>}
       </fieldset>
       <div className="grid gap-5 lg:grid-cols-2">
         <ImageUploader
@@ -872,7 +898,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         <ImageUploader
           label={pendingGalleryFiles.length ? `${pendingGalleryFiles.length} new file(s) ready to add` : 'Add more gallery images or PDFs'}
           hint={galleryStorageDestination === GALLERY_STORAGE_DESTINATIONS.googleDrive
-            ? 'Images are optimized, stored privately in Drive, and receive a public Supabase preview. PDFs remain in Supabase.'
+            ? 'Untouched images go privately to Drive. Optimized previews go to Supabase. PDFs can be added later as private project files.'
             : 'Images are optimized to 1 MB each. PDFs keep a 2 MB hard limit.'}
           accept="image/*,application/pdf"
           multiple
@@ -936,6 +962,24 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           )}
         </div>
       )}
+      </FormSection>
+
+      <FormSection
+        eyebrow="Private storage"
+        title="Originals and project files"
+        description="Manage untouched originals, Drive-only source files, authorized downloads, replacement, Archive, and cleanup without exposing Google Drive identifiers."
+      >
+        {initialProject?.id ? (
+          <ExternalProjectFiles
+            project={initialProject}
+            enabled={driveGalleryStatus.available}
+            onGalleryReplacement={applyExternalGalleryReplacement}
+          />
+        ) : (
+          <div className="rounded-lg bg-white/[0.025] p-4 text-sm leading-6 text-zinc-500 ring-1 ring-white/[0.07]">
+            Save this project as a draft first. Private originals and large project files are linked to the saved project so permissions can be checked before upload.
+          </div>
+        )}
       </FormSection>
 
       <FormSection eyebrow="External gallery links" title="Linked media" description="Add posts, videos, gallery links, or live references without uploading the full media set.">

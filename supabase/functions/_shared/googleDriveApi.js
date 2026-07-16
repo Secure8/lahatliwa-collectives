@@ -127,6 +127,86 @@ export async function uploadSmallDriveFile(fetcher, accessToken, input) {
   });
 }
 
+export async function generateDriveFileId(fetcher, accessToken) {
+  const data = await googleJson(fetcher, 'https://www.googleapis.com/drive/v3/files/generateIds?count=1&space=drive&type=files', {
+    headers: driveHeaders(accessToken),
+  });
+  const id = Array.isArray(data.ids) ? data.ids[0] : '';
+  if (!id) throw new GoogleDriveError('PROVIDER_ERROR', 'Google Drive did not reserve a file identifier.', 502);
+  return id;
+}
+
+export async function createResumableDriveUpload(fetcher, accessToken, input) {
+  const metadata = {
+    id: input.fileId,
+    name: input.name,
+    mimeType: input.mimeType,
+    parents: [input.parentId],
+    appProperties: {
+      lahatLiwaSchema: 'v1',
+      lahatLiwaMediaObjectId: input.mediaObjectId,
+      lahatLiwaPurpose: input.category,
+    },
+  };
+  const fields = 'name,mimeType,size,md5Checksum,parents,createdTime,modifiedTime,appProperties,trashed';
+  const response = await fetcher(`https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=${encodeURIComponent(fields)}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': input.mimeType,
+      'X-Upload-Content-Length': String(input.sizeBytes),
+    },
+    body: JSON.stringify(metadata),
+  });
+  if (!response.ok) throw new GoogleDriveError(response.status === 401 ? 'TOKEN_REVOKED' : 'PROVIDER_ERROR', 'Google Drive could not start the resumable upload.', response.status);
+  const uploadUrl = response.headers.get('Location') || '';
+  let parsed;
+  try { parsed = new URL(uploadUrl); } catch { parsed = null; }
+  if (!parsed || parsed.origin !== 'https://www.googleapis.com' || !parsed.pathname.startsWith('/upload/drive/v3/files')) {
+    throw new GoogleDriveError('PROVIDER_ERROR', 'Google Drive returned an invalid resumable upload session.', 502);
+  }
+  return uploadUrl;
+}
+
+export function getDriveFile(fetcher, accessToken, fileId) {
+  const fields = 'id,name,mimeType,size,md5Checksum,parents,createdTime,modifiedTime,appProperties,trashed';
+  return googleJson(fetcher, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent(fields)}`, {
+    headers: driveHeaders(accessToken),
+  });
+}
+
+export function moveDriveFile(fetcher, accessToken, fileId, fromParentId, toParentId) {
+  const params = new URLSearchParams({ addParents: toParentId, removeParents: fromParentId, fields: 'id,parents,modifiedTime' });
+  return googleJson(fetcher, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?${params}`, {
+    method: 'PATCH',
+    headers: driveHeaders(accessToken),
+    body: JSON.stringify({}),
+  });
+}
+
+export async function cancelResumableDriveUpload(fetcher, uploadUrl) {
+  let parsed;
+  try { parsed = new URL(uploadUrl); } catch { parsed = null; }
+  if (!parsed || parsed.origin !== 'https://www.googleapis.com' || !parsed.pathname.startsWith('/upload/drive/v3/files')) {
+    throw new GoogleDriveError('INVALID_UPLOAD_SESSION', 'The resumable upload session is invalid.', 400);
+  }
+  const response = await fetcher(uploadUrl, { method: 'DELETE' });
+  if (![200, 204, 404, 410, 499].includes(response.status)) {
+    throw new GoogleDriveError('UPLOAD_CANCEL_FAILED', 'Google Drive could not cancel the resumable upload.', response.status);
+  }
+  return true;
+}
+
+export function fetchDriveFileContent(fetcher, accessToken, fileId, range = '') {
+  return fetcher(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(range ? { Range: range } : {}),
+    },
+  });
+}
+
 export async function deleteDriveFile(fetcher, accessToken, fileId) {
   try {
     await googleJson(fetcher, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`, {

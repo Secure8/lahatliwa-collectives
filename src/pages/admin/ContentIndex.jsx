@@ -101,7 +101,7 @@ export default function ContentIndex() {
       {loading ? (
         <LoadingState label="Loading page content" />
       ) : (
-        <section className="border-y border-white/[0.08]">
+        <section>
           {pages.map((page, index) => (
             <article
               key={page.key}

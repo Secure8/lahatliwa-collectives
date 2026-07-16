@@ -94,6 +94,8 @@ test('admin shell exposes navigation labels, skip target, and route-aware titles
   assert.match(searchBar, /type="search"/);
   assert.match(searchBar, /aria-label=\{label\}/);
   assert.match(card, /headingLevel/);
+  assert.match(card, /border-t border-white\/\[0\.09\][\s\S]*?after:bg-orange-300/);
+  assert.match(card, /border-b border-white\/\[0\.12\]/);
   assert.match(guard, /useBlocker/);
   assert.match(guard, /beforeunload/);
   assert.match(guard, /AdminConfirmationDialog/);

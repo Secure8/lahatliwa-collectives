@@ -69,6 +69,8 @@ async function collectDependencies(admin: any, target: any, authUserId: string |
       { label: 'approved contributor activity', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).eq('requester_user_id', authUserId).eq('status', 'approved') },
       { label: 'request reviews', request: admin.from('contributor_requests').select('id', { count: 'exact', head: true }).eq('reviewed_by', authUserId) },
       { label: 'storage cleanup or upload history', request: admin.from('storage_cleanup_jobs').select('id', { count: 'exact', head: true }).eq('created_by', authUserId) },
+      { label: 'active external storage files', request: admin.from('external_media_objects').select('id', { count: 'exact', head: true }).eq('owner_user_id', authUserId).not('status', 'in', '(deleted,cancelled)') },
+      { label: 'active external storage connections', request: admin.from('storage_connections').select('id', { count: 'exact', head: true }).eq('owner_user_id', authUserId).not('status', 'in', '(revoked,disabled)') },
       { label: 'lifecycle audit attribution', request: admin.from('admin_member_lifecycle_snapshots').select('admin_user_id', { count: 'exact', head: true }).eq('removed_by', authUserId) },
       { label: 'owned Storage objects', request: countOwnedStorageObjects(admin, authUserId).then((count) => ({ count, error: null })).catch((error) => ({ count: 0, error })) },
     );
@@ -205,6 +207,12 @@ Deno.serve(async (req) => {
           verifyNoOwnedStorage: async () => {
             if (!authUser?.id) return;
             if (await countOwnedStorageObjects(admin, authUser.id)) throw new Error('Owned Storage objects remain.');
+            const [{ count: externalFiles, error: fileError }, { count: externalConnections, error: connectionError }] = await Promise.all([
+              admin.from('external_media_objects').select('id', { count: 'exact', head: true }).eq('owner_user_id', authUser.id).not('status', 'in', '(deleted,cancelled)'),
+              admin.from('storage_connections').select('id', { count: 'exact', head: true }).eq('owner_user_id', authUser.id).not('status', 'in', '(revoked,disabled)'),
+            ]);
+            if (fileError || connectionError) throw fileError || connectionError;
+            if (externalFiles || externalConnections) throw new Error('Active external storage must be cleaned up and disconnected before deleting this member.');
           },
           deleteAuthUser: async (id: string) => { const { error } = await admin.auth.admin.deleteUser(id, false); if (error) throw error; },
           authIdentityExists: async () => Boolean(await findAuthUserByEmail(admin, normalizeEmail(target.email))),

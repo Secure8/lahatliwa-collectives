@@ -23,12 +23,20 @@ export const STORAGE_CONNECTION_STATUSES = Object.freeze([
 
 export const MEDIA_OBJECT_STATUSES = Object.freeze([
   'pending',
+  'initiating',
   'uploading',
+  'processing',
   'available',
   'verification_required',
   'unavailable',
+  'replacing',
+  'archiving',
+  'archived',
+  'restoring',
   'deleting',
   'deleted',
+  'cancelled',
+  'abandoned',
   'error',
 ]);
 

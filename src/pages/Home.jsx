@@ -115,14 +115,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-mobile-branches page-shell major-border-top py-10 lg:hidden" aria-labelledby="mobile-branch-heading">
+      <section className="home-mobile-branches page-shell py-10 lg:hidden" aria-labelledby="mobile-branch-heading">
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs uppercase tracking-[0.2em] text-[var(--site-accent-text)]">Service branches</p><h2 id="mobile-branch-heading" className="mt-2 text-2xl font-semibold">Choose a starting point.</h2></div><Link to="/services" className="fine-link inline-flex min-h-11 shrink-0 items-center text-sm text-zinc-400">View all</Link></div>
         <div className="mt-5 grid grid-cols-2 gap-2">
           {PROJECT_BRANCHES.map((branch) => <Link key={branch.key} to={servicesPath(branch.key)} className="flex min-h-16 items-center justify-between gap-2 rounded-xl border border-white/[0.09] bg-white/[0.025] px-3 py-3 text-sm font-medium text-zinc-200 transition hover:border-orange-300/40 hover:text-orange-200"><span>{branch.label}</span><ArrowRight size={15} aria-hidden="true" /></Link>)}
         </div>
       </section>
 
-      <section id="selected-work" className="page-shell major-border-top scroll-mt-20 py-16" aria-labelledby="selected-work-heading">
+      <section id="selected-work" className="page-shell scroll-mt-20 py-16" aria-labelledby="selected-work-heading">
         <div className="mb-8 max-w-2xl">
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Selected work</p>
           <h2 id="selected-work-heading" className="mt-3 text-3xl font-semibold text-[var(--site-primary-text)]">{content.home.featuredHeading}</h2>
@@ -139,17 +139,17 @@ export default function Home() {
         <Link to={branchProjectsUrl(selectedBranch)} className="fine-link site-hover-accent mt-9 inline-flex min-h-11 items-center gap-2 text-sm text-zinc-300">View all {selectedBranchInfo.label} projects <ArrowRight size={16} /></Link>
       </section>
 
-      <section className="page-shell major-border-top py-16">
+      <section className="page-shell py-16">
         <div className="mb-10 flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Featured creatives</p><h2 className="mt-3 text-3xl font-semibold text-[var(--site-primary-text)]">Discover published creatives and their work.</h2></div><Link to="/creatives" className="fine-link site-hover-accent inline-flex min-h-11 items-center text-sm text-zinc-300">Explore creative profiles</Link></div>
         {loading && !creatives.length ? <LoadingState label="Loading creatives" /> : creatives.length ? <div ref={creativeRailRef} data-scroll-restoration-id="home-featured-creatives" className="home-creatives-grid grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">{creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} />)}</div> : <EmptyState title="No featured creative profiles yet" message="Explore the full directory for currently published profiles." />}
       </section>
 
-      <section className="home-full-services page-shell major-border-top hidden py-16 lg:block">
+      <section className="home-full-services page-shell hidden py-16 lg:block">
         <div className="mb-10 max-w-2xl"><p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Services preview</p><h2 className="mt-3 text-3xl font-semibold text-[var(--site-primary-text)]">{content.home.servicesHeading}</h2><p className="mt-4 leading-7 text-[var(--site-secondary-text)]">{content.home.servicesIntro}</p></div>
-        <div className="grid grid-cols-3 gap-8">{servicePreview.map((group) => { const Icon = iconMap[group.iconName] || Circle; const serviceLogoUrl = resolvePublicAssetUrl(group.serviceLogoUrl); const iconUrl = resolvePublicAssetUrl(group.customIconUrl || group.iconUrl); const branchKey = branchKeyFromRecord(group); const broadBranch = branchMeta(branchKey); const description = broadBranch ? publicBranchDescription(branchKey, group.description) : group.description; return <div key={group.name} className="major-border-top pt-5"><div className="flex min-h-10 items-center gap-0.5">{serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} loading="lazy" decoding="async" width="80" height="28" className="h-7 max-w-20 object-contain" />}{iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon className="text-[var(--site-accent-text)]" size={40} />)}</div><h3 className="mt-5 text-lg font-medium text-[var(--site-primary-text)]">{group.name}</h3><p className="mt-2 text-sm leading-6 text-[var(--site-secondary-text)]">{description || 'Flexible support shaped around the client’s goals and requirements.'}</p></div>; })}</div>
+        <div className="grid grid-cols-3 gap-8">{servicePreview.map((group) => { const Icon = iconMap[group.iconName] || Circle; const serviceLogoUrl = resolvePublicAssetUrl(group.serviceLogoUrl); const iconUrl = resolvePublicAssetUrl(group.customIconUrl || group.iconUrl); const branchKey = branchKeyFromRecord(group); const broadBranch = branchMeta(branchKey); const description = broadBranch ? publicBranchDescription(branchKey, group.description) : group.description; return <div key={group.name} className="pt-5"><div className="flex min-h-10 items-center gap-0.5">{serviceLogoUrl && <img src={serviceLogoUrl} alt={`${group.name} logo`} loading="lazy" decoding="async" width="80" height="28" className="h-7 max-w-20 object-contain" />}{iconUrl ? <img src={iconUrl} alt="" loading="lazy" decoding="async" width="40" height="40" className="h-10 w-10 object-contain" /> : (group.iconName && <Icon className="text-[var(--site-accent-text)]" size={40} />)}</div><h3 className="mt-5 text-lg font-medium text-[var(--site-primary-text)]">{group.name}</h3><p className="mt-2 text-sm leading-6 text-[var(--site-secondary-text)]">{description || 'Flexible support shaped around the client’s goals and requirements.'}</p></div>; })}</div>
       </section>
 
-      <section className="page-shell major-border-top py-16">
+      <section className="page-shell py-16">
         <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center"><div><p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Start a project</p><h2 className="mt-3 max-w-2xl text-3xl font-semibold text-[var(--site-primary-text)]">Need creative, digital, social, or technical support?</h2><p className="mt-4 max-w-2xl leading-7 text-[var(--site-secondary-text)]">Describe what you need, share the context that matters, and begin a review before any timing, pricing, or availability is confirmed.</p></div><Link to="/inquiry" className="inline-flex min-h-11 w-fit items-center gap-2 bg-[var(--site-accent)] px-5 text-sm font-semibold text-zinc-950 transition hover:bg-[var(--site-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">Send inquiry <ArrowRight size={18} /></Link></div>
       </section>
     </div>

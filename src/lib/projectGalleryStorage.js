@@ -1,7 +1,7 @@
 import {
-  attachGoogleDriveGalleryPreview,
-  deleteGoogleDriveMedia,
-  uploadGoogleDriveProjectGalleryOriginal,
+  attachGoogleDriveExternalPreview,
+  permanentlyDeleteGoogleDriveFile,
+  uploadGoogleDriveResumableFile,
 } from './googleDriveStorage.js';
 import {
   deleteImages,
@@ -18,19 +18,24 @@ import {
 export { GALLERY_STORAGE_DESTINATIONS, isGoogleDriveGalleryAvailable } from './projectGalleryUploadLifecycle.js';
 
 const defaultDependencies = {
-  attachPreview: attachGoogleDriveGalleryPreview,
-  deleteMedia: deleteGoogleDriveMedia,
+  attachPreview: attachGoogleDriveExternalPreview,
+  deleteMedia: permanentlyDeleteGoogleDriveFile,
   deletePreview: (path) => deleteImages([path]),
   prepareImage: prepareGalleryImageForUpload,
-  uploadOriginal: uploadGoogleDriveProjectGalleryOriginal,
+  uploadOriginal: (file, { projectId, replacementMediaObjectId } = {}) => uploadGoogleDriveResumableFile(file, {
+    category: 'project_original',
+    projectId,
+    withPreview: true,
+    replacementMediaObjectId,
+  }),
   uploadPreview: uploadPreparedGalleryFile,
 };
 
-export async function uploadGoogleDriveGalleryImage(file, { onStatus, requestId, dependencies = {} } = {}) {
+export async function uploadGoogleDriveGalleryImage(file, { onStatus, requestId, projectId, replacementMediaObjectId = '', dependencies = {} } = {}) {
   const deps = { ...defaultDependencies, ...dependencies };
-  return runGoogleDriveGalleryImageUpload(file, { onStatus, requestId, dependencies: deps });
+  return runGoogleDriveGalleryImageUpload(file, { onStatus, requestId, projectId, replacementMediaObjectId, dependencies: deps });
 }
 
-export async function cleanupGoogleDriveGalleryArtifacts(artifacts = [], { deleteMedia = deleteGoogleDriveMedia } = {}) {
+export async function cleanupGoogleDriveGalleryArtifacts(artifacts = [], { deleteMedia = permanentlyDeleteGoogleDriveFile } = {}) {
   return runGoogleDriveArtifactCleanup(artifacts, deleteMedia);
 }

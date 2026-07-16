@@ -29,7 +29,7 @@ import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
 import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 import { useAdminAccess } from '../../lib/adminAccess';
 import { copyText } from '../../lib/clipboard';
-import { uploadSiteAsset } from '../../lib/contentApi';
+import { uploadProfileMediaWithPrivateOriginal } from '../../lib/profileExternalStorage';
 import { parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
 import { socialLinkMeta, socialLinksFromText } from '../../lib/socialLinks';
@@ -435,14 +435,13 @@ export default function MyProfile() {
     });
 
     try {
-      const url = await uploadSiteAsset(
-        file,
-        `creative-profiles/${user.id}/${isCover ? 'cover' : 'profile'}`,
-        isCover ? 'creativeCover' : 'creativeProfile',
-        {
-          onStatus: (status) => setUploadMessage(uploadStatusText(status)),
-        },
-      );
+      const upload = await uploadProfileMediaWithPrivateOriginal(file, {
+        creativeMemberId: profile.id,
+        kind,
+        userId: user.id,
+        onStatus: (status) => setUploadMessage(status?.message || uploadStatusText(status)),
+      });
+      const url = upload.url;
 
       const field = isCover ? 'cover_image' : 'profile_image_url';
       const { data, error } = await supabase
@@ -458,7 +457,7 @@ export default function MyProfile() {
       setProfile({ ...data, notification_email: form.notification_email });
       setForm((current) => ({ ...current, [field]: url }));
       setSavedSignature(formSignature(nextForm));
-      setFlash({ tone: 'success', text: isCover ? 'Cover photo updated.' : 'Profile photo updated.' });
+      setFlash({ tone: 'success', text: `${isCover ? 'Cover photo' : 'Profile photo'} updated.${upload.externallyBackedUp ? ' Untouched original stored privately in Google Drive.' : ' Supabase-only fallback used because external storage was unavailable.'}` });
     } catch (uploadError) {
       setFlash({ tone: 'error', text: uploadError.message || `${isCover ? 'Cover' : 'Profile'} photo upload failed.` });
     } finally {
@@ -530,7 +529,7 @@ export default function MyProfile() {
         />
         {flash.text && <AdminNotice tone={flash.tone === 'success' ? 'success' : 'error'} className="mb-5">{flash.text}</AdminNotice>}
         <div className="grid gap-6">
-          <div className="flex flex-wrap items-center gap-3 border-y border-white/[0.08] py-4 text-sm text-zinc-400">
+          <div className="flex flex-wrap items-center gap-3 py-4 text-sm text-zinc-400">
             <AdminStatusBadge status="draft">Not linked</AdminStatusBadge>
             <span>This account is not linked to a public creative profile.</span>
           </div>
@@ -578,7 +577,7 @@ export default function MyProfile() {
         action={headerActions}
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-3 border-y border-white/[0.08] py-4 text-sm text-zinc-400">
+      <div className="mb-6 flex flex-wrap items-center gap-3 py-4 text-sm text-zinc-400">
         <AdminStatusBadge status={form.is_published ? 'published' : 'draft'}>{visibilityLabel}</AdminStatusBadge>
         {isDirty && <span className="text-xs uppercase tracking-[0.18em] text-amber-200">Unsaved changes</span>}
         {publicSlug && <span className="text-xs text-zinc-600">Open public uses the saved slug.</span>}
@@ -901,7 +900,7 @@ export default function MyProfile() {
             title="Public Profile Preview"
             description={isDirty ? 'Preview includes unsaved changes.' : 'Preview reflects your saved profile.'}
           >
-            <div className="overflow-hidden border-y border-white/[0.08] py-4">
+            <div className="overflow-hidden py-4">
               <CreativeProfileView creative={previewProfile} adminPreview />
             </div>
           </ProfileSection>

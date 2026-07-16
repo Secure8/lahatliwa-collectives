@@ -403,6 +403,15 @@ verify_jwt = false
 [functions.google-drive-media-lifecycle]
 verify_jwt = false
 
+[functions.google-drive-resumable-upload]
+verify_jwt = false
+
+[functions.google-drive-file-lifecycle]
+verify_jwt = false
+
+[functions.google-drive-file-access]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

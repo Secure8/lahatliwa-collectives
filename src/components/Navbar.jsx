@@ -33,6 +33,7 @@ export default function Navbar() {
   const location = useLocation();
   const { content } = usePublicContent([]);
   const mobileMode = publicAppBarMode(location.pathname);
+  const secondaryRouteIsActive = mobileSecondaryLinks.some(([, href]) => location.pathname === href || location.pathname.startsWith(`${href}/`));
   const closeMenu = useCallback(() => setOpen(false), []);
   const mobileVisible = useMobileAppBar({ locked: open || headerFocused, routeKey: `${location.pathname}${location.search}` });
   const { panelRef, triggerRef } = useModalDrawer({ open, onClose: closeMenu });
@@ -110,15 +111,16 @@ export default function Navbar() {
             <button
               ref={triggerRef}
               type="button"
-              className="grid h-11 w-11 shrink-0 place-items-center text-zinc-200 transition hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+              className={clsx('mobile-nav-item relative grid h-11 w-11 shrink-0 place-items-center transition hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]', secondaryRouteIsActive ? 'text-orange-400' : 'text-zinc-200')}
               onClick={() => setOpen(true)}
               aria-label="Open more links"
+              aria-current={secondaryRouteIsActive ? 'page' : undefined}
               aria-expanded={open}
               aria-controls="public-mobile-navigation"
               aria-hidden={open ? 'true' : undefined}
               tabIndex={open ? -1 : undefined}
             >
-              <Ellipsis size={22} aria-hidden="true" />
+              <Ellipsis className="mobile-nav-icon" size={22} aria-hidden="true" />
             </button>
           </div>
         </nav>

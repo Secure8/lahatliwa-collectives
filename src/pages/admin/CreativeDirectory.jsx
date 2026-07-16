@@ -33,7 +33,7 @@ export default function CreativeDirectory() {
 
   return <AdminLayout><div className="w-full max-w-6xl">
     <AdminPageHeader eyebrow="Published profiles" title="Creative Directory" description="Browse published creative profiles available to your current platform role." />
-    <div className="mb-5 border-y border-white/[0.08] py-3 text-xs uppercase tracking-[0.16em] text-zinc-600">{visibleRows.length} visible {visibleRows.length === 1 ? 'creative' : 'creatives'}</div>
+    <div className="mb-5 py-3 text-xs uppercase tracking-[0.16em] text-zinc-600">{visibleRows.length} visible {visibleRows.length === 1 ? 'creative' : 'creatives'}</div>
     <section className="grid gap-4 border-b border-white/[0.08] pb-6 sm:grid-cols-[minmax(0,1fr)_14rem]">
       <label className="grid gap-1.5 text-sm text-zinc-300"><span>Search directory</span><span className="flex items-center gap-2 border-b border-white/[0.12]"><Search size={15} className="text-zinc-600" aria-hidden="true" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, role, bio, or skill" className="w-full bg-transparent px-0 py-2.5 text-white outline-none placeholder:text-zinc-700" /></span></label>
       <label className="grid gap-1.5 text-sm text-zinc-300"><span>Availability</span><select value={availability} onChange={(event) => setAvailability(event.target.value)} className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none [color-scheme:dark] focus:border-amber-200/60"><option value="all">All availability</option>{availabilityOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>

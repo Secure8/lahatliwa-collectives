@@ -1,5 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { BUCKET, classifyStorageObject, collectReferencePaths, deduplicateQueuePaths, hasActiveCleanupJob, normalizeProjectMediaPath, summarizeClassifications, unwrapReferenceScanResults } from './reconciliation.js';
+import { cancelResumableDriveUpload, deleteDriveFile, fetchGoogleIdentity, refreshGoogleAccessToken, tokenGrantedScopes } from '../_shared/googleDriveApi.js';
+import { deleteExternalUploadSession, readConnectionSecret, readExternalUploadSession } from '../_shared/googleDriveDatabase.ts';
+import { hasRequiredGoogleScopes, oauthConfiguration } from '../_shared/googleDriveOAuth.js';
 
 const prefix = '[storage-cleanup-worker]';
 const MAX_DB_ROWS_PER_SOURCE = 10000;
@@ -97,6 +100,48 @@ async function queueReviewed(admin: any, payload: any) {
   return Response.json({ ok: true, stage: 'queue_reviewed_orphans', queued, rejected });
 }
 
+async function cleanupExpiredExternalUploads(admin: any) {
+  const google = oauthConfiguration({
+    GOOGLE_DRIVE_OAUTH_ENABLED: Deno.env.get('GOOGLE_DRIVE_OAUTH_ENABLED'),
+    GOOGLE_DRIVE_CLIENT_ID: Deno.env.get('GOOGLE_DRIVE_CLIENT_ID'),
+    GOOGLE_DRIVE_CLIENT_SECRET: Deno.env.get('GOOGLE_DRIVE_CLIENT_SECRET'),
+    GOOGLE_DRIVE_REDIRECT_URI: Deno.env.get('GOOGLE_DRIVE_REDIRECT_URI'),
+  });
+  const { data: mediaRows, error } = await admin.from('external_media_objects')
+    .select('id,owner_user_id,storage_connection_id,external_file_id,cleanup_attempt_count')
+    .eq('provider', 'google_drive').in('status', ['initiating','uploading','abandoned'])
+    .neq('cleanup_status', 'manual_required').lt('upload_expires_at', new Date().toISOString()).limit(25);
+  if (error) throw error;
+  const results = [];
+  for (const media of mediaRows || []) {
+    try {
+      const session: any = await readExternalUploadSession(media.owner_user_id, media.id);
+      if (session?.upload_url) await cancelResumableDriveUpload(fetch, session.upload_url);
+      await deleteExternalUploadSession(media.owner_user_id, media.id);
+      if (media.external_file_id) {
+        if (!google.configured) throw Object.assign(new Error('Google configuration unavailable'), { code: 'GOOGLE_CONFIGURATION_MISSING' });
+        const { data: connection } = await admin.from('storage_connections').select('id,owner_user_id,provider_account_id,granted_scopes').eq('id', media.storage_connection_id).eq('owner_user_id', media.owner_user_id).maybeSingle();
+        if (!connection) throw Object.assign(new Error('Connection unavailable'), { code: 'CONNECTION_NOT_FOUND' });
+        const refreshToken = await readConnectionSecret(media.owner_user_id, connection.id);
+        if (!refreshToken) throw Object.assign(new Error('Credential unavailable'), { code: 'TOKEN_REVOKED' });
+        const tokens = await refreshGoogleAccessToken(fetch, google, refreshToken);
+        const scopes = tokenGrantedScopes(tokens, connection.granted_scopes || []);
+        if (!hasRequiredGoogleScopes(scopes)) throw Object.assign(new Error('Scope missing'), { code: 'SCOPE_MISSING' });
+        const identity = await fetchGoogleIdentity(fetch, tokens.access_token);
+        if (identity.sub !== connection.provider_account_id) throw Object.assign(new Error('Account mismatch'), { code: 'ACCOUNT_MISMATCH' });
+        await deleteDriveFile(fetch, tokens.access_token, media.external_file_id);
+      }
+      await admin.from('external_media_objects').update({ status: 'cancelled', external_file_id: null, external_parent_id: null, upload_expires_at: null, cleanup_status: 'complete', cleanup_error: null, cleanup_attempt_count: Number(media.cleanup_attempt_count || 0) + 1 }).eq('id', media.id);
+      results.push({ id: media.id, ok: true });
+    } catch (cleanupError) {
+      const attempts = Number(media.cleanup_attempt_count || 0) + 1;
+      await admin.from('external_media_objects').update({ status: 'abandoned', cleanup_status: attempts >= 3 ? 'manual_required' : 'retry_required', cleanup_error: cleanupError?.code || 'ABANDONED_UPLOAD_CLEANUP_FAILED', cleanup_attempt_count: attempts }).eq('id', media.id);
+      results.push({ id: media.id, ok: false });
+    }
+  }
+  return results;
+}
+
 Deno.serve(async (request) => {
   console.log(prefix, JSON.stringify({ event: 'request_received', method: request.method }));
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -127,6 +172,7 @@ Deno.serve(async (request) => {
       const status = data?.[0];
       return Response.json({ ok: true, stage: 'status', worker: { healthy: true }, cron: { jobName: status?.job_name, schedule: status?.schedule, active: status?.active, count: status?.schedule_count, lastRunStatus: status?.last_run_status, lastRunAt: status?.last_run_at }, vault: { projectUrlExists: status?.project_url_exists, workerSecretExists: status?.worker_secret_exists }, queue: { pending: Number(status?.pending_count || 0), processing: Number(status?.processing_count || 0), failed: Number(status?.failed_count || 0), manualReview: Number(status?.manual_review_count || 0), completed: Number(status?.completed_count || 0) } });
     }
+    const externalResults = await cleanupExpiredExternalUploads(admin);
     const workerId = crypto.randomUUID();
     const { data: jobs, error: claimError } = await admin.rpc('claim_storage_cleanup_jobs', { p_batch_size: 50, p_worker_id: workerId });
     if (claimError) return responseError('claim_jobs', claimError);
@@ -138,7 +184,7 @@ Deno.serve(async (request) => {
       if (finishError) return responseError('finish_job', finishError);
       results.push({ id: job.id, ok: !deletion.error });
     }
-    return Response.json({ ok: true, stage: 'completed', processed: results.length, results });
+    return Response.json({ ok: true, stage: 'completed', processed: results.length, results, externalUploads: { processed: externalResults.length, failed: externalResults.filter((item) => !item.ok).length } });
   } catch (error) {
     return responseError(payload.action || 'worker', error);
   }

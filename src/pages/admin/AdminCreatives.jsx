@@ -67,7 +67,7 @@ export default function AdminCreatives() {
       {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
       {notice && <AdminNotice tone="success" className="mb-5">{notice}</AdminNotice>}
       {loading ? <LoadingState label="Loading profile preview" /> : previewCreative ? (
-        <section className="border-y border-white/[0.08] py-7">
+        <section className="py-7">
           <div className="mb-7 flex flex-wrap justify-end gap-2">
             <AdminButton onClick={() => copyProfileLink(previewCreative)}><Copy size={15} /> Copy link</AdminButton>
             {previewCreative.is_published && <AdminButton to={`/creatives/${previewCreative.slug}`}><ExternalLink size={15} /> Open public</AdminButton>}

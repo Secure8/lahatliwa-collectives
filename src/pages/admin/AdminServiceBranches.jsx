@@ -22,7 +22,7 @@ export default function AdminServiceBranches() {
     <AdminPageHeader eyebrow="Service structure" title="Service Branches" description="Manage the branch content shown on the public Services page. Public branches describe service paths, not staffed departments." action={<AdminButton to="/admin/service-branches/new" variant="primary"><Plus size={17}/> Add Branch</AdminButton>}/>
     {error&&<AdminNotice className="mb-5">{error}</AdminNotice>}
     {loading?<LoadingState label="Loading service branches"/>:branches.length?(
-      <section className="overflow-hidden border-y border-white/[0.07]">
+      <section className="overflow-hidden">
         {branches.map((branch)=><article key={branch.id} className="grid grid-cols-[3rem_minmax(0,1fr)] items-center gap-x-4 gap-y-4 border-b border-white/[0.06] px-1 py-5 last:border-b-0 sm:px-2 lg:grid-cols-[3rem_minmax(0,0.8fr)_minmax(0,1.25fr)_minmax(8rem,0.45fr)_auto] lg:gap-x-6">
           <div className="grid h-12 w-12 place-items-center">{branch.icon_url?<img src={resolvePublicAssetUrl(branch.icon_url)} alt="" loading="lazy" width="48" height="48" className="max-h-12 max-w-12 object-contain"/>:<span className="text-lg font-semibold text-zinc-600">{branch.name?.slice(0,1)||'L'}</span>}</div>
           <div className="min-w-0"><h3 className="truncate font-semibold text-white">{branch.name}</h3><p className="mt-1 truncate text-xs text-zinc-600">/{branch.slug}</p></div>

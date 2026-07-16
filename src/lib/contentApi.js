@@ -1,11 +1,11 @@
 import { createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
-import { defaultPageContent, defaultSiteContent } from '../data/siteContent';
-import { optimizeImageForUpload } from './imageCompression';
-import { supabase } from './supabaseClient';
-import { validateUploadFile } from './uploadLimits';
-import { collectReferencedStoragePaths, normalizeStoragePath } from './projectMediaCleanup';
-import { cachedContentMatchesScope, publicContentScope } from './publicContentScope';
-import { safeExternalUrl } from './externalUrls';
+import { defaultPageContent, defaultSiteContent } from '../data/siteContent.js';
+import { optimizeImageForUpload } from './imageCompression.js';
+import { supabase } from './supabaseClient.js';
+import { validateUploadFile } from './uploadLimits.js';
+import { collectReferencedStoragePaths, normalizeStoragePath } from './projectMediaCleanup.js';
+import { cachedContentMatchesScope, publicContentScope } from './publicContentScope.js';
+import { safeExternalUrl } from './externalUrls.js';
 
 const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
@@ -250,7 +250,12 @@ export async function updatePageContent(pageKey, content) {
 }
 
 export async function uploadSiteAsset(file, folder = 'site', limitKey = 'siteImage', { onStatus } = {}) {
-  if (!file) return '';
+  const result = await uploadSiteAssetWithDetails(file, folder, limitKey, { onStatus });
+  return result.url;
+}
+
+export async function uploadSiteAssetWithDetails(file, folder = 'site', limitKey = 'siteImage', { onStatus } = {}) {
+  if (!file) return { url: '', path: '', prepared: null };
   validateFile(file, {
     allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
     label: 'Image',
@@ -264,7 +269,7 @@ export async function uploadSiteAsset(file, folder = 'site', limitKey = 'siteIma
   const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, UPLOAD_OPTIONS);
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  return { url: data.publicUrl, path, prepared };
 }
 
 export async function createMediaAsset({ name, type = 'icon', category = '', url, storagePath = '', altText = '' }) {

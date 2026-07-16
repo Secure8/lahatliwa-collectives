@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { normalizeSiteOrigin, oauthConfiguration } from './googleDriveOAuth.js';
+import { projectPermissionAllowed } from './externalStorageLifecycle.js';
 
 export const jsonHeaders = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
@@ -31,8 +32,9 @@ export function corsHeaders(request: Request, siteOrigin: string) {
   const allowed = new Set([siteOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173'].filter(Boolean));
   return {
     ...(allowed.has(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {}),
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Expose-Headers': 'content-length, content-range, content-type, content-disposition, accept-ranges',
   };
 }
 
@@ -84,4 +86,33 @@ export function safeConnection(connection: any) {
   };
 }
 
-export const GOOGLE_CONNECTION_SELECT = 'id,owner_user_id,provider,provider_account_id,provider_account_email,display_name,root_folder_id,status,capabilities,connected_at,last_verified_at,last_error_code,last_error_message,root_folder_health,granted_scopes,created_at,updated_at';
+export const GOOGLE_CONNECTION_SELECT = 'id,owner_user_id,provider,provider_account_id,provider_account_email,display_name,root_folder_id,folder_ids,status,capabilities,connected_at,last_verified_at,last_error_code,last_error_message,root_folder_health,granted_scopes,created_at,updated_at';
+
+export async function authorizeProject(actor: any, projectId: string, mode: 'view' | 'edit' | 'manage' = 'view') {
+  const { data: project, error } = await actor.admin.from('projects')
+    .select('id,status,review_status,owner_user_id,created_by')
+    .eq('id', projectId).maybeSingle();
+  if (error || !project) return null;
+  const { data: access } = await actor.admin.from('project_access')
+    .select('access_level,revoked_at').eq('project_id', projectId).eq('user_id', actor.user.id).is('revoked_at', null).maybeSingle();
+  let contributorCreativeIds: string[] = [];
+  if (mode === 'view' && actor.teamMember.creative_member_id) {
+    const { data: credits } = await actor.admin.from('project_creatives')
+      .select('creative_id,creative_member_id').eq('project_id', projectId);
+    contributorCreativeIds = (credits || []).map((credit: any) => credit.creative_member_id || credit.creative_id).filter(Boolean);
+  }
+  return projectPermissionAllowed({
+    role: actor.role,
+    userId: actor.user.id,
+    creativeMemberId: actor.teamMember.creative_member_id,
+    project,
+    accessLevel: access?.access_level || '',
+    contributorCreativeIds,
+  }, mode) ? project : null;
+}
+
+export async function authorizeCreativeProfile(actor: any, creativeMemberId: string) {
+  if (actor.role !== 'super_admin' && actor.teamMember.creative_member_id !== creativeMemberId) return null;
+  const { data, error } = await actor.admin.from('creative_members').select('id,is_published').eq('id', creativeMemberId).maybeSingle();
+  return error ? null : data;
+}

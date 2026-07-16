@@ -80,3 +80,31 @@ export function disconnectGoogleDriveConnection(input: {
     [input.ownerUserId, input.connectionId, input.revokedAtProvider],
   );
 }
+
+export async function createExternalUploadSession(input: {
+  ownerUserId: string;
+  mediaObjectId: string;
+  uploadUrl: string;
+  expiresAt: string;
+}) {
+  const row: any = await queryOne(
+    `select private.server_create_external_upload_session($1::uuid, $2::uuid, $3::text, $4::timestamptz) as session_id`,
+    [input.ownerUserId, input.mediaObjectId, input.uploadUrl, input.expiresAt],
+  );
+  return row?.session_id || null;
+}
+
+export async function readExternalUploadSession(ownerUserId: string, mediaObjectId: string) {
+  return queryOne(
+    `select upload_url, expires_at from private.server_read_external_upload_session($1::uuid, $2::uuid)`,
+    [ownerUserId, mediaObjectId],
+  );
+}
+
+export async function deleteExternalUploadSession(ownerUserId: string, mediaObjectId: string) {
+  const row: any = await queryOne(
+    `select private.server_delete_external_upload_session($1::uuid, $2::uuid) as deleted`,
+    [ownerUserId, mediaObjectId],
+  );
+  return row?.deleted === true;
+}

@@ -158,7 +158,7 @@ export default function IconsMedia() {
       <div className="w-full max-w-6xl">
         <AdminPageHeader eyebrow="Website CMS" title="Media and Icons" description="Upload and manage reusable visual assets for service and content areas." />
 
-        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-white/[0.08] py-3 text-xs uppercase tracking-[0.16em] text-zinc-600">
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 py-3 text-xs uppercase tracking-[0.16em] text-zinc-600">
           <span>{visibleAssets.length} visible {visibleAssets.length === 1 ? 'asset' : 'assets'}</span>
           {visibleAssets.length !== assets.length && <span>{assets.length} total</span>}
         </div>

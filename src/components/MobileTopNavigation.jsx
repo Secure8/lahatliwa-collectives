@@ -16,7 +16,7 @@ export default function MobileTopNavigation() {
   const location = useLocation();
 
   return (
-    <nav aria-label="Primary mobile navigation" data-mobile-top-navigation className="page-shell border-t border-white/[0.08] lg:hidden">
+    <nav aria-label="Primary mobile navigation" data-mobile-top-navigation className="page-shell lg:hidden">
       <div className="grid grid-cols-5">
         {PUBLIC_PRIMARY_DESTINATIONS.map(([label, href]) => {
           const Icon = icons[label];
@@ -31,12 +31,12 @@ export default function MobileTopNavigation() {
               onPointerEnter={() => preloadPublicRoute(href)}
               onFocus={() => preloadPublicRoute(href)}
               className={clsx(
-                'relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
+                'mobile-nav-item relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
                 active ? 'text-[var(--site-accent-text)]' : 'text-zinc-500 hover:text-zinc-200',
               )}
             >
               <span className="grid h-9 w-12 place-items-center transition">
-                <Icon size={21} strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
+                <Icon className="mobile-nav-icon" size={21} strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
               </span>
             </NavLink>
           );

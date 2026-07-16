@@ -35,7 +35,8 @@ test('Supabase remains the default and Drive availability is double-gated', () =
 test('Drive gallery upload finalizes a private original with a public Supabase preview', async () => {
   const calls = [];
   const preparedFile = { name: 'optimized.webp', type: 'image/webp', size: 700 };
-  const result = await runGoogleDriveGalleryImageUpload({ name: 'original.png' }, { dependencies: {
+  const rawFile = { name: 'original.png', type: 'image/png', size: 1400 };
+  const result = await runGoogleDriveGalleryImageUpload(rawFile, { dependencies: {
     prepareImage: async () => ({ file: preparedFile, optimized: true, originalBytes: 1400, finalBytes: 700, message: 'optimized' }),
     uploadOriginal: async (file) => { calls.push(['original', file]); return { media: { id: MEDIA_ID } }; },
     uploadPreview: async (file) => { calls.push(['preview', file]); return 'projects/gallery/preview.webp'; },
@@ -52,6 +53,8 @@ test('Drive gallery upload finalizes a private original with a public Supabase p
     preview: { provider: 'supabase', bucket: 'project-media', storagePath: 'projects/gallery/preview.webp' },
   });
   assert.deepEqual(calls.map(([stage]) => stage), ['original', 'preview', 'attach']);
+  assert.equal(calls[0][1], rawFile);
+  assert.equal(calls[1][1], preparedFile);
   assert.equal(JSON.stringify(result).includes('drive-file-id'), false);
 });
 
@@ -158,8 +161,9 @@ test('public renderer and project editor use previews while unrelated upload flo
   assert.match(gallery, /media \? media\.preview\.storagePath/);
   assert.match(form, /galleryStorageDestination.*GALLERY_STORAGE_DESTINATIONS\.supabase/);
   assert.match(form, /STORAGE_FEATURE_FLAGS\.googleDriveProjectGalleryEnabled/);
-  assert.match(form, /Google Drive Originals/);
-  assert.match(form, /PDFs continue using Supabase/);
+  assert.match(form, /Private original \+ public preview/);
+  assert.match(form, /Untouched images go privately to Drive/);
+  assert.match(form, /ExternalProjectFiles/);
   assert.match(storage, /uploadCoverImage/);
   assert.match(storage, /uploadExternalThumbnail/);
   assert.match(content, /supabase\.storage\.from\(BUCKET\)\.upload/);

@@ -180,7 +180,7 @@ export default function AdminLayout({ children }) {
             />
           </div>
         </div>
-        <nav aria-label="Primary admin navigation" data-admin-mobile-top-navigation className="mt-2 border-t border-white/[0.08] lg:hidden">
+        <nav aria-label="Primary admin navigation" data-admin-mobile-top-navigation className="mt-2 lg:hidden">
           <div className="grid grid-cols-5">
             {mobilePrimaryLinks.map(([label, href, Icon]) => {
               const active = primaryRouteIsActive(href);
@@ -191,10 +191,10 @@ export default function AdminLayout({ children }) {
                   aria-label={label}
                   title={label}
                   aria-current={active ? 'page' : undefined}
-                  className={clsx('relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-200/60', active ? 'text-amber-100' : 'text-zinc-500 hover:text-zinc-200')}
+                  className={clsx('mobile-nav-item relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-200/60', active ? 'text-orange-400' : 'text-zinc-500 hover:text-zinc-200')}
                 >
                   <span className="relative grid h-9 w-12 place-items-center transition">
-                    <Icon size={21} strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
+                    <Icon className="mobile-nav-icon" size={21} strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
                     {href === '/admin/inquiries' && unreadInquiries > 0 && <span className="absolute right-1 top-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 bg-amber-300" aria-hidden="true" />}
                   </span>
                   {href === '/admin/inquiries' && unreadInquiries > 0 && <span className="sr-only">{unreadInquiries} unread inquiries</span>}
@@ -210,9 +210,9 @@ export default function AdminLayout({ children }) {
               aria-expanded={mobileOpen}
               aria-controls="admin-mobile-navigation"
               aria-current={moreIsActive ? 'page' : undefined}
-              className={clsx('relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-200/60', moreIsActive ? 'text-amber-100' : 'text-zinc-500')}
+              className={clsx('mobile-nav-item relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-200/60', moreIsActive ? 'text-orange-400' : 'text-zinc-500')}
             >
-              <span className="grid h-9 w-12 place-items-center transition"><Ellipsis size={21} strokeWidth={moreIsActive ? 2.25 : 1.8} aria-hidden="true" /></span>
+              <span className="grid h-9 w-12 place-items-center transition"><Ellipsis className="mobile-nav-icon" size={21} strokeWidth={moreIsActive ? 2.25 : 1.8} aria-hidden="true" /></span>
             </button>
           </div>
         </nav>

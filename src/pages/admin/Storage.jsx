@@ -71,7 +71,7 @@ export default function Storage() {
 
 function CurrentDestination() {
   return (
-    <section className="grid gap-4 border-y border-white/[0.08] py-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+    <section className="grid gap-4 py-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-amber-200/80">Current upload destination</p>
         <h2 className="mt-2 text-xl font-semibold text-white">Lahat Liwa storage</h2>
@@ -267,7 +267,7 @@ function OperationsOverview() {
   }, [state.rows]);
 
   return (
-    <section aria-labelledby="operations-heading" className="border-y border-white/[0.08] py-6">
+    <section aria-labelledby="operations-heading" className="py-6">
       <div className="flex items-center gap-3"><Database size={19} className="text-amber-200" aria-hidden="true" /><h2 id="operations-heading" className="text-lg font-semibold text-white">Operational overview</h2></div>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">Safe status, account email, folder health, and timestamps only. Tokens, secret references, Drive identifiers, and private folder metadata are excluded.</p>
       {state.loading ? <div className="mt-5"><LoadingState label="Loading connection overview" /></div> : state.error ? <AdminNotice className="mt-5">{state.error}</AdminNotice> : (

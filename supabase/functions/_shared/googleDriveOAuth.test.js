@@ -197,6 +197,17 @@ test('managed upload folder must retain its role, schema marker, and root parent
   await assert.rejects(() => verifyManagedFolder(fetcher, 'token', 'originals', 'archive', 'root-id'), (error) => error.code === 'UPLOAD_FOLDER_MISSING');
 });
 
+test('connection verification checks the root and every managed subfolder', async () => {
+  const [edge, connectionCheck] = await Promise.all([
+    source('supabase/functions/_shared/googleDriveEdge.ts'),
+    source('supabase/functions/google-drive-connection-check/index.ts'),
+  ]);
+  assert.match(edge, /GOOGLE_CONNECTION_SELECT[^\n]*folder_ids/);
+  assert.match(connectionCheck, /MANAGED_FOLDER_ROLES = Object\.freeze\(\['originals', 'project_files', 'profile_media', 'archive'\]\)/);
+  assert.match(connectionCheck, /verifyManagedRoot[\s\S]*?for \(const role of MANAGED_FOLDER_ROLES\)[\s\S]*?verifyManagedFolder/);
+  assert.match(connectionCheck, /\['FOLDER_MISSING', 'UPLOAD_FOLDER_MISSING'\]\.includes\(code\)/);
+});
+
 test('failed metadata finalization can delete the newly created private Drive file', async () => {
   let request;
   const fetcher = async (url, options) => {

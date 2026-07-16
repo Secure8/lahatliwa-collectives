@@ -60,6 +60,10 @@ test('public and admin drawers provide modal keyboard behavior while mobile them
   assert.doesNotMatch(footer, /to="\/admin\/dashboard"|Platform admin access/);
   assert.match(admin, /AppearanceMenuAction[\s\S]*?iconOnly/);
   assert.match(admin, /data-admin-mobile-top-navigation[\s\S]*?min-h-\[3\.25rem\]/);
+  assert.match(admin, /aria-current=\{active \? 'page'[\s\S]*?mobile-nav-item/);
+  assert.match(navbar, /secondaryRouteIsActive[\s\S]*?aria-current=\{secondaryRouteIsActive \? 'page'/);
+  assert.match(styles, /\.mobile-nav-item\[aria-current="page"\][\s\S]*?color: #fb923c !important;/);
+  assert.match(styles, /\.mobile-nav-item\[aria-current="page"\] \.mobile-nav-icon[\s\S]*?fill: currentColor;/);
   assert.doesNotMatch(admin, /data-admin-mobile-bottom-navigation/);
   assert.match(drawer, /event\.key === 'Escape'/);
   assert.match(drawer, /event\.key !== 'Tab'/);

@@ -1,4 +1,4 @@
-import { fetchGoogleIdentity, refreshGoogleAccessToken, tokenGrantedScopes, verifyManagedRoot } from '../_shared/googleDriveApi.js';
+import { fetchGoogleIdentity, refreshGoogleAccessToken, tokenGrantedScopes, verifyManagedFolder, verifyManagedRoot } from '../_shared/googleDriveApi.js';
 import { hasRequiredGoogleScopes } from '../_shared/googleDriveOAuth.js';
 import { authenticatedStorageOwner, corsHeaders, edgeEnvironment, fail, GOOGLE_CONNECTION_SELECT, reply, safeConnection } from '../_shared/googleDriveEdge.ts';
 import { readConnectionSecret } from '../_shared/googleDriveDatabase.ts';
@@ -6,6 +6,8 @@ import { readConnectionSecret } from '../_shared/googleDriveDatabase.ts';
 async function markConnection(admin: any, id: string, patch: Record<string, unknown>) {
   await admin.from('storage_connections').update(patch).eq('id', id).eq('provider', 'google_drive');
 }
+
+const MANAGED_FOLDER_ROLES = Object.freeze(['originals', 'project_files', 'profile_media', 'archive']);
 
 Deno.serve(async (request) => {
   const env = edgeEnvironment();
@@ -39,6 +41,11 @@ Deno.serve(async (request) => {
     const identity = await fetchGoogleIdentity(fetch, tokens.access_token);
     if (identity.sub !== connection.provider_account_id) throw Object.assign(new Error('Account mismatch'), { code: 'ACCOUNT_MISMATCH' });
     await verifyManagedRoot(fetch, tokens.access_token, connection.root_folder_id);
+    for (const role of MANAGED_FOLDER_ROLES) {
+      const folderId = connection.folder_ids?.[role];
+      if (!folderId) throw Object.assign(new Error('Managed folder missing'), { code: 'UPLOAD_FOLDER_MISSING' });
+      await verifyManagedFolder(fetch, tokens.access_token, folderId, role, connection.root_folder_id);
+    }
     const now = new Date().toISOString();
     await markConnection(owner.admin, connection.id, {
       status: 'connected', root_folder_health: 'healthy', granted_scopes: scopes,
@@ -48,15 +55,15 @@ Deno.serve(async (request) => {
   } catch (verifyError) {
     const code = verifyError?.code || 'VERIFY_FAILED';
     const reconnect = ['TOKEN_REVOKED', 'SCOPE_MISSING', 'ACCOUNT_MISMATCH'].includes(code);
-    const folderMissing = code === 'FOLDER_MISSING';
+    const folderMissing = ['FOLDER_MISSING', 'UPLOAD_FOLDER_MISSING'].includes(code);
     await markConnection(owner.admin, connection.id, {
       status: reconnect ? 'reconnect_required' : 'error',
       root_folder_health: folderMissing ? 'missing' : connection.root_folder_health,
       last_verified_at: new Date().toISOString(),
       last_error_code: code,
-      last_error_message: folderMissing ? 'The managed Lahat Liwa folder could not be found. Reconnect after restoring it.' : reconnect ? 'Reconnect Google Drive to restore access.' : 'Google Drive could not be verified. Try again.',
+      last_error_message: folderMissing ? 'The managed Lahat Liwa folder structure could not be found. Reconnect to restore missing folders.' : reconnect ? 'Reconnect Google Drive to restore access.' : 'Google Drive could not be verified. Try again.',
     });
     console.error('[google-drive-connection-check] failed', { connectionId: connection.id, code });
-    return fail(reconnect ? 'RECONNECT_REQUIRED' : code, folderMissing ? 'The managed Lahat Liwa folder is unavailable.' : reconnect ? 'Reconnect Google Drive to restore access.' : 'Google Drive could not be verified. Try again.', 409, cors);
+    return fail(reconnect ? 'RECONNECT_REQUIRED' : code, folderMissing ? 'The managed Lahat Liwa folder structure is incomplete. Reconnect Google Drive to restore it.' : reconnect ? 'Reconnect Google Drive to restore access.' : 'Google Drive could not be verified. Try again.', 409, cors);
   }
 });

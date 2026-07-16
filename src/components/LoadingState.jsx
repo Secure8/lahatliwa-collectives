@@ -14,7 +14,7 @@ export default function LoadingState({ label = 'Loading', delay = 180, compact =
   }
 
   return (
-    <div className={`major-border-y ${compact ? 'py-5' : 'py-8'}`} role="status" aria-live="polite" aria-label={label}>
+    <div className={compact ? 'py-5' : 'py-8'} role="status" aria-live="polite" aria-label={label}>
       <div className="mx-auto flex max-w-xl flex-col items-center justify-center gap-3 text-center">
         <span className={`brand-loading-mark ${compact ? 'brand-loading-mark--compact' : ''}`} aria-hidden="true">
           <img src="/official-logo.webp" alt="" width="56" height="56" className="brand-loading-mark__image" />

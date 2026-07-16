@@ -9,7 +9,7 @@ export function isGoogleDriveGalleryAvailable({ frontendEnabled, serverEnabled, 
   return frontendEnabled === true && serverEnabled === true && connection?.status === 'connected';
 }
 
-export async function runGoogleDriveGalleryImageUpload(file, { onStatus, requestId, dependencies } = {}) {
+export async function runGoogleDriveGalleryImageUpload(file, { onStatus, requestId, projectId, replacementMediaObjectId = '', dependencies } = {}) {
   const deps = dependencies || {};
   for (const required of ['attachPreview', 'deleteMedia', 'deletePreview', 'prepareImage', 'uploadOriginal', 'uploadPreview']) {
     if (typeof deps[required] !== 'function') throw new Error(`Gallery upload dependency is missing: ${required}`);
@@ -19,8 +19,8 @@ export async function runGoogleDriveGalleryImageUpload(file, { onStatus, request
   let media = null;
   let previewPath = '';
   try {
-    const original = await deps.uploadOriginal(prepared.file, { requestId });
-    media = original?.media || null;
+    const original = await deps.uploadOriginal(file, { requestId, projectId, replacementMediaObjectId });
+    media = original?.media || original || null;
     if (!media?.id) throw new Error('The private original was uploaded but no safe media reference was returned.');
     if (media.preview?.storagePath) {
       const recoveredReference = createProjectGalleryMediaReference({

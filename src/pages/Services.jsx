@@ -68,7 +68,7 @@ export default function Services() {
     <div className="page-shell py-16 sm:py-20">
       <PublicPageHeader eyebrow="Client services" title="Four practical paths for different kinds of support." description="Select the branch closest to your need, explore its available service categories, then begin a guided inquiry. You can express a preference for a published creative when relevant or continue through the general branch option." accentColor={content.accentColor} titleColor={content.servicesPage.headingColor || content.primaryTextColor} bodyColor={content.servicesPage.bodyTextColor || content.secondaryTextColor} />
 
-      <nav aria-label="Service branches" className="public-filter-scroll mt-10 flex gap-2 overflow-x-auto border-y border-white/[0.08] py-2">
+      <nav aria-label="Service branches" className="public-filter-scroll mt-10 flex gap-2 overflow-x-auto py-2">
         <Link to="/services" aria-current={!branchParam ? 'page' : undefined} className={`interactive-tab min-h-11 shrink-0 content-center px-3 text-xs uppercase tracking-[0.15em] ${!branchParam ? 'text-white' : 'text-zinc-500 hover:text-white'}`}>Overview</Link>
         {branchGroups.map((branch) => <Link key={branch.key} to={servicesPath(branch.key)} aria-current={branchParam === branch.key ? 'page' : undefined} className={`interactive-tab min-h-11 shrink-0 content-center px-3 text-xs uppercase tracking-[0.15em] ${branchParam === branch.key ? 'text-white' : 'text-zinc-500 hover:text-white'}`}>{branch.label}</Link>)}
       </nav>
@@ -87,7 +87,7 @@ function ServiceOverview({ branches, content }) {
     <div className="grid gap-x-7 gap-y-9 md:grid-cols-2">
       {branches.map((branch) => <BranchCard key={branch.key} branch={branch} content={content} />)}
     </div>
-    <section className="mt-12 grid gap-6 border-y border-white/[0.09] py-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+    <section className="mt-12 grid gap-6 py-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
       <div><p className="text-xs uppercase tracking-[0.19em] text-orange-300">Not sure where to begin?</p><h2 className="mt-3 text-2xl font-medium text-white">Describe what you need in your own words.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{GENERAL_BRANCH.description}</p></div>
       <Link to={inquiryUrl({ branch: GENERAL_BRANCH.key })} state={inquiryNavigationState({ branch: GENERAL_BRANCH.key })} className="inline-flex min-h-11 w-fit items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200">{GENERAL_BRANCH.action}<ArrowRight size={16} /></Link>
     </section>
@@ -97,7 +97,7 @@ function ServiceOverview({ branches, content }) {
 
 function BranchCard({ branch, content }) {
   const Icon = iconMap[branch.key] || Circle;
-  return <section className="mobile-service-card relative min-w-0 border-t border-white/[0.1] pt-6">
+  return <section className="mobile-service-card relative min-w-0 pt-6">
     <div className="flex items-start gap-5">
       <div className="grid h-11 w-11 place-items-center border border-white/[0.1] bg-white/[0.025] text-orange-200">{branch.iconUrl ? <img src={branch.iconUrl} alt="" width="44" height="44" className="h-9 w-9 object-contain" /> : <Icon size={21} />}</div>
     </div>
@@ -112,11 +112,11 @@ function BranchWorkspace({ branch, content }) {
   const Icon = iconMap[branch.key] || Circle;
   const copy = inquiryCopy(branch.key);
   return <div className="pt-10">
-    <section className="grid gap-8 border-b border-white/[0.09] pb-9 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end">
+    <section className="grid gap-8 pb-9 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end">
       <div><div className="flex items-center gap-3 text-orange-200"><Icon size={20} /><span className="text-xs uppercase tracking-[0.19em]">{branch.label}</span></div><h1 className="mt-5 max-w-3xl text-4xl font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl">{copy.serviceSelectionHeading}</h1><p className="mt-5 max-w-2xl leading-7" style={{ color: 'var(--site-secondary-text)' }}>{copy.serviceSelectionDescription}</p></div>
       <div className="border-l border-orange-300/45 pl-5"><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">How it works</p><p className="mt-2 text-sm leading-6 text-zinc-300">Choose a category, express a preference for a published creative when relevant or continue without selecting a person, then explain the exact result or support you need.</p></div>
     </section>
-    {branch.key === 'tech' && <p className="border-b border-white/[0.08] py-4 text-xs leading-6 text-zinc-500">On-site support depends on location, schedule, safety, and the availability of an appropriate support option.</p>}
+    {branch.key === 'tech' && <p className="py-4 text-xs leading-6 text-zinc-500">On-site support depends on location, schedule, safety, and the availability of an appropriate support option.</p>}
 
     <div className="mt-8 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
       {branch.services.map((service) => <Link key={service.key} to={inquiryUrl({ branch: branch.key, service: service.key })} state={inquiryNavigationState({ branch: branch.key, service: service.key })} aria-label={`Choose ${service.name} for ${branch.label}`} className="mobile-service-card group grid min-h-40 content-between border border-white/[0.09] bg-white/[0.012] p-5 transition hover:border-orange-300/45 hover:bg-orange-300/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
@@ -125,6 +125,6 @@ function BranchWorkspace({ branch, content }) {
       </Link>)}
     </div>
 
-    <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-y border-white/[0.08] py-5"><p className="text-sm text-zinc-500">Need help choosing? Start with the branch and describe the outcome you need.</p><Link to={inquiryUrl({ branch: branch.key })} state={inquiryNavigationState({ branch: branch.key })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">{branch.action}<ArrowRight size={16} /></Link></div>
+    <div className="mt-10 flex flex-wrap items-center justify-between gap-4 py-5"><p className="text-sm text-zinc-500">Need help choosing? Start with the branch and describe the outcome you need.</p><Link to={inquiryUrl({ branch: branch.key })} state={inquiryNavigationState({ branch: branch.key })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">{branch.action}<ArrowRight size={16} /></Link></div>
   </div>;
 }

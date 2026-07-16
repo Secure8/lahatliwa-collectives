@@ -448,7 +448,7 @@ export default function SiteSettings() {
         action={headerActions}
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-3 border-y border-white/[0.08] py-4 text-sm text-zinc-400">
+      <div className="mb-4 flex flex-wrap items-center gap-3 py-4 text-sm text-zinc-400">
         {isDirty && <span className="text-xs uppercase tracking-[0.18em] text-amber-200">Unsaved changes</span>}
         {contentLoading && <span className="text-xs uppercase tracking-[0.18em] text-zinc-600">Loading settings</span>}
         {!contentLoading && !content.settingsId && <span className="text-xs uppercase tracking-[0.18em] text-zinc-600">Using current site defaults</span>}
@@ -542,7 +542,7 @@ export default function SiteSettings() {
       <SettingsPreview form={form} />
       </div>
 
-      <nav aria-label="Jump to settings section" className="settings-mobile-nav -mx-4 mb-5 flex gap-2 overflow-x-auto border-b border-white/[0.08] px-4 pb-4 xl:hidden">
+      <nav aria-label="Jump to settings section" className="settings-mobile-nav -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-4 xl:hidden">
         {settingsSections.map(([id, label]) => <a key={id} href={`#${id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-white/[0.1] bg-zinc-900 px-4 text-sm font-medium text-zinc-400 transition hover:border-amber-200/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50">{label}</a>)}
       </nav>
       {confirmationDialog}

@@ -421,9 +421,6 @@ verify_jwt = false
 [functions.r2-media-upload]
 verify_jwt = false
 
-[functions.public-media-migration]
-verify_jwt = false
-
 [functions.storage-governance]
 verify_jwt = false
 

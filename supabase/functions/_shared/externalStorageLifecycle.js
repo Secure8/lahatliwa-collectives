@@ -89,6 +89,10 @@ export function replacementCanActivate(row = {}) {
   return row.preview_required !== true || Boolean(row.preview_path);
 }
 
+/**
+ * @param {{ role?: string, userId?: string, creativeMemberId?: string, project?: Record<string, any> | null, accessLevel?: string, contributorCreativeIds?: string[] }} [input]
+ * @param {string} [mode]
+ */
 export function projectPermissionAllowed({ role, userId, creativeMemberId, project, accessLevel = '', contributorCreativeIds = [] } = {}, mode = 'view') {
   if (!project || !userId) return false;
   if (role === 'super_admin' || project.owner_user_id === userId || project.created_by === userId) return true;

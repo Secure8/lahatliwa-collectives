@@ -5,12 +5,18 @@ import {
   collectReferencePaths,
   normalizeProjectMediaPath,
 } from '../process-storage-cleanup/reconciliation.js';
-import { migrationIdentity } from '../_shared/storageGovernance.js';
 
 const PAGE_SIZE = 100;
 const MAX_OBJECTS = 1000;
 const MAX_FOLDERS = 500;
 const REFERENCE_TABLES = ['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users'];
+const safeError = (error: unknown) => {
+  const value = error as { code?: string; message?: string } | null;
+  return {
+    code: value?.code || 'SUPABASE_RECONCILIATION_FAILED',
+    message: value?.message || 'Supabase reconciliation failed.',
+  };
+};
 
 async function collectReferences(admin: any) {
   const results = await Promise.all(REFERENCE_TABLES.map((table) => admin.from(table).select('*', { count: 'exact' }).limit(1000)));
@@ -52,7 +58,10 @@ async function listObjects(admin: any) {
 }
 
 async function findingIdentity(type: string, value: string) {
-  return `${type}:${await migrationIdentity({ provider: 'supabase', bucket: BUCKET, path: value })}`;
+  const normalized = ['supabase', BUCKET, type, String(value || '').trim()].join('|');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized));
+  const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${type}:${hash}`;
 }
 
 async function reconcile(actor: any) {
@@ -66,46 +75,41 @@ async function reconcile(actor: any) {
   if (runError) throw runError;
 
   try {
-    const [references, inventory, migrationResult] = await Promise.all([
+    const [references, inventory, ledgerResult] = await Promise.all([
       collectReferences(actor.admin),
       listObjects(actor.admin),
-      actor.admin.from('storage_migrations').select('id,status,source_bucket,source_path,retain_source_until,source_media_object_id', { count: 'exact' }).eq('source_provider', 'supabase').eq('destination_provider', 'cloudflare_r2').limit(1000),
+      actor.admin.from('external_media_objects').select('id,bucket,storage_path,status', { count: 'exact' })
+        .eq('provider', 'supabase').neq('status', 'deleted').limit(1000),
     ]);
-    if (migrationResult.error) throw migrationResult.error;
-    const migrations = migrationResult.data || [];
-    const migrationTruncated = Number(migrationResult.count || 0) > 1000;
+    if (ledgerResult.error) throw ledgerResult.error;
+    const ledger = ledgerResult.data || [];
+    const ledgerTruncated = Number(ledgerResult.count || 0) > 1000;
     const objectsByPath = new Map(inventory.objects.map((item: any) => [normalizeProjectMediaPath(item.path), item]));
-    const retainedPaths = new Set(migrations.filter((row: any) => !['completed','cancelled','rolled_back'].includes(row.status)).map((row: any) => normalizeProjectMediaPath(row.source_path)).filter(Boolean));
+    const ledgerPaths = new Set(ledger.map((row: any) => normalizeProjectMediaPath(row.storage_path)).filter(Boolean));
+    const monitoredReferences = new Set([...references, ...ledgerPaths]);
     const findings: any[] = [];
 
-    for (const migration of migrations) {
-      const path = normalizeProjectMediaPath(migration.source_path);
+    for (const row of ledger) {
+      const path = normalizeProjectMediaPath(row.storage_path);
       if (!path) {
         findings.push({
-          finding_identity: await findingIdentity('unclassified-source', String(migration.id)),
+          finding_identity: await findingIdentity('unclassified-source', String(row.id)),
           finding_type: 'unclassified_provider_object', provider: 'supabase', severity: 'manual_review',
-          migration_id: migration.id, status: 'manual_review', recheck_after: recheckAfter, details: { recordedSource: true },
+          media_object_id: row.id, status: 'manual_review', recheck_after: recheckAfter, details: { recordedSource: true },
         });
         continue;
       }
-      if (!objectsByPath.has(path) && !['completed','cancelled','rolled_back'].includes(migration.status)) {
+      if (row.bucket === BUCKET && !objectsByPath.has(path)) {
         findings.push({
           finding_identity: await findingIdentity('missing-source', path), finding_type: 'missing_supabase_source',
-          provider: 'supabase', severity: 'critical', migration_id: migration.id,
-          media_object_id: migration.source_media_object_id, recheck_after: recheckAfter, details: {},
-        });
-      }
-      if (migration.status === 'retained_for_rollback' && Date.parse(migration.retain_source_until || '') <= Date.now()) {
-        findings.push({
-          finding_identity: await findingIdentity('retention-overdue', path), finding_type: 'retention_overdue',
-          provider: 'supabase', severity: 'warning', migration_id: migration.id,
-          media_object_id: migration.source_media_object_id, recheck_after: recheckAfter, details: {},
+          provider: 'supabase', severity: 'critical', media_object_id: row.id,
+          recheck_after: recheckAfter, details: {},
         });
       }
     }
 
     for (const object of inventory.objects) {
-      const classification = classifyStorageObject(object, references);
+      const classification = classifyStorageObject(object, monitoredReferences);
       const path = normalizeProjectMediaPath(object.path);
       const extension = path.split('.').pop()?.toLowerCase() || '';
       if (classification.classification === 'invalid' || !['jpg','jpeg','png','webp'].includes(extension)) {
@@ -114,7 +118,7 @@ async function reconcile(actor: any) {
           provider: 'supabase', severity: 'manual_review', status: 'manual_review', recheck_after: recheckAfter,
           details: { sizeBytes: object.size },
         });
-      } else if (classification.classification === 'confirmed_orphan' && !migrationTruncated && !retainedPaths.has(path)) {
+      } else if (classification.classification === 'confirmed_orphan' && !ledgerTruncated) {
         findings.push({
           finding_identity: await findingIdentity('orphan-object', path), finding_type: 'orphaned_supabase_object',
           provider: 'supabase', severity: 'warning', recheck_after: recheckAfter, details: { sizeBytes: object.size },
@@ -130,19 +134,19 @@ async function reconcile(actor: any) {
     const summary = {
       missing: findings.filter((item) => item.finding_type === 'missing_supabase_source').length,
       orphaned: findings.filter((item) => item.finding_type === 'orphaned_supabase_object').length,
-      retentionOverdue: findings.filter((item) => item.finding_type === 'retention_overdue').length,
       manualReview: findings.filter((item) => item.status === 'manual_review').length,
-      truncated: inventory.truncated || migrationTruncated,
+      truncated: inventory.truncated || ledgerTruncated,
     };
     await actor.admin.from('storage_reconciliation_runs').update({
-      status: 'completed', scanned_records: migrations.length, scanned_objects: inventory.objects.length,
+      status: 'completed', scanned_records: ledger.length, scanned_objects: inventory.objects.length,
       finding_count: findings.length, summary, completed_at: new Date().toISOString(),
     }).eq('id', run.id);
     return { runId: run.id, summary, findings: findings.length };
   } catch (error) {
+    const failure = safeError(error);
     await actor.admin.from('storage_reconciliation_runs').update({
-      status: 'failed', error_code: error?.code || 'SUPABASE_RECONCILIATION_FAILED',
-      error_message: String(error?.message || 'Supabase reconciliation failed.').slice(0, 500), completed_at: new Date().toISOString(),
+      status: 'failed', error_code: failure.code,
+      error_message: String(failure.message).slice(0, 500), completed_at: new Date().toISOString(),
     }).eq('id', run.id);
     throw error;
   }
@@ -159,5 +163,5 @@ Deno.serve(async (request) => {
   const body = await request.json().catch(() => ({}));
   if (body?.action !== 'reconcile') return fail('ACTION_NOT_ALLOWED', 'The requested reconciliation action is unavailable.', 400, cors);
   try { return reply({ success: true, result: await reconcile(actor) }, 200, cors); }
-  catch (error) { return fail(error?.code || 'SUPABASE_RECONCILIATION_FAILED', 'Supabase media reconciliation failed without deleting any objects.', 500, cors); }
+  catch (error) { return fail(safeError(error).code, 'Supabase media reconciliation failed without deleting any objects.', 500, cors); }
 });

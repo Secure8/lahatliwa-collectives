@@ -42,33 +42,18 @@ export const MEDIA_OBJECT_STATUSES = Object.freeze([
   'error',
 ]);
 
-export const STORAGE_MIGRATION_STATUSES = Object.freeze([
-  'queued',
-  'copying',
-  'verifying',
-  'ready_to_switch',
-  'switched',
-  'retention_period',
-  'completed',
-  'failed',
-  'cancelled',
-  'rolled_back',
-]);
-
 export const MEDIA_VISIBILITIES = Object.freeze(['public', 'private', 'unlisted']);
 
 const sets = Object.freeze({
   provider: new Set(STORAGE_PROVIDERS),
   connectionStatus: new Set(STORAGE_CONNECTION_STATUSES),
   mediaStatus: new Set(MEDIA_OBJECT_STATUSES),
-  migrationStatus: new Set(STORAGE_MIGRATION_STATUSES),
   visibility: new Set(MEDIA_VISIBILITIES),
 });
 
 export function isStorageProvider(value) { return sets.provider.has(value); }
 export function isStorageConnectionStatus(value) { return sets.connectionStatus.has(value); }
 export function isMediaObjectStatus(value) { return sets.mediaStatus.has(value); }
-export function isStorageMigrationStatus(value) { return sets.migrationStatus.has(value); }
 export function isMediaVisibility(value) { return sets.visibility.has(value); }
 
 export function requireStorageProvider(value) {

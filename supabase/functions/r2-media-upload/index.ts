@@ -12,18 +12,6 @@ function config() {
   });
 }
 
-async function tokenHash(value: string) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-function constantEqual(left: string, right: string) {
-  if (left.length !== right.length) return false;
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
-  return difference === 0;
-}
-
 async function authorizeProject(actor: any, projectId: string) {
   const { data: project } = await actor.admin.from('projects').select('id,owner_user_id,created_by').eq('id', projectId).maybeSingle();
   if (!project) return false;
@@ -33,7 +21,7 @@ async function authorizeProject(actor: any, projectId: string) {
 }
 
 async function authorizedForRow(actor: any, row: any) {
-  const definition = R2_MEDIA_CATEGORIES[row.file_category];
+  const definition = R2_MEDIA_CATEGORIES[row.file_category as keyof typeof R2_MEDIA_CATEGORIES];
   if (!definition) return false;
   if (definition.target === 'project') return authorizeProject(actor, row.project_id);
   if (definition.target === 'profile') {
@@ -54,36 +42,22 @@ Deno.serve(async (request) => {
   const cfg = config();
   if (!cfg.configured) return fail('R2_MEDIA_DISABLED', 'Managed website media is not enabled on the server.', 503, cors);
   const actor = await authenticatedTeamMember(request, env);
-  if ('error' in actor) return fail(actor.error, actor.status === 401 ? 'Your session has expired. Please sign in again.' : 'Your account cannot manage website media.', actor.status, cors);
+  if ('error' in actor) return fail(String(actor.error || 'NOT_AUTHORIZED'), actor.status === 401 ? 'Your session has expired. Please sign in again.' : 'Your account cannot manage website media.', actor.status === 401 ? 401 : 403, cors);
 
   let form: FormData;
   try { form = await request.formData(); } catch { return fail('INVALID_UPLOAD', 'The website image upload is invalid.', 400, cors); }
   const mediaId = String(form.get('mediaId') || '');
   const groupId = String(form.get('groupId') || '');
-  const migrationId = String(form.get('migrationId') || '');
-  const migrationToken = String(form.get('migrationToken') || '');
   const file = form.get('file');
   if (!(file instanceof File) || !mediaId || !groupId) return fail('INVALID_UPLOAD', 'The website image upload is incomplete.', 400, cors);
 
   const { data: row, error } = await actor.admin.from('external_media_objects')
-    .select('id,owner_user_id,provider,external_file_id,mime_type,size_bytes,status,file_category,project_id,creative_member_id,media_group_id,media_variant,migration_id')
+    .select('id,owner_user_id,provider,external_file_id,mime_type,size_bytes,status,file_category,project_id,creative_member_id,media_group_id,media_variant')
     .eq('id', mediaId).eq('media_group_id', groupId).eq('provider', R2_PROVIDER).maybeSingle();
   if (error || !row || row.status !== 'uploading') return fail('UPLOAD_NOT_AVAILABLE', 'The prepared website image upload was not found.', 404, cors);
 
-  if (migrationId || migrationToken) {
-    if (actor.role !== 'super_admin' || !migrationId || !migrationToken || row.migration_id !== migrationId) return fail('MIGRATION_UPLOAD_NOT_AUTHORIZED', 'The migration upload authorization is invalid.', 403, cors);
-    const { data: migration } = await actor.admin.from('storage_migrations')
-      .select('id,status,migration_phase,destination_media_group_id,task_token_hash,task_expires_at,task_actor_user_id,task_consumed_at')
-      .eq('id', migrationId).eq('destination_provider', R2_PROVIDER).maybeSingle();
-    const valid = migration?.status === 'in_progress' && migration?.migration_phase === 'uploading'
-      && migration?.destination_media_group_id === groupId && migration?.task_actor_user_id === actor.user.id
-      && !migration?.task_consumed_at && Date.parse(migration?.task_expires_at || '') > Date.now()
-      && constantEqual(String(migration?.task_token_hash || ''), await tokenHash(migrationToken));
-    if (!valid) return fail('MIGRATION_TASK_INVALID', 'The migration task is invalid, consumed, or expired.', 403, cors);
-  } else {
-    if (row.owner_user_id !== actor.user.id) return fail('UPLOAD_NOT_AVAILABLE', 'The prepared website image upload was not found.', 404, cors);
-    if (!await authorizedForRow(actor, row)) return fail('TARGET_NOT_AUTHORIZED', 'You no longer have permission to upload this media.', 403, cors);
-  }
+  if (row.owner_user_id !== actor.user.id) return fail('UPLOAD_NOT_AVAILABLE', 'The prepared website image upload was not found.', 404, cors);
+  if (!await authorizedForRow(actor, row)) return fail('TARGET_NOT_AUTHORIZED', 'You no longer have permission to upload this media.', 403, cors);
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (!validR2DerivativeFile({ variant: row.media_variant, filename: file.name.toLowerCase(), mimeType: file.type, sizeBytes: file.size, expectedBytes: row.size_bytes, signature: bytes.slice(0, 12) })) {
@@ -93,7 +67,7 @@ Deno.serve(async (request) => {
   try {
     const response = await uploadR2Object(fetch, cfg, row.external_file_id, row.mime_type, bytes);
     if (!response.ok) throw Object.assign(new Error('R2 upload failed'), { status: response.status });
-    await actor.admin.from('external_media_objects').update({ uploaded_bytes: file.size, metadata: { upload_transport: migrationId ? 'migration_task_v1' : 'authenticated_edge_proxy_v1', uploaded_at: new Date().toISOString() } }).eq('id', row.id);
+    await actor.admin.from('external_media_objects').update({ uploaded_bytes: file.size, metadata: { upload_transport: 'authenticated_edge_proxy_v1', uploaded_at: new Date().toISOString() } }).eq('id', row.id);
     return reply({ success: true, mediaId: row.id, variant: row.media_variant }, 200, cors);
   } catch {
     return fail('R2_UPLOAD_FAILED', 'The website image could not be stored. Existing live media was not changed.', 502, cors);

@@ -136,7 +136,7 @@ async function cleanupExpiredExternalUploads(admin: any) {
       results.push({ id: media.id, ok: true });
     } catch (cleanupError) {
       const attempts = Number(media.cleanup_attempt_count || 0) + 1;
-      await admin.from('external_media_objects').update({ status: 'abandoned', cleanup_status: attempts >= 3 ? 'manual_required' : 'retry_required', cleanup_error: cleanupError?.code || 'ABANDONED_UPLOAD_CLEANUP_FAILED', cleanup_attempt_count: attempts }).eq('id', media.id);
+      await admin.from('external_media_objects').update({ status: 'abandoned', cleanup_status: attempts >= 3 ? 'manual_required' : 'retry_required', cleanup_error: safeError(cleanupError).code || 'ABANDONED_UPLOAD_CLEANUP_FAILED', cleanup_attempt_count: attempts }).eq('id', media.id);
       results.push({ id: media.id, ok: false });
     }
   }
@@ -196,7 +196,7 @@ async function cleanupExpiredR2Uploads(admin: any, r2: any) {
       results.push({ id: media.id, ok: true });
     } catch (cleanupError) {
       const attempts = Number(media.cleanup_attempt_count || 0) + 1;
-      await admin.from('external_media_objects').update({ status: 'error', cleanup_status: r2CleanupStatus(attempts), cleanup_error: cleanupError?.code || 'R2_ABANDONED_UPLOAD_CLEANUP_FAILED', cleanup_attempt_count: attempts }).eq('id', media.id);
+      await admin.from('external_media_objects').update({ status: 'error', cleanup_status: r2CleanupStatus(attempts), cleanup_error: safeError(cleanupError).code || 'R2_ABANDONED_UPLOAD_CLEANUP_FAILED', cleanup_attempt_count: attempts }).eq('id', media.id);
       results.push({ id: media.id, ok: false });
     }
   }
@@ -222,27 +222,6 @@ async function cleanupExpiredMediaDrafts(admin: any) {
   if (projectIds.length) await admin.from('projects').delete().in('id', projectIds).eq('media_creation_state', 'incomplete');
   if (creativeIds.length) await admin.from('creative_members').delete().in('id', creativeIds).eq('media_creation_state', 'incomplete');
   return { projects: projectIds.length, creatives: creativeIds.length };
-}
-
-async function queueExpiredMigrationSources(admin: any) {
-  const { data: migrations, error } = await admin.from('storage_migrations')
-    .select('id,source_bucket,source_path,source_media_object_id,bytes_total').eq('status', 'retained_for_rollback')
-    .eq('destination_provider', R2_PROVIDER).lt('retain_source_until', new Date().toISOString()).limit(50);
-  if (error) throw error;
-  if (!(migrations || []).length) return { queued: 0, retained: 0 };
-  const { references } = await collectDatabaseReferences(admin);
-  let queued = 0; let retained = 0;
-  for (const migration of migrations || []) {
-    if (references.has(normalizeProjectMediaPath(migration.source_path))) { retained += 1; continue; }
-    const { error: insertError } = await admin.from('storage_cleanup_jobs').insert({ provider: 'supabase', bucket_name: migration.source_bucket,
-      object_path: migration.source_path, migration_id: migration.id, estimated_bytes: migration.bytes_total, project_id: null,
-      reason: 'migrated_source_retention_expired', created_by: null });
-    if (insertError && insertError.code !== '23505') throw insertError;
-    await admin.from('storage_migrations').update({ status: 'queued_for_source_deletion', source_cleanup_queued_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', migration.id);
-    await admin.from('external_media_objects').update({ accounting_state: 'pending_cleanup', cleanup_status: 'pending' }).eq('id', migration.source_media_object_id);
-    queued += 1;
-  }
-  return { queued, retained };
 }
 
 Deno.serve(async (request) => {
@@ -282,7 +261,6 @@ Deno.serve(async (request) => {
     }
     const draftResults = await cleanupExpiredMediaDrafts(admin);
     const [externalResults, r2UploadResults, expiredReservations] = await Promise.all([cleanupExpiredExternalUploads(admin), cleanupExpiredR2Uploads(admin, r2), expireStorageReservations(admin)]);
-    const migrationRetention = await queueExpiredMigrationSources(admin);
     const workerId = crypto.randomUUID();
     const { data: jobs, error: claimError } = await admin.rpc('claim_storage_cleanup_jobs', { p_batch_size: 50, p_worker_id: workerId });
     if (claimError) return responseError('claim_jobs', claimError);
@@ -290,7 +268,9 @@ Deno.serve(async (request) => {
     for (const job of jobs || []) {
       const provider = job.provider || 'supabase';
       let deletion: any = { error: null };
-      if (provider === R2_PROVIDER) {
+      if (job.migration_id) {
+        deletion = { error: { message: 'Legacy migration cleanup is retired; the source was preserved.', code: 'MIGRATION_CLEANUP_RETIRED' } };
+      } else if (provider === R2_PROVIDER) {
         const valid = r2.configured && job.bucket_name === r2.bucketName && safeR2ObjectKey(job.object_path) === job.object_path;
         if (!valid) deletion = { error: { message: 'Invalid R2 cleanup target.', code: 'INVALID_R2_PATH' } };
         else {
@@ -308,23 +288,9 @@ Deno.serve(async (request) => {
       } else if (deletion.error && provider === R2_PROVIDER) {
         await admin.from('external_media_objects').update({ cleanup_status: r2CleanupStatus(Number(job.attempt_count || 0) + 1), cleanup_error: deletion.error?.code || 'R2_DELETE_FAILED', cleanup_attempt_count: Number(job.attempt_count || 0) + 1 }).eq('provider', R2_PROVIDER).eq('external_file_id', job.object_path);
       }
-      if (!deletion.error && provider === 'supabase' && job.migration_id) {
-        const completedAt = new Date().toISOString();
-        const { data: migration } = await admin.from('storage_migrations')
-          .select('source_media_object_id,source_bucket,source_path')
-          .eq('id', job.migration_id)
-          .maybeSingle();
-        if (migration?.source_bucket && migration?.source_path) {
-          await admin.from('storage_migrations').update({ status: 'completed', source_deleted_at: completedAt, completed_at: completedAt, updated_at: completedAt })
-            .eq('source_provider', 'supabase').eq('source_bucket', migration.source_bucket).eq('source_path', migration.source_path).eq('status', 'queued_for_source_deletion');
-        }
-        if (migration?.source_media_object_id) {
-          await admin.from('external_media_objects').update({ status: 'deleted', accounting_state: 'deleted', storage_path: null, deleted_at: completedAt, cleanup_status: 'complete', cleanup_error: null }).eq('id', migration.source_media_object_id).eq('provider', 'supabase');
-        }
-      }
       results.push({ id: job.id, provider, ok: !deletion.error });
     }
-    return Response.json({ ok: true, stage: 'completed', processed: results.length, results, externalUploads: { processed: externalResults.length, failed: externalResults.filter((item) => !item.ok).length }, r2Uploads: { processed: r2UploadResults.length, failed: r2UploadResults.filter((item) => !item.ok).length }, expiredReservations, expiredDrafts: draftResults, migrationRetention });
+    return Response.json({ ok: true, stage: 'completed', processed: results.length, results, externalUploads: { processed: externalResults.length, failed: externalResults.filter((item) => !item.ok).length }, r2Uploads: { processed: r2UploadResults.length, failed: r2UploadResults.filter((item) => !item.ok).length }, expiredReservations, expiredDrafts: draftResults });
   } catch (error) {
     return responseError(payload.action || 'worker', error);
   }

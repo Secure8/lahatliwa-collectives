@@ -73,7 +73,7 @@ The website has a separate, non-secret rollout gate:
 VITE_GOOGLE_DRIVE_CONNECTOR_ENABLED=true
 ```
 
-The UI enables Connect only when both this build-time gate and the Edge Function’s server-side `GOOGLE_DRIVE_OAUTH_ENABLED`/configuration check pass. `externalUploadsEnabled` and `storageMigrationEnabled` stay false.
+The UI enables Connect only when both this build-time gate and the Edge Function’s server-side `GOOGLE_DRIVE_OAUTH_ENABLED`/configuration check pass. `externalUploadsEnabled` stays false.
 
 ## Verified production rollout and recovery order
 

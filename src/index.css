@@ -622,6 +622,13 @@ summary::-webkit-details-marker {
   position: relative;
 }
 
+.admin-form-section + .admin-form-section,
+.admin-surface + .admin-surface,
+.admin-record-card + .admin-record-card,
+.admin-shell article + article {
+  margin-top: 0.625rem;
+}
+
 .admin-record-card,
 .admin-shell article {
   margin-block: 0;

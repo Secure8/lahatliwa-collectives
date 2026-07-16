@@ -12,7 +12,6 @@ export const STORAGE_FEATURE_FLAGS = Object.freeze({
   googleDriveProjectGalleryEnabled: googleDriveConnectorRequested && googleDriveProjectGalleryRequested,
   r2MediaEnabled: r2MediaRequested,
   externalUploadsEnabled: false,
-  storageMigrationEnabled: false,
 });
 
 export function storageFeatureEnabled(flag) {

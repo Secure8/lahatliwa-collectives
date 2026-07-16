@@ -72,6 +72,10 @@ export function createR2ObjectKey(category, targetId, groupId, variant) {
   return safeR2ObjectKey(`${definition.prefix}/${targetId}/${groupId}/${variant}.webp`);
 }
 
+/**
+ * @param {{ role?: string, userId?: string, project?: Record<string, unknown> | null, accessLevel?: string }} [input]
+ * @param {string} [mode]
+ */
 export function r2ProjectPermissionAllowed({ role, userId, project, accessLevel = '' } = {}, mode = 'edit') {
   if (!project || !userId) return false;
   if (mode === 'delete') return ['super_admin', 'admin'].includes(role) && project.status !== 'published';

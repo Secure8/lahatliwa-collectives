@@ -1,6 +1,6 @@
 # External Storage Architecture and Production Roadmap
 
-Status: Phases 1–4 are complete and deployed to production project `fgelzlxfqeooxvvcpndd`. Supabase remains the default upload destination and the public-delivery layer. Phase 4 is enabled in production for controlled project-gallery image originals, while the repository `.env.example` intentionally keeps every Google Drive frontend gate disabled as a safe default. Generic external uploads and historical-media migration remain disabled.
+Status: Phases 1–4 are complete and deployed to production project `fgelzlxfqeooxvvcpndd`. Supabase remains a supported public-delivery layer for existing media, while new managed public images use R2. Phase 4 is enabled in production for controlled project-gallery image originals, while the repository `.env.example` intentionally keeps every Google Drive frontend gate disabled as a safe default. Historical-media migration is retired; existing Supabase media remains in place and is monitored.
 
 ## Objective and boundaries
 
@@ -154,17 +154,9 @@ Eligible for connected external storage:
 
 Public pages resolve previews independently from originals. If a connection is revoked, a token expires, a provider is down, or an original is deleted externally, the gallery continues rendering its Supabase preview and reports only the original as unavailable. This fallback is implemented and production-verified for Phase 4 project-gallery images; other media classes remain entirely Supabase-backed until separately implemented and tested.
 
-## Migration safety model
+## Existing Supabase media policy
 
-Required sequence:
-
-`Copy → Verify → Register destination → Test preview/display → Switch reference → Retain source → Delete source after retention`
-
-Copy never mutates the source. Verification compares filename, MIME type, bytes, provider checksum where available, an application checksum where practical, image dimensions or video duration where applicable, and a successful destination read. The destination is registered only after ownership and metadata checks. The application preview/display test must pass before reference switching.
-
-The source is retained after switching. The final retention period is unresolved; the likely safe decision range is 7–30 days and must be selected using storage cost, recovery expectations, and observed failure rates before Phase 6. It must be server-configured rather than embedded in client code.
-
-Every migration uses an idempotency key and monotonic state transitions. Workers must support retry, cancel before switching, stale-job recovery, partial-copy cleanup, provider disconnection/revocation, and audit events. Rollback after switching restores the source reference and re-tests display before retiring the destination. A failure at any stage keeps the source. Source deletion is a separate authorized job after retention and final reference verification.
+Existing public files stay in Supabase and keep their current website references. Monitoring may inventory, measure, and report missing or unreferenced objects, but it does not copy, switch, or delete them automatically. New managed public uploads use R2 independently of the existing Supabase library.
 
 ## Feature flags
 
@@ -175,7 +167,6 @@ Every migration uses an idempotency key and monotonic state transitions. Workers
 - `googleDriveTestUploadEnabled` independently gates the Storage-page test.
 - `googleDriveProjectGalleryEnabled` requires both the connector gate and `VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=true`; the editor also requires a connected account and server upload capability.
 - `externalUploadsEnabled` remains false because Google Drive is not a generic unrestricted upload provider.
-- `storageMigrationEnabled` remains false.
 
 They are client visibility gates, not security controls. The production Phase 4 build uses `VITE_GOOGLE_DRIVE_PROJECT_GALLERY_ENABLED=true` after controlled end-to-end verification. The tracked `.env.example` remains false by design. Every enablement still requires matching server-side configuration, deployed handlers, RLS/RPC enforcement, secret setup, monitoring, and a staged rollout.
 
@@ -246,21 +237,9 @@ The current Phase 4 multipart Edge Function is a small-file path. Its request li
 - [ ] Separately approve and feature-gate downloadable masters, source files, and project archives
 - [ ] Reuse the Phase 5A session, validation, preview, quota, recovery, and cleanup boundaries
 
-### Phase 6 — Historical-media migration
+### Retired historical-media migration
 
-- [ ] Idempotent copy worker
-- [ ] Destination metadata, checksum, size, media-property, and successful-read verification
-- [ ] Safe destination registration and preview/display testing before reference switching
-- [ ] Cancellation before switching and rollback after switching
-- [ ] Stale-job recovery and partial-copy cleanup
-- [ ] Server-configured source retention, likely within a product-approved 7–30 day range
-- [ ] Separate authorization and final reference verification before source deletion
-- [ ] Historical ownership classification without inferring ambiguous owners
-- [ ] Protection of active migration copies and retained sources from orphan cleanup
-
-Phase 6 preserves this sequence:
-
-`Copy → Verify → Register destination → Test preview/display → Switch reference → Retain source → Delete source after retention`
+Historical-media migration is retired. Existing Supabase public files remain unchanged and monitored. The application has no migration trigger, browser transformation task, migration upload authorization, retry action, or automatic source-deletion path.
 
 ### Phase 7 — Provider expansion and production hardening
 
@@ -273,7 +252,6 @@ Phase 6 preserves this sequence:
 
 ## Unresolved decisions
 
-- Final Phase 6 source-retention duration within the likely 7–30 day range.
 - Whether later phases need a separate confirmation before external-original deletion beyond the existing project-delete confirmation.
 - Per-provider folder hierarchy and filename collision policy.
 - Phase 5A resumable chunk size, session expiry, cancellation, and abandoned-session rules.

@@ -6,7 +6,6 @@ import {
   DEFAULT_STORAGE_PROVIDER,
   MEDIA_OBJECT_STATUSES,
   STORAGE_CONNECTION_STATUSES,
-  STORAGE_MIGRATION_STATUSES,
   STORAGE_PROVIDERS,
   extractSupabaseStoragePath,
   normalizeExistingMedia,
@@ -32,11 +31,10 @@ test('the legacy generic adapter remains Supabase-default while managed R2 uses 
   assert.deepEqual(storageProviderCatalog().filter((item) => item.operational).map((item) => item.provider), ['supabase']);
 });
 
-test('provider, connection, media, and migration values are closed allowlists', () => {
+test('provider, connection, and media values are closed allowlists', () => {
   assert.deepEqual(STORAGE_PROVIDERS, ['supabase', 'google_drive', 'cloudflare_r2', 'onedrive', 'dropbox', 's3_compatible']);
   assert.equal(STORAGE_CONNECTION_STATUSES.includes('reconnect_required'), true);
   assert.equal(MEDIA_OBJECT_STATUSES.includes('verification_required'), true);
-  assert.equal(STORAGE_MIGRATION_STATUSES.includes('retention_period'), true);
   assert.throws(() => normalizeMediaReference({ provider: 'arbitrary_cloud' }), /Unsupported storage provider/);
 });
 
@@ -118,7 +116,6 @@ test('external storage flags keep Phase 4 disabled by default', () => {
     googleDriveProjectGalleryEnabled: false,
     r2MediaEnabled: false,
     externalUploadsEnabled: false,
-    storageMigrationEnabled: false,
   });
 });
 
@@ -141,12 +138,12 @@ test('admin Storage exposes safe connection actions and an isolated flagged test
   const [page, app, layout] = await Promise.all([
     source('src/pages/admin/Storage.jsx'), source('src/App.jsx'), source('src/components/admin/AdminLayout.jsx'),
   ]);
-  assert.match(page, /Connect Google Drive/);
-  assert.match(page, /Reconnect Google Drive/);
-  assert.match(page, /Check connection/);
-  assert.match(page, /Disconnect Google Drive/);
-  assert.match(page, /Test a small Drive upload/);
-  assert.match(page, /does not change public media references/);
+  assert.match(page, />Connect</);
+  assert.match(page, />Reconnect</);
+  assert.match(page, /Checking…' : 'Check'/);
+  assert.match(page, /Disconnect Drive/);
+  assert.match(page, /Test Drive upload/);
+  assert.match(page, /Public media is unchanged/);
   assert.match(page, /STORAGE_FEATURE_FLAGS\.googleDriveTestUploadEnabled/);
   assert.match(page, /state\.testUploadEnabled/);
   assert.match(page, /storage_connection_operations/);
@@ -267,21 +264,19 @@ test('new public uploads are R2-only while legacy rendering and provider-aware c
   assert.match(worker, /cleanupExpiredExternalUploads/);
   assert.match(worker, /external_media_objects/);
   assert.match(worker, /cancelResumableDriveUpload/);
-  assert.match(worker, /storage_migrations/);
-  assert.match(worker, /retained_for_rollback/);
+  assert.doesNotMatch(worker, /from\('storage_migrations'\)|retained_for_rollback|queueExpiredMigrationSources/);
+  assert.match(worker, /MIGRATION_CLEANUP_RETIRED/);
 });
 
-test('the architecture documents the production state and preserves the corrected Phase 5–7 roadmap', async () => {
+test('the architecture documents the production state and retired historical migration plan', async () => {
   const [design, phase2] = await Promise.all([
     source('docs/external-storage-architecture.md'), source('docs/google-drive-byos-phase2.md'),
   ]);
-  assert.match(design, /Copy → Verify → Register destination → Test preview\/display → Switch reference → Retain source → Delete source after retention/);
-  assert.match(design, /7–30 days/);
   assert.match(design, /Phases 1–4 are complete and deployed/);
   assert.match(design, /Phase 5A — Production resumable upload foundation/);
   assert.match(design, /Phase 5B — Controlled videos up to 1 GB/);
   assert.match(design, /Phase 5C — Other large originals/);
-  assert.match(design, /Phase 6 — Historical-media migration/);
+  assert.match(design, /Historical-media migration is retired/);
   assert.match(design, /Phase 7 — Provider expansion and production hardening/);
   assert.match(design, /centralized cleanup worker remains Supabase-specific/);
   assert.match(design, /must not simply be raised to 1 GB/);

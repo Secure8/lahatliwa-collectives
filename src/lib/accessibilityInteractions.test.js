@@ -123,6 +123,13 @@ test('admin visual hierarchy distinguishes content, controls, status, and naviga
   assert.match(contentEditor, /rounded-lg border px-3 text-sm font-medium/);
 });
 
+test('adjacent admin content holders keep a small visual separation', async () => {
+  const styles = await source('../index.css');
+  assert.match(styles, /\.admin-form-section \+ \.admin-form-section,[\s\S]*?margin-top:\s*0\.625rem/);
+  assert.match(styles, /\.admin-surface \+ \.admin-surface/);
+  assert.match(styles, /\.admin-record-card \+ \.admin-record-card/);
+});
+
 test('dashboard prioritizes summary, urgent work, and a small primary action set', async () => {
   const dashboard = await source('../pages/admin/Dashboard.jsx');
   assert.match(dashboard, /aria-label="Primary dashboard actions"/);

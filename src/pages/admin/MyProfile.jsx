@@ -540,7 +540,7 @@ export default function MyProfile() {
           <div className="max-w-2xl text-sm leading-6 text-zinc-500">
             Contact a Super Admin to link this account to a public creative profile before you can edit it.
           </div>
-          <AdminButton to="/admin/dashboard" variant="ghost" className="w-fit">Back to dashboard</AdminButton>
+          <AdminButton to="/admin/dashboard" variant="ghost" className="w-fit">Back</AdminButton>
         </div>
       </AdminLayout>
     );
@@ -786,7 +786,7 @@ export default function MyProfile() {
               <button type="button" onClick={() => removeSocialRow(index)} className="grid h-10 w-10 place-items-center border-b border-white/[0.12] text-zinc-500 transition hover:border-red-300/35 hover:text-red-100" aria-label={`Remove ${resourceName(link)}`}><Trash2 size={15} /></button>
             </div>)}
             {resourceRows.length === 0 && <p className="text-xs text-zinc-600">No tools or resources added yet.</p>}
-            <button type="button" onClick={addResourceRow} className="inline-flex h-10 w-fit items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white"><Plus size={15} /> Add tool or resource</button>
+            <button type="button" onClick={addResourceRow} className="inline-flex h-10 w-fit items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white"><Plus size={15} /> Add resource</button>
           </div>
         </ProfileSection>
 
@@ -840,7 +840,7 @@ export default function MyProfile() {
               onClick={addSocialRow}
               className="inline-flex h-10 w-fit items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white"
             >
-              <Plus size={15} /> Add social link
+              <Plus size={15} /> Add link
             </button>
           </div>
         </ProfileSection>
@@ -917,7 +917,7 @@ export default function MyProfile() {
           <StickyMobileActions>
             <AdminButton type="submit" disabled={saving || Boolean(uploadingKind)} variant="primary">
               <Save size={16} />
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Saving...' : 'Save'}
             </AdminButton>
             <AdminButton type="button" onClick={resetToSaved} variant="ghost" disabled={!isDirty || saving || Boolean(uploadingKind)}>
               Discard Changes

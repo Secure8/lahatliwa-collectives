@@ -753,6 +753,23 @@ summary::-webkit-details-marker {
   background: transparent;
 }
 
+.admin-inquiry-scroll {
+  overscroll-behavior-y: contain;
+  scroll-behavior: auto;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-inquiry-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-inquiry-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(246, 213, 139, 0.22);
+}
+
 [data-theme="light"] .editorial-image {
   background:
     linear-gradient(145deg, rgba(194, 116, 20, 0.16), transparent 36%),

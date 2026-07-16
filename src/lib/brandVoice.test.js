@@ -55,7 +55,7 @@ test('public project and profile copy emphasizes publication and contributor cre
   assert.match(details, /Published through <BrandWordmark name=\{content\.displayName\}/);
   assert.match(details, /Credited contributors/);
   assert.match(profile, /does not guarantee availability or assignment/);
-  assert.match(profile, /Send an inquiry/);
+  assert.match(profile, />Inquire <ArrowRight/);
 });
 
 test('public brand names remain CMS-driven and custom logo behavior stays separate', () => {

@@ -918,7 +918,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           <textarea className="min-h-24 resize-y border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition focus:border-amber-200/60" value={bulkExternalUrls} onChange={(event) => setBulkExternalUrls(event.target.value)} />
         </label>
         <button type="button" onClick={addBulkExternalUrls} className="h-10 w-fit px-4 text-sm text-zinc-200 hover:bg-white/[0.04]">
-          Add pasted links
+          Add links
         </button>
 
         {externalItems.length > 0 && (
@@ -1022,10 +1022,10 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       <StickyMobileActions className="sm:z-10">
         <ActionFeedback error={actionError} className="col-span-2 w-full sm:basis-full" />
         {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'publish'; }} className="col-span-2 inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-md bg-amber-300 px-3 text-sm font-semibold text-zinc-950 disabled:opacity-60 sm:col-auto sm:px-5"><Save size={17} /> {saving && pendingGalleryFiles.length ? 'Uploading gallery...' : saving ? 'Publishing...' : uploadingImages ? 'Uploading...' : mode === 'new' ? 'Create & Publish' : 'Publish Changes'}</button>}
-        {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save_draft'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">Save Draft</button>}
+        {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save_draft'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">Save</button>}
         {canEditCurrent && !canApprove && (
           <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'submit'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">
-            Submit for review
+            Submit
           </button>
         )}
         {canApprove && (

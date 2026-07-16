@@ -58,12 +58,12 @@ function lineButtonClasses({ subtle = false, disabled = false } = {}) {
   return `inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium transition ${subtle ? 'border-white/[0.1] bg-transparent text-zinc-400 hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white' : 'border-white/[0.15] bg-zinc-800/80 text-zinc-100 hover:border-amber-200/35 hover:bg-zinc-700/80 hover:text-white'} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`;
 }
 
-function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false, type = 'button' }) {
+function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false, type = 'button', ...props }) {
   const classes = lineButtonClasses({ subtle, disabled });
-  if (to) return <Link to={to} className={classes}>{children}</Link>;
-  if (href && !external) return <Link to={href} className={classes}>{children}</Link>;
-  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes}>{children}</a>;
-  return <button type={type} onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
+  if (to) return <Link to={to} className={classes} {...props}>{children}</Link>;
+  if (href && !external) return <Link to={href} className={classes} {...props}>{children}</Link>;
+  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes} {...props}>{children}</a>;
+  return <button type={type} onClick={onClick} disabled={disabled} className={classes} {...props}>{children}</button>;
 }
 
 function Section({ title, description, children }) {
@@ -136,7 +136,7 @@ function ColorField({ label, value, savedValue, onChange, onReset, error, hint }
         </div>
         <div className="flex items-center justify-between gap-3 text-xs text-zinc-600">
           <span>{hint || 'Enter a hex color value or pick a swatch.'}</span>
-          <button type="button" onClick={onReset} className="text-zinc-400 transition hover:text-white">Reset to saved</button>
+          <button type="button" onClick={onReset} className="text-zinc-400 transition hover:text-white">Reset</button>
         </div>
       </div>
       {error && <span className="text-xs text-red-200">{error}</span>}
@@ -435,7 +435,7 @@ export default function SiteSettings() {
     });
   }
 
-  const headerActions = <LineButton href="/" subtle external>Open Public Site</LineButton>;
+  const headerActions = <LineButton href="/" subtle external aria-label="Open public site">Preview</LineButton>;
 
   return (
     <AdminLayout>
@@ -531,9 +531,9 @@ export default function SiteSettings() {
             {error && <AdminNotice role="alert">{error}</AdminNotice>}
             <StickyMobileActions>
               <AdminButton disabled={!isDirty || !canSave} type="submit" variant="primary">
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? 'Saving...' : 'Save'}
               </AdminButton>
-              <LineButton onClick={discardChanges} subtle disabled={!isDirty || saving || Boolean(uploadingField)}>Discard Unsaved Changes</LineButton>
+              <LineButton onClick={discardChanges} subtle disabled={!isDirty || saving || Boolean(uploadingField)}>Discard</LineButton>
             </StickyMobileActions>
           </Section>
         </div>

@@ -73,7 +73,7 @@ export default function SetPassword() {
       <section className="w-full max-w-md">
         <BrandWordmark variant="auth" to="/" />
         <Link to="/" className="mt-7 inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-100">
-          <ArrowLeft size={16} /> Back to site
+          <ArrowLeft size={16} /> Back
         </Link>
 
         <div className="mt-5 border-y border-white/[0.1] py-7">
@@ -92,7 +92,7 @@ export default function SetPassword() {
           ) : authFlow === 'invalid' ? (
             <div className="mt-6 border-t border-white/[0.07] pt-6">
               <p className="text-sm leading-6 text-red-100">{actionError || 'This password link is invalid or has expired. Request a new invitation or password reset link.'}</p>
-              <div className="mt-5 flex flex-wrap gap-5"><Link to="/forgot-password" className="inline-flex border-b border-amber-200/40 pb-1 text-sm text-amber-100">Request a new reset link</Link><Link to="/admin/login" className="inline-flex border-b border-white/[0.12] pb-1 text-sm text-zinc-300">Return to Admin Login</Link></div>
+              <div className="mt-5 flex flex-wrap gap-5"><Link to="/forgot-password" className="inline-flex border-b border-amber-200/40 pb-1 text-sm text-amber-100">New link</Link><Link to="/admin/login" className="inline-flex border-b border-white/[0.12] pb-1 text-sm text-zinc-300">Login</Link></div>
             </div>
           ) : authFlow === 'setting-password' ? (
             <form onSubmit={savePassword} noValidate className="mt-6">

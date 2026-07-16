@@ -37,12 +37,12 @@ const pageMeta = {
 const lineInput = 'w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none transition placeholder:text-zinc-700 focus:border-amber-200/60';
 const lineTextarea = `${lineInput} min-h-28 resize-y leading-6`;
 
-function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false }) {
+function LineButton({ children, to, href, onClick, subtle = false, external = false, disabled = false, ...props }) {
   const classes = `inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${subtle ? 'border-white/[0.1] bg-transparent text-zinc-400 shadow-none hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white' : 'border-white/[0.15] bg-zinc-800/80 text-zinc-100 hover:border-amber-200/35 hover:bg-zinc-700/80 hover:text-white'}`;
-  if (to) return <Link to={to} className={classes}>{children}</Link>;
-  if (href && !external) return <Link to={href} className={classes}>{children}</Link>;
-  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes}>{children}</a>;
-  return <button type="button" onClick={onClick} disabled={disabled} className={classes}>{children}</button>;
+  if (to) return <Link to={to} className={classes} {...props}>{children}</Link>;
+  if (href && !external) return <Link to={href} className={classes} {...props}>{children}</Link>;
+  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes} {...props}>{children}</a>;
+  return <button type="button" onClick={onClick} disabled={disabled} className={classes} {...props}>{children}</button>;
 }
 
 function Section({ title, description, children }) {
@@ -444,9 +444,9 @@ export default function ContentEditor() {
         description={meta.helper}
         action={
           <>
-            <LineButton to="/admin/content" subtle>Back to Page Content</LineButton>
-            <LineButton to={meta.publicPath} subtle>Preview Page</LineButton>
-            <LineButton href={meta.publicPath} subtle external>Open Public Page</LineButton>
+            <LineButton to="/admin/content" subtle>Back</LineButton>
+            <LineButton to={meta.publicPath} subtle>Preview</LineButton>
+            <LineButton href={meta.publicPath} subtle external aria-label="Open public page">Open</LineButton>
           </>
         }
       />
@@ -478,10 +478,10 @@ export default function ContentEditor() {
               {uploadStatus && <AdminNotice tone="success" role="status">{uploadStatus}</AdminNotice>}
               {error && <AdminNotice role="alert">{error}</AdminNotice>}
               <StickyMobileActions>
-                <AdminButton type="submit" variant="primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</AdminButton>
+                <AdminButton type="submit" variant="primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</AdminButton>
                 <AdminButton type="button" variant="ghost" onClick={discardDraft} disabled={!dirty || saving}>Discard Changes</AdminButton>
-                <LineButton to={meta.publicPath} subtle>Preview Page</LineButton>
-                <LineButton href={meta.publicPath} subtle external>Open Public Page</LineButton>
+                <LineButton to={meta.publicPath} subtle>Preview</LineButton>
+                <LineButton href={meta.publicPath} subtle external aria-label="Open public page">Open</LineButton>
               </StickyMobileActions>
             </Section>
           </div>
@@ -601,7 +601,7 @@ function PageFields({ pageKey, content, patch, patchServiceGroup, uploadHomeBack
             onClick={() => patch({ groups: [...(content.groups || []), { name: 'New Service', description: '', items: [], iconName: 'Circle', iconUrl: '', customIconUrl: '', serviceLogoUrl: '' }] })}
             className="inline-flex h-10 w-fit items-center gap-2 border-b border-white/[0.12] px-2 text-sm text-zinc-300 transition hover:border-amber-200/40 hover:text-white"
           >
-            Add service group
+            Add group
           </button>
         </div>
       </>

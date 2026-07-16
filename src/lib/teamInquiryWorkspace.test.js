@@ -114,6 +114,19 @@ test('dashboard uses authoritative refresh with cleaned-up Realtime subscription
   assert.doesNotMatch(ui, /w-screen|min-w-screen/);
 });
 
+test('inquiry details use a dedicated native-momentum scroll surface without backdrop blur', async () => {
+  const [ui, dialog, css] = await Promise.all([
+    readFile(new URL('../pages/admin/AdminInquiries.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/admin/AdminDialog.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../index.css', import.meta.url), 'utf8'),
+  ]);
+  assert.match(ui, /contentClassName="admin-inquiry-scroll bg-zinc-950" simpleBackdrop/);
+  assert.match(dialog, /!simpleBackdrop && 'backdrop-blur/);
+  assert.match(dialog, /contentClassName/);
+  assert.match(css, /\.admin-inquiry-scroll[\s\S]*touch-action: pan-y[\s\S]*-webkit-overflow-scrolling: touch/);
+  assert.match(css, /\.admin-inquiry-scroll[\s\S]*scrollbar-gutter: stable/);
+});
+
 test('existing inquiry fields and public submission remain compatible', async () => {
   const [sql, ui, , submitEdge] = await files;
   assert.match(sql, /assigned_creative_id/i);

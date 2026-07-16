@@ -148,7 +148,7 @@ export default function ExternalProjectFiles({ project, enabled, onGalleryReplac
     <div className="grid gap-5">
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => originalsInput.current?.click()} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-amber-200 px-3 text-sm font-medium text-zinc-950"><ImageUp size={16} /> Upload original</button>
-        <button type="button" onClick={() => projectFilesInput.current?.click()} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-white/[0.06] px-3 text-sm text-zinc-200 ring-1 ring-white/[0.1]"><FileUp size={16} /> Upload project file</button>
+        <button type="button" onClick={() => projectFilesInput.current?.click()} className="inline-flex min-h-10 items-center gap-2 rounded-md bg-white/[0.06] px-3 text-sm text-zinc-200 ring-1 ring-white/[0.1]"><FileUp size={16} /> Upload file</button>
         <button type="button" onClick={load} disabled={loading} className="inline-flex min-h-10 items-center gap-2 px-3 text-sm text-zinc-400"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh</button>
         <input ref={originalsInput} className="sr-only" type="file" onChange={(event) => { upload(event.target.files?.[0], 'project_original'); event.target.value = ''; }} />
         <input ref={projectFilesInput} className="sr-only" type="file" onChange={(event) => { upload(event.target.files?.[0], 'project_file'); event.target.value = ''; }} />
@@ -172,7 +172,7 @@ export default function ExternalProjectFiles({ project, enabled, onGalleryReplac
                     {file.status === 'available' && <button type="button" onClick={() => act(file, 'archive')} className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-zinc-300"><Archive size={14} /> Archive</button>}
                     {file.status === 'archived' && <button type="button" onClick={() => act(file, 'restore')} className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-zinc-300"><RotateCcw size={14} /> Restore</button>}
                     {file.preview && <button type="button" onClick={() => act(file, 'remove_preview')} className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-zinc-300"><ImageUp size={14} /> Remove preview</button>}
-                    {['retry_required','manual_required'].includes(file.cleanupStatus) && <button type="button" onClick={() => act(file, 'retry')} className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-amber-200"><RefreshCw size={14} /> Retry cleanup</button>}
+                    {['retry_required','manual_required'].includes(file.cleanupStatus) && <button type="button" aria-label="Retry cleanup" onClick={() => act(file, 'retry')} className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-amber-200"><RefreshCw size={14} /> Retry</button>}
                     <button type="button" disabled={busyId === file.id} onClick={() => act(file, 'delete')} className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-red-200"><Trash2 size={14} /> Delete</button>
                   </div>
                 </article>

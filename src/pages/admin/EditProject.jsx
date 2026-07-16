@@ -31,7 +31,7 @@ export default function EditProject() {
       <AdminPageHeader eyebrow="Edit" title="Edit Project" description="Refine project details, gallery content, contributor assignments, and publishing settings." />
       {loading && <LoadingState label="Loading project" />}
       {error && <AdminNotice>{error}</AdminNotice>}
-      {!loading && !project && <AdminEmptyState title="Project not found" message="The requested project could not be loaded." action={<AdminButton to="/admin/projects">Back to projects</AdminButton>} />}
+      {!loading && !project && <AdminEmptyState title="Project not found" message="The requested project could not be loaded." action={<AdminButton to="/admin/projects">Back</AdminButton>} />}
       {project && (canEditProject(role, project, user?.id) || canManageAllProjects(role)
         ? <><ProjectForm initialProject={project} mode="edit" /><div className="mt-6"><ContributorRequestPanel project={project} creativeId={adminUser?.creative_member_id} canReview /></div></>
         : <><AdminNotice tone="success" className="mb-5">You can view this project as a contributor. Editing and credit management require owner, editor, manager, or administrator access.</AdminNotice><ContributorRequestPanel project={project} creativeId={adminUser?.creative_member_id} /></>)}

@@ -91,20 +91,20 @@ Never place R2 credentials, bucket-management credentials, private object keys, 
 
 ## Local verification
 
-Run the focused governance and R2 tests, then the complete Node test suite, dependency audits, whitespace check, Edge bundling check, and optimized Vite build. A live migration cannot be proven locally without a configured Supabase project and disposable R2/Supabase objects. The ImageMagick WASM transformer also requires a Deno/Supabase Edge runtime test before production use.
+Run the focused governance and R2 tests, then the complete Node test suite, dependency audits, whitespace check, Edge bundling check, and optimized Vite build. A live migration cannot be proven locally without a configured Supabase project and disposable R2/Supabase objects. Migration transformation now runs sequentially in the authenticated Super Admin browser; the Edge bundle must contain no ImageMagick/WASM import.
 
 ## Exact deployment order
 
 1. Back up the production schema and verify migrations `20260716090000` and `20260716110000` are already applied.
-2. Apply `20260716140000_public_media_governance.sql` in a staging Supabase project.
+2. Verify `20260716140000_public_media_governance.sql` is applied, then apply `20260717140000_browser_public_media_migration.sql` in staging while migration remains paused.
 3. Configure/verify the Edge secrets listed above; keep emergency fallback disabled and migration paused.
-4. Deploy `r2-media-upload`, then the changed `r2-media`.
-5. Deploy `public-media-migration`, `supabase-media-reconciliation`, `storage-governance`, and `emergency-public-media-upload`.
-6. Deploy the changed `process-storage-cleanup` and verify its existing schedule/secret.
-7. Run the manual upload and migration tests below in staging.
-8. Deploy the frontend with R2 enabled. Confirm old Supabase references still render.
-9. In the Storage page, leave migration paused while previewing eligibility and reviewing unknown objects.
-10. Resume migration only after a Super Admin approves the preview; start with a single-record batch and observe retention/reconciliation.
+4. Deploy `r2-media-upload` first so it recognizes migration-scoped uploads.
+5. Deploy `public-media-migration`, then `storage-governance`. Redeploy the unchanged reconciliation/cleanup functions only if their deployed versions predate `20260716140000`.
+6. Verify the cleanup worker's existing schedule and secret. Do not run source cleanup as part of deployment.
+7. Deploy the frontend with `VITE_R2_MEDIA_ENABLED=true` only after the functions pass staging checks. Confirm old Supabase references still render.
+8. In Admin → Storage, leave migration paused, run **Scan**, and review unsupported/manual-review sources.
+9. Resume migration and use **Migrate one** once. Do not start another record until the first record, public page, ledger, and retained source are confirmed.
+10. Run the reconciliation checks below, pause migration again, and only then repeat with another disposable record if desired.
 
 ## Rollback
 
@@ -117,11 +117,11 @@ Run the focused governance and R2 tests, then the complete Node test suite, depe
 
 ## Manual migration test (one disposable project)
 
-1. In staging, create a disposable project whose cover is an existing Supabase JPEG/PNG/WebP smaller than 5 MiB. Record the public URL and confirm it loads.
+1. In staging, create a disposable project whose cover is an existing still JPEG/PNG/WebP below 25 MiB and 40 megapixels. Record the public URL and confirm it loads.
 2. Sign in as an active Super Admin. Open Admin → Storage → Public media operations.
 3. Keep migration paused. Preview/discover a small batch and confirm the record shows the source filename/category/project, not a private R2 key.
 4. Confirm a second discovery does not create a duplicate migration.
-5. Resume migration and process a one-record batch.
+5. Resume migration and press **Migrate one** exactly once. Confirm the progress rail advances through prepare, download, each derivative, upload, provider verification, activation, and retention without starting a second record.
 6. Confirm all three destination variants are ledger-verified before the project URL changes, the public project loads from `media.lahatliwa.studio`, and the Supabase source still exists.
 7. Force or simulate one upload/verification failure on a second disposable image; confirm its original Supabase reference remains active and retry state is visible.
 8. Run R2 and Supabase reconciliation. Confirm run timestamps and no deletion. Re-run after the configured interval to validate finding promotion.

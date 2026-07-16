@@ -2,7 +2,7 @@ import { getUploadLimit, isCompressibleUploadImage, validateUploadFile } from '.
 
 const OUTPUT_TYPE = 'image/webp';
 const QUALITY_STEPS = [0.9, 0.84, 0.78, 0.72, 0.67, 0.62];
-const WEBSITE_DERIVATIVES = Object.freeze({
+export const WEBSITE_DERIVATIVES = Object.freeze({
   thumbnail: { maxBytes: 350 * 1024, maxDimension: 640, quality: 0.82 },
   display: { maxBytes: 1_200 * 1024, maxDimension: 1800, quality: 0.86 },
   expanded: { maxBytes: 2_500 * 1024, maxDimension: 2800, quality: 0.9 },
@@ -43,6 +43,34 @@ function loadImage(file) {
     };
     image.src = url;
   });
+}
+
+function releaseImage(image) {
+  if (typeof image?.close === 'function') image.close();
+}
+
+function imageSignature(bytes) {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';
+  if (String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' && String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP') return 'image/webp';
+  return '';
+}
+
+export async function validateMigrationImageSource(file, { maxBytes = 25 * 1024 * 1024, maxPixels = 40_000_000, maxSide = 12_000 } = {}) {
+  if (!(file instanceof File) || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw Object.assign(new Error('Only still JPEG, PNG, and WebP images can be migrated in the browser.'), { code: 'SOURCE_FORMAT_UNSUPPORTED' });
+  if (!Number.isSafeInteger(file.size) || file.size <= 0 || file.size > maxBytes) throw Object.assign(new Error('This source is too large for safe browser migration.'), { code: 'SOURCE_TOO_LARGE_FOR_BROWSER' });
+  const header = new Uint8Array(await file.slice(0, 64 * 1024).arrayBuffer());
+  if (imageSignature(header) !== file.type) throw Object.assign(new Error('The source file type does not match its image signature.'), { code: 'SOURCE_SIGNATURE_MISMATCH' });
+  if (file.type === 'image/webp') {
+    const chunks = new TextDecoder('latin1').decode(header);
+    if (chunks.includes('ANIM') || chunks.includes('ANMF')) throw Object.assign(new Error('Animated WebP files require manual review.'), { code: 'ANIMATED_IMAGE_UNSUPPORTED' });
+  }
+  const image = await loadImage(file);
+  try {
+    const width = image.naturalWidth || image.width; const height = image.naturalHeight || image.height;
+    if (!width || !height || width > maxSide || height > maxSide || width * height > maxPixels) throw Object.assign(new Error('The source dimensions are too large for safe browser migration.'), { code: 'SOURCE_DIMENSIONS_TOO_LARGE' });
+    return { width, height };
+  } finally { releaseImage(image); }
 }
 
 function dimensionsWithin(image, maxSide) {
@@ -177,18 +205,22 @@ export async function createWebsiteImageDerivatives(file, { label = 'Image', onS
   const image = await loadImage(file);
   const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase() || 'image';
   const derivatives = [];
-  for (const [variant, rule] of Object.entries(WEBSITE_DERIVATIVES)) {
-    const rendered = await renderWebsiteDerivative(image, variant, rule);
-    derivatives.push({
-      variant,
-      file: new File([rendered.blob], `${baseName}-${variant}.webp`, { type: OUTPUT_TYPE, lastModified: Date.now() }),
-      mimeType: OUTPUT_TYPE,
-      sizeBytes: rendered.blob.size,
-      width: rendered.width,
-      height: rendered.height,
-    });
-  }
-  return derivatives;
+  try {
+    for (const [variant, rule] of Object.entries(WEBSITE_DERIVATIVES)) {
+      onStatus?.({ phase: 'transforming', variant, originalBytes: file.size, fileName: file.name, message: `Preparing ${variant} image...` });
+      await yieldToBrowser();
+      const rendered = await renderWebsiteDerivative(image, variant, rule);
+      derivatives.push({
+        variant,
+        file: new File([rendered.blob], `${baseName}-${variant}.webp`, { type: OUTPUT_TYPE, lastModified: Date.now() }),
+        mimeType: OUTPUT_TYPE,
+        sizeBytes: rendered.blob.size,
+        width: rendered.width,
+        height: rendered.height,
+      });
+    }
+    return derivatives;
+  } finally { releaseImage(image); }
 }
 
 export function uploadStatusText(status) {

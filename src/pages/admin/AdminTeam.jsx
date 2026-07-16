@@ -440,7 +440,7 @@ export default function AdminTeam() {
       {loading ? <TeamSkeleton /> : loadError ? (
         <div className="border-b border-red-300/15 py-8">
           <p className="text-sm text-red-200">{loadError}</p>
-          <button type="button" onClick={() => loadTeam()} className="mt-3 border-b border-red-200/30 pb-1 text-sm text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/50">Retry loading team</button>
+          <button type="button" onClick={() => loadTeam()} className="mt-3 border-b border-red-200/30 pb-1 text-sm text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/50">Retry</button>
         </div>
       ) : (
         team.length ? (

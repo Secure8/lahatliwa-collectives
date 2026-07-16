@@ -97,7 +97,7 @@ export default function Dashboard() {
         action={canCreateProjects(role) && <AdminButton to="/admin/projects/new" variant="primary"><Plus size={16} /> New project</AdminButton>}
       />
 
-      {errors.length > 0 && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{errors.join(' ')}</span><button type="button" onClick={() => setReloadKey((current) => current + 1)} className={`border-b border-red-200/30 pb-1 text-sm text-red-100 ${focusLink}`}>Retry dashboard data</button></div></AdminNotice>}
+      {errors.length > 0 && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{errors.join(' ')}</span><button type="button" onClick={() => setReloadKey((current) => current + 1)} className={`border-b border-red-200/30 pb-1 text-sm text-red-100 ${focusLink}`}>Retry</button></div></AdminNotice>}
 
       <nav aria-label="Primary dashboard actions" className="admin-dashboard-actions mb-6 flex flex-wrap gap-2">
         {quickActions.map((action) => <QuickAction key={action.to} {...action} />)}

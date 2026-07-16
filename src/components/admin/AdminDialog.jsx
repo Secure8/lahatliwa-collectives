@@ -18,6 +18,8 @@ export default function AdminDialog({
   as: Component = 'section',
   onSubmit,
   panelClassName = '',
+  contentClassName = '',
+  simpleBackdrop = false,
   initialFocus = 'close',
   closeLabel = 'Close dialog',
 }) {
@@ -46,7 +48,7 @@ export default function AdminDialog({
         tabIndex={-1}
         aria-label={closeLabel}
         onClick={guardedClose}
-        className="absolute inset-0 bg-black/70 backdrop-blur-[2px] motion-reduce:backdrop-blur-none"
+        className={clsx('absolute inset-0 bg-black/70', !simpleBackdrop && 'backdrop-blur-[2px] motion-reduce:backdrop-blur-none')}
       />
       <Component
         ref={panelRef}
@@ -80,7 +82,7 @@ export default function AdminDialog({
             <X size={20} aria-hidden="true" />
           </button>
         </header>
-        <div className="min-h-0 overflow-y-auto overscroll-contain bg-zinc-950/55 px-4 py-5 sm:px-6">{children}</div>
+        <div className={clsx('min-h-0 overflow-y-auto overscroll-contain bg-zinc-950/55 px-4 py-5 sm:px-6', contentClassName)}>{children}</div>
         {actions && (
           <footer className="flex flex-col-reverse gap-2 border-t border-amber-200/12 bg-zinc-900/98 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:flex-row sm:justify-end sm:px-6">
             {actions}

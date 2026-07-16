@@ -33,7 +33,7 @@ export default function CreativeHero({ creative, socials, resources = [], render
         </div>
         {intro && <p className="mt-4 max-w-xl text-sm leading-6 text-zinc-100 sm:text-base sm:leading-7 lg:hidden">{intro}</p>}
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          {!adminPreview && <Link to={inquiryUrl({ creative: creative.slug })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Start a project <ArrowRight size={16} /></Link>}
+          {!adminPreview && <Link to={inquiryUrl({ creative: creative.slug })} className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Inquire <ArrowRight size={16} /></Link>}
           <div className="flex flex-wrap gap-2">{socials.map(renderSocial)}</div>
         </div>
         </div>

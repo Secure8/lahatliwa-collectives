@@ -45,13 +45,13 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function LineButton({ children, to, href, onClick, subtle = false, external = false }) {
+function LineButton({ children, to, href, onClick, subtle = false, external = false, ...props }) {
   const classes = `inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition ${subtle ? 'border-white/[0.1] bg-transparent text-zinc-400 shadow-none hover:border-white/[0.18] hover:bg-white/[0.05] hover:text-white' : 'border-white/[0.15] bg-zinc-800/80 text-zinc-100 hover:border-amber-200/35 hover:bg-zinc-700/80 hover:text-white'}`;
 
-  if (to) return <Link to={to} className={classes}>{children}</Link>;
-  if (href && !external) return <Link to={href} className={classes}>{children}</Link>;
-  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes}>{children}</a>;
-  return <button type="button" onClick={onClick} className={classes}>{children}</button>;
+  if (to) return <Link to={to} className={classes} {...props}>{children}</Link>;
+  if (href && !external) return <Link to={href} className={classes} {...props}>{children}</Link>;
+  if (href) return <a href={href} target="_blank" rel="noreferrer noopener" className={classes} {...props}>{children}</a>;
+  return <button type="button" onClick={onClick} className={classes} {...props}>{children}</button>;
 }
 
 export default function ContentIndex() {
@@ -122,8 +122,8 @@ export default function ContentIndex() {
 
               <div className="flex flex-wrap items-center gap-3 md:justify-end">
                 <LineButton to={page.editorPath}>Edit</LineButton>
-                <LineButton href={page.publicPath} subtle>Preview Page</LineButton>
-                <LineButton href={page.publicPath} subtle external>Open Public Page</LineButton>
+                <LineButton href={page.publicPath} subtle>Preview</LineButton>
+                <LineButton href={page.publicPath} subtle external aria-label={`Open ${page.label}`}>Open</LineButton>
               </div>
             </article>
           ))}

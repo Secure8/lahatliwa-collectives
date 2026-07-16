@@ -171,7 +171,7 @@ export default function Login() {
       <section className="w-full max-w-md">
         <BrandWordmark variant="auth" to="/" />
         <Link to="/" className="fine-link mt-7 inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-100">
-          <ArrowLeft size={16} /> Back to site
+          <ArrowLeft size={16} /> Back
         </Link>
         <form onSubmit={handleSubmit} className="mt-5 border-y border-white/[0.1] py-7">
           <div className="flex items-start gap-3">
@@ -222,18 +222,18 @@ export default function Login() {
           <div className="mt-5 grid gap-3 border-t border-white/[0.07] pt-5 text-sm">
             {mode !== 'login' && (
               <button type="button" onClick={() => switchMode('login')} className="fine-link min-h-10 text-left text-zinc-300 transition hover:text-amber-100">
-                Return to normal login
+                Sign in
               </button>
             )}
             {mode === 'login' && (
               <>
                 <button type="button" onClick={() => switchMode('setup')} className="fine-link min-h-10 text-left text-zinc-300 transition hover:text-amber-100">
-                  Set up team account
+                  Set up
                 </button>
                 <Link to="/forgot-password" className="fine-link min-h-10 content-center text-left text-zinc-400 transition hover:text-amber-100">Forgot password?</Link>
               </>
             )}
-            {mode === 'setup' && <Link to="/forgot-password" className="fine-link min-h-10 content-center text-left text-zinc-400 transition hover:text-amber-100">Already set up but forgot your password?</Link>}
+            {mode === 'setup' && <Link to="/forgot-password" className="fine-link min-h-10 content-center text-left text-zinc-400 transition hover:text-amber-100">Forgot password?</Link>}
           </div>
         </form>
       </section>

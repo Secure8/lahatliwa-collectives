@@ -94,19 +94,20 @@ test('reservations use server policy, reconcile trusted HEAD bytes, and release 
   assert.match(sql, /storage_reservation_override/);
 });
 
-test('migration is bounded, locked, idempotent, verifies all variants, and retains the source', () => {
+test('migration is one-record, browser-split, locked, idempotent, verifies all variants, and retains the source', () => {
   const migration = source('supabase/functions/public-media-migration/index.ts');
-  const sql = source('supabase/migrations/20260716140000_public_media_governance.sql');
-  assert.match(sql, /storage_migrations_identity_idx/);
+  const originalSql = source('supabase/migrations/20260716140000_public_media_governance.sql');
+  const sql = source('supabase/migrations/20260717140000_browser_public_media_migration.sql');
+  assert.match(originalSql, /storage_migrations_identity_idx/);
   assert.match(sql, /for update skip locked/);
   assert.match(sql, /locked_at < now\(\)-interval '15 minutes'/);
   assert.match(migration, /migrationIdentity/);
-  assert.match(migration, /status:'uploaded'/);
-  assert.match(migration, /status:'verified'/);
-  assert.match(migration, /status:'activated'/);
-  assert.match(migration, /status:'retained_for_rollback'/);
+  assert.match(migration, /action === 'prepare_one'/);
+  assert.match(migration, /action === 'authorize_variants'/);
+  assert.match(migration, /action === 'finalize_one'/);
+  assert.match(sql, /status='retained_for_rollback'/);
   assert.match(migration, /R2_MIGRATION_VERIFICATION_FAILED/);
-  assert.match(migration, /Math\.min\(Number\(body\.limit/);
+  assert.doesNotMatch(migration, /process_batch|createServerWebsiteDerivatives|imagemagick/i);
 });
 
 test('reconciliation detects missing and orphaned provider objects without deleting them', () => {

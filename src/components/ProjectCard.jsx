@@ -52,7 +52,7 @@ export default function ProjectCard({ project, index = 0 }) {
               </div>
             )}
           </div>
-          <Link to={`/projects/${project.slug}`} state={linkState} className="mt-3 inline-flex min-h-11 items-center gap-2 self-end border-b border-white/[0.14] text-sm text-zinc-300 transition hover:border-orange-300/55 hover:text-orange-200 sm:mt-0">View project details <ArrowUpRight size={15} /></Link>
+          <Link to={`/projects/${project.slug}`} state={linkState} aria-label={`View ${project.title}`} className="mt-3 inline-flex min-h-11 items-center gap-2 self-end border-b border-white/[0.14] text-sm text-zinc-300 transition hover:border-orange-300/55 hover:text-orange-200 sm:mt-0">View <ArrowUpRight size={15} /></Link>
         </div>
       </article>
   );

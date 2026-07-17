@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 
-test('public and admin mobile navigation share a modern icon-only top pattern', async () => {
+test('public and admin mobile navigation identify the current page without cluttering inactive icons', async () => {
   const [component, navbar, app, admin, styles] = await Promise.all([
     readFile(new URL('../components/MobileTopNavigation.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
@@ -14,6 +14,7 @@ test('public and admin mobile navigation share a modern icon-only top pattern', 
   assert.match(component, /lg:hidden/);
   assert.match(component, /grid-cols-5/);
   assert.match(component, /aria-current=\{active \? 'page'/);
+  assert.match(component, /mobile-nav-current-label/);
   assert.match(component, /House/);
   assert.match(component, /PanelsTopLeft/);
   assert.match(component, /GalleryHorizontalEnd/);
@@ -29,6 +30,8 @@ test('public and admin mobile navigation share a modern icon-only top pattern', 
   assert.match(admin, /useMobileAppBar/);
   assert.match(admin, /grid-cols-5/);
   assert.match(admin, /aria-current=\{active \? 'page'/);
+  assert.match(admin, /mobile-nav-current-label/);
+  assert.match(navbar, /secondaryPageLabel/);
   assert.match(admin, /House/);
   assert.match(admin, /GalleryHorizontalEnd/);
   assert.match(admin, /MessagesSquare/);
@@ -36,6 +39,7 @@ test('public and admin mobile navigation share a modern icon-only top pattern', 
   assert.match(admin, /Ellipsis/);
   assert.doesNotMatch(admin, /h-9 w-12 place-items-center rounded-xl/);
   assert.doesNotMatch(admin, /active && 'bg-amber-200\/\[0\.12\]'/);
+  assert.match(styles, /\.mobile-nav-current-label[\s\S]*?font-size: 0\.6rem;/);
   const adminLockLinks = [...navbar.matchAll(/<Link\s+to="\/admin\/dashboard"[\s\S]*?<\/Link>/g)].map((match) => match[0]);
   assert.equal(adminLockLinks.length, 2);
   adminLockLinks.forEach((link) => assert.doesNotMatch(link, /rounded-(?:xl|full)|border-white|bg-white/));

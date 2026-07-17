@@ -31,13 +31,14 @@ export default function MobileTopNavigation() {
               onPointerEnter={() => preloadPublicRoute(href)}
               onFocus={() => preloadPublicRoute(href)}
               className={clsx(
-                'mobile-nav-item relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
+                'mobile-nav-item relative flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
                 active ? 'text-[var(--site-accent-text)]' : 'text-zinc-500 hover:text-zinc-200',
               )}
             >
-              <span className="grid h-9 w-12 place-items-center transition">
+              <span className="grid h-7 w-12 place-items-center transition">
                 <Icon className="mobile-nav-icon" size={21} strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
               </span>
+              <span className="mobile-nav-current-label" aria-hidden="true">{label}</span>
             </NavLink>
           );
         })}

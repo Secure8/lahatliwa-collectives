@@ -543,6 +543,27 @@ summary::-webkit-details-marker {
   filter: drop-shadow(0 0 7px rgb(251 146 60 / 0.28));
 }
 
+.mobile-nav-current-label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: currentColor;
+  font-size: 0.6rem;
+  font-weight: 650;
+  letter-spacing: 0.025em;
+  line-height: 1;
+  opacity: 0;
+  text-overflow: ellipsis;
+  transform: translateY(2px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  white-space: nowrap;
+}
+
+.mobile-nav-item[aria-current="page"] .mobile-nav-current-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .site-primary {
   color: var(--site-primary-text);
 }

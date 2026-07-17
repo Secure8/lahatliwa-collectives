@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { applyDocumentTheme, canAnimateTheme, nextThemePreference, normalizeThemePreference, persistThemePreference, readThemePreference, resolveThemePreference, systemTheme, THEME_STORAGE_KEY, themeAnimationOrigin, themeRevealRadius } from './theme.js';
+import { applyDocumentTheme, canAnimateTheme, nextThemePreference, normalizeThemePreference, persistThemePreference, readThemePreference, resolveThemePreference, systemTheme, THEME_ANIMATION_SKIP_QUERY, THEME_STORAGE_KEY, themeAnimationOrigin, themeRevealRadius } from './theme.js';
 
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -66,10 +66,14 @@ test('animation origin uses click coordinates, element bounds, then viewport cen
   assert.equal(themeRevealRadius({ x: 0, y: 0 }, { innerWidth: 300, innerHeight: 400 }), 500);
 });
 
-test('unsupported View Transitions and reduced motion switch immediately', () => {
+test('unsupported and constrained Chrome View Transitions switch immediately', () => {
   assert.equal(canAnimateTheme({}, () => ({ matches: false })), false);
   assert.equal(canAnimateTheme({ startViewTransition() {} }, () => ({ matches: true })), false);
   assert.equal(canAnimateTheme({ startViewTransition() {} }, () => ({ matches: false })), true);
+  assert.match(THEME_ANIMATION_SKIP_QUERY, /prefers-reduced-motion: reduce/);
+  assert.match(THEME_ANIMATION_SKIP_QUERY, /max-width: 1023px/);
+  assert.match(THEME_ANIMATION_SKIP_QUERY, /pointer: coarse/);
+  assert.match(THEME_ANIMATION_SKIP_QUERY, /display-mode: standalone/);
 });
 
 test('provider, one global toggle, startup, and rapid-change contracts stay shared across public and admin', async () => {

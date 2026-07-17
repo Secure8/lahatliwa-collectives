@@ -1,5 +1,6 @@
 export const THEME_STORAGE_KEY = 'lahat-liwa-theme';
 export const THEME_PREFERENCES = Object.freeze(['light', 'dark', 'system']);
+export const THEME_ANIMATION_SKIP_QUERY = '(prefers-reduced-motion: reduce), (max-width: 1023px), (pointer: coarse), (display-mode: standalone)';
 
 export function normalizeThemePreference(value) {
   return THEME_PREFERENCES.includes(value) ? value : 'system';
@@ -73,7 +74,7 @@ export function themeRevealRadius({ x, y }, viewport = globalThis.window) {
 export function canAnimateTheme(documentRef = globalThis.document, matchMedia = globalThis.matchMedia) {
   if (typeof documentRef?.startViewTransition !== 'function') return false;
   try {
-    return !matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    return !matchMedia?.(THEME_ANIMATION_SKIP_QUERY)?.matches;
   } catch {
     return false;
   }

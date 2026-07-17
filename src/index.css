@@ -122,6 +122,17 @@
   --theme-skeleton: rgb(77 65 52 / 0.1);
 }
 
+:where(:root.theme-transition) :where(
+  body,
+  body *:not(img):not(video):not(canvas):not(picture):not(source),
+  body *::before,
+  body *::after
+) {
+  transition-property: background-color, color, border-color, fill, stroke, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -883,19 +894,28 @@ summary::-webkit-details-marker {
   outline-offset: 3px;
 }
 
-.theme-toggle__icon {
+.theme-mode-icon {
+  display: grid;
   width: 1.2rem;
   height: 1.2rem;
+  flex: 0 0 1.2rem;
+  place-items: center;
 }
 
-.theme-switch-icon {
+.theme-mode-icon__layer {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: scale(0.9);
   transform-origin: center;
-  animation: theme-switch-icon-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 180ms cubic-bezier(0.2, 0, 0, 1), transform 180ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-@keyframes theme-switch-icon-in {
-  from { opacity: 0.45; transform: rotate(-18deg) scale(0.78); }
-  to { opacity: 1; transform: rotate(0deg) scale(1); }
+.theme-mode-icon__sun { transform: rotate(-12deg) scale(0.9); }
+.theme-mode-icon__moon { transform: rotate(12deg) scale(0.9); }
+
+.theme-mode-icon__layer--active {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
 }
 
 .theme-toggle--scroll-hidden {
@@ -1539,4 +1559,10 @@ summary::-webkit-details-marker {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  :where(:root.theme-transition) :where(body, body *, body *::before, body *::after),
+  .theme-mode-icon__layer {
+    transition-duration: 0ms !important;
+    animation: none !important;
+  }
+  .theme-mode-icon__layer { transform: none; }
 }

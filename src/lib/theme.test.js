@@ -66,10 +66,11 @@ test('theme motion stays available on every viewport except reduced-motion envir
 });
 
 test('provider, one global toggle, startup, and rapid-change contracts stay shared across public and admin', async () => {
-  const [provider, toggle, appearance, app, navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute, index, css, home, contentApi] = await Promise.all([
+  const [provider, toggle, appearance, modeIcon, app, navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute, index, main, css, home, contentApi] = await Promise.all([
     readFile(new URL('./ThemeProvider.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/ThemeToggle.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/AppearanceMenuAction.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/ThemeModeIcon.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
@@ -78,6 +79,7 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
     readFile(new URL('../pages/SetPassword.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/ProtectedRoute.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../../index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../main.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
     readFile(new URL('../pages/Home.jsx', import.meta.url), 'utf8'),
     readFile(new URL('./contentApi.js', import.meta.url), 'utf8'),
@@ -85,18 +87,25 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.match(provider, /matchMedia\?\.\('\(prefers-color-scheme: dark\)'\)/);
   assert.match(provider, /addEventListener\?\.\('change', onSystemChange\)/);
   assert.doesNotMatch(provider, /startViewTransition|clipPath|themeRevealRadius|pseudoElement/);
-  assert.match(provider, /contentAnimationRef\.current\?\.cancel/);
-  assert.match(provider, /\[\{ opacity: 0\.82 \}, \{ opacity: 1 \}\]/);
-  assert.match(toggle, /theme-toggle__icon theme-switch-icon/);
-  assert.match(appearance, /className="theme-switch-icon"/);
+  assert.match(provider, /createThemeTransitionController/);
+  assert.match(provider, /transitionControllerRef\.current\?\.begin\(\)/);
+  assert.match(provider, /controller\.dispose\(\)/);
+  assert.doesNotMatch(provider, /\.animate\?|contentAnimationRef|opacity: 0\.82/);
+  assert.match(toggle, /<ThemeModeIcon mode=\{nextTheme\}/);
+  assert.match(appearance, /<ThemeModeIcon mode=\{nextTheme\}/);
+  assert.match(modeIcon, /<Sun[\s\S]*?<Moon/);
+  assert.match(modeIcon, /aria-hidden="true"/);
   assert.match(appearance, /const focusVisible = element\.matches\(':focus-visible'\)/);
   assert.match(appearance, /if \(!focusVisible\) element\.blur\(\)/);
   assert.match(navbar, /AppearanceMenuAction/);
-  assert.match(css, /@keyframes theme-switch-icon-in[\s\S]*?rotate\(-18deg\) scale\(0\.78\)/);
+  assert.match(css, /:where\(:root\.theme-transition\)[\s\S]*?transition-property: background-color, color, border-color, fill, stroke, box-shadow;[\s\S]*?transition-duration: 200ms;[\s\S]*?cubic-bezier\(0\.2, 0, 0, 1\)/);
+  assert.match(css, /\.theme-mode-icon__layer[\s\S]*?opacity 180ms cubic-bezier\(0\.2, 0, 0, 1\)[\s\S]*?transform 180ms cubic-bezier\(0\.2, 0, 0, 1\)/);
+  assert.match(css, /rotate\(-12deg\) scale\(0\.9\)/);
+  assert.doesNotMatch(css, /theme-switch-icon-in|transition:\s*all/);
   assert.match(toggle, /type="button"/);
-  assert.match(toggle, /nextTheme === 'light' \? 'Switch to Light Mode' : 'Switch to Dark Mode'/);
-  assert.match(toggle, /nextTheme === 'light' \? Sun : Moon/);
-  assert.match(toggle, /setPreference\(nextTheme, \{ event, element: event\.currentTarget \}\)/);
+  assert.match(toggle, /nextTheme === 'light' \? 'Switch to light mode' : 'Switch to dark mode'/);
+  assert.match(toggle, /const focusVisible = element\.matches\(':focus-visible'\)/);
+  assert.match(toggle, /if \(!focusVisible\) element\.blur\(\)/);
   assert.match(toggle, /adminWorkspaceHasIntegratedToggle/);
   assert.match(toggle, /if \(adminWorkspaceHasIntegratedToggle\) return null/);
   assert.match(toggle, /window\.addEventListener\('scroll', controller\.onScroll, \{ passive: true \}\)/);
@@ -112,6 +121,11 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
     assert.doesNotMatch(oldPlacement, /ThemeToggle|ThemeControl/);
   }
   assert.match(index, /document\.documentElement\.dataset\.theme = resolved/);
+  assert.match(index, /localStorage\.getItem\(key\)/);
+  assert.match(index, /matchMedia\('\(prefers-color-scheme: dark\)'\)/);
+  assert.doesNotMatch(index, /theme-transition/);
+  assert.match(main, /ReactDOM\.createRoot/);
+  assert.doesNotMatch(main, /hydrateRoot/);
   assert.doesNotMatch(index, /startViewTransition/);
   assert.match(css, /--theme-page-background/);
   assert.match(home, /backgroundColor: content\.accentColor/);
@@ -122,5 +136,6 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.match(css, /\.theme-toggle[\s\S]*?position: fixed;[\s\S]*?left: max\(0\.75rem, env\(safe-area-inset-left\)\);[\s\S]*?bottom: calc\(0\.75rem \+ env\(safe-area-inset-bottom\)\);/);
   assert.match(css, /\.theme-toggle--scroll-hidden[\s\S]*?pointer-events: none;[\s\S]*?opacity: 0;/);
   assert.match(css, /prefers-reduced-motion: reduce/);
+  assert.match(css, /:where\(:root\.theme-transition\)[\s\S]*?\.theme-mode-icon__layer[\s\S]*?transition-duration: 0ms !important;/);
   assert.doesNotMatch(css, /::view-transition-(old|new)\(root\)/);
 });

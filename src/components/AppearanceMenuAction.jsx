@@ -1,12 +1,11 @@
-import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../lib/ThemeProvider';
 import { nextThemePreference } from '../lib/theme';
+import ThemeModeIcon from './ThemeModeIcon';
 
 export default function AppearanceMenuAction({ className = '', iconOnly = false, ...props }) {
   const { resolvedTheme, setPreference } = useTheme();
   const nextTheme = nextThemePreference(resolvedTheme);
-  const Icon = nextTheme === 'light' ? Sun : Moon;
-  const label = nextTheme === 'light' ? 'Use Light Mode' : 'Use Dark Mode';
+  const label = nextTheme === 'light' ? 'Switch to light mode' : 'Switch to dark mode';
 
   function changeTheme(event) {
     const element = event.currentTarget;
@@ -17,7 +16,7 @@ export default function AppearanceMenuAction({ className = '', iconOnly = false,
 
   return (
     <button {...props} type="button" className={className} onClick={changeTheme} aria-label={label} title={iconOnly ? label : undefined}>
-      <Icon className="theme-switch-icon" size={18} aria-hidden="true" />
+      <ThemeModeIcon mode={nextTheme} size={18} />
       {!iconOnly && <span>{label}</span>}
     </button>
   );

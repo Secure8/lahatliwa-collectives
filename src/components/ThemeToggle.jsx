@@ -1,10 +1,10 @@
-import { Moon, Sun } from 'lucide-react';
 import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTheme } from '../lib/ThemeProvider';
 import { nextThemePreference } from '../lib/theme';
 import { createThemeToggleVisibilityController } from '../lib/themeToggleVisibility';
+import ThemeModeIcon from './ThemeModeIcon';
 
 export default function ThemeToggle() {
   const { resolvedTheme, setPreference } = useTheme();
@@ -13,8 +13,7 @@ export default function ThemeToggle() {
   const buttonRef = useRef(null);
   const [scrollHidden, setScrollHidden] = useState(false);
   const nextTheme = nextThemePreference(resolvedTheme);
-  const label = nextTheme === 'light' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
-  const Icon = nextTheme === 'light' ? Sun : Moon;
+  const label = nextTheme === 'light' ? 'Switch to light mode' : 'Switch to dark mode';
   const adminWorkspaceHasIntegratedToggle = location.pathname.startsWith('/admin')
     && location.pathname !== '/admin/login';
 
@@ -42,6 +41,13 @@ export default function ThemeToggle() {
 
   if (adminWorkspaceHasIntegratedToggle) return null;
 
+  function changeTheme(event) {
+    const element = event.currentTarget;
+    const focusVisible = element.matches(':focus-visible');
+    setPreference(nextTheme, { event, element });
+    if (!focusVisible) element.blur();
+  }
+
   return (
     <button
       ref={buttonRef}
@@ -54,9 +60,9 @@ export default function ThemeToggle() {
       onBlur={() => controllerRef.current?.onBlur()}
       onPointerEnter={() => controllerRef.current?.onPointerEnter()}
       onPointerLeave={() => controllerRef.current?.onPointerLeave()}
-      onClick={(event) => setPreference(nextTheme, { event, element: event.currentTarget })}
+      onClick={changeTheme}
     >
-      <Icon className="theme-toggle__icon theme-switch-icon" size={19} strokeWidth={1.9} aria-hidden="true" />
+      <ThemeModeIcon mode={nextTheme} size={19} className="theme-toggle__icon" />
     </button>
   );
 }

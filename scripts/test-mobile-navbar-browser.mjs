@@ -4,10 +4,18 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { defaultPageContent, defaultSiteContent } from '../src/data/siteContent.js';
 
 const host = '127.0.0.1';
 const port = 4173;
 const appUrl = `http://${host}:${port}/`;
+const publicContentFixture = {
+  ...defaultSiteContent,
+  home: defaultPageContent.home,
+  about: defaultPageContent.about,
+  servicesPage: defaultPageContent.services,
+  contactPage: defaultPageContent.contact,
+};
 const chromeCandidates = [
   process.env.CHROME_PATH,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -57,13 +65,27 @@ function createCdpClient(webSocketUrl) {
     socket.addEventListener('error', reject, { once: true });
   });
 
-  socket.addEventListener('message', (event) => {
-    const message = JSON.parse(event.data);
+  socket.addEventListener('message', async (event) => {
+    const payload = typeof event.data === 'string'
+      ? event.data
+      : typeof event.data?.text === 'function'
+        ? await event.data.text()
+        : new TextDecoder().decode(event.data);
+    const message = JSON.parse(payload);
+    if (message.method === 'Inspector.targetCrashed') {
+      for (const { reject } of pending.values()) reject(new Error('Chrome page target crashed.'));
+      pending.clear();
+      return;
+    }
     if (!message.id || !pending.has(message.id)) return;
     const { resolve, reject } = pending.get(message.id);
     pending.delete(message.id);
     if (message.error) reject(new Error(message.error.message));
     else resolve(message.result);
+  });
+  socket.addEventListener('close', () => {
+    for (const { reject } of pending.values()) reject(new Error('Chrome debugging connection closed.'));
+    pending.clear();
   });
 
   return {
@@ -105,7 +127,13 @@ async function waitForNavbar(client) {
     if (ready) return;
     await delay(100);
   }
-  throw new Error('The public mobile navbar did not render.');
+  const diagnostic = await evaluate(client, `({
+    href: location.href,
+    title: document.title,
+    bodyText: document.body?.innerText?.slice(0, 240),
+    bodyHtml: document.body?.innerHTML?.slice(0, 240),
+  })`);
+  throw new Error(`The public mobile navbar did not render. ${JSON.stringify(diagnostic)}`);
 }
 
 async function waitForScrollablePage(client) {
@@ -156,15 +184,19 @@ let chrome;
 let client;
 
 try {
+  console.log('[browser-test] Starting local app and Chrome');
   await waitForHttp(appUrl);
+  console.log('[browser-test] Local app responded');
   const chromePath = await existingChrome();
   chrome = spawn(chromePath, [
     '--headless=new',
-    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--no-sandbox',
     '--disable-breakpad',
     '--disable-crash-reporter',
     '--no-first-run',
     '--no-default-browser-check',
+    '--remote-allow-origins=*',
     '--remote-debugging-port=0',
     `--user-data-dir=${profileDirectory}`,
     appUrl,
@@ -186,21 +218,38 @@ try {
       reject(new Error(`Chrome exited before the test started (${code}).`));
     });
   });
+  console.log('[browser-test] Chrome debugging ready');
 
   const target = await waitForPageTarget(debuggerUrl.port);
+  console.log('[browser-test] Chrome page target ready');
   client = createCdpClient(target.webSocketDebuggerUrl);
   await client.ready;
+  console.log('[browser-test] CDP socket connected');
   await client.send('Runtime.enable');
+  console.log('[browser-test] Runtime enabled');
   await client.send('Emulation.setDeviceMetricsOverride', {
     width: 390,
     height: 844,
     deviceScaleFactor: 1,
     mobile: true,
   });
+  console.log('[browser-test] Mobile viewport applied');
   await client.send('Page.enable');
+  console.log('[browser-test] Page domain enabled');
+  const cachedPublicContent = JSON.stringify({
+    scope: 'home|services',
+    content: publicContentFixture,
+    updatedAt: Date.now(),
+  });
+  await client.send('Page.addScriptToEvaluateOnNewDocument', {
+    source: `localStorage.setItem('hevv-public-content-cache-v3', ${JSON.stringify(cachedPublicContent)});`,
+  });
   await client.send('Page.reload', { ignoreCache: true });
+  console.log('[browser-test] Page reload requested');
   await waitForNavbar(client);
+  console.log('[browser-test] Public navbar rendered');
   await waitForScrollablePage(client);
+  console.log('[browser-test] Public mobile page ready');
   await evaluate(client, `document.querySelector('[data-mobile-app-bar]').style.setProperty('--public-mobile-safe-area-top', '24px')`);
   await delay(100);
 
@@ -263,15 +312,48 @@ try {
   assert.equal(nearTop.secondaryVisible, 'true');
 
   const themePointerTarget = await evaluate(client, `(() => {
-    const button = document.querySelector('[data-public-mobile-primary] button[aria-label*="Mode"]');
-    const rect = button.getBoundingClientRect();
-    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, before: document.documentElement.dataset.theme };
+    const button = document.querySelector('[data-public-mobile-primary] button[aria-label*="mode" i]');
+    const buttonRect = button.getBoundingClientRect();
+    const primaryRect = document.querySelector('[data-public-mobile-primary]').getBoundingClientRect();
+    const activeIcon = button.querySelector('.theme-mode-icon__layer--active');
+    return {
+      x: buttonRect.left + buttonRect.width / 2,
+      y: buttonRect.top + buttonRect.height / 2,
+      before: document.documentElement.dataset.theme,
+      label: button.getAttribute('aria-label'),
+      buttonRect: { width: buttonRect.width, height: buttonRect.height },
+      primaryRect: { top: primaryRect.top, bottom: primaryRect.bottom, height: primaryRect.height },
+      activeIcon: activeIcon?.classList.contains('theme-mode-icon__sun') ? 'sun' : 'moon',
+    };
   })()`);
   await client.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: themePointerTarget.x, y: themePointerTarget.y, button: 'left', clickCount: 1 });
   await client.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: themePointerTarget.x, y: themePointerTarget.y, button: 'left', clickCount: 1 });
-  await delay(300);
+  const themeDuringTransition = await evaluate(client, `(() => {
+    const button = document.querySelector('[data-public-mobile-primary] button[aria-label*="mode" i]');
+    const buttonRect = button.getBoundingClientRect();
+    const primaryRect = document.querySelector('[data-public-mobile-primary]').getBoundingClientRect();
+    const bodyStyle = getComputedStyle(document.body);
+    const activeIcon = button.querySelector('.theme-mode-icon__layer--active');
+    return {
+      theme: document.documentElement.dataset.theme,
+      transitionActive: document.documentElement.classList.contains('theme-transition'),
+      transitionProperty: bodyStyle.transitionProperty,
+      transitionDuration: bodyStyle.transitionDuration,
+      transitionTimingFunction: bodyStyle.transitionTimingFunction,
+      rootOpacity: getComputedStyle(document.documentElement).opacity,
+      bodyOpacity: bodyStyle.opacity,
+      horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      label: button.getAttribute('aria-label'),
+      buttonRect: { width: buttonRect.width, height: buttonRect.height },
+      primaryRect: { top: primaryRect.top, bottom: primaryRect.bottom, height: primaryRect.height },
+      activeIcon: activeIcon?.classList.contains('theme-mode-icon__sun') ? 'sun' : 'moon',
+      focusInsideHeader: document.querySelector('[data-mobile-app-bar]').contains(document.activeElement),
+    };
+  })()`);
+  await delay(240);
   const themeAfterClick = await evaluate(client, `({
     theme: document.documentElement.dataset.theme,
+    transitionActive: document.documentElement.classList.contains('theme-transition'),
     focusInsideHeader: document.querySelector('[data-mobile-app-bar]').contains(document.activeElement),
   })`);
   await evaluate(client, 'window.scrollTo(0, 450)');
@@ -284,9 +366,110 @@ try {
     return { primaryVisible: primary.dataset.mobileVisible, secondaryVisible: secondary.dataset.mobileVisible };
   })()`);
   assert.notEqual(themeAfterClick.theme, themePointerTarget.before);
+  assert.equal(themeDuringTransition.transitionActive, true);
+  assert.match(themeDuringTransition.transitionProperty, /background-color/);
+  assert.match(themeDuringTransition.transitionProperty, /color/);
+  assert.match(themeDuringTransition.transitionProperty, /border-color/);
+  assert.match(themeDuringTransition.transitionProperty, /fill/);
+  assert.match(themeDuringTransition.transitionProperty, /stroke/);
+  assert.match(themeDuringTransition.transitionProperty, /box-shadow/);
+  assert.equal(themeDuringTransition.transitionDuration, '0.2s');
+  assert.equal(themeDuringTransition.transitionTimingFunction, 'cubic-bezier(0.2, 0, 0, 1)');
+  assert.equal(themeDuringTransition.rootOpacity, '1');
+  assert.equal(themeDuringTransition.bodyOpacity, '1');
+  assert.equal(themeDuringTransition.horizontalOverflow, false);
+  assert.notEqual(themeDuringTransition.label, themePointerTarget.label);
+  assert.notEqual(themeDuringTransition.activeIcon, themePointerTarget.activeIcon);
+  assert.deepEqual(themeDuringTransition.buttonRect, themePointerTarget.buttonRect);
+  assert.deepEqual(themeDuringTransition.primaryRect, themePointerTarget.primaryRect);
+  assert.equal(themeAfterClick.transitionActive, false);
   assert.equal(themeAfterClick.focusInsideHeader, false);
   assert.equal(afterThemeScroll.primaryVisible, 'false');
   assert.equal(afterThemeScroll.secondaryVisible, 'false');
+  console.log('[browser-test] Pointer theme transition passed');
+
+  await evaluate(client, 'window.scrollTo(0, 20)');
+  await delay(250);
+  await client.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+  await client.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+  const keyboardBefore = await evaluate(client, `(() => {
+    const button = document.querySelector('[data-public-mobile-primary] button[aria-label*="mode" i]');
+    button.focus();
+    return { theme: document.documentElement.dataset.theme, focusVisible: button.matches(':focus-visible') };
+  })()`);
+  await evaluate(client, `document.querySelector('[data-public-mobile-primary] button[aria-label*="mode" i]').click()`);
+  await delay(30);
+  const keyboardAfter = await evaluate(client, `(() => {
+    const button = document.querySelector('[data-public-mobile-primary] button[aria-label*="mode" i]');
+    return {
+      theme: document.documentElement.dataset.theme,
+      retainedFocus: document.activeElement === button,
+      focusVisible: button.matches(':focus-visible'),
+    };
+  })()`);
+  console.log(JSON.stringify({ keyboardBefore, keyboardAfter }, null, 2));
+  assert.equal(keyboardBefore.focusVisible, true);
+  assert.notEqual(keyboardAfter.theme, keyboardBefore.theme);
+  assert.equal(keyboardAfter.retainedFocus, true);
+  assert.equal(keyboardAfter.focusVisible, true);
+  await delay(240);
+  console.log('[browser-test] Keyboard focus behavior passed');
+
+  await client.send('Emulation.setEmulatedMedia', {
+    features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+  });
+  const reducedMotion = await evaluate(client, `(() => {
+    const button = document.querySelector('[data-public-mobile-primary] button[aria-label*="mode" i]');
+    const beforeTheme = document.documentElement.dataset.theme;
+    button.click();
+    const iconStyle = getComputedStyle(button.querySelector('.theme-mode-icon__layer'));
+    return {
+      beforeTheme,
+      theme: document.documentElement.dataset.theme,
+      transitionActive: document.documentElement.classList.contains('theme-transition'),
+      iconTransitionDuration: iconStyle.transitionDuration,
+    };
+  })()`);
+  assert.notEqual(reducedMotion.theme, reducedMotion.beforeTheme);
+  assert.equal(reducedMotion.transitionActive, false);
+  assert.equal(reducedMotion.iconTransitionDuration, '0s');
+  await client.send('Emulation.setEmulatedMedia', { features: [] });
+  console.log('[browser-test] Reduced-motion behavior passed');
+
+  await client.send('Emulation.setDeviceMetricsOverride', {
+    width: 1280,
+    height: 800,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await client.send('Page.reload', { ignoreCache: true });
+  await waitForNavbar(client);
+  const desktopTheme = await evaluate(client, `(() => {
+    const button = document.querySelector('.theme-toggle--global');
+    const beforeTheme = document.documentElement.dataset.theme;
+    const beforeRect = button.getBoundingClientRect();
+    button.click();
+    const afterRect = button.getBoundingClientRect();
+    return {
+      beforeTheme,
+      theme: document.documentElement.dataset.theme,
+      transitionActive: document.documentElement.classList.contains('theme-transition'),
+      beforeRect: { width: beforeRect.width, height: beforeRect.height },
+      afterRect: { width: afterRect.width, height: afterRect.height },
+    };
+  })()`);
+  assert.notEqual(desktopTheme.theme, desktopTheme.beforeTheme);
+  assert.equal(desktopTheme.transitionActive, true);
+  assert.deepEqual(desktopTheme.afterRect, desktopTheme.beforeRect);
+  await delay(240);
+  console.log('[browser-test] Desktop theme transition passed');
+
+  await client.send('Emulation.setDeviceMetricsOverride', {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
 
   await evaluate(client, `(() => {
     document.documentElement.className = 'admin-mode';
@@ -365,8 +548,10 @@ try {
   assert.ok(adminRevealed.rect.bottom > 0, `Expected admin secondary bottom > 0, received ${adminRevealed.rect.bottom}`);
   assert.equal(adminRevealed.rect.top, 0);
   assert.ok(adminRevealed.rect.top < adminRevealed.innerHeight, `Expected admin secondary top < ${adminRevealed.innerHeight}, received ${adminRevealed.rect.top}`);
+  console.log('[browser-test] Admin mobile geometry passed');
 
 } finally {
+  console.log('[browser-test] Cleaning up browser processes');
   client?.close();
   await stopProcess(chrome);
   await stopProcess(vite);

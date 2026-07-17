@@ -1,17 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { applyDocumentTheme, normalizeThemePreference, persistThemePreference, readThemePreference, resolveThemePreference, themeMotionAllowed } from './theme.js';
+import { applyDocumentTheme, normalizeThemePreference, persistThemePreference, readThemePreference, resolveThemePreference } from './theme.js';
+import { createThemeTransitionController } from './themeTransition.js';
 
 const ThemeContext = createContext(null);
-const THEME_FADE_OPTIONS = { duration: 240, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' };
-
-function trackAnimation(ref, animation) {
-  if (!animation) return;
-  ref.current = animation;
-  animation.finished.finally(() => {
-    if (ref.current === animation) ref.current = null;
-  }).catch(() => {
-  });
-}
 
 function initialThemeState() {
   const preference = readThemePreference();
@@ -23,28 +14,30 @@ function initialThemeState() {
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(initialThemeState);
   const preferenceRef = useRef(theme.preference);
-  const contentAnimationRef = useRef(null);
+  const transitionControllerRef = useRef(null);
 
   const applyPreference = useCallback((nextPreference) => {
-    const preference = persistThemePreference(normalizeThemePreference(nextPreference));
+    const preference = normalizeThemePreference(nextPreference);
     const resolvedTheme = resolveThemePreference(preference);
     preferenceRef.current = preference;
     applyDocumentTheme(resolvedTheme);
+    persistThemePreference(preference);
     setTheme({ preference, resolvedTheme });
   }, []);
 
   const setPreference = useCallback((nextPreference) => {
-    const preference = normalizeThemePreference(nextPreference);
-    contentAnimationRef.current?.cancel?.();
-    contentAnimationRef.current = null;
-    applyPreference(preference);
-    if (!themeMotionAllowed()) return;
-    const content = document.getElementById('root');
-    trackAnimation(contentAnimationRef, content?.animate?.(
-      [{ opacity: 0.82 }, { opacity: 1 }],
-      THEME_FADE_OPTIONS,
-    ));
+    transitionControllerRef.current?.begin();
+    applyPreference(nextPreference);
   }, [applyPreference]);
+
+  useEffect(() => {
+    const controller = createThemeTransitionController();
+    transitionControllerRef.current = controller;
+    return () => {
+      controller.dispose();
+      if (transitionControllerRef.current === controller) transitionControllerRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     applyDocumentTheme(theme.resolvedTheme);

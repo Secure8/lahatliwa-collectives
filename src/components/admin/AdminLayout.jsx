@@ -69,7 +69,9 @@ export default function AdminLayout({ children }) {
   const moreIsActive = !mobilePrimaryLinks.some(([, href]) => primaryRouteIsActive(href));
   const morePageLabel = compactMobilePageLabels[currentPageTitle] || currentPageTitle;
   const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
-  const mobileVisible = useMobileAppBar({ locked: mobileOpen || headerFocused, routeKey: `${location.pathname}${location.search}` }).visible;
+  const mobileAppBar = useMobileAppBar({ locked: mobileOpen || headerFocused, routeKey: `${location.pathname}${location.search}` });
+  const isPrimaryHeaderVisible = mobileAppBar.primaryVisible;
+  const isSecondaryNavVisible = mobileAppBar.visible;
   const { panelRef, triggerRef } = useModalDrawer({ open: mobileOpen, onClose: closeMobileMenu });
 
   useEffect(() => {
@@ -128,21 +130,25 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="admin-shell min-h-screen overflow-x-hidden text-white">
+    <div className="admin-shell min-h-screen text-white">
       <a href="#admin-main-content" className="skip-link">Skip to admin content</a>
       <aside
         data-admin-mobile-app-bar
-        data-mobile-visible={mobileVisible ? 'true' : 'false'}
+        data-mobile-visible={isSecondaryNavVisible ? 'true' : 'false'}
         onFocusCapture={() => setHeaderFocused(true)}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setHeaderFocused(false);
         }}
         className={clsx(
-          'admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30 border-b border-white/[0.1] bg-zinc-950 px-3 pb-1 pt-[calc(0.75rem+env(safe-area-inset-top))] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:fixed lg:inset-y-0 lg:left-0 lg:right-auto lg:w-64 lg:translate-y-0 lg:opacity-100 lg:border-b-0 lg:border-r lg:bg-zinc-950 lg:p-3',
-          mobileVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0',
+          'admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30 transition-[background-color] ease-out motion-reduce:transition-none lg:fixed lg:inset-y-0 lg:left-0 lg:right-auto lg:w-64 lg:border-r lg:border-white/[0.1] lg:bg-zinc-950 lg:p-3',
         )}
       >
-        <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
+        <div
+          data-admin-mobile-primary
+          data-mobile-visible={isPrimaryHeaderVisible ? 'true' : 'false'}
+          className="admin-app-bar__primary theme-navigation-surface relative z-10 px-3 pb-1 pt-[calc(0.75rem+env(safe-area-inset-top))] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:h-full lg:translate-y-0 lg:p-0 lg:opacity-100"
+        >
+          <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
           <Link to="/admin/dashboard" preventScrollReset className="flex min-w-0 items-center gap-3 lg:border-b lg:border-white/[0.08] lg:px-2 lg:pb-3" aria-label={`${content.displayName} admin dashboard`}>
             {content.logoUrl ? (
               <BrandLogo src={content.logoUrl} alt={content.logoAlt} variant="admin" />
@@ -177,16 +183,24 @@ export default function AdminLayout({ children }) {
             </button>
           </div>
 
-          <div className="flex items-center gap-2 lg:hidden">
-            <AppearanceMenuAction
-              iconOnly
-              aria-hidden={mobileOpen ? 'true' : undefined}
-              tabIndex={mobileOpen ? -1 : undefined}
-              className="inline-grid h-11 w-11 place-items-center text-amber-200 transition hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"
-            />
+            <div className="flex items-center gap-2 lg:hidden">
+              <AppearanceMenuAction
+                iconOnly
+                aria-hidden={mobileOpen ? 'true' : undefined}
+                tabIndex={mobileOpen ? -1 : undefined}
+                className="inline-grid h-11 w-11 place-items-center text-amber-200 transition hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"
+              />
+            </div>
           </div>
         </div>
-        <nav aria-label="Primary admin navigation" data-admin-mobile-top-navigation className="mt-2 lg:hidden">
+        <nav
+          aria-label="Primary admin navigation"
+          data-admin-mobile-top-navigation
+          data-admin-mobile-secondary
+          data-mobile-visible={isSecondaryNavVisible ? 'true' : 'false'}
+          data-primary-visible={isPrimaryHeaderVisible ? 'true' : 'false'}
+          className="admin-app-bar__secondary theme-navigation-surface relative z-20 border-b border-white/[0.08] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:hidden"
+        >
           <div className="grid grid-cols-5">
             {mobilePrimaryLinks.map(([label, href, Icon]) => {
               const active = primaryRouteIsActive(href);

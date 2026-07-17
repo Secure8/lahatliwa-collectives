@@ -208,9 +208,10 @@ try {
   await evaluate(client, 'window.scrollTo(0, 900)');
   await delay(300);
   const before = await evaluate(client, `(() => {
+    const header = document.querySelector('[data-mobile-app-bar]');
     const secondary = document.querySelector('[data-public-mobile-secondary]');
     const rect = secondary.getBoundingClientRect();
-    return { scrollY: window.scrollY, primaryVisible: document.querySelector('[data-public-mobile-primary]').dataset.mobileVisible, secondaryVisible: secondary.dataset.mobileVisible, rect: { top: rect.top, bottom: rect.bottom, height: rect.height } };
+    return { scrollY: window.scrollY, primaryVisible: document.querySelector('[data-public-mobile-primary]').dataset.mobileVisible, secondaryVisible: secondary.dataset.mobileVisible, rect: { top: rect.top, bottom: rect.bottom, height: rect.height }, headerBackdropFilter: getComputedStyle(header).backdropFilter };
   })()`);
 
   await evaluate(client, 'window.scrollTo(0, 880)');
@@ -243,6 +244,7 @@ try {
 
   assert.equal(before.primaryVisible, 'false');
   assert.equal(before.secondaryVisible, 'false');
+  assert.equal(before.headerBackdropFilter, 'none');
   assert.equal(after.primaryVisible, 'false');
   assert.equal(after.secondaryVisible, 'true');
   assert.ok(after.rect.bottom > 0, `Expected secondary bottom > 0, received ${after.rect.bottom}`);
@@ -257,6 +259,74 @@ try {
   assert.equal(hiddenAgain.secondaryVisible, 'false');
   assert.equal(nearTop.primaryVisible, 'true');
   assert.equal(nearTop.secondaryVisible, 'true');
+
+  await evaluate(client, `(() => {
+    document.documentElement.className = 'admin-mode';
+    document.documentElement.style.setProperty('--mobile-app-bar-show-duration', '0ms');
+    document.documentElement.style.setProperty('--mobile-app-bar-hide-duration', '0ms');
+    document.body.innerHTML = \`<div class="admin-shell min-h-screen text-white">
+      <aside data-admin-mobile-app-bar data-mobile-visible="false" class="admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30">
+        <div data-admin-mobile-primary data-mobile-visible="false" class="admin-app-bar__primary theme-navigation-surface relative z-10 px-3 pb-1 pt-[calc(0.75rem+env(safe-area-inset-top))] transition-[transform,opacity,background-color]">
+          <div class="h-10"></div>
+        </div>
+        <nav data-admin-mobile-secondary data-mobile-visible="false" data-primary-visible="false" class="admin-app-bar__secondary theme-navigation-surface relative z-20 border-b border-white/[0.08] transition-[transform,opacity,background-color]">
+          <div class="min-h-[3.25rem]"></div>
+        </nav>
+      </aside>
+      <main style="height: 2400px"></main>
+    </div>\`;
+    window.scrollTo(0, 900);
+  })()`);
+  await delay(100);
+  const adminHidden = await evaluate(client, `(() => {
+    const shell = document.querySelector('.admin-shell');
+    const header = document.querySelector('[data-admin-mobile-app-bar]');
+    const secondary = document.querySelector('[data-admin-mobile-secondary]');
+    const headerRect = header.getBoundingClientRect();
+    const rect = secondary.getBoundingClientRect();
+    return {
+      scrollY: window.scrollY,
+      headerRect: { top: headerRect.top, bottom: headerRect.bottom, height: headerRect.height },
+      rect: { top: rect.top, bottom: rect.bottom, height: rect.height },
+      headerBackdropFilter: getComputedStyle(header).backdropFilter,
+      headerPosition: getComputedStyle(header).position,
+      shellOverflowX: getComputedStyle(shell).overflowX,
+      shellOverflowY: getComputedStyle(shell).overflowY,
+      bodyOverflowX: getComputedStyle(document.body).overflowX,
+    };
+  })()`);
+
+  await evaluate(client, `(() => {
+    document.querySelector('[data-admin-mobile-app-bar]').dataset.mobileVisible = 'true';
+    document.querySelector('[data-admin-mobile-secondary]').dataset.mobileVisible = 'true';
+  })()`);
+  await delay(100);
+  const adminRevealed = await evaluate(client, `(() => {
+    const primary = document.querySelector('[data-admin-mobile-primary]');
+    const secondary = document.querySelector('[data-admin-mobile-secondary]');
+    const rect = secondary.getBoundingClientRect();
+    return {
+      scrollY: window.scrollY,
+      innerHeight: window.innerHeight,
+      primaryVisible: primary.dataset.mobileVisible,
+      secondaryVisible: secondary.dataset.mobileVisible,
+      rect: { top: rect.top, bottom: rect.bottom, height: rect.height },
+      transform: getComputedStyle(secondary).transform,
+      opacity: getComputedStyle(secondary).opacity,
+    };
+  })()`);
+
+  console.log(JSON.stringify({ adminHidden, adminRevealed }, null, 2));
+  assert.equal(adminHidden.headerBackdropFilter, 'none');
+  assert.equal(adminHidden.headerPosition, 'sticky');
+  assert.equal(adminHidden.headerRect.top, 0);
+  assert.equal(adminHidden.shellOverflowX, 'visible');
+  assert.equal(adminHidden.shellOverflowY, 'visible');
+  assert.equal(adminHidden.bodyOverflowX, 'clip');
+  assert.equal(adminRevealed.primaryVisible, 'false');
+  assert.equal(adminRevealed.secondaryVisible, 'true');
+  assert.ok(adminRevealed.rect.bottom > 0, `Expected admin secondary bottom > 0, received ${adminRevealed.rect.bottom}`);
+  assert.ok(adminRevealed.rect.top < adminRevealed.innerHeight, `Expected admin secondary top < ${adminRevealed.innerHeight}, received ${adminRevealed.rect.top}`);
 
 } finally {
   client?.close();

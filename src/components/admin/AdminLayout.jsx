@@ -132,12 +132,13 @@ export default function AdminLayout({ children }) {
       <a href="#admin-main-content" className="skip-link">Skip to admin content</a>
       <aside
         data-admin-mobile-app-bar
+        data-mobile-visible={mobileVisible ? 'true' : 'false'}
         onFocusCapture={() => setHeaderFocused(true)}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setHeaderFocused(false);
         }}
         className={clsx(
-          'admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30 border-b border-white/[0.1] bg-zinc-950 px-3 pb-1 pt-[calc(0.75rem+env(safe-area-inset-top))] transition-[transform,opacity,background-color] duration-200 ease-out motion-reduce:transition-none lg:fixed lg:inset-y-0 lg:left-0 lg:right-auto lg:w-64 lg:translate-y-0 lg:opacity-100 lg:border-b-0 lg:border-r lg:bg-zinc-950 lg:p-3',
+          'admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30 border-b border-white/[0.1] bg-zinc-950 px-3 pb-1 pt-[calc(0.75rem+env(safe-area-inset-top))] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:fixed lg:inset-y-0 lg:left-0 lg:right-auto lg:w-64 lg:translate-y-0 lg:opacity-100 lg:border-b-0 lg:border-r lg:bg-zinc-950 lg:p-3',
           mobileVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0',
         )}
       >

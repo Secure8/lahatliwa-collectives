@@ -1018,6 +1018,11 @@ summary::-webkit-details-marker {
 .theme-navigation-surface { background-color: var(--theme-navigation-surface) !important; }
 
 @media (max-width: 1023px) {
+  :root {
+    --mobile-app-bar-hide-duration: 220ms;
+    --mobile-app-bar-show-duration: 180ms;
+  }
+
   .public-app-bar {
     padding-top: env(safe-area-inset-top);
     -webkit-backdrop-filter: blur(16px) saturate(1.08);
@@ -1069,6 +1074,24 @@ summary::-webkit-details-marker {
     box-shadow: 0 12px 35px rgb(0 0 0 / 0.18);
     -webkit-backdrop-filter: blur(16px) saturate(1.08);
     backdrop-filter: blur(16px) saturate(1.08);
+  }
+
+  [data-mobile-app-bar],
+  [data-admin-mobile-app-bar],
+  [data-creative-profile-back] {
+    will-change: transform, opacity;
+  }
+
+  [data-mobile-app-bar][data-mobile-visible="true"],
+  [data-admin-mobile-app-bar][data-mobile-visible="true"],
+  [data-creative-profile-back][data-mobile-visible="true"] {
+    transition-duration: var(--mobile-app-bar-show-duration);
+  }
+
+  [data-mobile-app-bar][data-mobile-visible="false"],
+  [data-admin-mobile-app-bar][data-mobile-visible="false"],
+  [data-creative-profile-back][data-mobile-visible="false"] {
+    transition-duration: var(--mobile-app-bar-hide-duration);
   }
 
   [data-creative-profile-back][data-mobile-visible="false"] {

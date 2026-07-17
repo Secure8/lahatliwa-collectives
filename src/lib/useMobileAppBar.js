@@ -1,18 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
-import { mobileAppBarVisibility } from './mobileAppShell';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createMobileAppBarScrollState, mobileAppBarVisibility } from './mobileAppShell';
 
 export default function useMobileAppBar({ locked = false, routeKey = '' } = {}) {
   const [visible, setVisible] = useState(true);
-  const lastYRef = useRef(0);
+  const scrollStateRef = useRef(createMobileAppBarScrollState());
   const frameRef = useRef(0);
 
-  useEffect(() => {
-    lastYRef.current = Math.max(0, window.scrollY || 0);
+  useLayoutEffect(() => {
+    scrollStateRef.current = createMobileAppBarScrollState({ lastY: window.scrollY || 0 });
     setVisible(true);
   }, [routeKey]);
 
   useEffect(() => {
-    if (locked) setVisible(true);
+    if (!locked) return;
+    scrollStateRef.current = createMobileAppBarScrollState({ lastY: window.scrollY || 0 });
+    setVisible(true);
   }, [locked]);
 
   useEffect(() => {
@@ -21,12 +23,11 @@ export default function useMobileAppBar({ locked = false, routeKey = '' } = {}) 
       frameRef.current = window.requestAnimationFrame(() => {
         frameRef.current = 0;
         const next = mobileAppBarVisibility({
-          currentVisible: visible,
-          lastY: lastYRef.current,
+          state: scrollStateRef.current,
           nextY: window.scrollY,
           locked,
         });
-        lastYRef.current = next.lastY;
+        scrollStateRef.current = next;
         setVisible(next.visible);
       });
     };
@@ -37,7 +38,7 @@ export default function useMobileAppBar({ locked = false, routeKey = '' } = {}) 
       if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
       frameRef.current = 0;
     };
-  }, [locked, visible]);
+  }, [locked]);
 
   return visible;
 }

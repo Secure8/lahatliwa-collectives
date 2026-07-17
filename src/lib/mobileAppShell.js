@@ -1,6 +1,9 @@
-export const MOBILE_APP_BAR_SCROLL_THRESHOLD = 12;
-export const MOBILE_APP_BAR_REVEAL_THRESHOLD = 3;
-export const MOBILE_APP_BAR_TOP_OFFSET = 24;
+export const MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY = 24;
+export const MOBILE_APP_BAR_SCROLL_JITTER_TOLERANCE = 4;
+export const MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD = 36;
+export const MOBILE_APP_BAR_SHOW_DISTANCE_THRESHOLD = 12;
+export const MOBILE_APP_BAR_HIDE_TRANSITION_DURATION = 220;
+export const MOBILE_APP_BAR_SHOW_TRANSITION_DURATION = 180;
 
 export const PUBLIC_PRIMARY_DESTINATIONS = [
   ['Home', '/'],
@@ -15,16 +18,41 @@ export function publicAppBarMode(pathname = '/') {
   return 'surface';
 }
 
-export function mobileAppBarVisibility({ currentVisible = true, lastY = 0, nextY = 0, locked = false, threshold = MOBILE_APP_BAR_SCROLL_THRESHOLD, revealThreshold = MOBILE_APP_BAR_REVEAL_THRESHOLD, topOffset = MOBILE_APP_BAR_TOP_OFFSET } = {}) {
+export function createMobileAppBarScrollState({ visible = true, lastY = 0 } = {}) {
+  return {
+    visible,
+    lastY: Math.max(0, Number(lastY) || 0),
+    direction: 0,
+    accumulatedDistance: 0,
+  };
+}
+
+export function mobileAppBarVisibility({ state, nextY = 0, locked = false, topVisibleBoundary = MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY, jitterTolerance = MOBILE_APP_BAR_SCROLL_JITTER_TOLERANCE, hideDistanceThreshold = MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD, showDistanceThreshold = MOBILE_APP_BAR_SHOW_DISTANCE_THRESHOLD } = {}) {
+  const previous = state || createMobileAppBarScrollState();
   const y = Math.max(0, Number(nextY) || 0);
-  const previousY = Math.max(0, Number(lastY) || 0);
 
-  if (locked || y <= topOffset) return { visible: true, lastY: y };
+  if (locked || y <= topVisibleBoundary) return createMobileAppBarScrollState({ visible: true, lastY: y });
 
-  const delta = y - previousY;
-  const directionThreshold = delta < 0 ? revealThreshold : threshold;
-  if (Math.abs(delta) < directionThreshold) return { visible: currentVisible, lastY: previousY };
-  return { visible: delta < 0, lastY: y };
+  const delta = y - previous.lastY;
+  const distance = Math.abs(delta);
+  if (distance < jitterTolerance) return { ...previous, lastY: y };
+
+  const direction = delta > 0 ? 1 : -1;
+  const accumulatedDistance = previous.direction === direction
+    ? previous.accumulatedDistance + distance
+    : distance;
+  const threshold = direction > 0 ? hideDistanceThreshold : showDistanceThreshold;
+
+  if (accumulatedDistance < threshold) {
+    return { ...previous, lastY: y, direction, accumulatedDistance };
+  }
+
+  return {
+    visible: direction < 0,
+    lastY: y,
+    direction,
+    accumulatedDistance: 0,
+  };
 }
 
 export function adminPageTitle(pathname = '', groups = []) {

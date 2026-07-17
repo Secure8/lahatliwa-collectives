@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { adminPageTitle, MOBILE_APP_BAR_REVEAL_THRESHOLD, mobileAppBarVisibility, PUBLIC_PRIMARY_DESTINATIONS, publicAppBarMode, publicDestinationIsActive } from './mobileAppShell.js';
+import { adminPageTitle, createMobileAppBarScrollState, MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD, MOBILE_APP_BAR_SCROLL_JITTER_TOLERANCE, MOBILE_APP_BAR_SHOW_DISTANCE_THRESHOLD, MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY, mobileAppBarVisibility, PUBLIC_PRIMARY_DESTINATIONS, publicAppBarMode, publicDestinationIsActive } from './mobileAppShell.js';
 
 test('public app bar uses overlay only for visual-first routes', () => {
   assert.equal(publicAppBarMode('/'), 'overlay');
@@ -11,14 +11,43 @@ test('public app bar uses overlay only for visual-first routes', () => {
   assert.equal(publicAppBarMode('/inquiry'), 'surface');
 });
 
-test('mobile app bar follows meaningful document scroll direction without reacting to jitter', () => {
-  assert.deepEqual(mobileAppBarVisibility({ currentVisible: true, lastY: 30, nextY: 36 }), { visible: true, lastY: 30 });
-  assert.deepEqual(mobileAppBarVisibility({ currentVisible: true, lastY: 30, nextY: 70 }), { visible: false, lastY: 70 });
-  assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 70, nextY: 50 }), { visible: true, lastY: 50 });
-  assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 70, nextY: 68 }), { visible: false, lastY: 70 });
-  assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 70, nextY: 70 - MOBILE_APP_BAR_REVEAL_THRESHOLD }), { visible: true, lastY: 70 - MOBILE_APP_BAR_REVEAL_THRESHOLD });
-  assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 50, nextY: 10 }), { visible: true, lastY: 10 });
-  assert.deepEqual(mobileAppBarVisibility({ currentVisible: false, lastY: 100, nextY: 130, locked: true }), { visible: true, lastY: 130 });
+test('mobile app bar follows accumulated scroll intent instead of raw direction changes', () => {
+  let state = createMobileAppBarScrollState({ lastY: 40 });
+  state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_SCROLL_JITTER_TOLERANCE - 1 });
+  assert.equal(state.visible, true);
+  assert.equal(state.accumulatedDistance, 0);
+
+  state = mobileAppBarVisibility({ state, nextY: 55 });
+  state = mobileAppBarVisibility({ state, nextY: 70 });
+  assert.equal(state.visible, true);
+  assert.equal(state.accumulatedDistance, 27);
+  state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD + 4 });
+  assert.equal(state.visible, false);
+  assert.equal(state.accumulatedDistance, 0);
+
+  state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD });
+  assert.equal(state.visible, false);
+  state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD - MOBILE_APP_BAR_SHOW_DISTANCE_THRESHOLD });
+  assert.equal(state.visible, true);
+
+  state = mobileAppBarVisibility({ state, nextY: MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY });
+  assert.equal(state.visible, true);
+  assert.equal(state.accumulatedDistance, 0);
+  assert.equal(state.direction, 0);
+  state = mobileAppBarVisibility({ state: { ...state, visible: false }, nextY: 0 });
+  assert.equal(state.visible, true);
+});
+
+test('mobile app bar resets accumulated intent on a meaningful direction change and interaction lock', () => {
+  let state = createMobileAppBarScrollState({ lastY: 100 });
+  state = mobileAppBarVisibility({ state, nextY: 118 });
+  assert.equal(state.accumulatedDistance, 18);
+  state = mobileAppBarVisibility({ state, nextY: 108 });
+  assert.equal(state.direction, -1);
+  assert.equal(state.accumulatedDistance, 10);
+  assert.equal(state.visible, true);
+  state = mobileAppBarVisibility({ state: { ...state, visible: false }, nextY: 140, locked: true });
+  assert.deepEqual(state, createMobileAppBarScrollState({ lastY: 140 }));
 });
 
 test('public top navigation is limited to five primary destinations with detail-route awareness', () => {
@@ -88,9 +117,11 @@ test('public and admin mobile app bars share direction-aware scroll behavior', a
   ]);
   assert.match(navbar, /useMobileAppBar/);
   assert.match(navbar, /data-mobile-app-bar/);
+  assert.match(navbar, /data-mobile-visible=\{mobileVisible \? 'true' : 'false'\}/);
   assert.match(navbar, /public-app-bar[\s\S]*?sticky inset-x-0 top-0/);
   assert.match(admin, /useMobileAppBar/);
   assert.match(admin, /data-admin-mobile-app-bar/);
+  assert.match(admin, /data-mobile-visible=\{mobileVisible \? 'true' : 'false'\}/);
   assert.match(admin, /admin-app-bar[\s\S]*?sticky inset-x-0 top-0[\s\S]*?lg:fixed/);
   assert.match(admin, /admin-app-content[\s\S]*?pt-4[\s\S]*?lg:pt-24/);
   assert.match(admin, /locked: mobileOpen \|\| headerFocused/);
@@ -99,6 +130,13 @@ test('public and admin mobile app bars share direction-aware scroll behavior', a
   assert.match(creative, /data-creative-profile-back/);
   assert.match(creative, /data-mobile-visible=\{mobileTopControlsVisible \? 'true' : 'false'\}/);
   assert.match(styles, /\[data-creative-profile-back\]\[data-mobile-visible="false"\][\s\S]*?opacity: 0;/);
+  assert.match(styles, /--mobile-app-bar-hide-duration: 220ms;/);
+  assert.match(styles, /--mobile-app-bar-show-duration: 180ms;/);
+  assert.match(styles, /will-change: transform, opacity;/);
+  assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: 0;/);
+  assert.match(navbar, /motion-reduce:transition-none/);
+  assert.match(admin, /motion-reduce:transition-none/);
+  assert.match(creative, /motion-reduce:transition-none/);
 });
 
 test('existing manifest remains install-ready without introducing a service worker', async () => {

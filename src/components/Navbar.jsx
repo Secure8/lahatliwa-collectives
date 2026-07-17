@@ -57,6 +57,7 @@ export default function Navbar() {
       <header
         data-mobile-app-bar
         data-mobile-app-bar-mode={mobileMode}
+        data-mobile-visible={mobileVisible ? 'true' : 'false'}
         onFocusCapture={() => {
           setHeaderFocused(true);
         }}
@@ -66,7 +67,7 @@ export default function Navbar() {
           }
         }}
         className={clsx(
-          'public-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-50 border-b border-white/[0.08] shadow-[0_10px_35px_rgba(0,0,0,0.12)] transition-[transform,opacity,background-color] duration-200 ease-out motion-reduce:transition-none lg:inset-x-auto lg:translate-y-0 lg:opacity-100 lg:bg-zinc-950/75 lg:backdrop-blur-xl',
+          'public-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-50 border-b border-white/[0.08] shadow-[0_10px_35px_rgba(0,0,0,0.12)] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:inset-x-auto lg:translate-y-0 lg:opacity-100 lg:bg-zinc-950/75 lg:backdrop-blur-xl',
           mobileMode === 'overlay' ? 'public-app-bar--overlay' : 'public-app-bar--surface',
           mobileVisible ? 'translate-y-0' : '-translate-y-full',
           'lg:sticky lg:z-40',

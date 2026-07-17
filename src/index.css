@@ -1043,7 +1043,7 @@ summary::-webkit-details-marker {
   }
 
   .public-app-content--surface {
-    padding-top: calc(6.75rem + env(safe-area-inset-top));
+    padding-top: 0;
   }
 
   .public-app-content--surface > .page-shell {
@@ -1051,7 +1051,7 @@ summary::-webkit-details-marker {
   }
 
   html.public-mode {
-    scroll-padding-top: calc(7.25rem + env(safe-area-inset-top));
+    scroll-padding-top: calc(4.5rem + env(safe-area-inset-top));
     scroll-padding-bottom: env(safe-area-inset-bottom);
   }
 
@@ -1069,6 +1069,12 @@ summary::-webkit-details-marker {
     box-shadow: 0 12px 35px rgb(0 0 0 / 0.18);
     -webkit-backdrop-filter: blur(16px) saturate(1.08);
     backdrop-filter: blur(16px) saturate(1.08);
+  }
+
+  [data-creative-profile-back][data-mobile-visible="false"] {
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-0.5rem);
   }
 
   .admin-shell [data-sticky-mobile-actions] {

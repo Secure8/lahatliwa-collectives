@@ -84,7 +84,7 @@ test('Storage keeps the committed brand palette, top navigation, and responsive 
   assert.doesNotMatch(storage, /(?:blue|cyan|teal|violet)-/);
   assert.match(storage, /grid gap-6/);
   assert.match(adminLayout, /data-admin-mobile-top-navigation/);
-  assert.match(adminLayout, /fixed inset-x-0 top-0/);
+  assert.match(adminLayout, /sticky inset-x-0 top-0[\s\S]*?lg:fixed/);
   assert.doesNotMatch(storage, /bottom-nav|data-admin-mobile-bottom/);
 });
 

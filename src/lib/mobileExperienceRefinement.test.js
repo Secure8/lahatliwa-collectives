@@ -43,7 +43,7 @@ test('public and admin mobile navigation identify the current page without clutt
   const adminLockLinks = [...navbar.matchAll(/<Link\s+to="\/admin\/dashboard"[\s\S]*?<\/Link>/g)].map((match) => match[0]);
   assert.equal(adminLockLinks.length, 2);
   adminLockLinks.forEach((link) => assert.doesNotMatch(link, /rounded-(?:xl|full)|border-white|bg-white/));
-  assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: calc\(6\.75rem \+ env\(safe-area-inset-top\)\)/);
+  assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: 0;/);
   assert.doesNotMatch(styles, /\.public-footer[\s\S]*?padding-bottom: calc\(4\.5rem \+ env\(safe-area-inset-bottom\)\)/);
 });
 
@@ -105,7 +105,7 @@ test('admin keeps stable role-aware navigation, compact dashboard rails, and a o
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
   ]);
   assert.match(admin, /groupLinks\.filter\(\(\[, , , canShow\]\) => canShow\(access\)\)/);
-  assert.match(admin, /admin-app-bar[\s\S]*?fixed inset-x-0 top-0/);
+  assert.match(admin, /admin-app-bar[\s\S]*?sticky inset-x-0 top-0[\s\S]*?lg:fixed/);
   assert.match(admin, /mobilePrimaryLinks/);
   assert.match(admin, /profileDestination/);
   assert.match(admin, /Open all admin sections/);

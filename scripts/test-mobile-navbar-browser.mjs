@@ -265,8 +265,8 @@ try {
     document.documentElement.style.setProperty('--mobile-app-bar-show-duration', '0ms');
     document.documentElement.style.setProperty('--mobile-app-bar-hide-duration', '0ms');
     document.body.innerHTML = \`<div class="admin-shell min-h-screen text-white">
-      <aside data-admin-mobile-app-bar data-mobile-visible="false" class="admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30">
-        <div data-admin-mobile-primary data-mobile-visible="false" class="admin-app-bar__primary theme-navigation-surface relative z-10 px-3 pb-1 pt-[calc(0.75rem+env(safe-area-inset-top))] transition-[transform,opacity,background-color]">
+      <aside data-admin-mobile-app-bar data-mobile-visible="false" class="admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30" style="--admin-mobile-safe-area-top: 24px">
+        <div data-admin-mobile-primary data-mobile-visible="false" class="admin-app-bar__primary theme-navigation-surface relative z-10 px-3 pb-1 pt-[calc(0.75rem+var(--admin-mobile-safe-area-top))] transition-[transform,opacity,background-color]">
           <div class="h-10"></div>
         </div>
         <nav data-admin-mobile-secondary data-mobile-visible="false" data-primary-visible="false" class="admin-app-bar__secondary theme-navigation-surface relative z-20 border-b border-white/[0.08] transition-[transform,opacity,background-color]">
@@ -313,6 +313,7 @@ try {
       rect: { top: rect.top, bottom: rect.bottom, height: rect.height },
       transform: getComputedStyle(secondary).transform,
       opacity: getComputedStyle(secondary).opacity,
+      backgroundColor: getComputedStyle(secondary).backgroundColor,
     };
   })()`);
 
@@ -320,12 +321,16 @@ try {
   assert.equal(adminHidden.headerBackdropFilter, 'none');
   assert.equal(adminHidden.headerPosition, 'sticky');
   assert.equal(adminHidden.headerRect.top, 0);
+  assert.equal(adminHidden.rect.bottom, 0);
   assert.equal(adminHidden.shellOverflowX, 'visible');
   assert.equal(adminHidden.shellOverflowY, 'visible');
   assert.equal(adminHidden.bodyOverflowX, 'clip');
   assert.equal(adminRevealed.primaryVisible, 'false');
   assert.equal(adminRevealed.secondaryVisible, 'true');
+  const adminBackgroundAlpha = Number(adminRevealed.backgroundColor.match(/,\s*([\d.]+)\)$/)?.[1] ?? 1);
+  assert.ok(adminBackgroundAlpha >= 0.98, `Expected admin navbar opacity >= 0.98, received ${adminRevealed.backgroundColor}`);
   assert.ok(adminRevealed.rect.bottom > 0, `Expected admin secondary bottom > 0, received ${adminRevealed.rect.bottom}`);
+  assert.equal(adminRevealed.rect.top, 0);
   assert.ok(adminRevealed.rect.top < adminRevealed.innerHeight, `Expected admin secondary top < ${adminRevealed.innerHeight}, received ${adminRevealed.rect.top}`);
 
 } finally {

@@ -146,7 +146,7 @@ export default function AdminLayout({ children }) {
         <div
           data-admin-mobile-primary
           data-mobile-visible={isPrimaryHeaderVisible ? 'true' : 'false'}
-          className="admin-app-bar__primary theme-navigation-surface relative z-10 px-3 pb-1 pt-[calc(0.75rem+env(safe-area-inset-top))] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:h-full lg:translate-y-0 lg:p-0 lg:opacity-100"
+          className="admin-app-bar__primary theme-navigation-surface relative z-10 px-3 pb-1 pt-[calc(0.75rem+var(--admin-mobile-safe-area-top))] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:h-full lg:translate-y-0 lg:p-0 lg:opacity-100"
         >
           <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
           <Link to="/admin/dashboard" preventScrollReset className="flex min-w-0 items-center gap-3 lg:border-b lg:border-white/[0.08] lg:px-2 lg:pb-3" aria-label={`${content.displayName} admin dashboard`}>

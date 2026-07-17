@@ -1031,11 +1031,12 @@ summary::-webkit-details-marker {
   }
 
   .public-app-bar {
+    --public-mobile-safe-area-top: env(safe-area-inset-top);
     padding-top: 0;
   }
 
   [data-public-mobile-primary] {
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--public-mobile-safe-area-top);
     -webkit-backdrop-filter: blur(16px) saturate(1.08);
     backdrop-filter: blur(16px) saturate(1.08);
   }
@@ -1046,20 +1047,20 @@ summary::-webkit-details-marker {
   }
 
   .theme-navigation-surface.public-app-bar--surface {
-    background-color: rgb(9 9 11 / 0.9) !important;
+    background-color: rgb(9 9 11 / 0.985) !important;
   }
 
   .theme-navigation-surface.public-app-bar--overlay {
-    background-color: rgb(9 9 11 / 0.54) !important;
+    background-color: rgb(9 9 11 / 0.985) !important;
     border-color: rgb(255 255 255 / 0.12) !important;
   }
 
   [data-theme="light"] .theme-navigation-surface.public-app-bar--surface {
-    background-color: rgb(250 247 240 / 0.92) !important;
+    background-color: rgb(245 241 232 / 0.985) !important;
   }
 
   [data-theme="light"] .theme-navigation-surface.public-app-bar--overlay {
-    background-color: rgb(250 247 240 / 0.62) !important;
+    background-color: rgb(245 241 232 / 0.985) !important;
     border-color: rgb(39 39 42 / 0.14) !important;
   }
 
@@ -1095,7 +1096,7 @@ summary::-webkit-details-marker {
 
   .theme-navigation-surface.admin-app-bar__primary,
   .theme-navigation-surface.admin-app-bar__secondary {
-    background: rgb(24 24 27 / 0.985) !important;
+    background: rgb(9 9 11 / 0.985) !important;
     box-shadow: 0 12px 35px rgb(0 0 0 / 0.18);
     -webkit-backdrop-filter: blur(16px) saturate(1.08);
     backdrop-filter: blur(16px) saturate(1.08);
@@ -1103,7 +1104,7 @@ summary::-webkit-details-marker {
 
   [data-theme="light"] .theme-navigation-surface.admin-app-bar__primary,
   [data-theme="light"] .theme-navigation-surface.admin-app-bar__secondary {
-    background: rgb(255 253 248 / 0.985) !important;
+    background: rgb(245 241 232 / 0.985) !important;
   }
 
   [data-mobile-app-bar],
@@ -1128,11 +1129,11 @@ summary::-webkit-details-marker {
   [data-public-mobile-secondary][data-mobile-visible="false"] {
     pointer-events: none;
     opacity: 0;
-    transform: translateY(calc(-100% - 3.5rem - env(safe-area-inset-top)));
+    transform: translateY(calc(-100% - 3.5rem - var(--public-mobile-safe-area-top)));
   }
 
   [data-public-mobile-secondary][data-mobile-visible="true"][data-primary-visible="false"] {
-    transform: translateY(-3.5rem);
+    transform: translateY(calc(-3.5rem - var(--public-mobile-safe-area-top)));
   }
 
   [data-admin-mobile-primary][data-mobile-visible="false"] {

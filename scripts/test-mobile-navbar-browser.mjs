@@ -201,6 +201,7 @@ try {
   await client.send('Page.reload', { ignoreCache: true });
   await waitForNavbar(client);
   await waitForScrollablePage(client);
+  await evaluate(client, `document.querySelector('[data-mobile-app-bar]').style.setProperty('--public-mobile-safe-area-top', '24px')`);
   await delay(100);
 
   await evaluate(client, 'window.scrollTo(0, 450)');
@@ -251,6 +252,7 @@ try {
   assert.ok(after.rect.top < after.innerHeight, `Expected secondary top < ${after.innerHeight}, received ${after.rect.top}`);
   assert.equal(after.headerPosition, 'sticky');
   assert.equal(after.headerRect.top, 0);
+  assert.equal(after.rect.top, 0);
   assert.equal(after.bodyOverflowX, 'clip');
   assert.equal(continuingUp.primaryVisible, 'false');
   assert.equal(continuingUp.secondaryVisible, 'true');
@@ -259,6 +261,32 @@ try {
   assert.equal(hiddenAgain.secondaryVisible, 'false');
   assert.equal(nearTop.primaryVisible, 'true');
   assert.equal(nearTop.secondaryVisible, 'true');
+
+  const themePointerTarget = await evaluate(client, `(() => {
+    const button = document.querySelector('[data-public-mobile-primary] button[aria-label*="Mode"]');
+    const rect = button.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, before: document.documentElement.dataset.theme };
+  })()`);
+  await client.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: themePointerTarget.x, y: themePointerTarget.y, button: 'left', clickCount: 1 });
+  await client.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: themePointerTarget.x, y: themePointerTarget.y, button: 'left', clickCount: 1 });
+  await delay(300);
+  const themeAfterClick = await evaluate(client, `({
+    theme: document.documentElement.dataset.theme,
+    focusInsideHeader: document.querySelector('[data-mobile-app-bar]').contains(document.activeElement),
+  })`);
+  await evaluate(client, 'window.scrollTo(0, 450)');
+  await delay(100);
+  await evaluate(client, 'window.scrollTo(0, 900)');
+  await delay(300);
+  const afterThemeScroll = await evaluate(client, `(() => {
+    const primary = document.querySelector('[data-public-mobile-primary]');
+    const secondary = document.querySelector('[data-public-mobile-secondary]');
+    return { primaryVisible: primary.dataset.mobileVisible, secondaryVisible: secondary.dataset.mobileVisible };
+  })()`);
+  assert.notEqual(themeAfterClick.theme, themePointerTarget.before);
+  assert.equal(themeAfterClick.focusInsideHeader, false);
+  assert.equal(afterThemeScroll.primaryVisible, 'false');
+  assert.equal(afterThemeScroll.secondaryVisible, 'false');
 
   await evaluate(client, `(() => {
     document.documentElement.className = 'admin-mode';

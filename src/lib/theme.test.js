@@ -89,6 +89,8 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.match(provider, /\[\{ opacity: 0\.82 \}, \{ opacity: 1 \}\]/);
   assert.match(toggle, /theme-toggle__icon theme-switch-icon/);
   assert.match(appearance, /className="theme-switch-icon"/);
+  assert.match(appearance, /const focusVisible = element\.matches\(':focus-visible'\)/);
+  assert.match(appearance, /if \(!focusVisible\) element\.blur\(\)/);
   assert.match(navbar, /AppearanceMenuAction/);
   assert.match(css, /@keyframes theme-switch-icon-in[\s\S]*?rotate\(-18deg\) scale\(0\.78\)/);
   assert.match(toggle, /type="button"/);

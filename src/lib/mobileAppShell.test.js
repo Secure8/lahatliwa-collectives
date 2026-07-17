@@ -152,11 +152,12 @@ test('public and admin drawers provide modal keyboard behavior while mobile them
 });
 
 test('public and admin mobile app bars share direction-aware scroll behavior', async () => {
-  const [navbar, admin, creative, styles] = await Promise.all([
+  const [navbar, admin, creative, styles, index] = await Promise.all([
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/CreativeDetails.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
+    readFile(new URL('../../index.html', import.meta.url), 'utf8'),
   ]);
   assert.match(navbar, /useMobileAppBar/);
   assert.match(navbar, /data-mobile-app-bar/);
@@ -186,16 +187,18 @@ test('public and admin mobile app bars share direction-aware scroll behavior', a
   assert.match(styles, /--mobile-app-bar-hide-duration: 220ms;/);
   assert.match(styles, /--mobile-app-bar-show-duration: 180ms;/);
   assert.match(styles, /will-change: transform, opacity;/);
-  assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="true"\]\[data-primary-visible="false"\][\s\S]*?translateY\(-3\.5rem\)/);
+  assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="true"\]\[data-primary-visible="false"\][\s\S]*?translateY\(calc\(-3\.5rem - var\(--public-mobile-safe-area-top\)\)\)/);
   assert.match(styles, /\[data-admin-mobile-secondary\]\[data-mobile-visible="true"\]\[data-primary-visible="false"\][\s\S]*?translateY\(calc\(-3\.5rem - var\(--admin-mobile-safe-area-top\)\)\)/);
   assert.match(styles, /\[data-public-mobile-primary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(-100%\)/);
   assert.match(styles, /\[data-admin-mobile-primary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(-100%\)/);
-  assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(calc\(-100% - 3\.5rem - env\(safe-area-inset-top\)\)\)/);
+  assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(calc\(-100% - 3\.5rem - var\(--public-mobile-safe-area-top\)\)\)/);
   assert.match(styles, /html\.public-mode,\s*html\.public-mode body,\s*html\.admin-mode,\s*html\.admin-mode body\s*\{\s*overflow-x: clip;/);
   assert.doesNotMatch(styles, /\.public-app-bar\s*\{\s*padding-top: 0;\s*(?:-webkit-)?backdrop-filter:/);
   assert.match(styles, /\.admin-app-bar\s*\{[\s\S]*?backdrop-filter: none;/);
-  assert.match(styles, /\.theme-navigation-surface\.admin-app-bar__primary,[\s\S]*?background: rgb\(24 24 27 \/ 0\.985\)/);
-  assert.match(styles, /\[data-theme="light"\] \.theme-navigation-surface\.admin-app-bar__primary,[\s\S]*?background: rgb\(255 253 248 \/ 0\.985\)/);
+  assert.match(styles, /\.theme-navigation-surface\.public-app-bar--surface[\s\S]*?background-color: rgb\(9 9 11 \/ 0\.985\)/);
+  assert.match(styles, /\.theme-navigation-surface\.admin-app-bar__primary,[\s\S]*?background: rgb\(9 9 11 \/ 0\.985\)/);
+  assert.match(styles, /\[data-theme="light"\] \.theme-navigation-surface\.admin-app-bar__primary,[\s\S]*?background: rgb\(245 241 232 \/ 0\.985\)/);
+  assert.match(index, /name="viewport" content="width=device-width, initial-scale=1\.0, viewport-fit=cover"/);
   assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: 0;/);
   assert.match(navbar, /motion-reduce:transition-none/);
   assert.match(admin, /motion-reduce:transition-none/);

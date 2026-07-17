@@ -69,7 +69,7 @@ export default function AdminLayout({ children }) {
   const moreIsActive = !mobilePrimaryLinks.some(([, href]) => primaryRouteIsActive(href));
   const morePageLabel = compactMobilePageLabels[currentPageTitle] || currentPageTitle;
   const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
-  const mobileVisible = useMobileAppBar({ locked: mobileOpen || headerFocused, routeKey: `${location.pathname}${location.search}` });
+  const mobileVisible = useMobileAppBar({ locked: mobileOpen || headerFocused, routeKey: `${location.pathname}${location.search}` }).visible;
   const { panelRef, triggerRef } = useModalDrawer({ open: mobileOpen, onClose: closeMobileMenu });
 
   useEffect(() => {

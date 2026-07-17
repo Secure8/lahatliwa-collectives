@@ -13,7 +13,7 @@ export default function CreativeDetails() {
   const location = useLocation(); const navigate = useNavigate();
   const { slug } = useParams();
   const [topControlsVisible, setTopControlsVisible] = useState(false);
-  const mobileTopControlsVisible = useMobileAppBar({ locked: topControlsVisible, routeKey: `${location.pathname}${location.search}` });
+  const mobileTopControlsVisible = useMobileAppBar({ locked: topControlsVisible, routeKey: `${location.pathname}${location.search}` }).visible;
   const [creative, setCreative] = useState(null);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);

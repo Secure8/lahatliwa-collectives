@@ -1,20 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createMobileAppBarScrollState, mobileAppBarVisibility } from './mobileAppShell';
+import { createMobileAppBarScrollState, MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY, mobileAppBarVisibility } from './mobileAppShell';
 
 export default function useMobileAppBar({ locked = false, routeKey = '' } = {}) {
-  const [visible, setVisible] = useState(true);
+  const [visibility, setVisibility] = useState(() => createMobileAppBarScrollState());
   const scrollStateRef = useRef(createMobileAppBarScrollState());
   const frameRef = useRef(0);
 
   useLayoutEffect(() => {
     scrollStateRef.current = createMobileAppBarScrollState({ lastY: window.scrollY || 0 });
-    setVisible(true);
+    setVisibility(scrollStateRef.current);
   }, [routeKey]);
 
   useEffect(() => {
     if (!locked) return;
-    scrollStateRef.current = createMobileAppBarScrollState({ lastY: window.scrollY || 0 });
-    setVisible(true);
+    scrollStateRef.current = createMobileAppBarScrollState({
+      lastY: window.scrollY || 0,
+      primaryVisible: scrollStateRef.current.primaryVisible || (window.scrollY || 0) <= MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY,
+    });
+    setVisibility(scrollStateRef.current);
   }, [locked]);
 
   useEffect(() => {
@@ -28,7 +31,7 @@ export default function useMobileAppBar({ locked = false, routeKey = '' } = {}) 
           locked,
         });
         scrollStateRef.current = next;
-        setVisible(next.visible);
+        setVisibility(next);
       });
     };
 
@@ -40,5 +43,5 @@ export default function useMobileAppBar({ locked = false, routeKey = '' } = {}) 
     };
   }, [locked]);
 
-  return visible;
+  return visibility;
 }

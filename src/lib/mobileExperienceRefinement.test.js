@@ -67,16 +67,18 @@ test('mobile Home keeps bounded preview rails and the shared page footer', async
 });
 
 test('inquiry step changes target the workflow shell and never force the document to page top', async () => {
-  const [form, hook] = await Promise.all([
+  const [form, hook, progressive] = await Promise.all([
     readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
     readFile(new URL('./useStepScroll.js', import.meta.url), 'utf8'),
+    readFile(new URL('./useProgressiveNavigation.js', import.meta.url), 'utf8'),
   ]);
   assert.match(form, /ref=\{inquiryContainerRef\}/);
   assert.match(form, /useStepScroll\(\{ containerRef: inquiryContainerRef, request: stepScrollRequest \}\)/);
   assert.doesNotMatch(form, /window\.scrollTo\(\{ top: 0/);
-  assert.match(hook, /scrollIntoView\(\{ behavior: motionSafeScrollBehavior\(\), block: 'start' \}\)/);
-  assert.match(hook, /prefers-reduced-motion: reduce/);
-  assert.match(hook, /alreadyPositioned/);
+  assert.match(hook, /scheduleProgressiveNavigation/);
+  assert.match(progressive, /prefers-reduced-motion: reduce/);
+  assert.match(progressive, /targetIsComfortablyVisible/);
+  assert.match(progressive, /window\.addEventListener\('wheel', interrupt/);
   assert.match(form, /data-inquiry-field/);
   assert.match(form, /focus\(\{ preventScroll: true \}\)/);
   assert.match(form, /role="progressbar"/);

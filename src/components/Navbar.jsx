@@ -37,7 +37,9 @@ export default function Navbar() {
   const secondaryRouteIsActive = Boolean(secondaryDestination);
   const secondaryPageLabel = secondaryDestination?.[0] || 'More';
   const closeMenu = useCallback(() => setOpen(false), []);
-  const mobileVisible = useMobileAppBar({ locked: open || headerFocused, routeKey: `${location.pathname}${location.search}` });
+  const mobileAppBar = useMobileAppBar({ locked: open || headerFocused, routeKey: `${location.pathname}${location.search}` });
+  const isPrimaryHeaderVisible = mobileAppBar.primaryVisible;
+  const isSecondaryNavVisible = mobileAppBar.visible;
   const { panelRef, triggerRef } = useModalDrawer({ open, onClose: closeMenu });
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function Navbar() {
       <header
         data-mobile-app-bar
         data-mobile-app-bar-mode={mobileMode}
-        data-mobile-visible={mobileVisible ? 'true' : 'false'}
+        data-mobile-visible={isSecondaryNavVisible ? 'true' : 'false'}
         onFocusCapture={() => {
           setHeaderFocused(true);
         }}
@@ -67,12 +69,10 @@ export default function Navbar() {
           }
         }}
         className={clsx(
-          'public-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-50 border-b border-white/[0.08] shadow-[0_10px_35px_rgba(0,0,0,0.12)] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:inset-x-auto lg:translate-y-0 lg:opacity-100 lg:bg-zinc-950/75 lg:backdrop-blur-xl',
-          mobileMode === 'overlay' ? 'public-app-bar--overlay' : 'public-app-bar--surface',
-          mobileVisible ? 'translate-y-0' : '-translate-y-full',
-          'lg:sticky lg:z-40',
+        'public-app-bar sticky inset-x-0 top-0 z-50 lg:sticky lg:z-40 lg:inset-x-auto',
         )}
       >
+        <div data-public-mobile-primary data-mobile-visible={isPrimaryHeaderVisible ? 'true' : 'false'} className={clsx('public-app-bar__primary theme-navigation-surface relative z-10 transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:translate-y-0 lg:opacity-100 lg:border-b lg:border-white/[0.08] lg:bg-zinc-950/75 lg:shadow-[0_10px_35px_rgba(0,0,0,0.12)] lg:backdrop-blur-xl', mobileMode === 'overlay' ? 'public-app-bar--overlay' : 'public-app-bar--surface')}>
         <nav className="page-shell flex min-h-14 items-center justify-between gap-3 lg:min-h-16" aria-label="Primary navigation">
           <Link to="/" onClick={avoidDuplicateNavigation('/')} className="group flex min-h-11 min-w-0 items-center gap-3" aria-label={`${content.displayName} home`}>
             {content.logoUrl ? (
@@ -128,7 +128,10 @@ export default function Navbar() {
             </button>
           </div>
         </nav>
-        <MobileTopNavigation />
+        </div>
+        <div data-public-mobile-secondary data-mobile-visible={isSecondaryNavVisible ? 'true' : 'false'} data-primary-visible={isPrimaryHeaderVisible ? 'true' : 'false'} className={clsx('public-app-bar__secondary theme-navigation-surface relative z-20 border-b border-white/[0.08] shadow-[0_10px_35px_rgba(0,0,0,0.12)] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:hidden', mobileMode === 'overlay' ? 'public-app-bar--overlay' : 'public-app-bar--surface')}>
+          <MobileTopNavigation />
+        </div>
       </header>
 
       {open && (

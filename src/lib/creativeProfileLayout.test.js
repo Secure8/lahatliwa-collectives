@@ -111,7 +111,7 @@ test('creative profiles use the same desktop navbar while mobile controls remain
   const styles = await readFile(new URL('../index.css', import.meta.url), 'utf8');
 
   assert.match(navbar, /publicAppBarMode\(location\.pathname\)/);
-  assert.match(navbar, /'lg:sticky lg:z-40'/);
+  assert.match(navbar, /'public-app-bar sticky[\s\S]*?lg:sticky lg:z-40/);
   assert.doesNotMatch(navbar, /creative-profile-navigation|lg:fixed lg:inset-x-0/);
   assert.match(navbar, /min-h-14 items-center justify-between gap-3 lg:min-h-16/);
   assert.match(navbar, /content\.logoUrl[\s\S]*?<BrandLogo/);
@@ -124,10 +124,11 @@ test('creative profiles use the same desktop navbar while mobile controls remain
 
   assert.match(styles, /@media \(max-width: 1023px\)[\s\S]*?\.theme-navigation-surface\.public-app-bar--overlay/);
   assert.doesNotMatch(styles, /creative-profile-navigation/);
-  assert.match(navbar, /lg:bg-zinc-950\/75 lg:backdrop-blur-xl/);
+  assert.match(navbar, /lg:bg-zinc-950\/75[\s\S]*?lg:backdrop-blur-xl/);
   assert.match(styles, /@media \(min-width: 1024px\)[\s\S]*?html,[\s\S]*?body \{[\s\S]*?overflow-x: clip/);
-  assert.match(styles, /@media \(min-width: 1024px\)[\s\S]*?\.public-app-bar[\s\S]*?min-height: 4rem;[\s\S]*?transform: translateY\(0\) !important/);
-  assert.match(styles, /\.public-app-bar > nav[\s\S]*?min-height: 4rem/);
+  assert.match(styles, /@media \(min-width: 1024px\)[\s\S]*?\.public-app-bar[\s\S]*?min-height: 4rem/);
+  assert.match(navbar, /data-public-mobile-primary[\s\S]*?lg:translate-y-0/);
+  assert.match(styles, /\.public-app-bar \[data-public-mobile-primary\] > nav[\s\S]*?min-height: 4rem/);
 });
 
 test('profile hero upload retains large-image quality limits', async () => {

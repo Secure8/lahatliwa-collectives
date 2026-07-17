@@ -118,8 +118,8 @@ function BranchWorkspace({ branch, content }) {
     </section>
     {branch.key === 'tech' && <p className="py-4 text-xs leading-6 text-zinc-500">On-site support depends on location, schedule, safety, and the availability of an appropriate support option.</p>}
 
-    <div className="mt-8 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-      {branch.services.map((service) => <Link key={service.key} to={inquiryUrl({ branch: branch.key, service: service.key })} state={inquiryNavigationState({ branch: branch.key, service: service.key })} aria-label={`Choose ${service.name} for ${branch.label}`} className="mobile-service-card group grid min-h-40 content-between border border-white/[0.09] bg-white/[0.012] p-5 transition hover:border-orange-300/45 hover:bg-orange-300/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
+    <div data-flow-step="category" className="mt-8 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+      {branch.services.map((service) => <Link key={service.key} data-flow-step="service" to={inquiryUrl({ branch: branch.key, service: service.key })} state={inquiryNavigationState({ branch: branch.key, service: service.key })} aria-label={`Choose ${service.name} for ${branch.label}`} className="mobile-service-card group grid min-h-40 content-between border border-white/[0.09] bg-white/[0.012] p-5 transition hover:border-orange-300/45 hover:bg-orange-300/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
         <div><p className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">Service category</p><h2 className="mt-4 text-xl font-medium text-white">{service.name}</h2></div>
         <span className="mt-7 inline-flex min-h-11 items-center gap-2 border-b border-white/[0.16] text-sm text-zinc-300 transition group-hover:border-orange-300/55 group-hover:text-orange-200">Choose {service.name}<ArrowRight size={15} /></span>
       </Link>)}

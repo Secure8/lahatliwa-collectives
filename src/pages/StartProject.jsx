@@ -9,6 +9,7 @@ import { usePublicContent } from '../lib/contentApi';
 import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, changeInquiryBranchSelection, emptyInquiryDraft, INQUIRY_DRAFT_KEY, INQUIRY_SELECTION_STEP, INQUIRY_SPECIALIST_STEP, inquiryCopy, mergeInquiryContext, resolveInquiryEntry, safeInquiryDraft, SERVICE_BRANCHES, serviceCategoriesForBranch, validateInquiryStep } from '../lib/serviceRequest';
 import { supabase } from '../lib/supabaseClient';
 import useStepScroll, { motionSafeScrollBehavior } from '../lib/useStepScroll';
+import useProgressiveNavigation from '../lib/useProgressiveNavigation';
 
 const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
 const contactMethods = ['Email', 'Phone', 'Facebook / Messenger', 'WhatsApp', 'Other'];
@@ -65,6 +66,9 @@ export default function StartProject() {
   const [submitting, setSubmitting] = useState(false);
   const stepHeadingRef = useRef(null);
   const inquiryContainerRef = useRef(null);
+  const serviceCategoryRef = useRef(null);
+  const recipientSelectionRef = useRef('');
+  const { navigateToNextStep } = useProgressiveNavigation({ routeKey: location.key });
   useStepScroll({ containerRef: inquiryContainerRef, request: stepScrollRequest });
 
   useEffect(() => {
@@ -167,10 +171,27 @@ export default function StartProject() {
   }
 
   function selectBranch(branch) {
+    if (draft.branch === branch) return;
     setDraft((current) => changeInquiryBranchSelection(current, branch));
+    recipientSelectionRef.current = '';
     setErrors({});
     setSubmitError('');
     setNotice('');
+    navigateToNextStep({ targetRef: serviceCategoryRef, selectionKey: `branch:${branch}` });
+  }
+
+  function selectService(serviceKey) {
+    if (draft.serviceKey === serviceKey) return;
+    update('serviceKey', serviceKey);
+    recipientSelectionRef.current = '';
+    moveToStep(INQUIRY_SPECIALIST_STEP);
+  }
+
+  function selectRecipient(creativeSlug) {
+    if (draft.creativeSlug === creativeSlug && recipientSelectionRef.current === creativeSlug) return;
+    update('creativeSlug', creativeSlug);
+    recipientSelectionRef.current = creativeSlug;
+    moveToStep(INQUIRY_SPECIALIST_STEP + 1);
   }
 
   function changeSelection() {
@@ -260,8 +281,8 @@ export default function StartProject() {
         {choiceLoadError && <div role="status" className="mb-6 flex items-start gap-3 border-y border-amber-300/20 bg-amber-300/[0.05] px-3 py-3 text-sm leading-6 text-amber-100"><CircleAlert size={17} className="mt-0.5 shrink-0" />{choiceLoadError}</div>}
         {notice && <div role="status" className="mb-6 flex items-start gap-3 border-y border-amber-300/20 bg-amber-300/[0.05] px-3 py-3 text-sm leading-6 text-amber-100"><CircleAlert size={17} className="mt-0.5 shrink-0" />{notice}</div>}
 
-        {step === 0 && <ServiceStep draft={draft} branches={branches} availableServices={availableServices} update={update} selectBranch={selectBranch} loading={loadingChoices} errors={errors} copy={copy} />}
-        {step === 1 && <RecipientStep creatives={creatives} selected={draft.creativeSlug} update={update} loading={loadingChoices} error={errors.creativeSlug} copy={copy} />}
+        {step === 0 && <ServiceStep draft={draft} branches={branches} availableServices={availableServices} selectBranch={selectBranch} selectService={selectService} serviceCategoryRef={serviceCategoryRef} loading={loadingChoices} errors={errors} copy={copy} />}
+        {step === 1 && <RecipientStep creatives={creatives} selected={draft.creativeSlug} selectRecipient={selectRecipient} loading={loadingChoices} error={errors.creativeSlug} copy={copy} />}
         {step === 2 && <DetailsStep draft={draft} update={update} updateBranchDetails={updateBranchDetails} errors={errors} copy={copy} />}
         {step === 3 && <ContactStep draft={draft} update={update} errors={errors} copy={copy} />}
         {step === 4 && <ReviewStep draft={draft} branch={selectedBranch} service={selectedService} creative={selectedCreative} copy={copy} />}
@@ -299,14 +320,14 @@ function StepProgress({ current, steps }) {
   </>;
 }
 
-function ServiceStep({ draft, branches, availableServices, update, selectBranch, loading, errors, copy }) {
+function ServiceStep({ draft, branches, availableServices, selectBranch, selectService, serviceCategoryRef, loading, errors, copy }) {
   if (loading) return <LoadingState label="Loading available services" compact />;
   const availableKeys = new Set(branches.map(branchKeyFromRecord));
-  return <div className="grid gap-8"><ChoiceGroup fieldKey="branch" legend="Choose a Liwa branch" error={errors.branch}><div className="mt-4 grid gap-3 sm:grid-cols-2">{[...SERVICE_BRANCHES.filter((branch) => availableKeys.has(branch.key)), branchMeta('general')].map((branch) => <ChoiceButton key={branch.key} selected={draft.branch === branch.key} onClick={() => selectBranch(branch.key)} title={branch.label} detail={branch.description} />)}</div></ChoiceGroup>{draft.branch && <ChoiceGroup fieldKey="serviceKey" legend={copy.serviceSelectionHeading} error={errors.serviceKey}><p className="mt-2 text-sm leading-6 text-zinc-400">{copy.serviceSelectionDescription}</p><p className="mt-2 text-xs leading-5 text-zinc-600">{copy.serviceHelper}</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{availableServices.map((service) => <ChoiceButton key={service.key} selected={draft.serviceKey === service.key} onClick={() => update('serviceKey', service.key)} title={service.name} compact />)}</div></ChoiceGroup>}</div>;
+  return <div className="grid gap-8"><ChoiceGroup fieldKey="branch" legend="Choose a Liwa branch" error={errors.branch}><div data-flow-step="branch" className="mt-4 grid gap-3 sm:grid-cols-2">{[...SERVICE_BRANCHES.filter((branch) => availableKeys.has(branch.key)), branchMeta('general')].map((branch) => <ChoiceButton key={branch.key} selected={draft.branch === branch.key} onClick={() => selectBranch(branch.key)} title={branch.label} detail={branch.description} />)}</div></ChoiceGroup>{draft.branch && <div ref={serviceCategoryRef} data-flow-step="category" aria-live="polite"><ChoiceGroup fieldKey="serviceKey" legend={copy.serviceSelectionHeading} error={errors.serviceKey}><p className="mt-2 text-sm leading-6 text-zinc-400">{copy.serviceSelectionDescription}</p><p className="mt-2 text-xs leading-5 text-zinc-600">{copy.serviceHelper}</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{availableServices.map((service) => <ChoiceButton key={service.key} selected={draft.serviceKey === service.key} onClick={() => selectService(service.key)} title={service.name} compact />)}</div></ChoiceGroup></div>}</div>;
 }
 
-function RecipientStep({ creatives, selected, update, loading, error, copy }) {
-  return <ChoiceGroup fieldKey="creativeSlug" legend={copy.recipientLegend} error={error}><p className="mt-2 text-sm leading-6 text-zinc-500">{copy.recipientHelper}</p><div className="mt-5 grid gap-3 sm:grid-cols-2"><ChoiceButton selected={!selected} onClick={() => update('creativeSlug', '')} title={copy.teamOption} detail={copy.teamOptionDetail} icon={<UserRound size={17} />} />{!loading && creatives.map((creative) => <ChoiceButton key={creative.id} selected={selected === creative.slug} onClick={() => update('creativeSlug', creative.slug)} title={creative.name} detail={copy.recipientLabel} image={creative.profile_image_url} />)}</div></ChoiceGroup>;
+function RecipientStep({ creatives, selected, selectRecipient, loading, error, copy }) {
+  return <div data-flow-step="specialist"><ChoiceGroup fieldKey="creativeSlug" legend={copy.recipientLegend} error={error}><p className="mt-2 text-sm leading-6 text-zinc-500">{copy.recipientHelper}</p><div className="mt-5 grid gap-3 sm:grid-cols-2"><ChoiceButton selected={!selected} onClick={() => selectRecipient('')} title={copy.teamOption} detail={copy.teamOptionDetail} icon={<UserRound size={17} />} />{!loading && creatives.map((creative) => <ChoiceButton key={creative.id} selected={selected === creative.slug} onClick={() => selectRecipient(creative.slug)} title={creative.name} detail={copy.recipientLabel} image={creative.profile_image_url} />)}</div></ChoiceGroup></div>;
 }
 
 function DetailsStep({ draft, update, updateBranchDetails, errors, copy }) {

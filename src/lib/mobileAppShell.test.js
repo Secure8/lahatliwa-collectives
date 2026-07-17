@@ -23,15 +23,18 @@ test('mobile app bar follows accumulated scroll intent instead of raw direction 
   assert.equal(state.accumulatedDistance, 27);
   state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD + 4 });
   assert.equal(state.visible, false);
+  assert.equal(state.primaryVisible, false);
   assert.equal(state.accumulatedDistance, 0);
 
   state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD });
   assert.equal(state.visible, false);
   state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD - MOBILE_APP_BAR_SHOW_DISTANCE_THRESHOLD });
   assert.equal(state.visible, true);
+  assert.equal(state.primaryVisible, false);
 
   state = mobileAppBarVisibility({ state, nextY: MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY });
   assert.equal(state.visible, true);
+  assert.equal(state.primaryVisible, true);
   assert.equal(state.accumulatedDistance, 0);
   assert.equal(state.direction, 0);
   state = mobileAppBarVisibility({ state: { ...state, visible: false }, nextY: 0 });
@@ -117,7 +120,11 @@ test('public and admin mobile app bars share direction-aware scroll behavior', a
   ]);
   assert.match(navbar, /useMobileAppBar/);
   assert.match(navbar, /data-mobile-app-bar/);
-  assert.match(navbar, /data-mobile-visible=\{mobileVisible \? 'true' : 'false'\}/);
+  assert.match(navbar, /isPrimaryHeaderVisible = mobileAppBar\.primaryVisible/);
+  assert.match(navbar, /isSecondaryNavVisible = mobileAppBar\.visible/);
+  assert.match(navbar, /data-public-mobile-primary/);
+  assert.match(navbar, /data-public-mobile-secondary/);
+  assert.match(navbar, /data-primary-visible=\{isPrimaryHeaderVisible \? 'true' : 'false'\}/);
   assert.match(navbar, /public-app-bar[\s\S]*?sticky inset-x-0 top-0/);
   assert.match(admin, /useMobileAppBar/);
   assert.match(admin, /data-admin-mobile-app-bar/);
@@ -133,6 +140,7 @@ test('public and admin mobile app bars share direction-aware scroll behavior', a
   assert.match(styles, /--mobile-app-bar-hide-duration: 220ms;/);
   assert.match(styles, /--mobile-app-bar-show-duration: 180ms;/);
   assert.match(styles, /will-change: transform, opacity;/);
+  assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="true"\]\[data-primary-visible="false"\][\s\S]*?translateY\(-3\.5rem\)/);
   assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: 0;/);
   assert.match(navbar, /motion-reduce:transition-none/);
   assert.match(admin, /motion-reduce:transition-none/);

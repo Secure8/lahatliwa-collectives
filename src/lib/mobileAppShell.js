@@ -18,9 +18,10 @@ export function publicAppBarMode(pathname = '/') {
   return 'surface';
 }
 
-export function createMobileAppBarScrollState({ visible = true, lastY = 0 } = {}) {
+export function createMobileAppBarScrollState({ visible = true, primaryVisible = visible, lastY = 0 } = {}) {
   return {
     visible,
+    primaryVisible,
     lastY: Math.max(0, Number(lastY) || 0),
     direction: 0,
     accumulatedDistance: 0,
@@ -31,7 +32,7 @@ export function mobileAppBarVisibility({ state, nextY = 0, locked = false, topVi
   const previous = state || createMobileAppBarScrollState();
   const y = Math.max(0, Number(nextY) || 0);
 
-  if (locked || y <= topVisibleBoundary) return createMobileAppBarScrollState({ visible: true, lastY: y });
+  if (locked || y <= topVisibleBoundary) return createMobileAppBarScrollState({ visible: true, primaryVisible: true, lastY: y });
 
   const delta = y - previous.lastY;
   const distance = Math.abs(delta);
@@ -49,6 +50,7 @@ export function mobileAppBarVisibility({ state, nextY = 0, locked = false, topVi
 
   return {
     visible: direction < 0,
+    primaryVisible: false,
     lastY: y,
     direction,
     accumulatedDistance: 0,

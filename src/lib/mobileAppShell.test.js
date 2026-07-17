@@ -184,6 +184,7 @@ test('public and admin mobile app bars share direction-aware scroll behavior', a
   assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="true"\]\[data-primary-visible="false"\][\s\S]*?translateY\(-3\.5rem\)/);
   assert.match(styles, /\[data-public-mobile-primary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(-100%\)/);
   assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(calc\(-100% - 3\.5rem - env\(safe-area-inset-top\)\)\)/);
+  assert.match(styles, /html\.public-mode,\s*html\.public-mode body\s*\{\s*overflow-x: clip;/);
   assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: 0;/);
   assert.match(navbar, /motion-reduce:transition-none/);
   assert.match(admin, /motion-reduce:transition-none/);

@@ -16,6 +16,7 @@
     "test:project-branches": "node --test src/lib/projectBranches.test.js",
     "test:fair-project-exposure": "node --test src/lib/fairProjectExposure.test.js",
     "test:navigation-history": "node --test src/lib/navigationHistory.test.js",
+    "test:mobile-navbar-browser": "node scripts/test-mobile-navbar-browser.mjs",
     "test:scroll-restoration": "node --test src/lib/scrollRestoration.test.js",
     "test:public-images": "node --test src/lib/publicImages.test.js",
     "test:creative-profile": "node --test src/lib/creativeProfileLayout.test.js",

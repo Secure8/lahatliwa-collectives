@@ -10,7 +10,7 @@ export default function AppearanceMenuAction({ className = '', iconOnly = false,
 
   return (
     <button {...props} type="button" className={className} onClick={(event) => setPreference(nextTheme, { event, element: event.currentTarget })} aria-label={label} title={iconOnly ? label : undefined}>
-      <Icon size={18} aria-hidden="true" />
+      <Icon className="theme-switch-icon" size={18} aria-hidden="true" />
       {!iconOnly && <span>{label}</span>}
     </button>
   );

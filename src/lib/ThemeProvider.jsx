@@ -1,7 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { applyDocumentTheme, canAnimateTheme, normalizeThemePreference, persistThemePreference, readThemePreference, resolveThemePreference, themeAnimationOrigin, themeRevealRadius } from './theme.js';
+import { applyDocumentTheme, normalizeThemePreference, persistThemePreference, readThemePreference, resolveThemePreference, themeMotionAllowed } from './theme.js';
 
 const ThemeContext = createContext(null);
+const THEME_FADE_OPTIONS = { duration: 240, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' };
+
+function trackAnimation(ref, animation) {
+  if (!animation) return;
+  ref.current = animation;
+  animation.finished.finally(() => {
+    if (ref.current === animation) ref.current = null;
+  }).catch(() => {
+  });
+}
 
 function initialThemeState() {
   const preference = readThemePreference();
@@ -13,7 +23,7 @@ function initialThemeState() {
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(initialThemeState);
   const preferenceRef = useRef(theme.preference);
-  const requestRef = useRef(0);
+  const contentAnimationRef = useRef(null);
 
   const applyPreference = useCallback((nextPreference) => {
     const preference = persistThemePreference(normalizeThemePreference(nextPreference));
@@ -23,45 +33,17 @@ export function ThemeProvider({ children }) {
     setTheme({ preference, resolvedTheme });
   }, []);
 
-  const setPreference = useCallback((nextPreference, trigger = {}) => {
+  const setPreference = useCallback((nextPreference) => {
     const preference = normalizeThemePreference(nextPreference);
-    const request = ++requestRef.current;
-    const element = trigger.element || trigger.event?.currentTarget || null;
-    const origin = themeAnimationOrigin(trigger.event, element);
-    const commit = () => {
-      if (request === requestRef.current) applyPreference(preference);
-    };
-
-    if (!canAnimateTheme()) {
-      document.documentElement?.classList.remove('theme-transition');
-      commit();
-      return;
-    }
-
-    const root = document.documentElement;
-    root.classList.add('theme-transition');
-    let transition;
-    try {
-      transition = document.startViewTransition(commit);
-    } catch {
-      root.classList.remove('theme-transition');
-      commit();
-      return;
-    }
-
-    transition.ready.then(() => {
-      if (request !== requestRef.current) return;
-      const radius = themeRevealRadius(origin);
-      root.animate(
-        { clipPath: [`circle(0px at ${origin.x}px ${origin.y}px)`, `circle(${radius}px at ${origin.x}px ${origin.y}px)`] },
-        { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', pseudoElement: '::view-transition-new(root)' },
-      );
-    }).catch(() => {
-    });
-    transition.finished.finally(() => {
-      if (request === requestRef.current) root.classList.remove('theme-transition');
-    }).catch(() => {
-    });
+    contentAnimationRef.current?.cancel?.();
+    contentAnimationRef.current = null;
+    applyPreference(preference);
+    if (!themeMotionAllowed()) return;
+    const content = document.getElementById('root');
+    trackAnimation(contentAnimationRef, content?.animate?.(
+      [{ opacity: 0.82 }, { opacity: 1 }],
+      THEME_FADE_OPTIONS,
+    ));
   }, [applyPreference]);
 
   useEffect(() => {

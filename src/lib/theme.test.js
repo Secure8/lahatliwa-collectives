@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { applyDocumentTheme, canAnimateTheme, nextThemePreference, normalizeThemePreference, persistThemePreference, readThemePreference, resolveThemePreference, systemTheme, THEME_ANIMATION_SKIP_QUERY, THEME_STORAGE_KEY, themeAnimationOrigin, themeRevealRadius } from './theme.js';
+import { applyDocumentTheme, nextThemePreference, normalizeThemePreference, persistThemePreference, readThemePreference, resolveThemePreference, systemTheme, themeMotionAllowed, THEME_REDUCED_MOTION_QUERY, THEME_STORAGE_KEY } from './theme.js';
 
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -59,27 +59,17 @@ test('resolved themes update the root attribute, native color scheme, and browse
   assert.equal(metaColor, '#09090b');
 });
 
-test('animation origin uses click coordinates, element bounds, then viewport center safely', () => {
-  assert.deepEqual(themeAnimationOrigin({ clientX: 42, clientY: 84 }), { x: 42, y: 84 });
-  assert.deepEqual(themeAnimationOrigin({ clientX: 0, clientY: 0 }, { getBoundingClientRect: () => ({ left: 10, top: 20, width: 40, height: 20 }) }), { x: 30, y: 30 });
-  assert.deepEqual(themeAnimationOrigin(null, null, { innerWidth: 800, innerHeight: 600 }), { x: 400, y: 300 });
-  assert.equal(themeRevealRadius({ x: 0, y: 0 }, { innerWidth: 300, innerHeight: 400 }), 500);
-});
-
-test('unsupported and constrained Chrome View Transitions switch immediately', () => {
-  assert.equal(canAnimateTheme({}, () => ({ matches: false })), false);
-  assert.equal(canAnimateTheme({ startViewTransition() {} }, () => ({ matches: true })), false);
-  assert.equal(canAnimateTheme({ startViewTransition() {} }, () => ({ matches: false })), true);
-  assert.match(THEME_ANIMATION_SKIP_QUERY, /prefers-reduced-motion: reduce/);
-  assert.match(THEME_ANIMATION_SKIP_QUERY, /max-width: 1023px/);
-  assert.match(THEME_ANIMATION_SKIP_QUERY, /pointer: coarse/);
-  assert.match(THEME_ANIMATION_SKIP_QUERY, /display-mode: standalone/);
+test('theme motion stays available on every viewport except reduced-motion environments', () => {
+  assert.equal(themeMotionAllowed(() => ({ matches: false })), true);
+  assert.equal(themeMotionAllowed(() => ({ matches: true })), false);
+  assert.equal(THEME_REDUCED_MOTION_QUERY, '(prefers-reduced-motion: reduce)');
 });
 
 test('provider, one global toggle, startup, and rapid-change contracts stay shared across public and admin', async () => {
-  const [provider, toggle, app, navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute, index, css, home, contentApi] = await Promise.all([
+  const [provider, toggle, appearance, app, navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute, index, css, home, contentApi] = await Promise.all([
     readFile(new URL('./ThemeProvider.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/ThemeToggle.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/AppearanceMenuAction.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
@@ -94,9 +84,13 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   ]);
   assert.match(provider, /matchMedia\?\.\('\(prefers-color-scheme: dark\)'\)/);
   assert.match(provider, /addEventListener\?\.\('change', onSystemChange\)/);
-  assert.match(provider, /document\.startViewTransition\(commit\)/);
-  assert.match(provider, /request === requestRef\.current/);
-  assert.match(provider, /::view-transition-new\(root\)/);
+  assert.doesNotMatch(provider, /startViewTransition|clipPath|themeRevealRadius|pseudoElement/);
+  assert.match(provider, /contentAnimationRef\.current\?\.cancel/);
+  assert.match(provider, /\[\{ opacity: 0\.82 \}, \{ opacity: 1 \}\]/);
+  assert.match(toggle, /theme-toggle__icon theme-switch-icon/);
+  assert.match(appearance, /className="theme-switch-icon"/);
+  assert.match(navbar, /AppearanceMenuAction/);
+  assert.match(css, /@keyframes theme-switch-icon-in[\s\S]*?rotate\(-18deg\) scale\(0\.78\)/);
   assert.match(toggle, /type="button"/);
   assert.match(toggle, /nextTheme === 'light' \? 'Switch to Light Mode' : 'Switch to Dark Mode'/);
   assert.match(toggle, /nextTheme === 'light' \? Sun : Moon/);
@@ -126,5 +120,5 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.match(css, /\.theme-toggle[\s\S]*?position: fixed;[\s\S]*?left: max\(0\.75rem, env\(safe-area-inset-left\)\);[\s\S]*?bottom: calc\(0\.75rem \+ env\(safe-area-inset-bottom\)\);/);
   assert.match(css, /\.theme-toggle--scroll-hidden[\s\S]*?pointer-events: none;[\s\S]*?opacity: 0;/);
   assert.match(css, /prefers-reduced-motion: reduce/);
-  assert.match(css, /html\.theme-transition::view-transition-new\(root\)/);
+  assert.doesNotMatch(css, /::view-transition-(old|new)\(root\)/);
 });

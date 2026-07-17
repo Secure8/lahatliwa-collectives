@@ -56,7 +56,7 @@ export default function ThemeToggle() {
       onPointerLeave={() => controllerRef.current?.onPointerLeave()}
       onClick={(event) => setPreference(nextTheme, { event, element: event.currentTarget })}
     >
-      <Icon className="theme-toggle__icon" size={19} strokeWidth={1.9} aria-hidden="true" />
+      <Icon className="theme-toggle__icon theme-switch-icon" size={19} strokeWidth={1.9} aria-hidden="true" />
     </button>
   );
 }

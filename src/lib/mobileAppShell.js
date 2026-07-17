@@ -36,7 +36,10 @@ export function mobileAppBarVisibility({ state, nextY = 0, locked = false, topVi
 
   const delta = y - previous.lastY;
   const distance = Math.abs(delta);
-  if (distance < jitterTolerance) return { ...previous, lastY: y };
+  // Keep the last meaningful position as the intent anchor. Updating it for
+  // tiny touchpad/touch deltas prevents a deliberate gesture from ever
+  // reaching the reveal threshold at deep scroll positions.
+  if (distance < jitterTolerance) return previous;
 
   const direction = delta > 0 ? 1 : -1;
   const accumulatedDistance = previous.direction === direction

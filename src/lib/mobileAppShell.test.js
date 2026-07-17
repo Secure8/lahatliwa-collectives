@@ -20,7 +20,7 @@ test('mobile app bar follows accumulated scroll intent instead of raw direction 
   state = mobileAppBarVisibility({ state, nextY: 55 });
   state = mobileAppBarVisibility({ state, nextY: 70 });
   assert.equal(state.visible, true);
-  assert.equal(state.accumulatedDistance, 27);
+  assert.equal(state.accumulatedDistance, 30);
   state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD + 4 });
   assert.equal(state.visible, false);
   assert.equal(state.primaryVisible, false);
@@ -51,6 +51,46 @@ test('mobile app bar resets accumulated intent on a meaningful direction change 
   assert.equal(state.visible, true);
   state = mobileAppBarVisibility({ state: { ...state, visible: false }, nextY: 140, locked: true });
   assert.deepEqual(state, createMobileAppBarScrollState({ lastY: 140 }));
+});
+
+test('deep upward intent reveals only the secondary navigation without waiting for the top boundary', () => {
+  let state = createMobileAppBarScrollState({ lastY: 0 });
+  state = mobileAppBarVisibility({ state, nextY: 800 });
+  assert.equal(state.visible, false);
+  assert.equal(state.primaryVisible, false);
+
+  const beforeJitter = state;
+  state = mobileAppBarVisibility({ state, nextY: 797 });
+  assert.strictEqual(state, beforeJitter);
+
+  state = mobileAppBarVisibility({ state, nextY: 794 });
+  assert.equal(state.accumulatedDistance, 6);
+  state = mobileAppBarVisibility({ state, nextY: 788 });
+  assert.equal(state.visible, true);
+  assert.equal(state.primaryVisible, false);
+
+  state = mobileAppBarVisibility({ state, nextY: 776 });
+  assert.equal(state.visible, true);
+  assert.equal(state.primaryVisible, false);
+
+  state = mobileAppBarVisibility({ state, nextY: 824 });
+  assert.equal(state.visible, false);
+  assert.equal(state.primaryVisible, false);
+
+  state = mobileAppBarVisibility({ state, nextY: MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY });
+  assert.equal(state.visible, true);
+  assert.equal(state.primaryVisible, true);
+});
+
+test('route changes restore both public mobile navigation sections', async () => {
+  const [hook, navbar] = await Promise.all([
+    readFile(new URL('./useMobileAppBar.js', import.meta.url), 'utf8'),
+    readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(hook, /useLayoutEffect\([\s\S]*?createMobileAppBarScrollState\(\{ lastY: window\.scrollY \|\| 0 \}\)[\s\S]*?setVisibility\(scrollStateRef\.current\)[\s\S]*?\}, \[routeKey\]\)/);
+  assert.match(navbar, /isPrimaryHeaderVisible = mobileAppBar\.primaryVisible/);
+  assert.match(navbar, /isSecondaryNavVisible = mobileAppBar\.visible/);
 });
 
 test('public top navigation is limited to five primary destinations with detail-route awareness', () => {
@@ -125,6 +165,7 @@ test('public and admin mobile app bars share direction-aware scroll behavior', a
   assert.match(navbar, /data-public-mobile-primary/);
   assert.match(navbar, /data-public-mobile-secondary/);
   assert.match(navbar, /data-primary-visible=\{isPrimaryHeaderVisible \? 'true' : 'false'\}/);
+  assert.doesNotMatch(navbar, /public-app-bar[\s\S]*?mobileVisible \? 'translate-y-0'/);
   assert.match(navbar, /public-app-bar[\s\S]*?sticky inset-x-0 top-0/);
   assert.match(admin, /useMobileAppBar/);
   assert.match(admin, /data-admin-mobile-app-bar/);
@@ -141,6 +182,8 @@ test('public and admin mobile app bars share direction-aware scroll behavior', a
   assert.match(styles, /--mobile-app-bar-show-duration: 180ms;/);
   assert.match(styles, /will-change: transform, opacity;/);
   assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="true"\]\[data-primary-visible="false"\][\s\S]*?translateY\(-3\.5rem\)/);
+  assert.match(styles, /\[data-public-mobile-primary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(-100%\)/);
+  assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(calc\(-100% - 3\.5rem - env\(safe-area-inset-top\)\)\)/);
   assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: 0;/);
   assert.match(navbar, /motion-reduce:transition-none/);
   assert.match(admin, /motion-reduce:transition-none/);

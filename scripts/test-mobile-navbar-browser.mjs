@@ -293,9 +293,9 @@ try {
     document.documentElement.style.setProperty('--mobile-app-bar-show-duration', '0ms');
     document.documentElement.style.setProperty('--mobile-app-bar-hide-duration', '0ms');
     document.body.innerHTML = \`<div class="admin-shell min-h-screen text-white">
-      <aside data-admin-mobile-app-bar data-mobile-visible="false" class="admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30" style="--admin-mobile-safe-area-top: 24px">
+      <aside data-admin-mobile-app-bar data-mobile-visible="false" data-primary-visible="false" class="admin-app-bar theme-navigation-surface sticky inset-x-0 top-0 z-30" style="--admin-mobile-safe-area-top: 24px">
         <div data-admin-mobile-primary data-mobile-visible="false" class="admin-app-bar__primary theme-navigation-surface relative z-10 px-3 pb-1 pt-[calc(0.75rem+var(--admin-mobile-safe-area-top))] transition-[transform,opacity,background-color]">
-          <div class="h-10"></div>
+          <div class="h-11"></div>
         </div>
         <nav data-admin-mobile-secondary data-mobile-visible="false" data-primary-visible="false" class="admin-app-bar__secondary theme-navigation-surface relative z-20 border-b border-white/[0.08] transition-[transform,opacity,background-color]">
           <div class="min-h-[3.25rem]"></div>
@@ -330,14 +330,17 @@ try {
   })()`);
   await delay(100);
   const adminRevealed = await evaluate(client, `(() => {
+    const header = document.querySelector('[data-admin-mobile-app-bar]');
     const primary = document.querySelector('[data-admin-mobile-primary]');
     const secondary = document.querySelector('[data-admin-mobile-secondary]');
+    const headerRect = header.getBoundingClientRect();
     const rect = secondary.getBoundingClientRect();
     return {
       scrollY: window.scrollY,
       innerHeight: window.innerHeight,
       primaryVisible: primary.dataset.mobileVisible,
       secondaryVisible: secondary.dataset.mobileVisible,
+      headerRect: { top: headerRect.top, bottom: headerRect.bottom, height: headerRect.height },
       rect: { top: rect.top, bottom: rect.bottom, height: rect.height },
       transform: getComputedStyle(secondary).transform,
       opacity: getComputedStyle(secondary).opacity,
@@ -349,12 +352,14 @@ try {
   assert.equal(adminHidden.headerBackdropFilter, 'none');
   assert.equal(adminHidden.headerPosition, 'sticky');
   assert.equal(adminHidden.headerRect.top, 0);
+  assert.equal(adminHidden.headerRect.height, 0);
   assert.equal(adminHidden.rect.bottom, 0);
   assert.equal(adminHidden.shellOverflowX, 'visible');
   assert.equal(adminHidden.shellOverflowY, 'visible');
   assert.equal(adminHidden.bodyOverflowX, 'clip');
   assert.equal(adminRevealed.primaryVisible, 'false');
   assert.equal(adminRevealed.secondaryVisible, 'true');
+  assert.equal(adminRevealed.headerRect.height, 0);
   const adminBackgroundAlpha = Number(adminRevealed.backgroundColor.match(/,\s*([\d.]+)\)$/)?.[1] ?? 1);
   assert.ok(adminBackgroundAlpha >= 0.98, `Expected admin navbar opacity >= 0.98, received ${adminRevealed.backgroundColor}`);
   assert.ok(adminRevealed.rect.bottom > 0, `Expected admin secondary bottom > 0, received ${adminRevealed.rect.bottom}`);

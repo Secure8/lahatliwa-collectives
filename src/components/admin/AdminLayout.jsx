@@ -135,6 +135,7 @@ export default function AdminLayout({ children }) {
       <aside
         data-admin-mobile-app-bar
         data-mobile-visible={isSecondaryNavVisible ? 'true' : 'false'}
+        data-primary-visible={isPrimaryHeaderVisible ? 'true' : 'false'}
         onFocusCapture={() => setHeaderFocused(true)}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setHeaderFocused(false);

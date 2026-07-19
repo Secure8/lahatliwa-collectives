@@ -34,6 +34,21 @@ export function editorialDraftError(error, phase = 'load') {
   return Object.assign(new Error(`The draft could not be ${phase === 'load' ? 'loaded' : phase}. ${source.message || 'Please retry.'}`), { code: 'EDITORIAL_QUERY_FAILED', cause: source });
 }
 
+async function editorialFunctionError(error) {
+  let payload = null;
+  if (error?.context) {
+    try { payload = await error.context.clone().json(); } catch { payload = null; }
+  }
+  return Object.assign(new Error(payload?.message || error?.message || 'The Editorial service could not complete the action.'), { code: payload?.code || error?.code || 'EDITORIAL_WORKFLOW_FAILED', cause: error });
+}
+
+async function invokeEditorialWorkflow(body) {
+  const { data, error } = await supabase.functions.invoke('editorial-workflow', { body });
+  if (error) throw await editorialFunctionError(error);
+  if (!data?.success) throw Object.assign(new Error(data?.message || 'The Editorial service could not complete the action.'), { code: data?.code || 'EDITORIAL_WORKFLOW_FAILED' });
+  return data.result;
+}
+
 function withPublishedSnapshot(post) {
   const snapshot = post?.published_metadata || {};
   return {
@@ -196,38 +211,30 @@ export async function createEditorialDraft({ userId, contentType = 'journal', ti
 export async function saveEditorialDraft(post, document, revision = {}) {
   const validation = validateEditorialDocument(document);
   if (!validation.valid) throw Object.assign(new Error(validation.errors[0] || 'The story contains an unsupported block.'), { code: 'EDITORIAL_DOCUMENT_INVALID' });
-  const { data, error: revisionError } = await supabase.rpc('save_editorial_revision', {
-    p_post_id: post.id,
-    p_document: validation.document,
-    p_seo_title: revision.seo_title || '',
-    p_seo_description: revision.seo_description || '',
-    p_editor_note: revision.editor_note || '',
-    p_expected_current_revision_id: post.current_revision_id || null,
-    p_metadata: {
-      title: String(post.title || '').trim(), slug: slugifyEditorial(post.slug || post.title),
-      summary: String(post.summary || '').trim().slice(0, 500), coverImageUrl: post.cover_image_url || null,
-      coverImageAlt: String(post.cover_image_alt || '').trim().slice(0, 240), categoryId: post.category_id || null,
-      municipalityId: post.municipality_id || null, assignedEditorUserId: post.assigned_editor_user_id || null,
-    },
-  });
-  if (revisionError) {
-    if (String(revisionError.message || '').includes('EDITORIAL_REVISION_CONFLICT')) throw Object.assign(new Error('A newer revision was saved by someone else. Your autosave was preserved; reload and compare before saving again.'), { code: 'EDITORIAL_REVISION_CONFLICT' });
-    if (String(revisionError.message || '').includes('EDITORIAL_METADATA_INVALID')) throw Object.assign(new Error('Check the title, slug, cover URL, and other story details.'), { code: 'EDITORIAL_METADATA_INVALID' });
+  try {
+    const data = await invokeEditorialWorkflow({
+      action: 'save_revision', postId: post.id, document: validation.document,
+      seoTitle: revision.seo_title || '', seoDescription: revision.seo_description || '', editorNote: revision.editor_note || '',
+      expectedCurrentRevisionId: post.current_revision_id || null,
+      metadata: {
+        title: String(post.title || '').trim(), slug: slugifyEditorial(post.slug || post.title),
+        summary: String(post.summary || '').trim().slice(0, 500), coverImageUrl: post.cover_image_url || null,
+        coverImageAlt: String(post.cover_image_alt || '').trim().slice(0, 240), categoryId: post.category_id || null,
+        municipalityId: post.municipality_id || null, assignedEditorUserId: post.assigned_editor_user_id || null,
+      },
+    });
+    await clearEditorialAutosave(post.id);
+    return data;
+  } catch (revisionError) {
+    if (revisionError?.code === 'EDITORIAL_REVISION_CONFLICT' || String(revisionError?.message || '').includes('EDITORIAL_REVISION_CONFLICT')) throw Object.assign(new Error('A newer revision was saved by someone else. Your autosave was preserved; reload and compare before saving again.'), { code: 'EDITORIAL_REVISION_CONFLICT' });
+    if (revisionError?.code === 'EDITORIAL_METADATA_INVALID' || String(revisionError?.message || '').includes('EDITORIAL_METADATA_INVALID')) throw Object.assign(new Error('Check the title, slug, cover URL, and other story details.'), { code: 'EDITORIAL_METADATA_INVALID' });
     throw revisionError;
   }
-  await clearEditorialAutosave(post.id);
-  return data;
 }
 
-const WORKFLOW_RPCS = Object.freeze({
-  submit: 'submit_editorial_post',
-  request_changes: 'request_editorial_changes',
-  approve: 'approve_editorial_post',
-  schedule: 'schedule_editorial_post',
-  publish: 'publish_editorial_post',
-  start_revision: 'start_editorial_revision',
-  archive: 'archive_editorial_post',
-  restore: 'restore_archived_editorial_post',
+const WORKFLOW_ACTIONS = Object.freeze({
+  submit: 'submit', request_changes: 'request_changes', approve: 'approve', schedule: 'schedule',
+  publish: 'publish', start_revision: 'start_revision', archive: 'archive', restore: 'restore_archived',
 });
 
 export function editorialDirectPublishSteps(status) {
@@ -239,12 +246,14 @@ export function editorialDirectPublishSteps(status) {
 }
 
 export async function runEditorialWorkflow(postId, action, options = {}) {
-  const rpc = WORKFLOW_RPCS[action];
-  if (!rpc) throw new Error('This workflow action is unavailable.');
-  const params = { p_post_id: postId };
-  if (action === 'schedule') params.p_scheduled_for = options.scheduledFor;
-  if (['request_changes', 'approve', 'archive'].includes(action)) params.p_note = options.note || '';
-  const { data, error } = await supabase.rpc(rpc, params);
-  if (error) throw error;
-  return withStudioStatus(data);
+  const edgeAction = WORKFLOW_ACTIONS[action];
+  if (!edgeAction) throw new Error('This workflow action is unavailable.');
+  const body = { action: edgeAction, postId };
+  if (action === 'schedule') body.scheduledFor = options.scheduledFor;
+  if (['request_changes', 'approve', 'archive'].includes(action)) body.note = options.note || '';
+  return withStudioStatus(await invokeEditorialWorkflow(body));
+}
+
+export async function restoreEditorialRevision(postId, revisionId) {
+  return invokeEditorialWorkflow({ action: 'restore_revision', postId, revisionId });
 }

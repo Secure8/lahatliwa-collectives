@@ -36,8 +36,8 @@ test('published revisions and metadata stay stable while a new draft is edited',
   assert.match(sql, /p_action='start_revision'/);
   assert.match(sql, /published_revision_id is not null and published_at is not null and archived_at is null/);
   assert.match(api, /withPublishedSnapshot/);
-  assert.match(api, /p_expected_current_revision_id/);
-  assert.match(api, /p_metadata/);
+  assert.match(api, /expectedCurrentRevisionId/);
+  assert.match(api, /metadata:/);
   assert.doesNotMatch(api, /from\('editorial_posts'\)\.update/);
 });
 
@@ -85,10 +85,12 @@ test('shared renderer is used by public and preview modes', () => {
 
 test('studio exposes source verification and type-specific tourism data tools', () => {
   const studio = source('src/pages/editorial/EditorialStudio.jsx');
+  const api = source('src/features/editorial/editorialApi.js');
   assert.match(studio, /\/editorial\/sources/);
   assert.match(studio, /\/editorial\/details/);
   assert.match(studio, /\/editorial\/history/);
-  assert.match(studio, /restore_editorial_revision/);
+  assert.match(studio, /restoreEditorialRevision/);
+  assert.match(api, /action: 'restore_revision'/);
   assert.match(studio, /editorial_event_details/);
   assert.match(studio, /verification_status/);
 });

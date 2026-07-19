@@ -54,7 +54,8 @@ test('Super Admin direct publish keeps the advanced RPC workflow intact', () => 
   assert.deepEqual(editorialDirectPublishSteps('approved'), ['publish']);
   assert.deepEqual(editorialDirectPublishSteps('scheduled'), ['publish']);
   assert.deepEqual(editorialDirectPublishSteps('archived'), []);
-  assert.match(api, /restore: 'restore_archived_editorial_post'/);
+  assert.match(api, /restore: 'restore_archived'/);
+  assert.match(api, /functions\.invoke\('editorial-workflow'/);
   assert.match(studio, /for \(const action of steps\)[\s\S]+post = await runEditorialWorkflow\(id, action\)/);
   assert.match(studio, /!isSuperAdmin && \['draft', 'changes_requested'\]/);
 });

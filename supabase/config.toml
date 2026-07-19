@@ -388,6 +388,9 @@ verify_jwt = false
 [functions.inquiry-public-options]
 verify_jwt = false
 
+[functions.editorial-workflow]
+verify_jwt = false
+
 [functions.google-drive-oauth-start]
 verify_jwt = false
 

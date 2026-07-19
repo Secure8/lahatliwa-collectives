@@ -48,7 +48,10 @@ export async function uploadManagedWebsiteImage(file, { category, projectId = ''
       form.append('groupId', groupId);
       form.append('file', derivative.file, `${upload.variant}.webp`);
       const { data, error } = await supabase.functions.invoke('r2-media-upload', { body: form });
-      if (error || !data?.success) throw new Error(data?.message || error?.message || 'A website image size could not be uploaded.');
+      if (error || !data?.success) {
+        let context = null; try { context = await error?.context?.json(); } catch { context = null; }
+        throw Object.assign(new Error(data?.message || context?.message || error?.message || 'A website image size could not be uploaded.'), { code: data?.code || context?.code || 'MEDIA_UPLOAD_FAILED' });
+      }
     }
     const finalized = await invoke({ action: 'finalize', groupId });
     uploadReceipts.set(finalized.media.primaryUrl, { groupId, media: finalized.media });

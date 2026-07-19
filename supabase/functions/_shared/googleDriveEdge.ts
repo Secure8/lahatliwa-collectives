@@ -51,7 +51,7 @@ export async function authenticatedTeamMember(request: Request, env: ReturnType<
   if (error || !user) return { error: 'INVALID_SESSION', status: 401 };
   const admin = serviceClient(env);
   const { data: teamMember, error: memberError } = await admin.from('admin_users')
-    .select('id,role,status,creative_member_id').eq('user_id', user.id).eq('status', 'active').maybeSingle();
+    .select('id,role,status,creative_member_id,editorial_roles').eq('user_id', user.id).eq('status', 'active').maybeSingle();
   if (memberError || !teamMember) return { error: 'NOT_AUTHORIZED', status: 403 };
   const role = teamMember.role === 'owner' ? 'super_admin' : teamMember.role;
   return { user, teamMember, role, jwt, admin };

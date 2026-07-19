@@ -35,6 +35,13 @@ test('workflow authorization codes produce a clear permission message', () => {
   assert.match(error.message, /permission/i);
 });
 
+test('cover upload failures distinguish authorization, availability, validation, and storage errors', () => {
+  assert.equal(editorialActionError({ code: 'TARGET_NOT_AUTHORIZED' }, 'upload the cover').code, 'EDITORIAL_ACCESS_DENIED');
+  assert.equal(editorialActionError({ code: 'R2_MEDIA_DISABLED' }, 'upload the cover').code, 'EDITORIAL_MEDIA_UNAVAILABLE');
+  assert.equal(editorialActionError({ code: 'DERIVATIVE_INVALID' }, 'upload the cover').code, 'EDITORIAL_MEDIA_INVALID');
+  assert.equal(editorialActionError({ code: 'R2_UPLOAD_FAILED' }, 'upload the cover').code, 'EDITORIAL_MEDIA_UPLOAD_FAILED');
+});
+
 test('draft creation recovers an earlier row with no initial revision and cleans up new partial rows', () => {
   const api = source('src/features/editorial/editorialApi.js');
   const createSource = api.slice(api.indexOf('export async function createEditorialDraft'), api.indexOf('export async function saveEditorialDetails'));

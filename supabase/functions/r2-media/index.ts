@@ -57,7 +57,7 @@ async function authorizeEditorialEdit(actor: any, editorialPostId: string) {
   ]);
   if (flagError || postError) throw Object.assign(new Error('Editorial media authorization failed'), { code: 'REFERENCE_CHECK_FAILED' });
   if (!flags?.module_enabled || !flags?.editorial_media_uploads_enabled) return null;
-  return r2EditorialPermissionAllowed({ role: actor.role, userId: actor.user.id, post }) ? post : null;
+  return r2EditorialPermissionAllowed({ role: actor.role, editorialRoles: actor.teamMember.editorial_roles, userId: actor.user.id, post }) ? post : null;
 }
 
 async function authorizeTarget(actor: any, category: string, projectId = '', creativeMemberId = '', editorialPostId = '') {

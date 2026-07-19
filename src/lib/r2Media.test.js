@@ -60,14 +60,18 @@ test('upload registration requires all three bounded WebP derivatives and valid 
   assert.equal(validateR2UploadRequest({ category: 'editorial_inline', editorialPostId: '', variants: variants() }).code, 'EDITORIAL_POST_REQUIRED');
 });
 
-test('editorial media permission follows workflow ownership and publication rules', () => {
+test('editorial media permission honors supplemental roles and owner boundaries', () => {
   const draft = { status: 'draft', author_user_id: 'writer', assigned_editor_user_id: 'editor' };
   assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: draft }), true);
   assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'other', post: draft }), false);
-  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'submitted' } }), false);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'creative', editorialRoles: ['writer', 'editor'], userId: 'writer', post: draft }), true);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'creative', editorialRoles: ['creative'], userId: 'writer', post: draft }), false);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'editor', userId: 'other', post: draft }), false);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'submitted' } }), true);
   assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'needs_revision' } }), true);
-  assert.equal(r2EditorialPermissionAllowed({ role: 'editor', userId: 'editor', post: { ...draft, status: 'published' } }), true);
-  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'published' } }), false);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'published' } }), true);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'archived' } }), false);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'super_admin', userId: 'other', post: { ...draft, status: 'archived' } }), true);
 });
 
 test('derivative upload validation checks extension, MIME, exact size, and WebP signature', () => {

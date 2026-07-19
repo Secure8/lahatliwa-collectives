@@ -95,11 +95,15 @@ export function r2SitePermissionAllowed(role = '') {
   return ['super_admin', 'admin', 'editor'].includes(role);
 }
 
-export function r2EditorialPermissionAllowed({ role, userId, post } = {}) {
-  if (!post || !userId || !['super_admin', 'admin', 'editor', 'writer'].includes(role)) return false;
-  if (role === 'writer') return ['draft', 'needs_revision'].includes(post.status) && (post.author_user_id === userId || post.assigned_editor_user_id === userId);
-  if (['published', 'archived'].includes(post.status)) return ['super_admin', 'admin', 'editor'].includes(role);
-  return ['super_admin', 'admin', 'editor'].includes(role);
+export function r2EditorialPermissionAllowed({ role, editorialRoles = [], userId, post } = {}) {
+  if (!post || !userId) return false;
+  const roles = [role, ...(Array.isArray(editorialRoles) ? editorialRoles : [])]
+    .map((value) => String(value || '').trim().toLowerCase())
+    .map((value) => value === 'owner' ? 'super_admin' : value);
+  if (roles.includes('super_admin')) return true;
+  if (!roles.some((value) => ['admin', 'editor', 'writer'].includes(value))) return false;
+  if (post.author_user_id !== userId && post.assigned_editor_user_id !== userId) return false;
+  return post.status !== 'archived';
 }
 
 export function validR2DerivativeFile({ variant, filename, mimeType, sizeBytes, expectedBytes, signature } = {}) {

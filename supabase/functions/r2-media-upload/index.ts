@@ -35,7 +35,7 @@ async function authorizedForRow(actor: any, row: any) {
       actor.admin.from('editorial_posts').select('id,status,author_user_id,assigned_editor_user_id').eq('id', row.editorial_post_id).maybeSingle(),
     ]);
     if (flagError || postError || !flags?.module_enabled || !flags?.editorial_media_uploads_enabled) return false;
-    return r2EditorialPermissionAllowed({ role: actor.role, userId: actor.user.id, post });
+    return r2EditorialPermissionAllowed({ role: actor.role, editorialRoles: actor.teamMember.editorial_roles, userId: actor.user.id, post });
   }
   return r2SitePermissionAllowed(actor.role);
 }

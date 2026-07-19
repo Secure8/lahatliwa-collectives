@@ -53,11 +53,12 @@ function NewStory() {
 }
 
 function StoryEditor() {
-  const { id } = useParams(); const { role, user } = useAdminAccess(); const capabilities = editorialCapabilities(role); const [state, setState] = useState({ loading: true, post: null, taxonomy: null, error: '', message: '', autosave: '' });
+  const { id } = useParams(); const { role, user, session } = useAdminAccess(); const capabilities = editorialCapabilities(role); const [state, setState] = useState({ loading: true, post: null, taxonomy: null, error: '', message: '', autosave: '' });
+  const authReady = Boolean(user?.id && session?.user?.id);
   const [dirty, setDirty] = useState(false);
   const { flags } = useEditorialFlags();
   const [uploading, setUploading] = useState(false);
-  useEffect(() => { let active = true; Promise.all([getEditorialDraft(id), listEditorialTaxonomy()]).then(([post, taxonomy]) => { if (active) setState({ loading: false, post: post ? { ...post, loaded_cover_image_url: post.cover_image_url || '' } : null, taxonomy, error: post ? '' : 'Draft not found.', message: post?.autosave ? 'Recovered autosaved changes.' : '', autosave: post?.autosave ? 'Recovered' : '' }); }).catch(() => { if (active) setState({ loading: false, post: null, taxonomy: null, error: 'Draft could not be loaded.', message: '', autosave: '' }); }); return () => { active = false; }; }, [id]);
+  useEffect(() => { let active = true; if (!authReady) { setState((current) => ({ ...current, loading: true, error: '' })); return () => { active = false; }; } Promise.all([getEditorialDraft(id), listEditorialTaxonomy()]).then(([post, taxonomy]) => { if (active) setState({ loading: false, post: post ? { ...post, loaded_cover_image_url: post.cover_image_url || '' } : null, taxonomy, error: post ? '' : 'Draft not found.', message: post?.autosave ? 'Recovered autosaved changes.' : '', autosave: post?.autosave ? 'Recovered' : '' }); }).catch((error) => { if (active) setState({ loading: false, post: null, taxonomy: null, error: error?.message || 'Draft could not be loaded.', message: '', autosave: '' }); }); return () => { active = false; }; }, [authReady, id]);
   const document = state.post?.revision?.document || emptyEditorialDocument();
   const draftEditable = ['draft', 'changes_requested'].includes(state.post?.status) || (state.post?.status === 'published' && (capabilities.canManageAllContent || state.post?.author_user_id === user?.id));
   function updatePost(key, value) { setDirty(true); setState((current) => ({ ...current, post: { ...current.post, [key]: value }, autosave: '' })); }

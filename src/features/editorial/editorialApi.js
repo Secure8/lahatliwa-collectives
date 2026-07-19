@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabaseClient.js';
+import { assertSupabaseConfigured, supabase } from '../../lib/supabaseClient.js';
 import { emptyEditorialDocument, validateEditorialDocument } from './editorialDocument.js';
 
 export const CONTENT_TYPES = Object.freeze([
@@ -14,6 +14,17 @@ export const EDITORIAL_STATUSES = Object.freeze(['draft', 'submitted', 'needs_re
 function withStudioStatus(post) {
   if (!post) return post;
   return { ...post, status: post.status === 'submitted' ? 'in_review' : post.status === 'needs_revision' ? 'changes_requested' : post.status };
+}
+
+export function editorialDraftError(error, phase = 'load') {
+  const source = error || {};
+  const raw = `${source.code || ''} ${source.message || ''} ${source.details || ''}`.toLowerCase();
+  if (source.code === 'SUPABASE_CONFIGURATION_MISSING' || source.code === 'SUPABASE_PROJECT_MISMATCH') return source;
+  if (source.code === 'EDITORIAL_AUTH_REQUIRED' || /jwt|not authenticated|auth session missing|unauthorized/.test(raw)) return Object.assign(new Error('Your sign-in session is not ready. Refresh the page and sign in again if this continues.'), { code: 'EDITORIAL_AUTH_REQUIRED', cause: source });
+  if (source.status === 403 || source.code === '42501' || /row-level security|permission denied|forbidden/.test(raw)) return Object.assign(new Error('Your account cannot access this draft. Check its assignment and your active Editorial role.'), { code: 'EDITORIAL_ACCESS_DENIED', cause: source });
+  if (source instanceof TypeError || /failed to fetch|network|load failed/.test(raw)) return Object.assign(new Error('The draft could not reach Supabase. Check your connection and Preview environment, then retry.'), { code: 'EDITORIAL_NETWORK_ERROR', cause: source });
+  if (/does not exist|schema cache|pgrst20|relation/.test(raw)) return Object.assign(new Error('The Editorial database is unavailable or its schema is not ready.'), { code: 'EDITORIAL_DATABASE_UNAVAILABLE', cause: source });
+  return Object.assign(new Error(`The draft could not be ${phase === 'load' ? 'loaded' : phase}. ${source.message || 'Please retry.'}`), { code: 'EDITORIAL_QUERY_FAILED', cause: source });
 }
 
 function withPublishedSnapshot(post) {
@@ -126,12 +137,21 @@ export async function listEditorialWorkspace({ userId, role, scope = 'all', stat
 }
 
 export async function getEditorialDraft(id) {
+  assertSupabaseConfigured();
+  const { data: authData, error: authError } = await supabase.auth.getSession();
+  if (authError) throw editorialDraftError(authError, 'authenticated');
+  if (!authData?.session?.user) throw Object.assign(new Error('Your sign-in session is not ready.'), { code: 'EDITORIAL_AUTH_REQUIRED' });
   const { data: post, error } = await supabase.from('editorial_posts').select('*').eq('id', id).maybeSingle();
-  if (error || !post) return null;
-  const { data: revision } = post.current_revision_id
+  if (error) throw editorialDraftError(error);
+  if (!post) return null;
+  const revisionResult = post.current_revision_id
     ? await supabase.from('editorial_revisions').select('*').eq('id', post.current_revision_id).maybeSingle()
-    : { data: null };
-  const { data: autosave } = await supabase.from('editorial_autosaves').select('document,metadata,updated_at').eq('post_id', id).maybeSingle();
+    : { data: null, error: null };
+  if (revisionResult.error) throw editorialDraftError(revisionResult.error, 'loaded with its revision');
+  const autosaveResult = await supabase.from('editorial_autosaves').select('document,metadata,updated_at').eq('post_id', id).maybeSingle();
+  if (autosaveResult.error) throw editorialDraftError(autosaveResult.error, 'loaded with its autosave');
+  const revision = revisionResult.data;
+  const autosave = autosaveResult.data;
   const savedAt = revision?.created_at ? new Date(revision.created_at).getTime() : 0;
   const autosaveAt = autosave?.updated_at ? new Date(autosave.updated_at).getTime() : 0;
   return withStudioStatus({ ...post, ...(autosaveAt > savedAt ? autosave.metadata || {} : {}), revision: { ...(revision || { document: emptyEditorialDocument(), seo_title: '', seo_description: '', editor_note: '' }), ...(autosaveAt > savedAt ? { document: autosave.document } : {}) }, autosave: autosaveAt > savedAt ? autosave : null });

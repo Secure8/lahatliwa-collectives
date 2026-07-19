@@ -4,6 +4,7 @@ dist
 supabase/.temp/storage-cleanup-worker-secret
 
 .vercel
+.env.vercel-check
 .env*.backup
 
 backups/

@@ -10,6 +10,13 @@ export const CONTENT_TYPES = Object.freeze([
 ]);
 
 export const EDITORIAL_STATUSES = Object.freeze(['draft', 'submitted', 'needs_revision', 'approved', 'scheduled', 'published', 'expired', 'archived']);
+const EDITORIAL_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function assertEditorialDraftId(id) {
+  const normalized = String(id ?? '').trim();
+  if (!EDITORIAL_UUID_PATTERN.test(normalized)) throw Object.assign(new Error('This draft link is invalid. Return to Drafts and open it again.'), { code: 'EDITORIAL_DRAFT_ID_INVALID' });
+  return normalized;
+}
 
 function withStudioStatus(post) {
   if (!post) return post;
@@ -19,7 +26,7 @@ function withStudioStatus(post) {
 export function editorialDraftError(error, phase = 'load') {
   const source = error || {};
   const raw = `${source.code || ''} ${source.message || ''} ${source.details || ''}`.toLowerCase();
-  if (source.code === 'SUPABASE_CONFIGURATION_MISSING' || source.code === 'SUPABASE_PROJECT_MISMATCH') return source;
+  if (source.code === 'SUPABASE_CONFIGURATION_MISSING' || source.code === 'SUPABASE_PROJECT_MISMATCH' || source.code === 'EDITORIAL_DRAFT_ID_INVALID') return source;
   if (source.code === 'EDITORIAL_AUTH_REQUIRED' || /jwt|not authenticated|auth session missing|unauthorized/.test(raw)) return Object.assign(new Error('Your sign-in session is not ready. Refresh the page and sign in again if this continues.'), { code: 'EDITORIAL_AUTH_REQUIRED', cause: source });
   if (source.status === 403 || source.code === '42501' || /row-level security|permission denied|forbidden/.test(raw)) return Object.assign(new Error('Your account cannot access this draft. Check its assignment and your active Editorial role.'), { code: 'EDITORIAL_ACCESS_DENIED', cause: source });
   if (source instanceof TypeError || /failed to fetch|network|load failed/.test(raw)) return Object.assign(new Error('The draft could not reach Supabase. Check your connection and Preview environment, then retry.'), { code: 'EDITORIAL_NETWORK_ERROR', cause: source });
@@ -137,18 +144,19 @@ export async function listEditorialWorkspace({ userId, role, scope = 'all', stat
 }
 
 export async function getEditorialDraft(id) {
+  const draftId = assertEditorialDraftId(id);
   assertSupabaseConfigured();
   const { data: authData, error: authError } = await supabase.auth.getSession();
   if (authError) throw editorialDraftError(authError, 'authenticated');
   if (!authData?.session?.user) throw Object.assign(new Error('Your sign-in session is not ready.'), { code: 'EDITORIAL_AUTH_REQUIRED' });
-  const { data: post, error } = await supabase.from('editorial_posts').select('*').eq('id', id).maybeSingle();
+  const { data: post, error } = await supabase.from('editorial_posts').select('*').eq('id', draftId).maybeSingle();
   if (error) throw editorialDraftError(error);
   if (!post) return null;
   const revisionResult = post.current_revision_id
     ? await supabase.from('editorial_revisions').select('*').eq('id', post.current_revision_id).maybeSingle()
     : { data: null, error: null };
   if (revisionResult.error) throw editorialDraftError(revisionResult.error, 'loaded with its revision');
-  const autosaveResult = await supabase.from('editorial_autosaves').select('document,metadata,updated_at').eq('post_id', id).maybeSingle();
+  const autosaveResult = await supabase.from('editorial_autosaves').select('document,metadata,updated_at').eq('post_id', draftId).maybeSingle();
   if (autosaveResult.error) throw editorialDraftError(autosaveResult.error, 'loaded with its autosave');
   const revision = revisionResult.data;
   const autosave = autosaveResult.data;
@@ -181,6 +189,7 @@ export async function createEditorialDraft({ userId, contentType = 'journal', ti
   const slug = `${slugifyEditorial(title) || 'untitled'}-${String(id).slice(0, 8)}`;
   const { data, error } = await supabase.from('editorial_posts').insert({ id, content_type: contentType, title, slug, author_user_id: userId, status: 'draft' }).select('id').single();
   if (error) throw error;
+  if (!data?.id || !EDITORIAL_UUID_PATTERN.test(data.id)) throw Object.assign(new Error('The draft was created, but its identifier was not returned. Open it from Drafts.'), { code: 'EDITORIAL_DRAFT_CREATE_ID_MISSING' });
   return withStudioStatus(data);
 }
 

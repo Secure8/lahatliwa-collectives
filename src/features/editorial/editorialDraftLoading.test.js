@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { editorialDraftError } from './editorialApi.js';
+import { assertEditorialDraftId, editorialDraftError } from './editorialApi.js';
 import { normalizeSupabaseEnvironment } from '../../lib/supabaseClient.js';
 
 const source = (path) => readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
@@ -10,6 +10,14 @@ test('quoted and blank Vercel values normalize before configuration checks', () 
   assert.equal(normalizeSupabaseEnvironment('  "https://example.supabase.co"  '), 'https://example.supabase.co');
   assert.equal(normalizeSupabaseEnvironment("'publishable-key'"), 'publishable-key');
   assert.equal(normalizeSupabaseEnvironment('""'), '');
+});
+
+test('draft IDs must be UUIDs before a Supabase query can run', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174000';
+  assert.equal(assertEditorialDraftId(id), id);
+  for (const invalid of [undefined, '', 'undefined', 'not-a-uuid']) {
+    assert.throws(() => assertEditorialDraftId(invalid), (error) => error.code === 'EDITORIAL_DRAFT_ID_INVALID');
+  }
 });
 
 test('draft errors distinguish access, network, schema, and configuration failures', () => {
@@ -25,6 +33,7 @@ test('getEditorialDraft returns not-found only after a successful authenticated 
   const api = source('src/features/editorial/editorialApi.js');
   const getDraftSource = api.slice(api.indexOf('export async function getEditorialDraft'), api.indexOf('export async function saveEditorialAutosave'));
   assert.match(getDraftSource, /supabase\.auth\.getSession\(\)/);
+  assert.match(getDraftSource, /const draftId = assertEditorialDraftId\(id\)/);
   assert.match(getDraftSource, /if \(error\) throw editorialDraftError\(error\);\s*if \(!post\) return null;/);
   assert.match(getDraftSource, /if \(revisionResult\.error\) throw editorialDraftError/);
   assert.match(getDraftSource, /if \(autosaveResult\.error\) throw editorialDraftError/);
@@ -33,6 +42,10 @@ test('getEditorialDraft returns not-found only after a successful authenticated 
 
 test('editor waits for an authenticated session and surfaces the real load error', () => {
   const studio = source('src/pages/editorial/EditorialStudio.jsx');
+  assert.match(studio, /const contentMatch = path\.match/);
+  assert.match(studio, /<StoryEditor id=\{contentId\} \/>/);
+  assert.match(studio, /<StoryPreview id=\{contentId\} \/>/);
+  assert.doesNotMatch(studio, /useParams/);
   assert.match(studio, /const authReady = Boolean\(user\?\.id && session\?\.user\?\.id\)/);
   assert.match(studio, /if \(!authReady\)/);
   assert.match(studio, /error: error\?\.message \|\| 'Draft could not be loaded\.'/);

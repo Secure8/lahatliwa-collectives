@@ -1,10 +1,10 @@
-import { ArrowLeft, CalendarClock, Check, Eye, FilePenLine, FolderOpen, Home, Inbox, LayoutTemplate, LogOut, Menu, Plus, Send, X } from 'lucide-react';
+import { Archive, ArrowLeft, CalendarClock, Check, Eye, FilePenLine, FolderOpen, Home, Inbox, LayoutTemplate, LogOut, Menu, Plus, RotateCcw, Send, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { StudioEditorialGate } from '../../features/editorial/EditorialGate.jsx';
 import EditorialDocumentRenderer from '../../features/editorial/EditorialDocumentRenderer.jsx';
-import { contentTypeMeta, CONTENT_TYPES, createEditorialDraft, getEditorialDraft, listEditorialTaxonomy, listEditorialWorkspace, runEditorialWorkflow, saveEditorialAutosave, saveEditorialDraft } from '../../features/editorial/editorialApi.js';
+import { contentTypeMeta, CONTENT_TYPES, createEditorialDraft, editorialDirectPublishSteps, getEditorialDraft, listEditorialTaxonomy, listEditorialWorkspace, runEditorialWorkflow, saveEditorialAutosave, saveEditorialDraft } from '../../features/editorial/editorialApi.js';
 import { editorialCapabilities } from '../../features/editorial/editorialCapabilities.js';
 import { emptyEditorialDocument } from '../../features/editorial/editorialDocument.js';
 import { useAdminAccess } from '../../lib/adminAccess.jsx';
@@ -55,7 +55,11 @@ function NewStory() {
 }
 
 function StoryEditor({ id }) {
-  const { role, user, session } = useAdminAccess(); const capabilities = editorialCapabilities(role); const [state, setState] = useState({ loading: true, post: null, taxonomy: null, error: '', message: '', autosave: '' });
+  const navigate = useNavigate();
+  const { role, user, session } = useAdminAccess();
+  const capabilities = editorialCapabilities(role);
+  const isSuperAdmin = capabilities.role === 'super_admin';
+  const [state, setState] = useState({ loading: true, post: null, taxonomy: null, error: '', message: '', autosave: '', working: '' });
   const authReady = Boolean(user?.id && session?.user?.id);
   const [dirty, setDirty] = useState(false);
   const { flags } = useEditorialFlags();
@@ -63,6 +67,8 @@ function StoryEditor({ id }) {
   useEffect(() => { let active = true; if (!authReady) { setState((current) => ({ ...current, loading: true, error: '' })); return () => { active = false; }; } Promise.all([getEditorialDraft(id), listEditorialTaxonomy()]).then(([post, taxonomy]) => { if (active) setState({ loading: false, post: post ? { ...post, loaded_cover_image_url: post.cover_image_url || '' } : null, taxonomy, error: post ? '' : 'Draft not found.', message: post?.autosave ? 'Recovered autosaved changes.' : '', autosave: post?.autosave ? 'Recovered' : '' }); }).catch((error) => { if (active) setState({ loading: false, post: null, taxonomy: null, error: error?.message || 'Draft could not be loaded.', message: '', autosave: '' }); }); return () => { active = false; }; }, [authReady, id]);
   const document = state.post?.revision?.document || emptyEditorialDocument();
   const draftEditable = ['draft', 'changes_requested'].includes(state.post?.status) || (state.post?.status === 'published' && (capabilities.canManageAllContent || state.post?.author_user_id === user?.id));
+  const publishSteps = editorialDirectPublishSteps(state.post?.status);
+  const canRestore = capabilities.canManageSettings && (state.post?.status === 'archived' || (isSuperAdmin && state.post?.status === 'in_review'));
   function updatePost(key, value) { setDirty(true); setState((current) => ({ ...current, post: { ...current.post, [key]: value }, autosave: '' })); }
   function updateDocument(blocks) { setDirty(true); setState((current) => ({ ...current, post: { ...current.post, revision: { ...current.post.revision, document: { version: 1, blocks } } }, autosave: '' })); }
   useEffect(() => {
@@ -73,12 +79,103 @@ function StoryEditor({ id }) {
     }, 1200);
     return () => clearTimeout(timer);
   }, [dirty, document, draftEditable, state.post, user?.id]);
-  async function save() { setState((current) => ({ ...current, error: '', message: '' })); try { const revision = await saveEditorialDraft(state.post, document, state.post.revision); if (state.post.cover_image_url !== state.post.loaded_cover_image_url) await commitManagedMediaReplacement(state.post.cover_image_url, state.post.loaded_cover_image_url); setDirty(false); setState((current) => ({ ...current, post: { ...current.post, current_revision_id: revision.id, revision, loaded_cover_image_url: current.post.cover_image_url || '' }, autosave: '', message: 'Saved.' })); } catch (error) { setState((current) => ({ ...current, error: error.message || 'The draft could not be saved.' })); } }
+  async function persistDraft() {
+    const revision = await saveEditorialDraft(state.post, document, state.post.revision);
+    if (state.post.cover_image_url !== state.post.loaded_cover_image_url) await commitManagedMediaReplacement(state.post.cover_image_url, state.post.loaded_cover_image_url);
+    return { ...state.post, status: state.post.status === 'published' ? 'draft' : state.post.status, current_revision_id: revision.id, revision, loaded_cover_image_url: state.post.cover_image_url || '' };
+  }
+  async function save() {
+    setState((current) => ({ ...current, working: 'save', error: '', message: '' }));
+    try {
+      const post = await persistDraft();
+      setDirty(false);
+      setState((current) => ({ ...current, working: '', post, autosave: '', message: 'Draft saved.' }));
+    } catch (error) {
+      setState((current) => ({ ...current, working: '', error: error?.message || 'The draft could not be saved.' }));
+    }
+  }
   async function uploadCover(event) { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; setUploading(true); setState((current) => ({ ...current, error: '', message: '' })); try { const media = await uploadManagedWebsiteImage(file, { category: 'editorial_cover', editorialPostId: id }); updatePost('cover_image_url', media.primaryUrl); setState((current) => ({ ...current, message: 'Cover ready. Save to apply it.' })); } catch (error) { setState((current) => ({ ...current, error: error.message || 'The cover could not be uploaded.' })); } finally { setUploading(false); } }
-  async function workflow(action, options = {}) { setState((current) => ({ ...current, error: '', message: '' })); try { const post = await runEditorialWorkflow(id, action, options); setState((current) => ({ ...current, post: { ...current.post, ...post }, message: 'Status updated.' })); } catch { setState((current) => ({ ...current, error: 'That status change is not available yet. Save the draft and check your permissions.' })); } }
+  async function workflow(action, options = {}, successMessage = 'Workflow updated.') {
+    setState((current) => ({ ...current, working: action, error: '', message: '' }));
+    try {
+      const post = await runEditorialWorkflow(id, action, options);
+      setState((current) => ({ ...current, working: '', post: { ...current.post, ...post }, message: successMessage }));
+      return post;
+    } catch (error) {
+      setState((current) => ({ ...current, working: '', error: error?.message || 'That action could not be completed.' }));
+      return null;
+    }
+  }
+  async function publishNow() {
+    setState((current) => ({ ...current, working: 'publish', error: '', message: '' }));
+    try {
+      let post = state.post;
+      if (draftEditable) post = await persistDraft();
+      const steps = editorialDirectPublishSteps(post.status);
+      if (!steps.length) throw new Error('This story cannot be published from its current status.');
+      for (const action of steps) {
+        post = await runEditorialWorkflow(id, action);
+        setState((current) => ({ ...current, post: { ...current.post, ...post } }));
+      }
+      setDirty(false);
+      setState((current) => ({ ...current, working: '', post: { ...current.post, ...post }, autosave: '', message: 'Published.' }));
+    } catch (error) {
+      setState((current) => ({ ...current, working: '', error: error?.message || 'The story could not be published.' }));
+    }
+  }
+  async function restoreToDraft() {
+    const action = state.post.status === 'archived' ? 'restore' : state.post.status === 'in_review' ? 'request_changes' : '';
+    if (!action) return;
+    setState((current) => ({ ...current, working: 'restore', error: '', message: '' }));
+    try {
+      const post = await runEditorialWorkflow(id, action, action === 'request_changes' ? { note: 'Restored to draft by Super Admin.' } : {});
+      setDirty(false);
+      setState((current) => ({ ...current, working: '', post: { ...current.post, ...post }, autosave: '', message: 'Restored to draft. You can edit it now.' }));
+      navigate(`/editorial/content/${id}/edit`, { replace: true });
+    } catch (error) {
+      setState((current) => ({ ...current, working: '', error: error?.message || 'The story could not be restored.' }));
+    }
+  }
   if (state.loading) return <LoadingState label="Loading draft" />;
   if (!state.post) return <StudioNotice>{state.error}</StudioNotice>;
-  return <section><StudioHeader title="Edit" description="Structured blocks are shared by edit, preview, and public rendering." />{!draftEditable && <StudioNotice tone="success" className="mt-5">This draft is locked for review. An editor can request changes before the writer edits it again.</StudioNotice>}<div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]"><div className="grid gap-5"><div className="grid gap-4 rounded-lg border border-white/[0.1] bg-zinc-900 p-5 sm:grid-cols-2"><StudioInput label="Title" value={state.post.title} onChange={(value) => updatePost('title', value)} className="sm:col-span-2" /><StudioInput label="Slug" value={state.post.slug} onChange={(value) => updatePost('slug', value)} className="sm:col-span-2" /><StudioTextarea label="Summary" value={state.post.summary} onChange={(value) => updatePost('summary', value)} className="sm:col-span-2" /><StudioSelect label="Municipality" value={state.post.municipality_id || ''} onChange={(value) => updatePost('municipality_id', value)} options={[['', 'None'], ...(state.taxonomy?.municipalities || []).map((item) => [item.id, item.name])]} /><StudioSelect label="Category" value={state.post.category_id || ''} onChange={(value) => updatePost('category_id', value)} options={[['', 'None'], ...(state.taxonomy?.categories || []).filter((item) => !item.content_type || item.content_type === state.post.content_type).map((item) => [item.id, item.name])]} /><StudioInput label="Cover URL" value={state.post.cover_image_url || ''} onChange={(value) => updatePost('cover_image_url', value)} className="sm:col-span-2" />{flags.editorialMediaUploadsEnabled && <label className="sm:col-span-2 grid gap-2 text-sm"><span className="font-medium text-zinc-300">Managed cover</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadCover} disabled={uploading || !draftEditable} className="rounded-md border border-dashed border-white/[0.16] bg-zinc-950 p-3 text-sm text-zinc-400 file:mr-3 file:rounded-md file:border-0 file:bg-amber-300 file:px-3 file:py-2 file:font-semibold file:text-zinc-950" /><span className="text-xs text-zinc-500">{uploading ? 'Uploading…' : 'R2 creates bounded WebP variants through the existing managed pipeline.'}</span></label>}<StudioInput label="Cover alt" value={state.post.cover_image_alt || ''} onChange={(value) => updatePost('cover_image_alt', value)} className="sm:col-span-2" /></div><BlockEditor blocks={document.blocks} onChange={updateDocument} /></div><aside className="space-y-4"><div className="rounded-lg border border-white/[0.1] bg-zinc-900 p-4"><p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Status</p><div className="mt-3"><Status status={state.post.status} /></div><div className="mt-5 grid gap-2"><button onClick={save} disabled={!draftEditable} className="h-10 rounded-md bg-amber-300 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40">Save</button>{['draft', 'changes_requested'].includes(state.post.status) && <button onClick={() => workflow('submit')} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/[0.14] text-sm"><Send size={15} />Submit</button>}{capabilities.canReview && state.post.status === 'in_review' && <><button onClick={() => workflow('approve')} className="h-10 rounded-md border border-emerald-300/30 text-sm text-emerald-100">Approve</button><button onClick={() => workflow('request_changes')} className="h-10 rounded-md border border-white/[0.14] text-sm">Changes</button></>}{capabilities.canSchedule && state.post.status === 'approved' && <><StudioInput label="Schedule" value={state.post.scheduled_for ? state.post.scheduled_for.slice(0, 16) : ''} onChange={(value) => updatePost('scheduled_for', value)} /><button onClick={() => workflow('schedule', { scheduledFor: state.post.scheduled_for })} className="h-10 rounded-md border border-white/[0.14] text-sm">Schedule</button></>}{capabilities.canPublish && ['approved', 'scheduled'].includes(state.post.status) && <button onClick={() => workflow('publish')} className="h-10 rounded-md border border-amber-200/40 text-sm text-amber-100">Publish</button>}<Link to={`/editorial/content/${id}/preview`} className="inline-flex h-10 items-center justify-center gap-2 text-sm text-zinc-300"><Eye size={15} />Preview</Link></div></div>{state.error && <StudioNotice>{state.error}</StudioNotice>}{state.message && <StudioNotice tone="success">{state.message}</StudioNotice>}</aside></div></section>;
+  return <section>
+    <StudioHeader title="Edit" description="Structured blocks are shared by edit, preview, and public rendering." />
+    {!draftEditable && <StudioNotice tone="success" className="mt-5">{state.post.status === 'archived' ? 'This story is archived. Restore it to continue editing.' : isSuperAdmin ? 'This story is review-locked. Restore it to draft or continue to Publish.' : 'This draft is locked for review. An editor can request changes before the writer edits it again.'}</StudioNotice>}
+    <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
+      <fieldset disabled={!draftEditable} className="grid gap-5 border-0 p-0 disabled:opacity-70">
+        <div className="grid gap-4 rounded-lg border border-white/[0.1] bg-zinc-900 p-5 sm:grid-cols-2">
+          <StudioInput label="Title" value={state.post.title} onChange={(value) => updatePost('title', value)} className="sm:col-span-2" />
+          <StudioInput label="Slug" value={state.post.slug} onChange={(value) => updatePost('slug', value)} className="sm:col-span-2" />
+          <StudioTextarea label="Summary" value={state.post.summary} onChange={(value) => updatePost('summary', value)} className="sm:col-span-2" />
+          <StudioSelect label="Municipality" value={state.post.municipality_id || ''} onChange={(value) => updatePost('municipality_id', value)} options={[['', 'None'], ...(state.taxonomy?.municipalities || []).map((item) => [item.id, item.name])]} />
+          <StudioSelect label="Category" value={state.post.category_id || ''} onChange={(value) => updatePost('category_id', value)} options={[['', 'None'], ...(state.taxonomy?.categories || []).filter((item) => !item.content_type || item.content_type === state.post.content_type).map((item) => [item.id, item.name])]} />
+          <StudioInput label="Cover URL" value={state.post.cover_image_url || ''} onChange={(value) => updatePost('cover_image_url', value)} className="sm:col-span-2" />
+          {flags.editorialMediaUploadsEnabled && <label className="sm:col-span-2 grid gap-2 text-sm"><span className="font-medium text-zinc-300">Managed cover</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadCover} disabled={uploading || !draftEditable} className="rounded-md border border-dashed border-white/[0.16] bg-zinc-950 p-3 text-sm text-zinc-400 file:mr-3 file:rounded-md file:border-0 file:bg-amber-300 file:px-3 file:py-2 file:font-semibold file:text-zinc-950" /><span className="text-xs text-zinc-500">{uploading ? 'Uploading…' : 'R2 creates bounded WebP variants through the existing managed pipeline.'}</span></label>}
+          <StudioInput label="Cover alt" value={state.post.cover_image_alt || ''} onChange={(value) => updatePost('cover_image_alt', value)} className="sm:col-span-2" />
+        </div>
+        <BlockEditor blocks={document.blocks} onChange={updateDocument} />
+      </fieldset>
+      <aside className="space-y-4">
+        <div className="rounded-lg border border-white/[0.1] bg-zinc-900 p-4">
+          <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Status</p>
+          <div className="mt-3"><Status status={state.post.status} /></div>
+          <div className="mt-5 grid gap-2">
+            <button onClick={save} disabled={!draftEditable || Boolean(state.working)} className="h-10 rounded-md bg-amber-300 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40">{state.working === 'save' ? 'Saving…' : 'Save Draft'}</button>
+            <Link to={"/editorial/content/" + id + "/preview"} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/[0.14] text-sm text-zinc-300"><Eye size={15} />Preview</Link>
+            {isSuperAdmin && publishSteps.length > 0 && <button onClick={publishNow} disabled={Boolean(state.working)} className="h-10 rounded-md border border-amber-200/40 text-sm font-semibold text-amber-100 disabled:opacity-40">{state.working === 'publish' ? 'Publishing…' : 'Publish'}</button>}
+            {!isSuperAdmin && ['draft', 'changes_requested'].includes(state.post.status) && <button onClick={() => workflow('submit', {}, 'Submitted for review.')} disabled={Boolean(state.working)} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/[0.14] text-sm disabled:opacity-40"><Send size={15} />Submit</button>}
+            {!isSuperAdmin && capabilities.canReview && state.post.status === 'in_review' && <><button onClick={() => workflow('approve', {}, 'Approved.')} disabled={Boolean(state.working)} className="h-10 rounded-md border border-emerald-300/30 text-sm text-emerald-100 disabled:opacity-40">Approve</button><button onClick={() => workflow('request_changes', {}, 'Changes requested.')} disabled={Boolean(state.working)} className="h-10 rounded-md border border-white/[0.14] text-sm disabled:opacity-40">Changes</button></>}
+            {!isSuperAdmin && capabilities.canSchedule && state.post.status === 'approved' && <><StudioInput label="Schedule" value={state.post.scheduled_for ? state.post.scheduled_for.slice(0, 16) : ''} onChange={(value) => updatePost('scheduled_for', value)} /><button onClick={() => workflow('schedule', { scheduledFor: state.post.scheduled_for }, 'Scheduled.')} disabled={Boolean(state.working)} className="h-10 rounded-md border border-white/[0.14] text-sm disabled:opacity-40">Schedule</button></>}
+            {!isSuperAdmin && capabilities.canPublish && ['approved', 'scheduled'].includes(state.post.status) && <button onClick={() => workflow('publish', {}, 'Published.')} disabled={Boolean(state.working)} className="h-10 rounded-md border border-amber-200/40 text-sm text-amber-100 disabled:opacity-40">Publish</button>}
+            {capabilities.canArchive && ['published', 'expired'].includes(state.post.status) && <button onClick={() => workflow('archive', {}, 'Archived.')} disabled={Boolean(state.working)} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-red-300/20 text-sm text-red-100 disabled:opacity-40"><Archive size={15} />Archive</button>}
+            {canRestore && <button onClick={restoreToDraft} disabled={Boolean(state.working)} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-300/30 text-sm font-semibold text-emerald-100 disabled:opacity-40"><RotateCcw size={15} />{state.working === 'restore' ? 'Restoring…' : 'Restore to Draft'}</button>}
+          </div>
+        </div>
+        {state.error && <StudioNotice>{state.error}</StudioNotice>}
+        {state.message && <StudioNotice tone="success">{state.message}</StudioNotice>}
+      </aside>
+    </div>
+  </section>;
 }
 
 function BlockEditor({ blocks, onChange }) {
@@ -160,16 +257,19 @@ function TourismDetailsManager() {
 }
 
 function WorkflowHistoryManager() {
+  const navigate = useNavigate();
   const { user, role } = useAdminAccess();
+  const capabilities = editorialCapabilities(role);
   const [state, setState] = useState({ loading: true, posts: [], postId: '', revisions: [], error: '', message: '', working: false });
   async function loadPosts() { const posts = await listEditorialWorkspace({ userId: user.id, role }); setState((current) => ({ ...current, loading: false, posts })); }
   useEffect(() => { loadPosts().catch(() => setState((current) => ({ ...current, loading: false, error: 'Workflow history could not be loaded.' }))); }, [role, user.id]);
   const selected = state.posts.find((post) => post.id === state.postId);
   async function choose(postId) { setState((current) => ({ ...current, postId, revisions: [], error: '', message: '' })); if (!postId) return; const { data, error } = await supabase.from('editorial_revisions').select('id,revision_number,editor_note,created_at,created_by').eq('post_id', postId).order('revision_number', { ascending: false }).limit(100); setState((current) => ({ ...current, revisions: data || [], error: error ? 'Revisions could not be loaded.' : '' })); }
   async function archive() { setState((current) => ({ ...current, working: true, error: '', message: '' })); try { await runEditorialWorkflow(state.postId, 'archive'); setState((current) => ({ ...current, working: false, message: 'Story archived.' })); await loadPosts(); } catch { setState((current) => ({ ...current, working: false, error: 'The story could not be archived.' })); } }
+  async function restoreArchived() { setState((current) => ({ ...current, working: true, error: '', message: '' })); try { await runEditorialWorkflow(state.postId, 'restore'); navigate(`/editorial/content/${state.postId}/edit`, { replace: true }); } catch (error) { setState((current) => ({ ...current, working: false, error: error?.message || 'The story could not be restored.' })); } }
   async function restore(revisionId) { if (!['draft', 'changes_requested'].includes(selected?.status)) { setState((current) => ({ ...current, error: 'Request changes or start a draft before restoring a revision.', message: '' })); return; } setState((current) => ({ ...current, working: true, error: '', message: '' })); const { error } = await supabase.rpc('restore_editorial_revision', { p_post_id: state.postId, p_revision_id: revisionId }); setState((current) => ({ ...current, working: false, error: error ? 'The revision could not be restored.' : '', message: error ? '' : 'Revision restored as a new draft revision.' })); if (!error) await choose(state.postId); }
   if (state.loading) return <LoadingState label="Loading history" />;
-  return <section><StudioHeader title="History" description="Archive published records or restore an older immutable revision as a new working revision." /><div className="mt-7 max-w-xl"><StudioSelect label="Story" value={state.postId} onChange={choose} options={[['', 'Choose a story'], ...state.posts.map((post) => [post.id, `${post.title} · ${post.status.replace('_', ' ')}`])]} /></div>{selected && <div className="mt-5 flex flex-wrap items-center gap-3"><Status status={selected.status} />{['published', 'expired'].includes(selected.status) && <button type="button" onClick={archive} disabled={state.working} className="h-10 rounded-md border border-red-300/20 px-4 text-sm text-red-100 disabled:opacity-40">Archive</button>}</div>}{state.error && <StudioNotice className="mt-4">{state.error}</StudioNotice>}{state.message && <StudioNotice tone="success" className="mt-4">{state.message}</StudioNotice>}<div className="mt-5 grid gap-3">{state.revisions.map((revision) => <article key={revision.id} className="grid gap-3 rounded-lg border border-white/[0.1] bg-zinc-900 p-4 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="font-medium">Revision {revision.revision_number}</p><time className="mt-1 block text-xs text-zinc-500">{new Date(revision.created_at).toLocaleString()}</time>{revision.editor_note && <p className="mt-2 text-sm text-zinc-400">{revision.editor_note}</p>}</div><button type="button" onClick={() => restore(revision.id)} disabled={state.working || ['archived', 'expired'].includes(selected?.status)} className="h-9 rounded-md border border-white/[0.12] px-3 text-xs disabled:opacity-40">Restore</button></article>)}</div></section>;
+  return <section><StudioHeader title="History" description="Archive published records or restore an older immutable revision as a new working revision." /><div className="mt-7 max-w-xl"><StudioSelect label="Story" value={state.postId} onChange={choose} options={[['', 'Choose a story'], ...state.posts.map((post) => [post.id, `${post.title} · ${post.status.replace('_', ' ')}`])]} /></div>{selected && <div className="mt-5 flex flex-wrap items-center gap-3"><Status status={selected.status} />{['published', 'expired'].includes(selected.status) && <button type="button" onClick={archive} disabled={state.working} className="h-10 rounded-md border border-red-300/20 px-4 text-sm text-red-100 disabled:opacity-40">Archive</button>}{selected.status === 'archived' && capabilities.canManageSettings && <button type="button" onClick={restoreArchived} disabled={state.working} className="inline-flex h-10 items-center gap-2 rounded-md border border-emerald-300/30 px-4 text-sm font-semibold text-emerald-100 disabled:opacity-40"><RotateCcw size={15} />Restore to Draft</button>}</div>}{state.error && <StudioNotice className="mt-4">{state.error}</StudioNotice>}{state.message && <StudioNotice tone="success" className="mt-4">{state.message}</StudioNotice>}<div className="mt-5 grid gap-3">{state.revisions.map((revision) => <article key={revision.id} className="grid gap-3 rounded-lg border border-white/[0.1] bg-zinc-900 p-4 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="font-medium">Revision {revision.revision_number}</p><time className="mt-1 block text-xs text-zinc-500">{new Date(revision.created_at).toLocaleString()}</time>{revision.editor_note && <p className="mt-2 text-sm text-zinc-400">{revision.editor_note}</p>}</div><button type="button" onClick={() => restore(revision.id)} disabled={state.working || ['archived', 'expired'].includes(selected?.status)} className="h-9 rounded-md border border-white/[0.12] px-3 text-xs disabled:opacity-40">Restore</button></article>)}</div></section>;
 }
 function StudioHeader({ title, description }) { return <header><p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/70">Editorial Studio</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p></header>; }
 function Status({ status }) { return <span className="inline-flex rounded-full bg-white/[0.06] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-zinc-300">{String(status).replace('_', ' ')}</span>; }

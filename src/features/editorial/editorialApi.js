@@ -227,7 +227,16 @@ const WORKFLOW_RPCS = Object.freeze({
   publish: 'publish_editorial_post',
   start_revision: 'start_editorial_revision',
   archive: 'archive_editorial_post',
+  restore: 'restore_archived_editorial_post',
 });
+
+export function editorialDirectPublishSteps(status) {
+  const normalized = status === 'submitted' ? 'in_review' : status === 'needs_revision' ? 'changes_requested' : status;
+  if (['draft', 'changes_requested'].includes(normalized)) return ['submit', 'approve', 'publish'];
+  if (normalized === 'in_review') return ['approve', 'publish'];
+  if (['approved', 'scheduled'].includes(normalized)) return ['publish'];
+  return [];
+}
 
 export async function runEditorialWorkflow(postId, action, options = {}) {
   const rpc = WORKFLOW_RPCS[action];

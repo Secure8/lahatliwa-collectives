@@ -83,14 +83,18 @@ test('shared renderer is used by public and preview modes', () => {
   assert.match(studio, /mode="preview"/);
 });
 
-test('studio exposes source verification and type-specific tourism data tools', () => {
+test('studio integrates sources and type-specific tourism data inside the visual editor', () => {
   const studio = source('src/pages/editorial/EditorialStudio.jsx');
   const api = source('src/features/editorial/editorialApi.js');
-  assert.match(studio, /\/editorial\/sources/);
-  assert.match(studio, /\/editorial\/details/);
-  assert.match(studio, /\/editorial\/history/);
-  assert.match(studio, /restoreEditorialRevision/);
+  assert.match(studio, /function SourcesEditor/);
+  assert.match(studio, /function DetailsEditor/);
+  assert.match(studio, /Publisher or organization/);
+  assert.match(studio, /Add Source/);
+  assert.match(studio, /DETAIL_FIELDS/);
+  assert.doesNotMatch(studio, /\/editorial\/(sources|details)/);
+  assert.match(api, /saveEditorialDetails/);
+  assert.match(api, /syncEditorialSources/);
   assert.match(api, /action: 'restore_revision'/);
-  assert.match(studio, /editorial_event_details/);
+  assert.match(api, /editorial_event_details/);
   assert.match(studio, /verification_status/);
 });

@@ -20,7 +20,7 @@ const signatures = [
   'restore_archived_editorial_post\\(uuid\\)',
 ];
 
-test('browser roles lose direct execution of every Editorial SECURITY DEFINER RPC', () => {
+test('advisor hardening initially removes direct browser execution from every Editorial SECURITY DEFINER RPC', () => {
   for (const signature of signatures) {
     assert.match(migration, new RegExp(`revoke all on function public\\.${signature} from public,anon,authenticated,service_role`));
     assert.match(migration, new RegExp(`grant execute on function public\\.${signature} to service_role`));

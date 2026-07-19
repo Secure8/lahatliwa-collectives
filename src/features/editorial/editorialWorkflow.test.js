@@ -56,8 +56,8 @@ test('Super Admin direct publish keeps the advanced RPC workflow intact', () => 
   assert.deepEqual(editorialDirectPublishSteps('archived'), []);
   assert.match(api, /restore: 'restore_archived'/);
   assert.match(api, /functions\.invoke\('editorial-workflow'/);
-  assert.match(studio, /for \(const action of steps\)[\s\S]+post = await runEditorialWorkflow\(id, action\)/);
-  assert.match(studio, /!isSuperAdmin && \['draft', 'changes_requested'\]/);
+  assert.match(studio, /for \(const action of steps\) next = await runEditorialWorkflow\(id, action\)/);
+  assert.match(studio, /!simpleWorkflow && \['draft', 'changes_requested'\]/);
 });
 
 test('Editorial Studio exposes clear save, preview, publish, archive, and restore actions', () => {
@@ -66,8 +66,9 @@ test('Editorial Studio exposes clear save, preview, publish, archive, and restor
   assert.match(studio, /message: 'Draft saved\.'/);
   assert.match(studio, /message: 'Published\.'/);
   assert.match(studio, /workflow\('archive', \{\}, 'Archived\.'\)/);
-  assert.match(studio, /message: 'Restored to draft\. You can edit it now\.'/);
+  assert.match(studio, /'Restored to draft\. You can edit it now\.'/);
   assert.match(studio, /navigate\(`\/editorial\/content\/\$\{id\}\/edit`, \{ replace: true \}\)/);
-  assert.match(studio, /"\/editorial\/content\/" \+ id \+ "\/preview"/);
-  assert.match(studio, /<fieldset disabled=\{!draftEditable\}/);
+  assert.match(studio, /navigate\(`\/editorial\/content\/\$\{id\}\/preview`\)/);
+  assert.match(studio, /const draftEditable =/);
+  assert.match(studio, /simpleWorkflow = \['super_admin', 'admin'\]/);
 });

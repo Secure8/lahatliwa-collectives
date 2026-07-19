@@ -34,6 +34,16 @@ export function editorialDraftError(error, phase = 'load') {
   return Object.assign(new Error(`The draft could not be ${phase === 'load' ? 'loaded' : phase}. ${source.message || 'Please retry.'}`), { code: 'EDITORIAL_QUERY_FAILED', cause: source });
 }
 
+export function editorialActionError(error, action = 'complete that action') {
+  const source = error || {};
+  const raw = `${source.code || ''} ${source.message || ''} ${source.details || ''}`.toLowerCase();
+  if (source.code === 'EDITORIAL_REVISION_CONFLICT' || raw.includes('editorial_revision_conflict')) return Object.assign(new Error('This story was updated elsewhere. Reload before continuing.'), { code: 'EDITORIAL_REVISION_CONFLICT', cause: source });
+  if (source.status === 403 || source.code === '42501' || /not authorized|permission denied|forbidden|row-level security/.test(raw)) return Object.assign(new Error('You do not have permission to edit this story.'), { code: 'EDITORIAL_ACCESS_DENIED', cause: source });
+  if (source instanceof TypeError || /failed to fetch|network|load failed/.test(raw)) return Object.assign(new Error('The Editorial service could not be reached. Check your connection and try again.'), { code: 'EDITORIAL_NETWORK_ERROR', cause: source });
+  if (/metadata_invalid|document_invalid|invalid input|check constraint/.test(raw)) return Object.assign(new Error('Check the highlighted story details and try again.'), { code: 'EDITORIAL_VALIDATION_ERROR', cause: source });
+  return Object.assign(new Error(`We could not ${action}. Please try again.`), { code: source.code || 'EDITORIAL_ACTION_FAILED', cause: source });
+}
+
 async function editorialFunctionError(error) {
   let payload = null;
   if (error?.context) {
@@ -138,6 +148,42 @@ export async function listEditorialTaxonomy() {
   return { municipalities: municipalities.data || [], categories: categories.data || [], tags: tags.data || [] };
 }
 
+export const EDITORIAL_DETAIL_CONFIG = Object.freeze({
+  event: { table: 'editorial_event_details', fields: ['starts_at', 'ends_at', 'venue_name', 'location_text', 'organizer', 'official_contact', 'official_url', 'price_note', 'event_status'] },
+  place: { table: 'editorial_place_details', fields: ['address_text', 'latitude', 'longitude', 'opening_hours_note', 'contact_note', 'accessibility_note', 'place_type', 'verification_status', 'official_url'] },
+  activity: { table: 'editorial_activity_details', fields: ['activity_type', 'availability_note', 'duration_note', 'difficulty', 'meeting_point', 'contact_note', 'safety_note', 'verification_status', 'official_url'] },
+  local_product: { table: 'editorial_product_details', fields: ['product_type', 'maker_name', 'purchase_location', 'contact_note', 'price_note', 'verification_status', 'official_url'] },
+});
+
+function cleanEditorText(value, max = 2000) {
+  return String(value ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().slice(0, max);
+}
+
+export function sanitizeEditorialDetails(contentType, details = {}) {
+  const config = EDITORIAL_DETAIL_CONFIG[contentType];
+  if (!config) return {};
+  return Object.fromEntries(config.fields.map((key) => {
+    const value = details?.[key];
+    if (['latitude', 'longitude'].includes(key)) return [key, value === '' || value == null ? null : Number(value)];
+    if (['starts_at', 'ends_at'].includes(key)) return [key, value ? new Date(value).toISOString() : null];
+    if (key === 'official_url') return [key, cleanEditorText(value, 2048) || null];
+    return [key, cleanEditorText(value, 2000)];
+  }));
+}
+
+export function sanitizeEditorialSources(sources = []) {
+  return (Array.isArray(sources) ? sources : []).slice(0, 50).map((source) => ({
+    id: EDITORIAL_UUID_PATTERN.test(String(source?.id || '')) ? source.id : globalThis.crypto?.randomUUID?.(),
+    source_name: cleanEditorText(source?.source_name, 180),
+    source_url: cleanEditorText(source?.source_url, 2048),
+    publisher: cleanEditorText(source?.publisher, 180),
+    note: cleanEditorText(source?.note, 1000),
+    official_contact: cleanEditorText(source?.official_contact, 500),
+    verification_status: ['unverified', 'verified', 'needs_review', 'unavailable'].includes(source?.verification_status) ? source.verification_status : 'unverified',
+    verified_at: source?.verification_status === 'verified' ? source?.verified_at || null : null,
+  }));
+}
+
 export async function listTourismHomepageSections() {
   const { data, error } = await supabase.from('editorial_homepage_sections')
     .select('id,section_key,heading,description,sort_order,editorial_homepage_items(id,label,sort_order,editorial_posts(id,content_type,title,slug,summary,cover_image_url,cover_image_alt,published_revision_id,published_at,published_metadata,status,archived_at))')
@@ -147,7 +193,7 @@ export async function listTourismHomepageSections() {
 }
 
 export async function listEditorialWorkspace({ userId, role, scope = 'all', status = '' } = {}) {
-  let query = supabase.from('editorial_posts').select('id,content_type,title,slug,summary,status,author_user_id,assigned_editor_user_id,cover_image_url,updated_at,published_at,scheduled_for').order('updated_at', { ascending: false }).limit(100);
+  let query = supabase.from('editorial_posts').select('id,content_type,title,slug,summary,status,author_user_id,assigned_editor_user_id,contributor_id,category_id,municipality_id,cover_image_url,cover_image_alt,current_revision_id,updated_at,published_at,scheduled_for,editorial_municipalities(name,slug),editorial_categories(name,slug),editorial_contributors(display_name)').order('updated_at', { ascending: false }).limit(100);
   if (scope === 'drafts') query = query.in('status', ['draft', 'needs_revision']);
   if (scope === 'assigned') query = query.eq('assigned_editor_user_id', userId);
   if (scope === 'review') query = query.eq('status', 'submitted');
@@ -167,17 +213,23 @@ export async function getEditorialDraft(id) {
   const { data: post, error } = await supabase.from('editorial_posts').select('*').eq('id', draftId).maybeSingle();
   if (error) throw editorialDraftError(error);
   if (!post) return null;
-  const revisionResult = post.current_revision_id
-    ? await supabase.from('editorial_revisions').select('*').eq('id', post.current_revision_id).maybeSingle()
-    : { data: null, error: null };
+  const detailConfig = EDITORIAL_DETAIL_CONFIG[post.content_type];
+  const [revisionResult, autosaveResult, detailResult, sourceResult] = await Promise.all([
+    post.current_revision_id ? supabase.from('editorial_revisions').select('*').eq('id', post.current_revision_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    supabase.from('editorial_autosaves').select('document,metadata,updated_at').eq('post_id', draftId).maybeSingle(),
+    detailConfig ? supabase.from(detailConfig.table).select('*').eq('post_id', draftId).maybeSingle() : Promise.resolve({ data: {}, error: null }),
+    supabase.from('editorial_sources').select('id,source_name,source_url,publisher,note,official_contact,verification_status,verified_at').eq('post_id', draftId).order('updated_at'),
+  ]);
   if (revisionResult.error) throw editorialDraftError(revisionResult.error, 'loaded with its revision');
-  const autosaveResult = await supabase.from('editorial_autosaves').select('document,metadata,updated_at').eq('post_id', draftId).maybeSingle();
   if (autosaveResult.error) throw editorialDraftError(autosaveResult.error, 'loaded with its autosave');
+  if (detailResult.error) throw editorialDraftError(detailResult.error, 'loaded with its tourism details');
+  if (sourceResult.error) throw editorialDraftError(sourceResult.error, 'loaded with its sources');
   const revision = revisionResult.data;
   const autosave = autosaveResult.data;
   const savedAt = revision?.created_at ? new Date(revision.created_at).getTime() : 0;
   const autosaveAt = autosave?.updated_at ? new Date(autosave.updated_at).getTime() : 0;
-  return withStudioStatus({ ...post, ...(autosaveAt > savedAt ? autosave.metadata || {} : {}), revision: { ...(revision || { document: emptyEditorialDocument(), seo_title: '', seo_description: '', editor_note: '' }), ...(autosaveAt > savedAt ? { document: autosave.document } : {}) }, autosave: autosaveAt > savedAt ? autosave : null });
+  const recovered = autosaveAt > savedAt ? autosave.metadata || {} : {};
+  return withStudioStatus({ ...post, ...recovered, details: recovered.editorial_details || detailResult.data || {}, sources: recovered.editorial_sources || sourceResult.data || [], revision: { ...(revision || { document: emptyEditorialDocument(), seo_title: '', seo_description: '', editor_note: '' }), ...(autosaveAt > savedAt ? { document: autosave.document } : {}) }, autosave: autosaveAt > savedAt ? autosave : null });
 }
 
 export async function saveEditorialAutosave(userId, post, document) {
@@ -188,6 +240,8 @@ export async function saveEditorialAutosave(userId, post, document) {
     summary: String(post.summary || '').slice(0, 500), cover_image_url: post.cover_image_url || null,
     cover_image_alt: String(post.cover_image_alt || '').slice(0, 240), category_id: post.category_id || null,
     municipality_id: post.municipality_id || null, assigned_editor_user_id: post.assigned_editor_user_id || null,
+    editorial_details: sanitizeEditorialDetails(post.content_type, post.details),
+    editorial_sources: sanitizeEditorialSources(post.sources),
   };
   const { error } = await supabase.from('editorial_autosaves').upsert({ post_id: post.id, user_id: userId, document: validation.document, metadata, base_revision_id: post.current_revision_id || null, updated_at: new Date().toISOString() }, { onConflict: 'post_id,user_id' });
   if (error) throw error;
@@ -199,13 +253,52 @@ export async function clearEditorialAutosave(postId) {
   if (error) throw error;
 }
 
-export async function createEditorialDraft({ userId, contentType = 'journal', title = 'Untitled story' } = {}) {
+export async function createEditorialDraft({ userId, contentType = 'journal', title = 'Untitled story', municipalityId = null, categoryId = null, document = emptyEditorialDocument() } = {}) {
   const id = globalThis.crypto?.randomUUID?.();
   const slug = `${slugifyEditorial(title) || 'untitled'}-${String(id).slice(0, 8)}`;
-  const { data, error } = await supabase.from('editorial_posts').insert({ id, content_type: contentType, title, slug, author_user_id: userId, status: 'draft' }).select('id').single();
+  const { data, error } = await supabase.from('editorial_posts').insert({ id, content_type: contentType, title, slug, author_user_id: userId, municipality_id: municipalityId || null, category_id: categoryId || null, status: 'draft' }).select('*').single();
   if (error) throw error;
   if (!data?.id || !EDITORIAL_UUID_PATTERN.test(data.id)) throw Object.assign(new Error('The draft was created, but its identifier was not returned. Open it from Drafts.'), { code: 'EDITORIAL_DRAFT_CREATE_ID_MISSING' });
-  return withStudioStatus(data);
+  const revision = await saveEditorialDraft(data, document, {});
+  return withStudioStatus({ ...data, current_revision_id: revision.id, revision });
+}
+
+export async function saveEditorialDetails(post) {
+  const config = EDITORIAL_DETAIL_CONFIG[post?.content_type];
+  if (!config) return {};
+  const details = sanitizeEditorialDetails(post.content_type, post.details);
+  const hasDetails = Object.entries(details).some(([key, value]) => !['event_status', 'verification_status'].includes(key) && value !== '' && value != null);
+  if (!hasDetails) return details;
+  if (post.content_type === 'event' && !details.starts_at) throw Object.assign(new Error('Add the event start date before saving event details.'), { code: 'EDITORIAL_EVENT_DATE_REQUIRED' });
+  const { data, error } = await supabase.from(config.table).upsert({ post_id: post.id, ...details }, { onConflict: 'post_id' }).select('*').single();
+  if (error) throw editorialActionError(error, 'save the tourism details');
+  return data;
+}
+
+export async function syncEditorialSources(post, userId) {
+  const sources = sanitizeEditorialSources(post?.sources).filter((source) => source.source_name);
+  for (const source of sources) {
+    if (source.source_url && !/^https:\/\/[^\s<>"']+$/i.test(source.source_url)) throw Object.assign(new Error('Use an HTTPS link for each source.'), { code: 'EDITORIAL_SOURCE_URL_INVALID' });
+  }
+  const { data: existing, error: readError } = await supabase.from('editorial_sources').select('id').eq('post_id', post.id);
+  if (readError) throw editorialActionError(readError, 'load the sources');
+  const currentIds = new Set(sources.map((source) => source.id));
+  const removedIds = (existing || []).map((source) => source.id).filter((id) => !currentIds.has(id));
+  if (removedIds.length) {
+    const { error } = await supabase.from('editorial_sources').delete().in('id', removedIds);
+    if (error) throw editorialActionError(error, 'remove the source');
+  }
+  for (const source of sources) {
+    const payload = { post_id: post.id, source_name: source.source_name, source_url: source.source_url || null, publisher: source.publisher, note: source.note, official_contact: source.official_contact, verification_status: source.verification_status, verified_at: source.verification_status === 'verified' ? source.verified_at || new Date().toISOString() : null };
+    if ((existing || []).some((row) => row.id === source.id)) {
+      const { error } = await supabase.from('editorial_sources').update(payload).eq('id', source.id);
+      if (error) throw editorialActionError(error, 'update the source');
+    } else {
+      const { error } = await supabase.from('editorial_sources').insert({ id: source.id, ...payload, created_by: userId });
+      if (error) throw editorialActionError(error, 'add the source');
+    }
+  }
+  return sources;
 }
 
 export async function saveEditorialDraft(post, document, revision = {}) {
@@ -228,7 +321,7 @@ export async function saveEditorialDraft(post, document, revision = {}) {
   } catch (revisionError) {
     if (revisionError?.code === 'EDITORIAL_REVISION_CONFLICT' || String(revisionError?.message || '').includes('EDITORIAL_REVISION_CONFLICT')) throw Object.assign(new Error('A newer revision was saved by someone else. Your autosave was preserved; reload and compare before saving again.'), { code: 'EDITORIAL_REVISION_CONFLICT' });
     if (revisionError?.code === 'EDITORIAL_METADATA_INVALID' || String(revisionError?.message || '').includes('EDITORIAL_METADATA_INVALID')) throw Object.assign(new Error('Check the title, slug, cover URL, and other story details.'), { code: 'EDITORIAL_METADATA_INVALID' });
-    throw revisionError;
+    throw editorialActionError(revisionError, 'save your draft');
   }
 }
 
@@ -251,7 +344,11 @@ export async function runEditorialWorkflow(postId, action, options = {}) {
   const body = { action: edgeAction, postId };
   if (action === 'schedule') body.scheduledFor = options.scheduledFor;
   if (['request_changes', 'approve', 'archive'].includes(action)) body.note = options.note || '';
-  return withStudioStatus(await invokeEditorialWorkflow(body));
+  try {
+    return withStudioStatus(await invokeEditorialWorkflow(body));
+  } catch (error) {
+    throw editorialActionError(error, action === 'publish' ? 'publish this story' : action === 'archive' ? 'archive this story' : action === 'restore' ? 'restore this story' : 'complete that action');
+  }
 }
 
 export async function restoreEditorialRevision(postId, revisionId) {

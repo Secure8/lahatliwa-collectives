@@ -11,26 +11,41 @@ function safeLink(value = '') {
 }
 
 function normalizeImage(value = {}) {
+  const rawUrl = clean(value.url, 2048);
   const url = safeLink(value.url);
-  if (!url) return null;
+  if (rawUrl && !url) return null;
   return { url, alt: clean(value.alt, 240), caption: clean(value.caption, 500), mediaId: UUID.test(String(value.mediaId || '')) ? value.mediaId : null };
+}
+
+function presentation(value = {}) {
+  return {
+    hidden: value.hidden === true,
+    collapsed: value.collapsed === true,
+    align: ['left', 'center', 'right'].includes(value.align) ? value.align : 'left',
+    width: ['narrow', 'normal', 'wide', 'full'].includes(value.width) ? value.width : 'normal',
+    spacing: ['compact', 'normal', 'relaxed'].includes(value.spacing) ? value.spacing : 'normal',
+    background: ['none', 'soft', 'accent'].includes(value.background) ? value.background : 'none',
+    emphasis: ['normal', 'strong', 'subtle'].includes(value.emphasis) ? value.emphasis : 'normal',
+    linkUrl: safeLink(value.linkUrl),
+  };
 }
 
 export function normalizeEditorialBlock(block = {}, index = 0) {
   const type = EDITORIAL_BLOCK_TYPES.includes(block.type) ? block.type : '';
   if (!type) return null;
   const id = UUID.test(String(block.id || '')) ? block.id : `block-${index + 1}`;
-  if (type === 'paragraph') return { id, type, text: clean(block.text, 10000) };
-  if (type === 'heading') return { id, type, level: [2, 3, 4].includes(Number(block.level)) ? Number(block.level) : 2, text: clean(block.text, 240) };
-  if (type === 'quote') return { id, type, text: clean(block.text, 3000), attribution: clean(block.attribution, 240) };
+  const style = presentation(block);
+  if (type === 'paragraph') return { id, type, text: clean(block.text, 10000), ...style };
+  if (type === 'heading') return { id, type, level: [2, 3, 4].includes(Number(block.level)) ? Number(block.level) : 2, text: clean(block.text, 240), ...style };
+  if (type === 'quote') return { id, type, text: clean(block.text, 3000), attribution: clean(block.attribution, 240), ...style };
   if (type === 'image') {
     const image = normalizeImage(block);
-    return image ? { id, type, ...image } : null;
+    return image ? { id, type, ...image, ...style, aspectRatio: ['natural', 'landscape', 'portrait', 'square'].includes(block.aspectRatio) ? block.aspectRatio : 'landscape', fit: block.fit === 'contain' ? 'contain' : 'cover', imageAlign: ['left', 'center', 'right'].includes(block.imageAlign) ? block.imageAlign : 'center' } : null;
   }
-  if (type === 'gallery') return { id, type, images: (Array.isArray(block.images) ? block.images : []).slice(0, 12).map(normalizeImage).filter(Boolean) };
-  if (type === 'facts') return { id, type, items: (Array.isArray(block.items) ? block.items : []).slice(0, 20).map((item) => ({ label: clean(item?.label, 100), value: clean(item?.value, 500) })).filter((item) => item.label && item.value) };
-  if (type === 'callout') return { id, type, tone: ['note', 'tip', 'warning'].includes(block.tone) ? block.tone : 'note', title: clean(block.title, 160), text: clean(block.text, 2000), linkLabel: clean(block.linkLabel, 80), linkUrl: safeLink(block.linkUrl) };
-  return { id, type: 'divider' };
+  if (type === 'gallery') return { id, type, images: (Array.isArray(block.images) ? block.images : []).slice(0, 12).map(normalizeImage).filter(Boolean), ...style, aspectRatio: ['landscape', 'portrait', 'square'].includes(block.aspectRatio) ? block.aspectRatio : 'landscape', fit: block.fit === 'contain' ? 'contain' : 'cover' };
+  if (type === 'facts') return { id, type, items: (Array.isArray(block.items) ? block.items : []).slice(0, 20).map((item) => ({ label: clean(item?.label, 100), value: clean(item?.value, 500) })).filter((item) => item.label && item.value), ...style };
+  if (type === 'callout') return { id, type, tone: ['note', 'tip', 'warning'].includes(block.tone) ? block.tone : 'note', title: clean(block.title, 160), text: clean(block.text, 2000), linkLabel: clean(block.linkLabel, 80), linkUrl: safeLink(block.linkUrl), ...style };
+  return { id, type: 'divider', ...style };
 }
 
 export function validateEditorialDocument(input = {}) {

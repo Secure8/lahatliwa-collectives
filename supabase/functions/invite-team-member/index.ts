@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeInvitationEmail, orphanedAuthConflict, validateInvitationRole } from './inviteTeamMember.js';
+import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeEditorialRoles, normalizeInvitationEmail, orphanedAuthConflict, validateInvitationRole } from './inviteTeamMember.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
 
     const email = normalizeInvitationEmail(body.email);
     const role = String(body.role || '');
+    const editorialRoles = normalizeEditorialRoles(body.editorialRoles);
     if (!email) return fail('INVALID_EMAIL', 'Enter a valid email address.', 400);
     if (!validateInvitationRole(role)) return fail('INVALID_ROLE', 'Select an assignable team role.', 400);
 
@@ -146,6 +147,7 @@ Deno.serve(async (req) => {
       email,
       display_name: String(body.displayName || '').trim() || null,
       role,
+      editorial_roles: editorialRoles,
       status: 'invited',
       creative_member_id: body.creativeMemberId || null,
       invited_by: user.id,

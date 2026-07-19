@@ -5,36 +5,38 @@ import { editorialDirectPublishSteps } from './editorialApi.js';
 import { editorialCapabilities } from './editorialCapabilities.js';
 
 const source = (path) => readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
-const migration = source('supabase/migrations/20260720090000_restore_archived_editorial_post.sql');
+const migration = source('supabase/migrations/20260720170000_editorial_owner_workspace_autonomy.sql');
 const foundation = source('supabase/migrations/20260719090000_editorial_tourism_foundation.sql');
 const studio = source('src/pages/editorial/EditorialStudio.jsx');
 const api = source('src/features/editorial/editorialApi.js');
 
-test('restore authorization is limited to Admin and Super Admin capabilities', () => {
+test('restore and delete follow ownership while settings remain administrative', () => {
   assert.equal(editorialCapabilities('super_admin').canManageSettings, true);
   assert.equal(editorialCapabilities('owner').canManageSettings, true);
   assert.equal(editorialCapabilities('admin').canManageSettings, true);
   assert.equal(editorialCapabilities('editor').canManageSettings, false);
   assert.equal(editorialCapabilities('writer').canManageSettings, false);
-  assert.match(foundation, /manage_taxonomy','manage_contributors','manage_settings','view_audit'[\s\S]+v_role in \('super_admin','admin'\)/);
-  assert.match(migration, /private\.has_editorial_capability\(auth\.uid\(\),'manage_settings'\)/);
+  assert.equal(editorialCapabilities('writer').canRestoreOwn, true);
+  assert.equal(editorialCapabilities('writer').canDeleteOwn, true);
+  assert.equal(editorialCapabilities('writer').canDeleteAny, false);
+  assert.equal(editorialCapabilities('super_admin').canDeleteAny, true);
+  assert.match(migration, /v_post\.author_user_id=auth\.uid\(\)/);
+  assert.match(migration, /p_capability in \('manage_all','view_audit','delete_any'\)[\s\S]+v_role='super_admin'/);
 });
 
-test('unauthorized restore calls are rejected before the post is read or changed', () => {
-  const authorization = migration.indexOf("if not private.has_editorial_capability(auth.uid(),'manage_settings')");
-  const postRead = migration.indexOf('select * into v_post');
-  assert.ok(authorization >= 0 && authorization < postRead);
+test('unauthorized cross-account actions are rejected', () => {
   assert.match(migration, /raise exception 'EDITORIAL_NOT_AUTHORIZED'/);
-  assert.match(migration, /revoke all on function public\.restore_archived_editorial_post\(uuid\) from public,anon,service_role/);
-  assert.match(migration, /grant execute on function public\.restore_archived_editorial_post\(uuid\) to authenticated/);
+  assert.match(migration, /manage_all'\) or \(private\.has_editorial_capability\(auth\.uid\(\),'restore_own'\) and v_post\.author_user_id=auth\.uid\(\)\)/);
+  assert.match(migration, /manage_all'\) or v_post\.author_user_id=auth\.uid\(\)/);
 });
 
 test('archived restoration updates the same post in place and preserves its relationships and history', () => {
+  const restoreFunction = migration.match(/create or replace function public\.restore_archived_editorial_post[\s\S]+?\n\$\$;/)?.[0] || '';
   assert.match(migration, /v_post\.status<>'archived'/);
-  assert.match(migration, /update public\.editorial_posts\s+set status='draft',updated_at=now\(\)\s+where id=p_post_id/s);
-  assert.doesNotMatch(migration, /insert into public\.editorial_posts/);
-  assert.doesNotMatch(migration, /delete from/);
-  assert.doesNotMatch(migration, /set[\s\S]{0,120}(current_revision_id|published_revision_id|published_metadata|published_at|archived_at|author_user_id|assigned_editor_user_id)\s*=/);
+  assert.match(migration, /update public\.editorial_posts set status='draft',archived_at=null,updated_at=now\(\) where id=p_post_id/s);
+  assert.doesNotMatch(restoreFunction, /insert into public\.editorial_posts/);
+  assert.doesNotMatch(restoreFunction, /delete from/);
+  assert.doesNotMatch(restoreFunction, /set[\s\S]{0,120}(current_revision_id|published_revision_id|published_metadata|published_at|author_user_id|assigned_editor_user_id)\s*=/);
   assert.match(migration, /set_config\('app\.editorial_workflow','1',true\)/);
   assert.match(foundation, /EDITORIAL_WORKFLOW_FIELDS_REQUIRE_RPC/);
   assert.match(foundation, /editorial_posts_team_update[\s\S]+status in\('draft','needs_revision'\)/);
@@ -47,21 +49,22 @@ test('restore action is appended to editorial audit history', () => {
   assert.match(migration, /'publishedRevisionId',v_post\.published_revision_id/);
 });
 
-test('Super Admin direct publish keeps the advanced RPC workflow intact', () => {
-  assert.deepEqual(editorialDirectPublishSteps('draft'), ['submit', 'approve', 'publish']);
-  assert.deepEqual(editorialDirectPublishSteps('changes_requested'), ['submit', 'approve', 'publish']);
-  assert.deepEqual(editorialDirectPublishSteps('in_review'), ['approve', 'publish']);
+test('owners publish directly while advanced workflow RPCs remain ownership-scoped', () => {
+  assert.deepEqual(editorialDirectPublishSteps('draft'), ['publish']);
+  assert.deepEqual(editorialDirectPublishSteps('changes_requested'), ['publish']);
+  assert.deepEqual(editorialDirectPublishSteps('in_review'), ['publish']);
   assert.deepEqual(editorialDirectPublishSteps('approved'), ['publish']);
   assert.deepEqual(editorialDirectPublishSteps('scheduled'), ['publish']);
   assert.deepEqual(editorialDirectPublishSteps('archived'), []);
   assert.match(api, /restore: 'restore_archived'/);
+  assert.match(api, /delete: 'delete'/);
   assert.match(api, /functions\.invoke\('editorial-workflow'/);
   assert.match(studio, /for \(const action of steps\) next = await runEditorialWorkflow\(id, action\)/);
-  assert.match(studio, /!simpleWorkflow && \['draft', 'changes_requested'\]/);
+  assert.doesNotMatch(studio, /Submitted for review/);
 });
 
-test('Editorial Studio exposes clear save, preview, publish, archive, and restore actions', () => {
-  for (const label of ['Save Draft', 'Preview', 'Publish', 'Archive', 'Restore to Draft']) assert.match(studio, new RegExp(label));
+test('Editorial Studio exposes clear save, preview, publish, archive, restore, and delete actions', () => {
+  for (const label of ['Save Draft', 'Preview', 'Publish', 'Archive', 'Restore', 'Delete']) assert.match(studio, new RegExp(label));
   assert.doesNotMatch(studio, /StudioSelect label="Status"/);
   assert.match(studio, /message: 'Draft saved\.'/);
   assert.match(studio, /message: 'Published\.'/);
@@ -70,5 +73,5 @@ test('Editorial Studio exposes clear save, preview, publish, archive, and restor
   assert.match(studio, /navigate\(`\/editorial\/content\/\$\{id\}\/edit`, \{ replace: true \}\)/);
   assert.match(studio, /navigate\(`\/editorial\/content\/\$\{id\}\/preview`\)/);
   assert.match(studio, /const draftEditable =/);
-  assert.match(studio, /simpleWorkflow = \['super_admin', 'admin'\]/);
+  assert.match(studio, /requestConfirmation\(\{/);
 });

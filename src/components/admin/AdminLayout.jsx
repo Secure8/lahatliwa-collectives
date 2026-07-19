@@ -38,7 +38,7 @@ const links = [
     ['Settings', '/admin/settings', Settings, ({ role }) => canManageSettings(role)],
   ]],
   ['Editorial Studio', [
-    ['Open Studio', '/editorial', FileText, ({ role }) => canAccessEditorial(role)],
+    ['Open Studio', '/editorial', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
   ]],
 ];
 

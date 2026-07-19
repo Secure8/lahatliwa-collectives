@@ -198,7 +198,7 @@ export async function listEditorialWorkspace({ userId, role, scope = 'all', stat
   if (scope === 'assigned') query = query.eq('assigned_editor_user_id', userId);
   if (scope === 'review') query = query.eq('status', 'submitted');
   if (status) query = query.eq('status', status);
-  if (role === 'writer' && scope === 'all') query = query.eq('author_user_id', userId);
+  if (!['super_admin', 'owner'].includes(String(role || '').toLowerCase())) query = query.eq('author_user_id', userId);
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(withStudioStatus);
@@ -327,14 +327,12 @@ export async function saveEditorialDraft(post, document, revision = {}) {
 
 const WORKFLOW_ACTIONS = Object.freeze({
   submit: 'submit', request_changes: 'request_changes', approve: 'approve', schedule: 'schedule',
-  publish: 'publish', start_revision: 'start_revision', archive: 'archive', restore: 'restore_archived',
+  publish: 'publish', start_revision: 'start_revision', archive: 'archive', restore: 'restore_archived', delete: 'delete',
 });
 
 export function editorialDirectPublishSteps(status) {
   const normalized = status === 'submitted' ? 'in_review' : status === 'needs_revision' ? 'changes_requested' : status;
-  if (['draft', 'changes_requested'].includes(normalized)) return ['submit', 'approve', 'publish'];
-  if (normalized === 'in_review') return ['approve', 'publish'];
-  if (['approved', 'scheduled'].includes(normalized)) return ['publish'];
+  if (['draft', 'changes_requested', 'in_review', 'approved', 'scheduled', 'expired'].includes(normalized)) return ['publish'];
   return [];
 }
 
@@ -347,7 +345,7 @@ export async function runEditorialWorkflow(postId, action, options = {}) {
   try {
     return withStudioStatus(await invokeEditorialWorkflow(body));
   } catch (error) {
-    throw editorialActionError(error, action === 'publish' ? 'publish this story' : action === 'archive' ? 'archive this story' : action === 'restore' ? 'restore this story' : 'complete that action');
+    throw editorialActionError(error, action === 'publish' ? 'publish this story' : action === 'archive' ? 'archive this story' : action === 'restore' ? 'restore this story' : action === 'delete' ? 'delete this story' : 'complete that action');
   }
 }
 

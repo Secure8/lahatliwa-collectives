@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeInvitationEmail, orphanedAuthConflict, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
+import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeEditorialRoles, normalizeInvitationEmail, orphanedAuthConflict, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
 
 test('invitation roles exclude privileged and unsupported roles', () => {
   ['admin', 'editor', 'creative', 'viewer'].forEach((role) => assert.equal(validateInvitationRole(role), true));
@@ -10,6 +10,11 @@ test('invitation roles exclude privileged and unsupported roles', () => {
 test('email normalization is strict and lowercase', () => {
   assert.equal(normalizeInvitationEmail(' New.Member@Example.COM '), 'new.member@example.com');
   assert.equal(normalizeInvitationEmail('not-an-email'), null);
+});
+
+test('invitation normalizes flexible work roles without accepting privileged roles', () => {
+  assert.deepEqual(normalizeEditorialRoles(['Creative', 'writer', 'editor', 'writer', 'admin', 'super_admin']), ['creative', 'writer', 'editor']);
+  assert.deepEqual(normalizeEditorialRoles('writer'), []);
 });
 
 test('invitation redirect uses the configured HTTPS site origin', () => {

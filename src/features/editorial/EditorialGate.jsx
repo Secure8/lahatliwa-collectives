@@ -13,10 +13,10 @@ export function PublicEditorialGate({ children }) {
 }
 
 export function StudioEditorialGate({ children }) {
-  const { role } = useAdminAccess();
+  const { role, editorialRoles } = useAdminAccess();
   const { flags, loading } = useEditorialFlags();
   if (loading) return <main className="grid min-h-screen place-items-center bg-zinc-950 text-white"><LoadingState label="Loading Editorial Studio" /></main>;
-  if (!canAccessEditorial(role)) return <Navigate to="/admin/dashboard" replace />;
+  if (!canAccessEditorial(editorialRoles?.length ? editorialRoles : role)) return <Navigate to="/admin/dashboard" replace />;
   if (!flags.editorialStudioEnabled) return <main className="grid min-h-screen place-items-center bg-zinc-950 px-5 text-white"><section className="max-w-lg border-y border-white/10 py-8"><p className="text-xs uppercase tracking-[0.2em] text-amber-200/70">Editorial Studio</p><h1 className="mt-3 text-2xl font-semibold">Studio is not enabled</h1><p className="mt-3 text-sm leading-6 text-zinc-400">The module is installed but its release flag is off. No editorial data or public routes have been enabled.</p></section></main>;
   return children;
 }

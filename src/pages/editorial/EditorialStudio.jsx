@@ -1,9 +1,9 @@
 import {
   AlignCenter, AlignLeft, AlignRight, Archive, ArrowDown, ArrowLeft, ArrowUp, BookOpen,
-  Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Copy, Eye, FilePenLine, GripVertical,
+  ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Copy, Eye, FilePenLine, GripVertical,
   Image as ImageIcon, Layers3, LayoutPanelLeft, LayoutPanelTop, LogOut, Menu, Monitor,
   PanelLeftClose, PanelRightClose, Plus, Redo2, RotateCcw, Save, Search,
-  Send, Smartphone, Tablet, Trash2, Undo2, X,
+  Smartphone, Tablet, Trash2, Undo2, X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -29,12 +29,11 @@ import { supabase } from '../../lib/supabaseClient.js';
 import { commitManagedMediaReplacement, uploadManagedWebsiteImage } from '../../lib/r2Media.js';
 import { useEditorialFlags } from '../../features/editorial/editorialFlags.js';
 import LoadingState from '../../components/LoadingState.jsx';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog.jsx';
 
 const studioLinks = [
   ['Library', '/editorial', BookOpen],
   ['My drafts', '/editorial/drafts', FilePenLine],
-  ['Assigned', '/editorial/assigned', ClipboardList],
-  ['Review', '/editorial/review', Check, 'review'],
 ];
 
 const STATUS_LABELS = Object.freeze({
@@ -75,8 +74,8 @@ export default function EditorialStudio() {
 function EditorialStudioShell() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { role, user } = useAdminAccess();
-  const capabilities = editorialCapabilities(role);
+  const { role, editorialRoles, user } = useAdminAccess();
+  const capabilities = editorialCapabilities(editorialRoles?.length ? editorialRoles : role);
   const [menuOpen, setMenuOpen] = useState(false);
   const path = location.pathname;
   const contentMatch = path.match(/^\/editorial\/content\/([^/]+)\/(edit|preview)$/);
@@ -121,9 +120,9 @@ function EditorialStudioShell() {
 
 function StudioLibrary() {
   const location = useLocation();
-  const { user, role } = useAdminAccess();
-  const capabilities = editorialCapabilities(role);
-  const simpleWorkflow = ['super_admin', 'admin'].includes(capabilities.role);
+  const { user, role, editorialRoles } = useAdminAccess();
+  const capabilities = editorialCapabilities(editorialRoles?.length ? editorialRoles : role);
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
   const scope = location.pathname.endsWith('/drafts') ? 'drafts' : location.pathname.endsWith('/assigned') ? 'assigned' : location.pathname.endsWith('/review') ? 'review' : 'all';
   const [state, setState] = useState({ loading: true, error: '', message: '', posts: [], taxonomy: null, working: '' });
   const [filters, setFilters] = useState({ search: '', type: '', status: '', municipality: '', category: '' });
@@ -156,16 +155,26 @@ function StudioLibrary() {
       if (action === 'publish') {
         for (const step of editorialDirectPublishSteps(post.status)) await runEditorialWorkflow(post.id, step);
       } else await runEditorialWorkflow(post.id, action);
-      setState((current) => ({ ...current, working: '', message: action === 'restore' ? 'Restored to Draft.' : action === 'publish' ? 'Published.' : 'Archived.' }));
+      setState((current) => ({ ...current, working: '', message: action === 'restore' ? 'Restored to Draft.' : action === 'publish' ? 'Published.' : action === 'delete' ? 'Deleted.' : 'Archived.' }));
       await load();
     } catch (error) {
       setState((current) => ({ ...current, working: '', error: editorialActionError(error).message }));
     }
   }
 
+  function deleteFromLibrary(post) {
+    requestConfirmation({
+      title: 'Delete story?',
+      description: `"${post.title}" and its private revisions will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: () => libraryAction(post, 'delete'),
+    });
+  }
+
   const heading = scope === 'drafts' ? 'My drafts' : scope === 'assigned' ? 'Assigned to me' : scope === 'review' ? 'Review queue' : 'Content library';
   return <section>
-    <StudioHeader title={heading} description="Find a story, continue editing, or move it through the publishing workflow." action={<Link to="/editorial/new" className="inline-flex h-11 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950"><Plus size={16} />New Content</Link>} />
+    <StudioHeader title={heading} description={capabilities.canManageAllContent ? 'Manage every story, or create a new one.' : 'Your private stories stay editable and under your control.'} action={<Link to="/editorial/new" className="inline-flex h-11 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950"><Plus size={16} />New Content</Link>} />
     <div className="mt-7 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-3 sm:p-4">
       <div className="grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_repeat(4,minmax(0,0.55fr))]">
         <label className="relative"><span className="sr-only">Search content</span><Search size={16} className="pointer-events-none absolute left-3 top-3.5 text-zinc-500" /><input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Search stories" className="h-11 w-full rounded-xl border border-white/[0.1] bg-black/30 pl-10 pr-3 text-sm outline-none focus:border-orange-300/40 focus:ring-2 focus:ring-orange-300/10" /></label>
@@ -178,14 +187,15 @@ function StudioLibrary() {
     {state.error && <StudioNotice className="mt-4">{state.error}</StudioNotice>}
     {state.message && <StudioNotice tone="success" className="mt-4">{state.message}</StudioNotice>}
     <div className="mt-5">{state.loading ? <LoadingState label="Loading content" /> : visiblePosts.length ? <div className="grid gap-4 xl:grid-cols-2">{visiblePosts.map((post) => {
-      const publishable = editorialDirectPublishSteps(post.status).length > 0 && (simpleWorkflow || capabilities.canPublish);
+      const publishable = editorialDirectPublishSteps(post.status).length > 0 && capabilities.canPublish;
       return <article key={post.id} className="group grid min-h-44 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#11110f] sm:grid-cols-[9.5rem_minmax(0,1fr)]">
         <div className="relative min-h-36 bg-white/[0.035]">{post.cover_image_url ? <img src={post.cover_image_url} alt={post.cover_image_alt || ''} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-zinc-700"><ImageIcon size={28} /></div>}</div>
         <div className="flex min-w-0 flex-col p-4"><div className="flex flex-wrap items-center gap-2"><Status status={post.status} /><span className="text-[0.65rem] uppercase tracking-[0.14em] text-orange-200/65">{contentTypeMeta(post.content_type).label}</span></div><h2 className="mt-3 truncate text-lg font-semibold">{post.title}</h2><p className="mt-1 line-clamp-2 text-sm leading-6 text-zinc-500">{post.summary || 'No summary yet.'}</p><div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-600"><span>{post.editorial_municipalities?.name || 'No municipality'}</span><span>{post.editorial_categories?.name || 'No category'}</span><time>{formatRelativeDate(post.updated_at)}</time>{post.editorial_contributors?.display_name && <span>{post.editorial_contributors.display_name}</span>}</div>
-          <div className="mt-auto flex flex-wrap items-center gap-2 pt-4"><Link to={`/editorial/content/${post.id}/edit`} className="inline-flex h-9 items-center gap-2 rounded-full bg-white/[0.07] px-3 text-xs font-semibold hover:bg-white/[0.11]"><FilePenLine size={14} />Edit</Link><Link to={`/editorial/content/${post.id}/preview`} className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-xs text-zinc-400 hover:bg-white/[0.06] hover:text-white"><Eye size={14} />Preview</Link>{publishable && <button type="button" onClick={() => libraryAction(post, 'publish')} disabled={Boolean(state.working)} className="h-9 rounded-full px-3 text-xs font-semibold text-orange-200 hover:bg-orange-400/10">Publish</button>}{capabilities.canArchive && ['published', 'expired'].includes(post.status) && <button type="button" onClick={() => libraryAction(post, 'archive')} disabled={Boolean(state.working)} className="h-9 rounded-full px-3 text-xs text-red-200 hover:bg-red-400/10">Archive</button>}{capabilities.canManageSettings && post.status === 'archived' && <button type="button" onClick={() => libraryAction(post, 'restore')} disabled={Boolean(state.working)} className="h-9 rounded-full px-3 text-xs text-emerald-200 hover:bg-emerald-400/10">Restore</button>}</div>
+          <div className="mt-auto flex flex-wrap items-center gap-2 pt-4"><Link to={`/editorial/content/${post.id}/edit`} className="inline-flex h-9 items-center gap-2 rounded-full bg-white/[0.07] px-3 text-xs font-semibold hover:bg-white/[0.11]"><FilePenLine size={14} />Edit</Link><Link to={`/editorial/content/${post.id}/preview`} className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-xs text-zinc-400 hover:bg-white/[0.06] hover:text-white"><Eye size={14} />Preview</Link>{publishable && <button type="button" onClick={() => libraryAction(post, 'publish')} disabled={Boolean(state.working)} className="h-9 rounded-full px-3 text-xs font-semibold text-orange-200 hover:bg-orange-400/10">Publish</button>}{capabilities.canArchive && post.status !== 'archived' && <button type="button" onClick={() => libraryAction(post, 'archive')} disabled={Boolean(state.working)} className="h-9 rounded-full px-3 text-xs text-red-200 hover:bg-red-400/10">Archive</button>}{capabilities.canRestoreOwn && post.status === 'archived' && <button type="button" onClick={() => libraryAction(post, 'restore')} disabled={Boolean(state.working)} className="h-9 rounded-full px-3 text-xs text-emerald-200 hover:bg-emerald-400/10">Restore</button>}{capabilities.canDeleteOwn && <button type="button" onClick={() => deleteFromLibrary(post)} disabled={Boolean(state.working)} className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs text-red-300 hover:bg-red-400/10"><Trash2 size={13} />Delete</button>}</div>
         </div>
       </article>;
     })}</div> : <EmptyLibrary />}</div>
+    {confirmationDialog}
   </section>;
 }
 
@@ -225,9 +235,9 @@ function NewStory() {
 
 function StoryEditor({ id }) {
   const navigate = useNavigate();
-  const { role, user, session } = useAdminAccess();
-  const capabilities = editorialCapabilities(role);
-  const simpleWorkflow = ['super_admin', 'admin'].includes(capabilities.role);
+  const { role, editorialRoles, user, session } = useAdminAccess();
+  const capabilities = editorialCapabilities(editorialRoles?.length ? editorialRoles : role);
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
   const { flags } = useEditorialFlags();
   const authReady = Boolean(user?.id && session?.user?.id);
   const [editor, setEditor] = useState(null);
@@ -257,9 +267,10 @@ function StoryEditor({ id }) {
   const post = editor?.present;
   const document = post?.revision?.document || emptyEditorialDocument();
   const blocks = document.blocks || [];
-  const draftEditable = ['draft', 'changes_requested'].includes(post?.status) || (post?.status === 'published' && (capabilities.canManageAllContent || post?.author_user_id === user?.id));
+  const canControl = Boolean(post && (capabilities.canManageAllContent || post.author_user_id === user?.id));
+  const draftEditable = Boolean(canControl && post?.status !== 'archived');
   const publishSteps = editorialDirectPublishSteps(post?.status);
-  const canRestore = capabilities.canManageSettings && (post?.status === 'archived' || (simpleWorkflow && post?.status === 'in_review'));
+  const canRestore = Boolean(canControl && capabilities.canRestoreOwn && post?.status === 'archived');
 
   function changePost(updater) {
     if (!draftEditable || !editor) return;
@@ -286,7 +297,7 @@ function StoryEditor({ id }) {
     const details = await saveEditorialDetails(post);
     const sources = capabilities.canManageSources ? await syncEditorialSources(post, user.id) : post.sources;
     if (post.cover_image_url !== post.loaded_cover_image_url) await commitManagedMediaReplacement(post.cover_image_url, post.loaded_cover_image_url);
-    return { ...post, status: post.status === 'published' ? 'draft' : post.status, current_revision_id: revision.id, revision, details, sources, loaded_cover_image_url: post.cover_image_url || '' };
+    return { ...post, status: 'draft', current_revision_id: revision.id, revision, details, sources, loaded_cover_image_url: post.cover_image_url || '' };
   }
 
   async function save() {
@@ -338,10 +349,24 @@ function StoryEditor({ id }) {
   }
 
   async function restoreToDraft() {
-    const action = post.status === 'archived' ? 'restore' : post.status === 'in_review' ? 'request_changes' : '';
-    if (!action) return;
-    const next = await workflow(action, action === 'request_changes' ? { note: 'Restored to draft by Super Admin.' } : {}, 'Restored to draft. You can edit it now.');
+    if (post.status !== 'archived') return;
+    const next = await workflow('restore', {}, 'Restored to draft. You can edit it now.');
     if (next) navigate(`/editorial/content/${id}/edit`, { replace: true });
+  }
+
+  function deleteStory() {
+    requestConfirmation({
+      title: 'Delete story?',
+      description: `"${post.title}" and its private revisions will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const deleted = await workflow('delete', {}, 'Deleted.');
+        if (!deleted) return false;
+        navigate('/editorial', { replace: true });
+        return true;
+      },
+    });
   }
 
   async function uploadCover(event) {
@@ -365,8 +390,8 @@ function StoryEditor({ id }) {
   const editorColumns = clsx(!leftCollapsed && !rightCollapsed && 'xl:grid-cols-[17rem_minmax(0,1fr)_19rem]', leftCollapsed && !rightCollapsed && 'xl:grid-cols-[3.5rem_minmax(0,1fr)_19rem]', !leftCollapsed && rightCollapsed && 'xl:grid-cols-[17rem_minmax(0,1fr)_3.5rem]', leftCollapsed && rightCollapsed && 'xl:grid-cols-[3.5rem_minmax(0,1fr)_3.5rem]');
 
   return <section className="pb-24 md:pb-0">
-    <EditorToolbar post={post} saveState={status.save} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} device={device} setDevice={setDevice} onUndo={() => { setEditor((current) => undoHistory(current)); setDirty(true); }} onRedo={() => { setEditor((current) => redoHistory(current)); setDirty(true); }} onSave={save} onPreview={preview} onPublish={publishNow} canPublish={simpleWorkflow && publishSteps.length > 0} working={status.working} />
-    {!draftEditable && <StudioNotice tone="success" className="mx-4 mt-4 sm:mx-6">{post.status === 'archived' ? 'This story is archived. Restore it to continue editing.' : simpleWorkflow ? 'This story is in review. Restore it to draft or publish it.' : 'This story is locked for review.'}</StudioNotice>}
+    <EditorToolbar post={post} saveState={status.save} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} device={device} setDevice={setDevice} onUndo={() => { setEditor((current) => undoHistory(current)); setDirty(true); }} onRedo={() => { setEditor((current) => redoHistory(current)); setDirty(true); }} onSave={save} onPreview={preview} onPublish={publishNow} canPublish={canControl && capabilities.canPublish && publishSteps.length > 0} working={status.working} />
+    {!draftEditable && <StudioNotice tone="success" className="mx-4 mt-4 sm:mx-6">{post.status === 'archived' ? 'This story is archived. Restore it to continue editing.' : 'You can view this story, but only its owner can edit it.'}</StudioNotice>}
     {status.error && <StudioNotice className="mx-4 mt-4 sm:mx-6">{status.error}</StudioNotice>}
     {status.message && <StudioNotice tone="success" className="mx-4 mt-4 sm:mx-6">{status.message}</StudioNotice>}
     <div className={clsx('grid min-h-[calc(100vh-8rem)]', editorColumns)}>
@@ -398,14 +423,13 @@ function StoryEditor({ id }) {
     <MobileDrawer open={drawer === 'right'} side="right" title="Design" onClose={() => setDrawer('')}><InspectorPanel selected={selected} selectedBlock={selectedBlock} selectedIndex={selectedIndex} post={post} taxonomy={taxonomy} capabilities={capabilities} flags={flags} uploading={uploading} onUploadCover={uploadCover} onPostChange={updatePost} onBlockPatch={(patch) => patchBlock(selectedIndex, patch)} onMove={(to) => updateDocument(moveEditorialBlock(blocks, selectedIndex, to))} onDuplicate={() => updateDocument(duplicateEditorialBlock(blocks, selectedIndex))} onDelete={() => { updateDocument(removeEditorialBlock(blocks, selectedIndex)); setSelected('story'); }} onChangePost={changePost} /></MobileDrawer>
     <div className="fixed bottom-20 right-4 z-30 hidden flex-col gap-2 md:flex xl:hidden"><button type="button" onClick={() => setDrawer('left')} className="grid h-11 w-11 place-items-center rounded-full border border-white/[0.1] bg-[#181815] shadow-xl" aria-label="Open story structure"><Layers3 size={18} /></button><button type="button" onClick={() => setDrawer('right')} className="grid h-11 w-11 place-items-center rounded-full border border-white/[0.1] bg-[#181815] shadow-xl" aria-label="Open design controls"><LayoutPanelLeft size={18} /></button></div>
     <div className="fixed bottom-5 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-white/[0.1] bg-[#181815]/95 p-2 shadow-2xl backdrop-blur-xl md:flex xl:hidden"><button onClick={save} className="inline-flex h-10 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950"><Save size={15} />Save</button><button onClick={preview} className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm text-zinc-300"><Eye size={15} />Preview</button></div>
-    <div className="sr-only">Save Draft Preview Publish Archive Restore to Draft</div>
+    <div className="sr-only">Save Draft Preview Publish Archive Restore Delete</div>
     <div className="fixed bottom-20 right-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-wrap justify-end gap-2 xl:bottom-5 xl:right-5">
-      {capabilities.canArchive && ['published', 'expired'].includes(post.status) && <button onClick={() => workflow('archive', {}, 'Archived.')} className="h-10 rounded-full border border-red-300/20 bg-[#11110f] px-4 text-sm text-red-100 shadow-xl"><Archive size={15} className="mr-2 inline" />Archive</button>}
+      {canControl && capabilities.canArchive && post.status !== 'archived' && <button onClick={() => workflow('archive', {}, 'Archived.')} className="h-10 rounded-full border border-red-300/20 bg-[#11110f] px-4 text-sm text-red-100 shadow-xl"><Archive size={15} className="mr-2 inline" />Archive</button>}
       {canRestore && <button onClick={restoreToDraft} className="h-10 rounded-full border border-emerald-300/30 bg-[#11110f] px-4 text-sm font-semibold text-emerald-100 shadow-xl"><RotateCcw size={15} className="mr-2 inline" />Restore to Draft</button>}
-      {!simpleWorkflow && ['draft', 'changes_requested'].includes(post.status) && <button onClick={() => workflow('submit', {}, 'Submitted for review.')} className="h-10 rounded-full border border-white/[0.14] bg-[#11110f] px-4 text-sm shadow-xl"><Send size={15} className="mr-2 inline" />Submit</button>}
-      {!simpleWorkflow && capabilities.canReview && post.status === 'in_review' && <><button onClick={() => workflow('request_changes', {}, 'Changes requested.')} className="h-10 rounded-full border border-white/[0.14] bg-[#11110f] px-4 text-sm shadow-xl">Request Changes</button><button onClick={() => workflow('approve', {}, 'Approved.')} className="h-10 rounded-full border border-emerald-300/30 bg-[#11110f] px-4 text-sm text-emerald-100 shadow-xl">Approve</button></>}
-      {!simpleWorkflow && capabilities.canPublish && ['approved', 'scheduled'].includes(post.status) && <button onClick={() => workflow('publish', {}, 'Published.')} className="h-10 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950 shadow-xl">Publish</button>}
+      {canControl && capabilities.canDeleteOwn && <button onClick={deleteStory} className="h-10 rounded-full border border-red-300/20 bg-[#11110f] px-4 text-sm text-red-100 shadow-xl"><Trash2 size={15} className="mr-2 inline" />Delete</button>}
     </div>
+    {confirmationDialog}
   </section>;
 }
 

@@ -1,4 +1,10 @@
 export const ASSIGNABLE_TEAM_ROLES = ['admin', 'editor', 'writer', 'creative', 'viewer'];
+export const ASSIGNABLE_EDITORIAL_ROLES = ['creative', 'writer', 'editor'];
+
+export function normalizeEditorialRoles(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((role) => String(role || '').trim().toLowerCase()).filter((role) => ASSIGNABLE_EDITORIAL_ROLES.includes(role)))];
+}
 
 export function invitationRedirectUrl(siteUrl) {
   const url = new URL('/set-password', String(siteUrl || ''));

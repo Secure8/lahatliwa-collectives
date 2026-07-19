@@ -7,11 +7,12 @@ const revisionId = '123e4567-e89b-12d3-a456-426614174001';
 
 test('accepts allowlisted workflow actions with a UUID post identifier', () => {
   assert.deepEqual(safeEditorialWorkflowRequest({ action: 'publish', postId }), { action: 'publish', payload: { postId } });
+  assert.deepEqual(safeEditorialWorkflowRequest({ action: 'delete', postId }), { action: 'delete', payload: { postId } });
   assert.deepEqual(safeEditorialWorkflowRequest({ action: 'restore_revision', postId, revisionId }), { action: 'restore_revision', payload: { postId, revisionId } });
 });
 
 test('rejects unknown actions and invalid identifiers before database access', () => {
-  assert.equal(safeEditorialWorkflowRequest({ action: 'delete', postId }), null);
+  assert.equal(safeEditorialWorkflowRequest({ action: 'delete_everything', postId }), null);
   assert.equal(safeEditorialWorkflowRequest({ action: 'publish', postId: 'undefined' }), null);
   assert.equal(safeEditorialWorkflowRequest({ action: 'restore_revision', postId, revisionId: 'bad' }), null);
 });

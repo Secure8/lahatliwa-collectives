@@ -2,7 +2,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 export const EDITORIAL_EDGE_ACTIONS = new Set([
   'save_revision', 'submit', 'start_revision', 'request_changes', 'approve',
-  'schedule', 'publish', 'archive', 'restore_revision', 'restore_archived',
+  'schedule', 'publish', 'archive', 'restore_revision', 'restore_archived', 'delete',
 ]);
 
 const clean = (value, max) => String(value ?? '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max);

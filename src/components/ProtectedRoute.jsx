@@ -24,7 +24,7 @@ export default function ProtectedRoute() {
     async function checkAccess() {
       let { data, error: adminError } = await supabase
         .from('admin_users')
-        .select('id, user_id, email, display_name, avatar_url, role, status, creative_member_id')
+        .select('id, user_id, email, display_name, avatar_url, role, editorial_roles, status, creative_member_id')
         .eq('user_id', session.user.id)
         .maybeSingle();
 
@@ -67,11 +67,13 @@ export default function ProtectedRoute() {
   }
 
   const adminUser = authorization.adminUser;
+  const editorialRoles = [...new Set([adminUser?.role, ...(adminUser?.editorial_roles || [])].filter(Boolean))];
   const access = {
     session,
     user: session?.user || null,
     adminUser,
     role: normalizeRole(adminUser?.role),
+    editorialRoles,
     isPrivileged: isPrivilegedRole(adminUser?.role),
   };
 

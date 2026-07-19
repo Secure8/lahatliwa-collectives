@@ -18,7 +18,7 @@ import { roleLabel, useAdminAccess } from '../../lib/adminAccess';
 import { formatDate } from '../../lib/helpers';
 import { copyText } from '../../lib/clipboard';
 import { supabase } from '../../lib/supabaseClient';
-import { buildTeamMemberPayload, canAssignTeamRole, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
+import { buildTeamMemberPayload, canAssignTeamRole, EDITORIAL_ASSIGNABLE_ROLES, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
 import { filterVisibleTeamMembers } from '../../lib/teamVisibility';
 import AdminDialog from '../../components/admin/AdminDialog';
 import AdminPeopleNav from '../../components/admin/AdminPeopleNav';
@@ -31,12 +31,13 @@ const emptyFilterCopy = {
   disabled: 'No disabled team members.',
   all: 'No team members found.',
 };
-const teamRecordSelect = 'id, user_id, email, display_name, avatar_url, role, status, creative_member_id, created_at, updated_at';
+const teamRecordSelect = 'id, user_id, email, display_name, avatar_url, role, editorial_roles, status, creative_member_id, created_at, updated_at';
 
 const emptyForm = {
   email: '',
   display_name: '',
   role: 'creative',
+  editorial_roles: [],
   status: 'invited',
   creative_member_id: '',
 };
@@ -104,7 +105,7 @@ export default function AdminTeam() {
     const [{ data: teamRows, error: teamError }, { data: creativeRows }] = await Promise.all([
       supabase
         .from('admin_users')
-        .select('id, user_id, email, display_name, avatar_url, role, status, creative_member_id, created_at, updated_at')
+        .select('id, user_id, email, display_name, avatar_url, role, editorial_roles, status, creative_member_id, created_at, updated_at')
         .neq('status', 'deleted')
         .order('created_at', { ascending: false }),
       supabase
@@ -179,6 +180,7 @@ export default function AdminTeam() {
       email: member.email || '',
       display_name: member.display_name || '',
       role: member.role === 'owner' ? 'super_admin' : member.role || 'viewer',
+      editorial_roles: member.editorial_roles || [],
       status: member.status || 'active',
       creative_member_id: member.creative_member_id || '',
     });
@@ -254,6 +256,7 @@ export default function AdminTeam() {
           email: form.email,
           displayName: form.display_name,
           role: form.role,
+          editorialRoles: form.editorial_roles,
           creativeMemberId: form.creative_member_id || null,
         });
         await loadTeam({ showLoading: false });
@@ -489,7 +492,7 @@ export default function AdminTeam() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-3 md:block">
-                      <div><p className="text-[11px] uppercase tracking-[0.16em] text-zinc-600">Role</p><p className="mt-1 text-sm capitalize text-zinc-300">{roleLabel(member.role)}</p></div>
+                      <div><p className="text-[11px] uppercase tracking-[0.16em] text-zinc-600">Roles</p><p className="mt-1 text-sm capitalize text-zinc-300">{[roleLabel(member.role), ...(member.editorial_roles || []).filter((item) => item !== member.role).map(roleLabel)].join(' · ')}</p></div>
                       <div className="md:mt-2"><AdminStatusBadge status={member.status}>{member.status}</AdminStatusBadge></div>
                     </div>
                     <div className="min-w-0">
@@ -535,6 +538,7 @@ export default function AdminTeam() {
             <AdminInput label="Display name" value={form.display_name} onChange={(value) => update('display_name', value)} />
             <label className="grid gap-2 text-sm text-zinc-300"><span>Role</span><select value={form.role} onChange={(event) => update('role', event.target.value)}>{formRoleOptions.map((option) => <option key={option} value={option}>{TEAM_ROLE_LABELS[option]}</option>)}</select>{form.role === 'super_admin' && <span className="text-xs leading-5 text-amber-200/80">Super Admin has full access, including protected member lifecycle actions.</span>}</label>
             <AdminSelect label="Status" value={form.status} options={formStatusOptions} onChange={(value) => update('status', value)} />
+            <fieldset className="grid gap-3 sm:col-span-2"><legend className="text-sm text-zinc-300">Additional roles</legend><p className="text-xs leading-5 text-zinc-500">Combine Creative, Writer, and Editor access for members who do more than one kind of work.</p><div className="grid gap-2 sm:grid-cols-3">{EDITORIAL_ASSIGNABLE_ROLES.map((option) => <label key={option} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm ${form.editorial_roles.includes(option) ? 'border-amber-200/35 bg-amber-200/[0.08] text-amber-100' : 'border-white/[0.1] text-zinc-400'}`}><input type="checkbox" checked={form.editorial_roles.includes(option)} onChange={() => update('editorial_roles', form.editorial_roles.includes(option) ? form.editorial_roles.filter((item) => item !== option) : [...form.editorial_roles, option])} className="accent-amber-300" />{TEAM_ROLE_LABELS[option]}</label>)}</div></fieldset>
             <label className="grid gap-2 text-sm text-zinc-300 sm:col-span-2">
               <span>Linked creative profile</span>
               <select value={form.creative_member_id} onChange={(event) => update('creative_member_id', event.target.value)} className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none [color-scheme:dark] focus:border-amber-200/60">

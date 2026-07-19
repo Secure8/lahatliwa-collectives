@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
-export const roles = ['super_admin', 'admin', 'editor', 'creative', 'viewer'];
+export const roles = ['super_admin', 'admin', 'editor', 'writer', 'creative', 'viewer'];
 export const privilegedRoles = ['super_admin', 'admin'];
 export const contentRoles = ['super_admin', 'admin', 'editor', 'creative'];
 

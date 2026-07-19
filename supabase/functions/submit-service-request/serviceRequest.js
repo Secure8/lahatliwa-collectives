@@ -3,6 +3,7 @@ import { canonicalServiceKey } from '../../../src/lib/serviceCatalog.js';
 export const BRANCHES = new Set(['studio', 'tech', 'digital', 'social', 'general']);
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const REFERENCE_PATTERN = /^LLC-\d{4}-[A-Z0-9]{6}$/;
+const EDITORIAL_TYPES = new Set(['journal', 'event', 'place', 'activity', 'local_product']);
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export function cleanText(value, max = 5000) {
@@ -47,6 +48,7 @@ export function validateSubmission(raw = {}) {
     generalLocation: cleanText(request.generalLocation, 240),
     budgetRange: cleanText(request.budgetRange, 120),
     branchDetails: request.branchDetails && typeof request.branchDetails === 'object' && !Array.isArray(request.branchDetails) ? request.branchDetails : {},
+    editorialContext: safeEditorialContext(request.editorialContext),
     consent: request.consent === true,
     honeypot: cleanText(request.honeypot, 240),
     idempotencyKey: cleanText(request.idempotencyKey, 64),
@@ -62,6 +64,15 @@ export function validateSubmission(raw = {}) {
   if (!normalized.consent) errors.push('Confirm that the team may contact you about this request.');
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized.idempotencyKey)) errors.push('This draft cannot be submitted safely. Refresh and try again.');
   return { normalized, errors };
+}
+
+export function safeEditorialContext(value = null) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const type = cleanText(value.type, 40).toLowerCase();
+  const slug = cleanText(value.slug, 120).toLowerCase();
+  const title = cleanText(value.title, 180);
+  if (!EDITORIAL_TYPES.has(type) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
+  return { type, slug, title };
 }
 
 export function safeBranchDetails(value = {}) {

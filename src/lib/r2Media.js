@@ -24,15 +24,16 @@ export async function managedMediaAvailable() {
   return capabilityPromise;
 }
 
-export async function uploadManagedWebsiteImage(file, { category, projectId = '', creativeMemberId = '', onStatus, override = false, overrideReason = '' } = {}) {
+export async function uploadManagedWebsiteImage(file, { category, projectId = '', creativeMemberId = '', editorialPostId = '', onStatus, override = false, overrideReason = '' } = {}) {
   if (!await managedMediaAvailable()) throw Object.assign(new Error('Website media uploads are temporarily unavailable. Existing images were not changed.'), { code: 'R2_UPLOAD_UNAVAILABLE' });
-  const budget = await invoke({ action: 'check_budget', category, ...(projectId ? { projectId } : {}), ...(creativeMemberId ? { creativeMemberId } : {}), estimatedBytes: Number(file?.size || 0), override, overrideReason });
+  const budget = await invoke({ action: 'check_budget', category, ...(projectId ? { projectId } : {}), ...(creativeMemberId ? { creativeMemberId } : {}), ...(editorialPostId ? { editorialPostId } : {}), estimatedBytes: Number(file?.size || 0), override, overrideReason });
   if (budget.policy?.status && budget.policy.status !== 'normal') onStatus?.({ phase: 'warning', message: 'Storage capacity is limited. This upload will continue only within the current safety policy.', policy: budget.policy });
   const derivatives = await createWebsiteImageDerivatives(file, { label: 'Website image', onStatus });
   const started = await invoke({
     action: 'initiate', category,
     ...(projectId ? { projectId } : {}),
     ...(creativeMemberId ? { creativeMemberId } : {}),
+    ...(editorialPostId ? { editorialPostId } : {}),
     override, overrideReason,
     variants: derivatives.map(({ variant, mimeType, sizeBytes, width, height }) => ({ variant, mimeType, sizeBytes, width, height })),
   });

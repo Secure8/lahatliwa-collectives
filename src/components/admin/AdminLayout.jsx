@@ -12,6 +12,7 @@ import { adminPageTitle } from '../../lib/mobileAppShell';
 import useModalDrawer from '../../lib/useModalDrawer';
 import useMobileAppBar from '../../lib/useMobileAppBar';
 import { canSeeStorageNavigation } from '../../lib/storageAdmin';
+import { canAccessEditorial } from '../../features/editorial/editorialCapabilities';
 import AdminCommandPalette from './AdminCommandPalette';
 
 const links = [
@@ -31,9 +32,13 @@ const links = [
     ['Team Access', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Website', [
+    ['Editorial', '/admin/editorial', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
     ['Content', '/admin/content', FileText, ({ role }) => isPrivilegedRole(role)],
     ['Media', '/admin/media/icons', Images, ({ role }) => isPrivilegedRole(role) || ['editor', 'creative'].includes(role)],
     ['Settings', '/admin/settings', Settings, ({ role }) => canManageSettings(role)],
+  ]],
+  ['Editorial Studio', [
+    ['Open Studio', '/editorial', FileText, ({ role }) => canAccessEditorial(role)],
   ]],
 ];
 
@@ -59,12 +64,15 @@ export default function AdminLayout({ children }) {
   const profileDestination = access.role === 'viewer'
     ? ['Directory', '/admin/directory', CircleUserRound]
     : ['Profile', '/admin/my-profile', CircleUserRound];
-  const mobilePrimaryLinks = [
+  const defaultMobilePrimaryLinks = [
     ['Home', '/admin/dashboard', House],
     ['Projects', '/admin/projects', GalleryHorizontalEnd],
     ['Inquiries', '/admin/inquiries', MessagesSquare],
     profileDestination,
   ];
+  const mobilePrimaryLinks = access.role === 'writer'
+    ? [['Home', '/admin/dashboard', House], ['Studio', '/editorial', FileText]]
+    : defaultMobilePrimaryLinks;
   const primaryRouteIsActive = (href) => location.pathname === href || (href !== '/admin/dashboard' && location.pathname.startsWith(`${href}/`));
   const moreIsActive = !mobilePrimaryLinks.some(([, href]) => primaryRouteIsActive(href));
   const morePageLabel = compactMobilePageLabels[currentPageTitle] || currentPageTitle;
@@ -202,7 +210,7 @@ export default function AdminLayout({ children }) {
           data-primary-visible={isPrimaryHeaderVisible ? 'true' : 'false'}
           className="admin-app-bar__secondary theme-navigation-surface relative z-20 border-b border-white/[0.08] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:hidden"
         >
-          <div className="grid grid-cols-5">
+          <div className={clsx('grid', access.role === 'writer' ? 'grid-cols-3' : 'grid-cols-5')}>
             {mobilePrimaryLinks.map(([label, href, Icon]) => {
               const active = primaryRouteIsActive(href);
               return (

@@ -1,4 +1,4 @@
-export const ASSIGNABLE_TEAM_ROLES = ['admin', 'editor', 'creative', 'viewer'];
+export const ASSIGNABLE_TEAM_ROLES = ['admin', 'editor', 'writer', 'creative', 'viewer'];
 
 export function invitationRedirectUrl(siteUrl) {
   const url = new URL('/set-password', String(siteUrl || ''));

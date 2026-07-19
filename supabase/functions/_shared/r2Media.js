@@ -12,10 +12,12 @@ export const R2_MEDIA_CATEGORIES = Object.freeze({
   profile_cover: Object.freeze({ target: 'profile', prefix: 'profiles/covers', primaryVariant: 'expanded' }),
   site_image: Object.freeze({ target: 'site', prefix: 'site/images', primaryVariant: 'expanded' }),
   service_image: Object.freeze({ target: 'site', prefix: 'site/services', primaryVariant: 'display' }),
+  editorial_cover: Object.freeze({ target: 'editorial', prefix: 'editorial/covers', primaryVariant: 'expanded' }),
+  editorial_inline: Object.freeze({ target: 'editorial', prefix: 'editorial/inline', primaryVariant: 'expanded' }),
 });
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SAFE_KEY = /^(?:projects|profiles|site)\/[a-z0-9/_-]+\/[0-9a-f-]{36}\/(?:thumbnail|display|expanded)\.webp$/;
+const SAFE_KEY = /^(?:projects|profiles|site|editorial)\/[a-z0-9/_-]+\/[0-9a-f-]{36}\/(?:thumbnail|display|expanded)\.webp$/;
 
 export function r2Configuration(env = {}) {
   const accountId = String(env.R2_ACCOUNT_ID || '').trim();
@@ -46,10 +48,12 @@ export function validateR2UploadRequest(input = {}) {
   const category = R2_MEDIA_CATEGORIES[String(input.category || '')];
   const projectId = String(input.projectId || '');
   const creativeMemberId = String(input.creativeMemberId || '');
+  const editorialPostId = String(input.editorialPostId || '');
   const variants = Array.isArray(input.variants) ? input.variants : [];
   if (!category) return { ok: false, code: 'CATEGORY_NOT_ALLOWED', message: 'The selected media category is unavailable.' };
   if (category.target === 'project' && !UUID_PATTERN.test(projectId)) return { ok: false, code: 'PROJECT_REQUIRED', message: 'Save the project before uploading media.' };
   if (category.target === 'profile' && !UUID_PATTERN.test(creativeMemberId)) return { ok: false, code: 'PROFILE_REQUIRED', message: 'A valid creative profile is required.' };
+  if (category.target === 'editorial' && !UUID_PATTERN.test(editorialPostId)) return { ok: false, code: 'EDITORIAL_POST_REQUIRED', message: 'Save the editorial draft before uploading media.' };
   if (variants.length !== 3 || new Set(variants.map((item) => item?.variant)).size !== 3) return { ok: false, code: 'VARIANTS_REQUIRED', message: 'Thumbnail, display, and expanded image variants are required.' };
   const cleanVariants = [];
   for (const item of variants) {
@@ -63,7 +67,7 @@ export function validateR2UploadRequest(input = {}) {
     }
     cleanVariants.push({ variant: item.variant, mimeType: 'image/webp', sizeBytes, width, height });
   }
-  return { ok: true, categoryKey: String(input.category), category, projectId, creativeMemberId, variants: cleanVariants };
+  return { ok: true, categoryKey: String(input.category), category, projectId, creativeMemberId, editorialPostId, variants: cleanVariants };
 }
 
 export function createR2ObjectKey(category, targetId, groupId, variant) {
@@ -88,6 +92,13 @@ export function r2ProfilePermissionAllowed({ role, creativeMemberId, targetCreat
 }
 
 export function r2SitePermissionAllowed(role = '') {
+  return ['super_admin', 'admin', 'editor'].includes(role);
+}
+
+export function r2EditorialPermissionAllowed({ role, userId, post } = {}) {
+  if (!post || !userId || !['super_admin', 'admin', 'editor', 'writer'].includes(role)) return false;
+  if (role === 'writer') return ['draft', 'needs_revision'].includes(post.status) && (post.author_user_id === userId || post.assigned_editor_user_id === userId);
+  if (['published', 'archived'].includes(post.status)) return ['super_admin', 'admin', 'editor'].includes(role);
   return ['super_admin', 'admin', 'editor'].includes(role);
 }
 

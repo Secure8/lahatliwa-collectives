@@ -49,6 +49,11 @@ export default function StartProject() {
       branch: searchParams.get('branch') || navigationSelection.branch || '',
       service: searchParams.get('service') || navigationSelection.service || '',
       creative: searchParams.get('creative') || navigationSelection.creative || '',
+      editorialContext: searchParams.get('contextType') && searchParams.get('contextSlug') ? {
+        type: searchParams.get('contextType'),
+        slug: searchParams.get('contextSlug'),
+        title: searchParams.get('contextTitle') || '',
+      } : null,
     };
   }, [location.state, searchParams]);
   const [draft, setDraft] = useState(() => readDraft(queryContext));

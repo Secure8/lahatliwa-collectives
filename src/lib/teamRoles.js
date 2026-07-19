@@ -1,10 +1,11 @@
-export const TEAM_ROLES = ['admin', 'editor', 'creative', 'viewer'];
+export const TEAM_ROLES = ['admin', 'editor', 'writer', 'creative', 'viewer'];
 
 export const TEAM_ROLE_LABELS = {
   super_admin: 'Super Admin',
   owner: 'Super Admin',
   admin: 'Admin',
   editor: 'Editor',
+  writer: 'Writer',
   creative: 'Creative',
   viewer: 'Viewer',
 };

@@ -1,5 +1,5 @@
 import { Aperture, ArrowRight, Camera, Circle, Code2, Cpu, MessagesSquare, PanelsTopLeft, Sparkles, Wrench } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
@@ -23,6 +23,7 @@ import useHorizontalScrollRestoration from '../lib/useHorizontalScrollRestoratio
 const iconMap = { Camera, Circle, Code2, Sparkles, Wrench };
 const branchIconMap = { studio: Aperture, digital: PanelsTopLeft, tech: Cpu, social: MessagesSquare };
 const branchCueMap = { studio: 'Visual', digital: 'Build', tech: 'Systems', social: 'Reach' };
+const TourismHomepageSections = lazy(() => import('./tourism/TourismHomepageSections.jsx'));
 
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -143,6 +144,8 @@ export default function Home() {
         <div className="mb-10 flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Featured creatives</p><h2 className="mt-3 text-3xl font-semibold text-[var(--site-primary-text)]">Discover published creatives and their work.</h2></div><Link to="/creatives" className="fine-link site-hover-accent inline-flex min-h-11 items-center text-sm text-zinc-300">View all</Link></div>
         {loading && !creatives.length ? <LoadingState label="Loading creatives" /> : creatives.length ? <div ref={creativeRailRef} data-scroll-restoration-id="home-featured-creatives" className="home-creatives-grid grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">{creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} />)}</div> : <EmptyState title="No featured creative profiles yet" message="Explore the full directory for currently published profiles." />}
       </section>
+
+      <Suspense fallback={null}><TourismHomepageSections /></Suspense>
 
       <section className="home-full-services page-shell hidden py-16 lg:block">
         <div className="mb-10 max-w-2xl"><p className="text-xs uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Services preview</p><h2 className="mt-3 text-3xl font-semibold text-[var(--site-primary-text)]">{content.home.servicesHeading}</h2><p className="mt-4 leading-7 text-[var(--site-secondary-text)]">{content.home.servicesIntro}</p></div>

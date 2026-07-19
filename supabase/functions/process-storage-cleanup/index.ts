@@ -10,7 +10,7 @@ const MAX_DB_ROWS_PER_SOURCE = 10000;
 const DB_PAGE_SIZE = 1000;
 const MAX_BUCKET_OBJECTS = 10000;
 const STORAGE_PAGE_SIZE = 100;
-const REFERENCE_SOURCES = ['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users'];
+const REFERENCE_SOURCES = ['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users', 'editorial_posts', 'editorial_revisions', 'editorial_autosaves', 'editorial_municipalities', 'editorial_settings'];
 const safeError = (error: any) => ({ message: error?.message || 'Unknown error', code: error?.code || 'WORKER_ERROR', details: error?.details || undefined });
 const responseError = (stage: string, error: any, status = 500) => {
   console.error(prefix, JSON.stringify({ event: 'failed', stage, error: safeError(error) }));
@@ -166,6 +166,15 @@ async function r2MediaStillReferenced(admin: any, media: any) {
     if (error) throw error;
     return containsGroupReference(data);
   }
+  if (media.editorial_post_id) {
+    const results = await Promise.all([
+      admin.from('editorial_posts').select('cover_image_url').eq('id', media.editorial_post_id).maybeSingle(),
+      admin.from('editorial_revisions').select('document').eq('post_id', media.editorial_post_id),
+      admin.from('editorial_autosaves').select('document,metadata').eq('post_id', media.editorial_post_id),
+    ]);
+    if (results.some((result: any) => result.error)) throw Object.assign(new Error('Editorial R2 reference verification failed.'), { code: 'REFERENCE_CHECK_FAILED' });
+    return results.some((result: any) => containsGroupReference(result.data));
+  }
   const results = await Promise.all([
     admin.from('site_settings').select('*'), admin.from('page_content').select('content'),
     admin.from('service_branches').select('icon_url,image_url'), admin.from('media_assets').select('url,storage_path'),
@@ -176,7 +185,7 @@ async function r2MediaStillReferenced(admin: any, media: any) {
 
 async function cleanupExpiredR2Uploads(admin: any, r2: any) {
   const { data: mediaRows, error } = await admin.from('external_media_objects')
-    .select('id,external_file_id,public_url,project_id,creative_member_id,media_group_id,status,cleanup_attempt_count')
+    .select('id,external_file_id,public_url,project_id,creative_member_id,editorial_post_id,media_group_id,status,cleanup_attempt_count')
     .eq('provider', R2_PROVIDER).in('status', ['uploading','available','error'])
     .neq('cleanup_status', 'manual_required').lt('upload_expires_at', new Date().toISOString()).limit(50);
   if (error) throw error;

@@ -309,6 +309,16 @@ Deno.serve(async (req) => {
       preferred_creative_id: creative?.id || null, assigned_creative_id: creative?.id || null, idempotency_key: normalized.idempotencyKey, submitter_hash: submitterHash,
       notification_status: 'pending', notification_state: {}, unread: true,
     };
+    if (normalized.editorialContext) {
+      const [{ data: flags, error: flagError }, { data: editorialPost, error: postError }] = await Promise.all([
+        admin.from('editorial_feature_flags').select('module_enabled,public_inquiries_enabled').eq('singleton', true).maybeSingle(),
+        admin.from('editorial_posts').select('id,content_type,slug,title').eq('content_type', normalized.editorialContext.type).eq('slug', normalized.editorialContext.slug).eq('status', 'published').maybeSingle(),
+      ]);
+      if (flagError || postError) return fail('EDITORIAL_CONTEXT_UNAVAILABLE', 'This page context could not be verified. Start a general inquiry instead.', 503, cors);
+      if (!flags?.module_enabled || !flags?.public_inquiries_enabled) return fail('EDITORIAL_INQUIRY_DISABLED', 'Inquiries for tourism pages are not available yet.', 409, cors);
+      if (!editorialPost) return fail('EDITORIAL_CONTEXT_INVALID', 'The linked tourism page is no longer available.', 400, cors);
+      payload.request_metadata = { ...payload.request_metadata, editorial_content_id: editorialPost.id, editorial_content_type: editorialPost.content_type, editorial_content_slug: editorialPost.slug, editorial_content_title: editorialPost.title };
+    }
     let inquiry;
     let insertError;
     for (let attempt = 0; attempt < 3 && !inquiry; attempt += 1) {

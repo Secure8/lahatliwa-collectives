@@ -47,6 +47,10 @@ const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
 const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
 const Storage = lazy(() => import('./pages/admin/Storage'));
+const TourismIndex = lazy(() => import('./pages/tourism/TourismIndex'));
+const TourismDetail = lazy(() => import('./pages/tourism/TourismDetail'));
+const EditorialStudio = lazy(() => import('./pages/editorial/EditorialStudio'));
+const AdminEditorial = lazy(() => import('./pages/admin/AdminEditorial'));
 
 const routeMetadata = {
   '/': ['Lahat Liwa Collectives', 'Practical services, published work, credited contributions, and creative profiles across four Liwa branches.'],
@@ -153,6 +157,17 @@ export default function App() {
         <Route path="/inquiry/confirmation/:reference" element={<InquiryConfirmation />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/explore" element={<TourismIndex />} />
+        <Route path="/journal" element={<TourismIndex type="journal" />} />
+        <Route path="/journal/:slug" element={<TourismDetail type="journal" />} />
+        <Route path="/events" element={<TourismIndex type="event" />} />
+        <Route path="/events/:slug" element={<TourismDetail type="event" />} />
+        <Route path="/places" element={<TourismIndex type="place" />} />
+        <Route path="/places/:slug" element={<TourismDetail type="place" />} />
+        <Route path="/activities" element={<TourismIndex type="activity" />} />
+        <Route path="/activities/:slug" element={<TourismDetail type="activity" />} />
+        <Route path="/local-products" element={<TourismIndex type="local_product" />} />
+        <Route path="/local-products/:slug" element={<TourismDetail type="local_product" />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/set-password" element={<AdminSuspense><SetPassword /></AdminSuspense>} />
@@ -160,25 +175,27 @@ export default function App() {
       <Route path="/admin/login" element={<AdminSuspense><Login /></AdminSuspense>} />
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route element={<ProtectedRoute />}>
+        <Route path="/editorial/*" element={<AdminSuspense><EditorialStudio /></AdminSuspense>} />
         <Route path="/admin/dashboard" element={<AdminSuspense><Dashboard /></AdminSuspense>} />
-        <Route path="/admin/my-profile" element={<AdminSuspense><MyProfile /></AdminSuspense>} />
-        <Route path="/admin/directory" element={<AdminSuspense><CreativeDirectory /></AdminSuspense>} />
-        <Route path="/admin/projects" element={<AdminSuspense><AdminProjects /></AdminSuspense>} />
-        <Route path="/admin/projects/new" element={<AdminSuspense><NewProject /></AdminSuspense>} />
-        <Route path="/admin/projects/:id/edit" element={<AdminSuspense><EditProject /></AdminSuspense>} />
-        <Route path="/admin/creatives" element={<AdminSuspense><AdminCreatives /></AdminSuspense>} />
+        <Route path="/admin/my-profile" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative']}><MyProfile /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/directory" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative', 'viewer']}><CreativeDirectory /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/projects" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative', 'viewer']}><AdminProjects /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/projects/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative']}><NewProject /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/projects/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative']}><EditProject /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/creatives" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminCreatives /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/creatives/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><CreativeEditor /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/creatives/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><CreativeEditor /></AdminRouteGuard></AdminSuspense>} />
-        <Route path="/admin/service-branches" element={<AdminSuspense><AdminServiceBranches /></AdminSuspense>} />
+        <Route path="/admin/service-branches" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminServiceBranches /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/service-branches/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><ServiceBranchEditor /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/service-branches/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><ServiceBranchEditor /></AdminRouteGuard></AdminSuspense>} />
-        <Route path="/admin/inquiries" element={<AdminSuspense><AdminInquiries /></AdminSuspense>} />
+        <Route path="/admin/inquiries" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative', 'viewer']}><AdminInquiries /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/team" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminTeam /></AdminRouteGuard></AdminSuspense>} />
-        <Route path="/admin/settings" element={<AdminSuspense><SiteSettings /></AdminSuspense>} />
-        <Route path="/admin/content" element={<AdminSuspense><ContentIndex /></AdminSuspense>} />
-        <Route path="/admin/content/:pageKey" element={<AdminSuspense><ContentEditor /></AdminSuspense>} />
-        <Route path="/admin/media/icons" element={<AdminSuspense><IconsMedia /></AdminSuspense>} />
+        <Route path="/admin/settings" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><SiteSettings /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/content" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><ContentIndex /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/content/:pageKey" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><ContentEditor /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/media/icons" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative']}><IconsMedia /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/storage" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'creative']}><Storage /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/editorial/*" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminEditorial /></AdminRouteGuard></AdminSuspense>} />
       </Route>
     </Routes><ThemeToggle /></>
   );

@@ -4,6 +4,7 @@ import {
   createR2ObjectKey,
   deleteR2Object,
   r2Configuration,
+  r2EditorialPermissionAllowed,
   r2ProfilePermissionAllowed,
   r2ProjectPermissionAllowed,
   r2PublicUrl,
@@ -13,7 +14,7 @@ import {
 } from '../_shared/r2Media.js';
 import { authenticatedTeamMember, corsHeaders, edgeEnvironment, fail, reply } from '../_shared/googleDriveEdge.ts';
 
-const MEDIA_FIELDS = 'id,owner_user_id,provider,external_file_id,filename,mime_type,size_bytes,trusted_size_bytes,width,height,status,file_category,project_id,creative_member_id,media_group_id,media_variant,public_url,reservation_id,verification_status,accounting_state,cleanup_status,cleanup_attempt_count,cleanup_error,metadata,created_at,updated_at';
+const MEDIA_FIELDS = 'id,owner_user_id,provider,external_file_id,filename,mime_type,size_bytes,trusted_size_bytes,width,height,status,file_category,project_id,creative_member_id,editorial_post_id,media_group_id,media_variant,public_url,reservation_id,verification_status,accounting_state,cleanup_status,cleanup_attempt_count,cleanup_error,metadata,created_at,updated_at';
 
 function config() {
   return r2Configuration({
@@ -49,11 +50,22 @@ async function authorizeProfileEdit(actor: any, creativeMemberId: string) {
   return data;
 }
 
-async function authorizeTarget(actor: any, category: string, projectId = '', creativeMemberId = '') {
+async function authorizeEditorialEdit(actor: any, editorialPostId: string) {
+  const [{ data: flags, error: flagError }, { data: post, error: postError }] = await Promise.all([
+    actor.admin.from('editorial_feature_flags').select('module_enabled,editorial_media_uploads_enabled').eq('singleton', true).maybeSingle(),
+    actor.admin.from('editorial_posts').select('id,status,author_user_id,assigned_editor_user_id').eq('id', editorialPostId).maybeSingle(),
+  ]);
+  if (flagError || postError) throw Object.assign(new Error('Editorial media authorization failed'), { code: 'REFERENCE_CHECK_FAILED' });
+  if (!flags?.module_enabled || !flags?.editorial_media_uploads_enabled) return null;
+  return r2EditorialPermissionAllowed({ role: actor.role, userId: actor.user.id, post }) ? post : null;
+}
+
+async function authorizeTarget(actor: any, category: string, projectId = '', creativeMemberId = '', editorialPostId = '') {
   const definition = R2_MEDIA_CATEGORIES[category];
   if (!definition) return null;
   if (definition.target === 'project') return authorizeProjectEdit(actor, projectId);
   if (definition.target === 'profile') return authorizeProfileEdit(actor, creativeMemberId);
+  if (definition.target === 'editorial') return authorizeEditorialEdit(actor, editorialPostId);
   return r2SitePermissionAllowed(actor.role) ? { id: actor.user.id } : null;
 }
 
@@ -79,6 +91,15 @@ async function targetReferences(actor: any, row: any, url: string) {
   if (row.creative_member_id) {
     const { data } = await actor.admin.from('creative_members').select('profile_image_url,cover_image').eq('id', row.creative_member_id).maybeSingle();
     return containsReference(data, url);
+  }
+  if (row.editorial_post_id) {
+    const results = await Promise.all([
+      actor.admin.from('editorial_posts').select('cover_image_url').eq('id', row.editorial_post_id).maybeSingle(),
+      actor.admin.from('editorial_revisions').select('document').eq('post_id', row.editorial_post_id),
+      actor.admin.from('editorial_autosaves').select('document,metadata').eq('post_id', row.editorial_post_id),
+    ]);
+    if (results.some((result: any) => result.error)) throw Object.assign(new Error('Editorial reference verification failed'), { code: 'REFERENCE_CHECK_FAILED' });
+    return results.some((result: any) => containsReference(result.data, url));
   }
   const results = await Promise.all([
     actor.admin.from('site_settings').select('*'), actor.admin.from('page_content').select('content'),
@@ -179,9 +200,9 @@ Deno.serve(async (request) => {
   if (!cfg.configured) return fail('R2_MEDIA_DISABLED', 'Managed website media is temporarily unavailable. Existing images were not changed.', 503, cors);
 
   if (body.action === 'check_budget') {
-    if (!only(body, ['action','category','projectId','creativeMemberId','estimatedBytes','override','overrideReason'])) return fail('INVALID_REQUEST', 'The storage check request is invalid.', 400, cors);
+    if (!only(body, ['action','category','projectId','creativeMemberId','editorialPostId','estimatedBytes','override','overrideReason'])) return fail('INVALID_REQUEST', 'The storage check request is invalid.', 400, cors);
     const category = String(body.category || '');
-    if (!R2_MEDIA_CATEGORIES[category] || !await authorizeTarget(actor, category, String(body.projectId || ''), String(body.creativeMemberId || ''))) return fail('TARGET_NOT_AUTHORIZED', 'You cannot upload media to this destination.', 403, cors);
+    if (!R2_MEDIA_CATEGORIES[category] || !await authorizeTarget(actor, category, String(body.projectId || ''), String(body.creativeMemberId || ''), String(body.editorialPostId || ''))) return fail('TARGET_NOT_AUTHORIZED', 'You cannot upload media to this destination.', 403, cors);
     const { data: policy, error } = await actor.admin.rpc('evaluate_public_media_budget', { p_actor_user_id: actor.user.id, p_actor_role: actor.role,
       p_operation_kind: 'upload', p_estimated_bytes: Math.max(0, Number(body.estimatedBytes || 0)), p_override: body.override === true, p_override_reason: String(body.overrideReason || '') || null });
     if (error) return fail('STORAGE_POLICY_UNAVAILABLE', 'Storage capacity could not be checked. Nothing was uploaded.', 503, cors);
@@ -209,10 +230,10 @@ Deno.serve(async (request) => {
   }
 
   if (body.action === 'initiate') {
-    if (!only(body, ['action','category','projectId','creativeMemberId','variants','override','overrideReason'])) return fail('INVALID_REQUEST', 'The media upload request contains unsupported fields.', 400, cors);
+    if (!only(body, ['action','category','projectId','creativeMemberId','editorialPostId','variants','override','overrideReason'])) return fail('INVALID_REQUEST', 'The media upload request contains unsupported fields.', 400, cors);
     const validation: any = validateR2UploadRequest(body);
     if (!validation.ok) return fail(validation.code, validation.message, 400, cors);
-    if (!await authorizeTarget(actor, validation.categoryKey, validation.projectId, validation.creativeMemberId)) return fail('TARGET_NOT_AUTHORIZED', 'You do not have permission to upload media here.', 403, cors);
+    if (!await authorizeTarget(actor, validation.categoryKey, validation.projectId, validation.creativeMemberId, validation.editorialPostId)) return fail('TARGET_NOT_AUTHORIZED', 'You do not have permission to upload media here.', 403, cors);
     const groupId = crypto.randomUUID();
     const estimatedBytes = validation.variants.reduce((sum: number, variant: any) => sum + Number(variant.sizeBytes || 0), 0);
     const { data: reservation, error: reservationError } = await actor.admin.rpc('reserve_public_media_bytes', { p_operation_id: groupId,
@@ -221,7 +242,7 @@ Deno.serve(async (request) => {
       p_override: body.override === true, p_override_reason: String(body.overrideReason || '') || null });
     if (reservationError) return fail('STORAGE_POLICY_UNAVAILABLE', 'Storage capacity could not be reserved. Nothing was uploaded.', 503, cors);
     if (!reservation?.allowed) return reply({ success: false, code: reservation?.code || 'STORAGE_UPLOAD_RESTRICTED', message: 'Website media uploads are temporarily restricted. Existing images were not changed.', policy: reservation }, 409, cors);
-    const targetId = validation.projectId || validation.creativeMemberId || actor.user.id;
+    const targetId = validation.projectId || validation.creativeMemberId || validation.editorialPostId || actor.user.id;
     const rows = validation.variants.map((variant: any) => {
       const objectKey = createR2ObjectKey(validation.categoryKey, targetId, groupId, variant.variant);
       return {
@@ -230,6 +251,7 @@ Deno.serve(async (request) => {
         width: variant.width, height: variant.height, visibility: 'public', status: 'uploading',
         file_category: validation.categoryKey, project_id: validation.projectId || null,
         creative_member_id: validation.creativeMemberId || null, media_group_id: groupId,
+        editorial_post_id: validation.editorialPostId || null,
         media_variant: variant.variant, public_url: r2PublicUrl(cfg, objectKey), upload_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         reservation_id: reservation.reservationId, destination_bucket: cfg.bucketName, verification_status: 'pending', accounting_state: 'provisional',
         metadata: { upload_transport: 'authenticated_edge_proxy_v1' },
@@ -248,7 +270,7 @@ Deno.serve(async (request) => {
     const rows = await loadGroup(actor, String(body.groupId || ''));
     if (!rows || rows.some((row: any) => row.owner_user_id !== actor.user.id || row.status !== 'uploading')) return fail('UPLOAD_NOT_AVAILABLE', 'The media upload is not waiting for verification.', 409, cors);
     const category = rows[0].file_category;
-    if (!await authorizeTarget(actor, category, rows[0].project_id, rows[0].creative_member_id)) return fail('TARGET_NOT_AUTHORIZED', 'You no longer have permission to finalize this media.', 403, cors);
+    if (!await authorizeTarget(actor, category, rows[0].project_id, rows[0].creative_member_id, rows[0].editorial_post_id)) return fail('TARGET_NOT_AUTHORIZED', 'You no longer have permission to finalize this media.', 403, cors);
     try {
       let actualBytes = 0;
       for (const row of rows) {
@@ -295,7 +317,7 @@ Deno.serve(async (request) => {
     const rows = await loadGroup(actor, String(body.groupId || ''));
     const oldUrl = String(body.oldUrl || '');
     if (!rows || rows.some((row: any) => row.owner_user_id !== actor.user.id || row.status !== 'available') || (oldUrl && (!/^https:\/\//i.test(oldUrl) || oldUrl.length > 2048))) return fail('REPLACEMENT_NOT_AVAILABLE', 'The replacement cleanup request is unavailable.', 409, cors);
-    if (!await authorizeTarget(actor, rows[0].file_category, rows[0].project_id, rows[0].creative_member_id)) return fail('TARGET_NOT_AUTHORIZED', 'You do not have permission to finish this replacement.', 403, cors);
+    if (!await authorizeTarget(actor, rows[0].file_category, rows[0].project_id, rows[0].creative_member_id, rows[0].editorial_post_id)) return fail('TARGET_NOT_AUTHORIZED', 'You do not have permission to finish this replacement.', 403, cors);
     const next = safeGroupResponse(rows, rows[0].file_category);
     if (!await targetReferences(actor, rows[0], next.primaryUrl) || (oldUrl && await targetReferences(actor, rows[0], oldUrl))) return fail('REFERENCE_NOT_SWITCHED', 'The live reference has not safely switched to the replacement yet.', 409, cors);
     await actor.admin.from('external_media_objects').update({ upload_expires_at: null, accounting_state: 'active', activated_at: new Date().toISOString() }).eq('provider', R2_PROVIDER).eq('media_group_id', rows[0].media_group_id);
@@ -320,7 +342,7 @@ Deno.serve(async (request) => {
     if (!publicUrl.startsWith(`${cfg.publicBaseUrl}/`)) return fail('MEDIA_NOT_FOUND', 'The managed media item was not found.', 404, cors);
     const { data: row } = await actor.admin.from('external_media_objects').select(MEDIA_FIELDS).eq('provider', R2_PROVIDER).eq('public_url', publicUrl).maybeSingle();
     if (!row) return reply({ success: true, queued: 0, alreadyMissing: true }, 200, cors);
-    if (!await authorizeTarget(actor, row.file_category, row.project_id, row.creative_member_id)) return fail('TARGET_NOT_AUTHORIZED', 'You do not have permission to remove this media.', 403, cors);
+    if (!await authorizeTarget(actor, row.file_category, row.project_id, row.creative_member_id, row.editorial_post_id)) return fail('TARGET_NOT_AUTHORIZED', 'You do not have permission to remove this media.', 403, cors);
     if (await targetReferences(actor, row, publicUrl)) return fail('MEDIA_STILL_REFERENCED', 'This image is still in use and cannot be removed.', 409, cors);
     const rows = await loadGroup(actor, row.media_group_id);
     if (rows) await queueGroupCleanup(actor, cfg, rows, 'r2_media_removed');

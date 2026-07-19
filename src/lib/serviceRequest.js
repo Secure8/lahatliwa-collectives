@@ -313,6 +313,7 @@ export function emptyInquiryDraft(context = {}) {
     consent: false,
     honeypot: '',
     branchDetails: {},
+    editorialContext: context.editorialContext || null,
     idempotencyKey: globalThis.crypto?.randomUUID?.() || '',
   };
 }
@@ -322,6 +323,7 @@ export function mergeInquiryContext(draft, context = {}) {
   if (branchMeta(context.branch)) next.branch = context.branch;
   if (context.service) next.serviceKey = canonicalServiceKey(next.branch, context.service);
   if (context.creative) next.creativeSlug = String(context.creative).trim().toLowerCase();
+  if (context.editorialContext) next.editorialContext = context.editorialContext;
   return next;
 }
 
@@ -378,6 +380,7 @@ export function safeInquiryDraft(value) {
   if (!branchMeta(next.branch)) next.branch = '';
   next.serviceKey = canonicalServiceKey(next.branch, next.serviceKey);
   next.creativeSlug = String(next.creativeSlug || '').trim().toLowerCase();
+  if (!next.editorialContext || typeof next.editorialContext !== 'object' || Array.isArray(next.editorialContext)) next.editorialContext = null;
   return next;
 }
 

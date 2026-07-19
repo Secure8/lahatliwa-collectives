@@ -260,7 +260,7 @@ test('new public uploads are R2-only while legacy rendering and provider-aware c
   assert.match(projectForm, /gallery_items: \[\.\.\.imageItems, \.\.\.externalItems\]/);
   assert.match(gallery, /normalizeProjectGallery/);
   assert.doesNotMatch(cleanup, /external_media_objects|storage_connections/);
-  assert.match(worker, /const REFERENCE_SOURCES = \['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users'\]/);
+  assert.match(worker, /const REFERENCE_SOURCES = \['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users', 'editorial_posts', 'editorial_revisions', 'editorial_autosaves', 'editorial_municipalities', 'editorial_settings'\]/);
   assert.match(worker, /cleanupExpiredExternalUploads/);
   assert.match(worker, /external_media_objects/);
   assert.match(worker, /cancelResumableDriveUpload/);

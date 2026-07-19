@@ -6,6 +6,7 @@ import {
   createR2ObjectKey,
   deleteR2Object,
   r2Configuration,
+  r2EditorialPermissionAllowed,
   r2CleanupStatus,
   r2ProfilePermissionAllowed,
   r2ProjectPermissionAllowed,
@@ -20,6 +21,7 @@ import { normalizeMediaReference } from './mediaReferences.js';
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111';
 const PROFILE_ID = '22222222-2222-4222-8222-222222222222';
 const GROUP_ID = '33333333-3333-4333-8333-333333333333';
+const EDITORIAL_ID = '44444444-4444-4444-8444-444444444444';
 const source = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const config = r2Configuration({
   R2_MEDIA_ENABLED: 'true', R2_ACCOUNT_ID: 'abc123-account', R2_ACCESS_KEY_ID: 'test-access-key-id',
@@ -54,6 +56,18 @@ test('upload registration requires all three bounded WebP derivatives and valid 
   assert.equal(validateR2UploadRequest({ category: 'project_cover', projectId: PROJECT_ID, variants: variants().slice(1) }).code, 'VARIANTS_REQUIRED');
   assert.equal(validateR2UploadRequest({ category: 'profile_photo', creativeMemberId: PROFILE_ID, variants: variants().map((item, index) => index ? item : { ...item, mimeType: 'image/png' }) }).code, 'DERIVATIVE_INVALID');
   assert.equal(validateR2UploadRequest({ category: 'project_gallery', projectId: 'not-a-project', variants: variants() }).code, 'PROJECT_REQUIRED');
+  assert.equal(validateR2UploadRequest({ category: 'editorial_cover', editorialPostId: EDITORIAL_ID, variants: variants() }).ok, true);
+  assert.equal(validateR2UploadRequest({ category: 'editorial_inline', editorialPostId: '', variants: variants() }).code, 'EDITORIAL_POST_REQUIRED');
+});
+
+test('editorial media permission follows workflow ownership and publication rules', () => {
+  const draft = { status: 'draft', author_user_id: 'writer', assigned_editor_user_id: 'editor' };
+  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: draft }), true);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'other', post: draft }), false);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'submitted' } }), false);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'needs_revision' } }), true);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'editor', userId: 'editor', post: { ...draft, status: 'published' } }), true);
+  assert.equal(r2EditorialPermissionAllowed({ role: 'writer', userId: 'writer', post: { ...draft, status: 'published' } }), false);
 });
 
 test('derivative upload validation checks extension, MIME, exact size, and WebP signature', () => {
@@ -129,4 +143,6 @@ test('new public media is R2-only, keeps legacy rendering, and leaks no upload a
   assert.match(edge, /REFERENCE_NOT_SWITCHED/);
   assert.match(worker, /deleteR2Object/);
   assert.match(worker, /manual_required/);
+  assert.match(worker, /editorial_revisions/);
+  assert.match(edge, /editorial_post_id/);
 });

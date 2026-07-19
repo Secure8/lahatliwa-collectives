@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { branchKey, deliverGeneralNotificationPlan, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, slugify, validateSubmission } from './serviceRequest.js';
+import { branchKey, deliverGeneralNotificationPlan, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, safeEditorialContext, slugify, validateSubmission } from './serviceRequest.js';
 import { SERVICE_CATALOG, resolveServiceCategory } from '../../../src/lib/serviceCatalog.js';
 
 const BRANCH_SERVICE_KEYS = {
@@ -220,4 +220,10 @@ test('branch metadata is bounded and strips control characters', () => {
   assert.equal(details.meetingRequested, true);
   assert.equal(details['bad-key!'], undefined);
   assert.equal(details.extra.length, 500);
+});
+
+test('editorial inquiry context accepts only known types and safe slugs', () => {
+  assert.deepEqual(safeEditorialContext({ type: 'place', slug: 'demo-place', title: 'Demo place' }), { type: 'place', slug: 'demo-place', title: 'Demo place' });
+  assert.equal(safeEditorialContext({ type: 'html', slug: '<script>' }), null);
+  assert.equal(safeEditorialContext({ type: 'event', slug: '../private' }), null);
 });

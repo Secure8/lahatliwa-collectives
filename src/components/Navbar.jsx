@@ -11,6 +11,7 @@ import BrandLogo from './BrandLogo';
 import BrandWordmark from './BrandWordmark';
 import AppearanceMenuAction from './AppearanceMenuAction';
 import MobileTopNavigation from './MobileTopNavigation';
+import { useEditorialFlags } from '../features/editorial/editorialFlags';
 
 const links = [
   ['Home', '/'],
@@ -32,8 +33,11 @@ export default function Navbar() {
   const [headerFocused, setHeaderFocused] = useState(false);
   const location = useLocation();
   const { content } = usePublicContent([]);
+  const { flags: editorialFlags } = useEditorialFlags();
+  const visibleLinks = editorialFlags.publicPortalEnabled ? [...links.slice(0, 1), ['Explore Aklan', '/explore'], ...links.slice(1)] : links;
+  const visibleSecondaryLinks = editorialFlags.publicPortalEnabled ? [['Explore Aklan', '/explore'], ...mobileSecondaryLinks] : mobileSecondaryLinks;
   const mobileMode = publicAppBarMode(location.pathname);
-  const secondaryDestination = mobileSecondaryLinks.find(([, href]) => location.pathname === href || location.pathname.startsWith(`${href}/`));
+  const secondaryDestination = visibleSecondaryLinks.find(([, href]) => location.pathname === href || location.pathname.startsWith(`${href}/`));
   const secondaryRouteIsActive = Boolean(secondaryDestination);
   const secondaryPageLabel = secondaryDestination?.[0] || 'More';
   const closeMenu = useCallback(() => setOpen(false), []);
@@ -83,7 +87,7 @@ export default function Navbar() {
             <BrandWordmark name={content.displayName} variant="compact" mobileVariant="mobile-compact" />
           </Link>
           <div className="hidden items-center gap-1 lg:flex">
-            {links.map(([label, href]) => (
+            {visibleLinks.map(([label, href]) => (
               <NavLink
                 key={href}
                 to={href}
@@ -149,7 +153,7 @@ export default function Navbar() {
             <nav className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4" aria-label="Secondary mobile navigation">
               <p className="px-2 text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">Information</p>
               <div className="mt-2 grid gap-1">
-                {mobileSecondaryLinks.map(([label, href]) => (
+                {visibleSecondaryLinks.map(([label, href]) => (
                   <NavLink key={href} to={href} onClick={avoidDuplicateNavigation(href)} onPointerDown={() => preloadPublicRoute(href)} className={({ isActive }) => clsx('flex min-h-12 items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium transition', isActive ? 'border-[var(--site-accent-border)] bg-[var(--site-accent-surface)] text-[var(--site-accent-text)]' : 'border-transparent text-zinc-300 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-white')}>
                     <span>{label}</span><ArrowRight size={16} aria-hidden="true" />
                   </NavLink>

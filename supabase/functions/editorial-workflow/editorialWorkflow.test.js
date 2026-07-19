@@ -1,9 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { editorialWorkflowError, safeEditorialWorkflowRequest } from './editorialWorkflow.js';
+import { canUseEditorialWorkflow, editorialWorkflowError, safeEditorialWorkflowRequest } from './editorialWorkflow.js';
 
 const postId = '123e4567-e89b-12d3-a456-426614174000';
 const revisionId = '123e4567-e89b-12d3-a456-426614174001';
+
+test('recognizes supplemental Writer and Editor roles without enabling Creative-only accounts', () => {
+  assert.equal(canUseEditorialWorkflow({ role: 'creative', editorial_roles: ['writer', 'editor'], status: 'active' }), true);
+  assert.equal(canUseEditorialWorkflow({ role: 'creative', editorial_roles: ['creative'], status: 'active' }), false);
+  assert.equal(canUseEditorialWorkflow({ role: 'writer', editorial_roles: [], status: 'active' }), true);
+  assert.equal(canUseEditorialWorkflow({ role: 'super_admin', status: 'active' }), true);
+  assert.equal(canUseEditorialWorkflow({ role: 'editor', editorial_roles: [], status: 'disabled' }), false);
+});
 
 test('accepts allowlisted workflow actions with a UUID post identifier', () => {
   assert.deepEqual(safeEditorialWorkflowRequest({ action: 'publish', postId }), { action: 'publish', payload: { postId } });

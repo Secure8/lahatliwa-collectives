@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { assertEditorialDraftId, editorialDraftError } from './editorialApi.js';
+import { assertEditorialDraftId, editorialActionError, editorialDraftError } from './editorialApi.js';
 import { normalizeSupabaseEnvironment } from '../../lib/supabaseClient.js';
 
 const source = (path) => readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
@@ -27,6 +27,20 @@ test('draft errors distinguish access, network, schema, and configuration failur
 
   const configurationError = Object.assign(new Error('missing configuration'), { code: 'SUPABASE_CONFIGURATION_MISSING' });
   assert.equal(editorialDraftError(configurationError), configurationError);
+});
+
+test('workflow authorization codes produce a clear permission message', () => {
+  const error = editorialActionError({ code: 'EDITORIAL_NOT_AUTHORIZED', message: 'Your Editorial role does not allow this action.' }, 'create the draft');
+  assert.equal(error.code, 'EDITORIAL_ACCESS_DENIED');
+  assert.match(error.message, /permission/i);
+});
+
+test('draft creation recovers an earlier row with no initial revision and cleans up new partial rows', () => {
+  const api = source('src/features/editorial/editorialApi.js');
+  const createSource = api.slice(api.indexOf('export async function createEditorialDraft'), api.indexOf('export async function saveEditorialDetails'));
+  assert.match(createSource, /\.is\('current_revision_id', null\)/);
+  assert.match(createSource, /let data = recoverable/);
+  assert.match(createSource, /if \(inserted\) await supabase\.rpc\('delete_editorial_post'/);
 });
 
 test('getEditorialDraft returns not-found only after a successful authenticated row query', () => {

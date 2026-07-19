@@ -7,6 +7,14 @@ export const EDITORIAL_EDGE_ACTIONS = new Set([
 
 const clean = (value, max) => String(value ?? '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max);
 const objectValue = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+const ELIGIBLE_EDITORIAL_ROLES = new Set(['super_admin', 'owner', 'admin', 'editor', 'writer']);
+
+export function canUseEditorialWorkflow(record) {
+  if (!record || record.status !== 'active') return false;
+  const roles = [record.role, ...(Array.isArray(record.editorial_roles) ? record.editorial_roles : [])]
+    .map((role) => String(role || '').trim().toLowerCase());
+  return roles.some((role) => ELIGIBLE_EDITORIAL_ROLES.has(role));
+}
 
 export function safeEditorialWorkflowRequest(value) {
   const body = objectValue(value);

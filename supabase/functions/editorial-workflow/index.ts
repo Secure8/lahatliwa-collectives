@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { editorialWorkflowError, safeEditorialWorkflowRequest } from './editorialWorkflow.js';
+import { canUseEditorialWorkflow, editorialWorkflowError, safeEditorialWorkflowRequest } from './editorialWorkflow.js';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 const reply = (body: unknown, status = 200, cors = {}) => new Response(JSON.stringify(body), { status, headers: { ...jsonHeaders, ...cors } });
@@ -39,8 +39,8 @@ Deno.serve(async (req) => {
     if (userError || !user) return fail('INVALID_SESSION', 'Your session has expired. Please sign in again.', 401, cors);
 
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
-    const { data: caller, error: callerError } = await admin.from('admin_users').select('role,status').eq('user_id', user.id).eq('status', 'active').maybeSingle();
-    if (callerError || !caller || !['super_admin', 'owner', 'admin', 'editor', 'writer'].includes(caller.role)) return fail('EDITORIAL_NOT_AUTHORIZED', 'Only an active Editorial team member may perform this action.', 403, cors);
+    const { data: caller, error: callerError } = await admin.from('admin_users').select('role,status,editorial_roles').eq('user_id', user.id).eq('status', 'active').maybeSingle();
+    if (callerError || !canUseEditorialWorkflow(caller)) return fail('EDITORIAL_NOT_AUTHORIZED', 'Only an active Editorial team member may perform this action.', 403, cors);
 
     const { data, error } = await admin.rpc('execute_editorial_action_as_service', {
       p_actor_user_id: user.id,

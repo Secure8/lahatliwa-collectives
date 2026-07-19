@@ -38,7 +38,7 @@ export function editorialActionError(error, action = 'complete that action') {
   const source = error || {};
   const raw = `${source.code || ''} ${source.message || ''} ${source.details || ''}`.toLowerCase();
   if (source.code === 'EDITORIAL_REVISION_CONFLICT' || raw.includes('editorial_revision_conflict')) return Object.assign(new Error('This story was updated elsewhere. Reload before continuing.'), { code: 'EDITORIAL_REVISION_CONFLICT', cause: source });
-  if (source.status === 403 || source.code === '42501' || /not authorized|permission denied|forbidden|row-level security/.test(raw)) return Object.assign(new Error('You do not have permission to edit this story.'), { code: 'EDITORIAL_ACCESS_DENIED', cause: source });
+  if (source.status === 403 || source.code === '42501' || /editorial_not_authorized|not authorized|permission denied|forbidden|row-level security/.test(raw)) return Object.assign(new Error('You do not have permission to edit this story.'), { code: 'EDITORIAL_ACCESS_DENIED', cause: source });
   if (source instanceof TypeError || /failed to fetch|network|load failed/.test(raw)) return Object.assign(new Error('The Editorial service could not be reached. Check your connection and try again.'), { code: 'EDITORIAL_NETWORK_ERROR', cause: source });
   if (/metadata_invalid|document_invalid|invalid input|check constraint/.test(raw)) return Object.assign(new Error('Check the highlighted story details and try again.'), { code: 'EDITORIAL_VALIDATION_ERROR', cause: source });
   return Object.assign(new Error(`We could not ${action}. Please try again.`), { code: source.code || 'EDITORIAL_ACTION_FAILED', cause: source });
@@ -254,13 +254,29 @@ export async function clearEditorialAutosave(postId) {
 }
 
 export async function createEditorialDraft({ userId, contentType = 'journal', title = 'Untitled story', municipalityId = null, categoryId = null, document = emptyEditorialDocument() } = {}) {
+  const cleanTitle = String(title || '').trim();
+  const { data: recoverable, error: recoveryError } = await supabase.from('editorial_posts').select('*')
+    .eq('author_user_id', userId).eq('content_type', contentType).eq('title', cleanTitle)
+    .eq('status', 'draft').is('current_revision_id', null).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (recoveryError) throw recoveryError;
   const id = globalThis.crypto?.randomUUID?.();
-  const slug = `${slugifyEditorial(title) || 'untitled'}-${String(id).slice(0, 8)}`;
-  const { data, error } = await supabase.from('editorial_posts').insert({ id, content_type: contentType, title, slug, author_user_id: userId, municipality_id: municipalityId || null, category_id: categoryId || null, status: 'draft' }).select('*').single();
-  if (error) throw error;
+  const slug = `${slugifyEditorial(cleanTitle) || 'untitled'}-${String(id).slice(0, 8)}`;
+  let data = recoverable;
+  let inserted = false;
+  if (!data) {
+    const result = await supabase.from('editorial_posts').insert({ id, content_type: contentType, title: cleanTitle, slug, author_user_id: userId, municipality_id: municipalityId || null, category_id: categoryId || null, status: 'draft' }).select('*').single();
+    if (result.error) throw result.error;
+    data = result.data;
+    inserted = true;
+  }
   if (!data?.id || !EDITORIAL_UUID_PATTERN.test(data.id)) throw Object.assign(new Error('The draft was created, but its identifier was not returned. Open it from Drafts.'), { code: 'EDITORIAL_DRAFT_CREATE_ID_MISSING' });
-  const revision = await saveEditorialDraft(data, document, {});
-  return withStudioStatus({ ...data, current_revision_id: revision.id, revision });
+  try {
+    const revision = await saveEditorialDraft({ ...data, municipality_id: municipalityId || data.municipality_id || null, category_id: categoryId || data.category_id || null }, document, {});
+    return withStudioStatus({ ...data, municipality_id: municipalityId || data.municipality_id || null, category_id: categoryId || data.category_id || null, current_revision_id: revision.id, revision });
+  } catch (error) {
+    if (inserted) await supabase.rpc('delete_editorial_post', { p_post_id: data.id });
+    throw error;
+  }
 }
 
 export async function saveEditorialDetails(post) {

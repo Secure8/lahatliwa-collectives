@@ -43,7 +43,8 @@ test('Edge endpoint authenticates an active Editorial role before using the serv
   const membership = edge.indexOf("eq('user_id', user.id).eq('status', 'active')");
   const bridge = edge.indexOf("admin.rpc('execute_editorial_action_as_service'");
   assert.ok(auth >= 0 && membership > auth && bridge > membership);
-  assert.match(edge, /\['super_admin', 'owner', 'admin', 'editor', 'writer'\]/);
+  assert.match(edge, /select\('role,status,editorial_roles'\)/);
+  assert.match(edge, /canUseEditorialWorkflow\(caller\)/);
   assert.match(edge, /safeEditorialWorkflowRequest/);
   assert.doesNotMatch(edge, /console\.(?:log|error)\([^\n]*(?:authorization|serviceKey|token)/i);
 });

@@ -13,6 +13,10 @@ test('recognizes supplemental Writer and Editor roles without enabling Creative-
   assert.equal(canUseEditorialWorkflow({ role: 'editor', editorial_roles: [], status: 'disabled' }), false);
 });
 
+test('reports managed-media cleanup conflicts without exposing database details', () => {
+  assert.deepEqual(editorialWorkflowError({ message: 'external_media_objects_target_check' }), { code: 'EDITORIAL_MEDIA_CLEANUP_FAILED', message: 'The story media could not be prepared for safe removal.', status: 409 });
+});
+
 test('accepts allowlisted workflow actions with a UUID post identifier', () => {
   assert.deepEqual(safeEditorialWorkflowRequest({ action: 'publish', postId }), { action: 'publish', payload: { postId } });
   assert.deepEqual(safeEditorialWorkflowRequest({ action: 'delete', postId }), { action: 'delete', payload: { postId } });

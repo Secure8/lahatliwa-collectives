@@ -10,6 +10,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { StudioEditorialGate } from '../../features/editorial/EditorialGate.jsx';
 import EditorialDocumentRenderer from '../../features/editorial/EditorialDocumentRenderer.jsx';
+import AppearanceMenuAction from '../../components/AppearanceMenuAction.jsx';
 import {
   CONTENT_TYPES, contentTypeMeta, createEditorialDraft, editorialActionError,
   editorialDirectPublishSteps, getEditorialDraft, listEditorialTaxonomy,
@@ -102,6 +103,7 @@ function EditorialStudioShell() {
           <p className="truncate text-sm font-semibold">Editorial Studio</p>
         </Link>
         <div className="flex items-center gap-2">
+          <AppearanceMenuAction iconOnly className="grid h-10 w-10 place-items-center rounded-full text-zinc-400 hover:bg-white/[0.06] hover:text-white" />
           {!editorMode && <Link to="/editorial/new" className="inline-flex h-10 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950 shadow-[0_0_28px_rgba(251,146,60,0.16)]"><Plus size={16} />New Content</Link>}
           {!editorMode && <button type="button" onClick={() => setMenuOpen((value) => !value)} className="grid h-11 w-11 place-items-center rounded-full hover:bg-white/[0.06] lg:hidden" aria-label="Open studio menu">{menuOpen ? <X /> : <Menu />}</button>}
           <button type="button" onClick={logout} className="hidden h-10 items-center gap-2 rounded-full px-3 text-sm text-zinc-400 hover:bg-white/[0.05] hover:text-white sm:inline-flex"><LogOut size={16} />Logout</button>
@@ -389,7 +391,7 @@ function StoryEditor({ id }) {
   const canvasWidth = device === 'mobile' ? 'max-w-[390px]' : device === 'tablet' ? 'max-w-2xl' : 'max-w-4xl';
   const editorColumns = clsx(!leftCollapsed && !rightCollapsed && 'xl:grid-cols-[17rem_minmax(0,1fr)_19rem]', leftCollapsed && !rightCollapsed && 'xl:grid-cols-[3.5rem_minmax(0,1fr)_19rem]', !leftCollapsed && rightCollapsed && 'xl:grid-cols-[17rem_minmax(0,1fr)_3.5rem]', leftCollapsed && rightCollapsed && 'xl:grid-cols-[3.5rem_minmax(0,1fr)_3.5rem]');
 
-  return <section className="pb-24 md:pb-0">
+  return <section className="editorial-studio-page pb-24 md:pb-0">
     <EditorToolbar post={post} saveState={status.save} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} device={device} setDevice={setDevice} onUndo={() => { setEditor((current) => undoHistory(current)); setDirty(true); }} onRedo={() => { setEditor((current) => redoHistory(current)); setDirty(true); }} onSave={save} onPreview={preview} onPublish={publishNow} canPublish={canControl && capabilities.canPublish && publishSteps.length > 0} working={status.working} />
     {!draftEditable && <StudioNotice tone="success" className="mx-4 mt-4 sm:mx-6">{post.status === 'archived' ? 'This story is archived. Restore it to continue editing.' : 'You can view this story, but only its owner can edit it.'}</StudioNotice>}
     {status.error && <StudioNotice className="mx-4 mt-4 sm:mx-6">{status.error}</StudioNotice>}
@@ -424,7 +426,7 @@ function StoryEditor({ id }) {
     <div className="fixed bottom-20 right-4 z-30 hidden flex-col gap-2 md:flex xl:hidden"><button type="button" onClick={() => setDrawer('left')} className="grid h-11 w-11 place-items-center rounded-full border border-white/[0.1] bg-[#181815] shadow-xl" aria-label="Open story structure"><Layers3 size={18} /></button><button type="button" onClick={() => setDrawer('right')} className="grid h-11 w-11 place-items-center rounded-full border border-white/[0.1] bg-[#181815] shadow-xl" aria-label="Open design controls"><LayoutPanelLeft size={18} /></button></div>
     <div className="fixed bottom-5 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-white/[0.1] bg-[#181815]/95 p-2 shadow-2xl backdrop-blur-xl md:flex xl:hidden"><button onClick={save} className="inline-flex h-10 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950"><Save size={15} />Save</button><button onClick={preview} className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm text-zinc-300"><Eye size={15} />Preview</button></div>
     <div className="sr-only">Save Draft Preview Publish Archive Restore Delete</div>
-    <div className="fixed bottom-20 right-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-wrap justify-end gap-2 xl:bottom-5 xl:right-5">
+    <div className="mx-4 mt-6 flex flex-wrap justify-end gap-2 border-t border-white/[0.08] pt-5 sm:mx-6 lg:mx-8">
       {canControl && capabilities.canArchive && post.status !== 'archived' && <button onClick={() => workflow('archive', {}, 'Archived.')} className="h-10 rounded-full border border-red-300/20 bg-[#11110f] px-4 text-sm text-red-100 shadow-xl"><Archive size={15} className="mr-2 inline" />Archive</button>}
       {canRestore && <button onClick={restoreToDraft} className="h-10 rounded-full border border-emerald-300/30 bg-[#11110f] px-4 text-sm font-semibold text-emerald-100 shadow-xl"><RotateCcw size={15} className="mr-2 inline" />Restore to Draft</button>}
       {canControl && capabilities.canDeleteOwn && <button onClick={deleteStory} className="h-10 rounded-full border border-red-300/20 bg-[#11110f] px-4 text-sm text-red-100 shadow-xl"><Trash2 size={15} className="mr-2 inline" />Delete</button>}

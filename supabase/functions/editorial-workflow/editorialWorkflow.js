@@ -58,6 +58,7 @@ export function editorialWorkflowError(error) {
   if (raw.includes('EDITORIAL_REVISION_CONFLICT')) return { code: 'EDITORIAL_REVISION_CONFLICT', message: 'A newer revision was saved. Reload and compare before saving again.', status: 409 };
   if (raw.includes('EDITORIAL_NOT_AUTHORIZED') || error?.code === '42501') return { code: 'EDITORIAL_NOT_AUTHORIZED', message: 'Your Editorial role does not allow this action.', status: 403 };
   if (raw.includes('EDITORIAL_POST_NOT_FOUND')) return { code: 'EDITORIAL_POST_NOT_FOUND', message: 'The Editorial post could not be found.', status: 404 };
+  if (/external_media_objects_target_check|storage_cleanup_jobs/.test(raw)) return { code: 'EDITORIAL_MEDIA_CLEANUP_FAILED', message: 'The story media could not be prepared for safe removal.', status: 409 };
   if (/EDITORIAL_(?:TRANSITION|RESTORE)_NOT_ALLOWED|EDITORIAL_REVISION_REQUIRED/.test(raw)) return { code: 'EDITORIAL_ACTION_NOT_ALLOWED', message: 'This action is not available for the current Editorial status.', status: 409 };
   if (/EDITORIAL_(?:DOCUMENT|METADATA|POST_ID|PAYLOAD|ACTION)_INVALID/.test(raw) || error?.code === '22023') return { code: 'EDITORIAL_INPUT_INVALID', message: 'The Editorial request contains invalid or incomplete information.', status: 400 };
   return { code: 'EDITORIAL_WORKFLOW_FAILED', message: 'The Editorial action could not be completed.', status: 500 };

@@ -90,13 +90,24 @@ export default function StartProject() {
 
   useEffect(() => {
     let active = true;
+    let settled = false;
+    const finishWithFallback = () => {
+      if (!active || settled) return;
+      settled = true;
+      setCreatives([]);
+      setChoiceLoadError('Specialist choices could not be verified. You can still continue with a general branch request.');
+      setLoadingChoices(false);
+    };
+    const timeout = window.setTimeout(finishWithFallback, 6000);
     supabase.functions.invoke('inquiry-public-options', { body: { action: 'list' } }).then((creativeResult) => {
-      if (!active) return;
+      if (!active || settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
       setCreatives(creativeResult.data?.creatives || []);
       if (creativeResult.error) setChoiceLoadError('Some current specialist choices could not be verified. Unavailable options have been hidden for safety.');
       setLoadingChoices(false);
-    });
-    return () => { active = false; };
+    }).catch(finishWithFallback);
+    return () => { active = false; window.clearTimeout(timeout); };
   }, []);
 
   useEffect(() => {

@@ -64,7 +64,7 @@ export default function WebsiteStudio() {
   useEffect(() => {
     if (!selected) { setForm({}); setDirty(false); return; }
     setForm(structuredClone(selected.draft_data || selected.published_data || {}));
-    setDirty(false); setNotice(''); setError('');
+    setDirty(false);
   }, [selected?.entry_key, selected?.updated_at]);
 
   const navigation = useMemo(() => {
@@ -79,7 +79,7 @@ export default function WebsiteStudio() {
   const state = selected ? websiteEntryState(selected) : '';
   const canRestore = role === 'super_admin' || role === 'owner';
 
-  function selectSection(key) { if (dirty) { setError('Save or discard the current changes before opening another section.'); return; } setParams(key === 'overview' ? {} : { section: key }); }
+  function selectSection(key) { if (dirty) { setError('Save or discard the current changes before opening another section.'); return; } setNotice(''); setError(''); setParams(key === 'overview' ? {} : { section: key }); }
   function updateField(key, value, type) { try { const safe = type === 'textarea' ? value : safeWebsiteValue(value, type); setForm((current) => ({ ...current, [key]: safe })); setDirty(true); setError(''); setNotice(''); } catch (fieldError) { setError(fieldError.message); } }
   function replaceEntry(row) { setEntries((current) => current.map((item) => item.entry_key === row.entry_key ? row : item)); setForm(structuredClone(row.draft_data || row.published_data || {})); setDirty(false); }
 

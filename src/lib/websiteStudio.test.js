@@ -91,6 +91,8 @@ test('Website Studio exposes beginner preview, draft, publish, discard, revision
   assert.match(studio, /\['super_admin','owner','admin'\]/);
   assert.match(studio, /role === 'super_admin'/);
   assert.match(studio, /UnsavedChangesGuard/);
+  assert.match(studio, /setNotice\(''\); setError\(''\); setParams/);
+  assert.doesNotMatch(studio, /setDirty\(false\); setNotice\(''\); setError\(''\)/);
   assert.doesNotMatch(studio, /window\.confirm|dangerouslySetInnerHTML|contentEditable/);
 });
 
@@ -125,6 +127,8 @@ test('Services and inquiries read the same canonical records instead of hardcode
   assert.match(services, /branch\.name \|\| branch\.label/);
   assert.match(inquiry, /branchesFromWebsiteContent/);
   assert.match(inquiry, /typeof configured\[0\] === 'object'/);
+  assert.match(inquiry, /window\.setTimeout\(finishWithFallback, 6000\)/);
+  assert.match(inquiry, /You can still continue with a general branch request/);
 });
 
 test('page-specific Website Studio copy reaches homepage, Explore, inquiries, metadata, and social links', () => {

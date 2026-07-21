@@ -12,7 +12,7 @@ import { canAcceptInquiry, canCompleteInquiry, canDeleteInquiry, inquiryMatchesV
 import { supabase } from '../../lib/supabaseClient';
 
 const inquiryColumns = 'id, public_reference, name, email_or_contact, client_email, client_phone, organization, branch, service_key, project_type, budget_range, deadline, preferred_contact, preferred_schedule, service_mode, general_location, preferred_creative_id, assigned_creative_id, current_assignee_id, summary, details, message, request_metadata, source_path, status, workflow_status, archived_at, notification_status, notification_attempts, notification_state, notification_error, completed_at, completed_by, completion_note, closed_at, created_at, updated_at';
-const branchLabels = { studio: 'Liwa Studio', tech: 'Liwa Tech', digital: 'Liwa Digital', social: 'Liwa Social', general: 'General' };
+const branchLabels = { studio: 'Liwa Studio', tech: 'Liwa Explore', digital: 'Liwa Digital', social: 'Liwa Social', general: 'General' };
 const lineControl = 'dark-select min-w-0 w-full rounded-md border border-white/[0.14] bg-zinc-950 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] hover:border-white/[0.22] focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/15';
 
 async function functionErrorMessage(error, fallback) {

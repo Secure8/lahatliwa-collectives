@@ -195,12 +195,13 @@ export async function listTourismHomepageSections() {
   return (data || []).map((section) => ({ ...section, editorial_homepage_items: (section.editorial_homepage_items || []).filter((item) => item.editorial_posts?.published_revision_id && !item.editorial_posts.archived_at && item.editorial_posts.status !== 'expired').map((item) => ({ ...item, editorial_posts: withPublishedSnapshot(item.editorial_posts) })) })).filter((section) => section.editorial_homepage_items.length);
 }
 
-export async function listEditorialWorkspace({ userId, role, scope = 'all', status = '' } = {}) {
+export async function listEditorialWorkspace({ userId, role, scope = 'all', status = '', type = '' } = {}) {
   let query = supabase.from('editorial_posts').select('id,content_type,title,slug,summary,status,author_user_id,assigned_editor_user_id,contributor_id,category_id,municipality_id,cover_image_url,cover_image_alt,current_revision_id,updated_at,published_at,scheduled_for,editorial_municipalities(name,slug),editorial_categories(name,slug),editorial_contributors(display_name)').order('updated_at', { ascending: false }).limit(100);
   if (scope === 'drafts') query = query.in('status', ['draft', 'needs_revision']);
   if (scope === 'assigned') query = query.eq('assigned_editor_user_id', userId);
   if (scope === 'review') query = query.eq('status', 'submitted');
   if (status) query = query.eq('status', status);
+  if (type) query = query.eq('content_type', type);
   if (!['super_admin', 'owner'].includes(String(role || '').toLowerCase())) query = query.eq('author_user_id', userId);
   const { data, error } = await query;
   if (error) throw error;
@@ -282,6 +283,35 @@ export async function createEditorialDraft({ userId, contentType = 'journal', ti
   }
 }
 
+export async function listPublishedDestinations({ offset = 0, limit = 6 } = {}) {
+  const pageSize = Math.min(Math.max(Number(limit) || 6, 1), 12);
+  const from = Math.max(Number(offset) || 0, 0);
+  const { data, error } = await supabase.from('editorial_posts')
+    .select('id,content_type,title,slug,summary,status,cover_image_url,cover_image_alt,published_at,published_revision_id,published_metadata,archived_at,municipality_id,category_id,editorial_municipalities(name,slug),editorial_categories(name,slug),editorial_place_details(verification_status)')
+    .eq('content_type', 'place')
+    .eq('status', 'published')
+    .not('published_revision_id', 'is', null)
+    .not('published_at', 'is', null)
+    .is('archived_at', null)
+    .order('published_at', { ascending: false })
+    .order('id', { ascending: true })
+    .range(from, from + pageSize);
+  if (error) throw error;
+  const rows = (data || []).map(withPublishedSnapshot);
+  return { rows: rows.slice(0, pageSize), hasMore: rows.length > pageSize, nextOffset: from + Math.min(rows.length, pageSize) };
+}
+
+export async function listExploreHomepageSlides() {
+  const { data, error } = await supabase.from('editorial_homepage_slides')
+    .select('slot_type,post_id,enabled,sort_order,eyebrow,description,focal_x,focal_y,editorial_posts(id,content_type,title,slug,summary,status,cover_image_url,cover_image_alt,published_at,published_revision_id,published_metadata,archived_at)')
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    ...row,
+    editorial_posts: row.editorial_posts ? withPublishedSnapshot(row.editorial_posts) : null,
+  }));
+}
+
 export async function saveEditorialDetails(post) {
   const config = EDITORIAL_DETAIL_CONFIG[post?.content_type];
   if (!config) return {};
@@ -358,6 +388,13 @@ export function editorialDirectPublishSteps(status) {
 export async function runEditorialWorkflow(postId, action, options = {}) {
   const edgeAction = WORKFLOW_ACTIONS[action];
   if (!edgeAction) throw new Error('This workflow action is unavailable.');
+  // Deletion has its own protected, owner-aware RPC. Calling it with the active
+  // session avoids depending on the service bridge to reconstruct auth.uid().
+  if (action === 'delete') {
+    const { data, error } = await supabase.rpc('delete_editorial_post', { p_post_id: postId });
+    if (error) throw editorialActionError(error, 'delete this story');
+    return data;
+  }
   const body = { action: edgeAction, postId };
   if (action === 'schedule') body.scheduledFor = options.scheduledFor;
   if (['request_changes', 'approve', 'archive'].includes(action)) body.note = options.note || '';

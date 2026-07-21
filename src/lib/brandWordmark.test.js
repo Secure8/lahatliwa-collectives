@@ -20,7 +20,7 @@ test('only an exact configured brand heading becomes a display wordmark', () => 
 });
 
 test('shared wordmark keeps CMS branding, logo support, and accessible placement contracts', async () => {
-  const [component, navbar, footer, adminLayout, login, forgotPassword, setPassword, protectedRoute, creativeHero, projectDetails, home, css, html] = await Promise.all([
+  const [component, navbar, footer, adminLayout, login, forgotPassword, setPassword, protectedRoute, creativeHero, projectDetails, collectiveHero, css, html] = await Promise.all([
     readFile(new URL('../components/BrandWordmark.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/Footer.jsx', import.meta.url), 'utf8'),
@@ -31,7 +31,7 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
     readFile(new URL('../components/ProtectedRoute.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/ProjectDetails.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/Home.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/CollectiveHero.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
     readFile(new URL('../../index.html', import.meta.url), 'utf8'),
   ]);
@@ -54,7 +54,7 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(protectedRoute, /<BrandWordmark variant="auth" to="\/"/);
   assert.match(creativeHero, /<BrandWordmark variant="eyebrow"/);
   assert.match(projectDetails, /Published through <BrandWordmark name=\{content\.displayName\} variant="inline"/);
-  assert.match(home, /isBrandWordmarkText\(content\.home\.heroTitle, content\.displayName, \[defaultSiteContent\.displayName, defaultSiteContent\.legalName\]\)/);
+  assert.match(collectiveHero, /isBrandWordmarkText\(content\.home\.heroTitle, content\.displayName, \[defaultSiteContent\.displayName, defaultSiteContent\.legalName\]\)/);
   assert.match(css, /color: var\(--brand-wordmark-fill\)/);
   assert.match(css, /var\(--brand-wordmark-accent, var\(--site-brand-accent, #f6d58b\)\)/);
   assert.match(css, /\[data-theme="light"\] \.brand-wordmark/);

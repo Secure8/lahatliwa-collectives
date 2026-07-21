@@ -14,23 +14,23 @@ test('canonical branch and inquiry routes preserve refresh-safe context', () => 
 test('inquiry entry routing advances only through selections explicitly provided', () => {
   const published = ['studio', 'tech', 'digital', 'social'];
   const creatives = [{ id: 'creative-id', slug: 'alex-tech' }];
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'specialist' });
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup', creative: 'alex-tech' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: 'alex-tech', step: INQUIRY_DETAILS_STEP, status: 'ready-specialist' });
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup', creative: 'missing-specialist' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'invalid-specialist' });
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'setup', creative: 'general-team' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: '', step: INQUIRY_DETAILS_STEP, status: 'ready-team' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'destination-information' }, published, creatives), { branch: 'tech', serviceKey: 'destination-information', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'specialist' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'destination-information', creative: 'alex-tech' }, published, creatives), { branch: 'tech', serviceKey: 'destination-information', creativeSlug: 'alex-tech', step: INQUIRY_DETAILS_STEP, status: 'ready-specialist' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'destination-information', creative: 'missing-specialist' }, published, creatives), { branch: 'tech', serviceKey: 'destination-information', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'invalid-specialist' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'destination-information', creative: 'general-team' }, published, creatives), { branch: 'tech', serviceKey: 'destination-information', creativeSlug: '', step: INQUIRY_DETAILS_STEP, status: 'ready-team' });
   assert.deepEqual(resolveInquiryEntry({ branch: 'tech' }, published, creatives), { branch: 'tech', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'branch-only' });
-  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'device-setup' }, published, creatives), { branch: 'tech', serviceKey: 'setup', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'specialist' });
+  assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'device-setup' }, published, creatives), { branch: 'tech', serviceKey: 'visitor-routing', creativeSlug: '', step: INQUIRY_SPECIALIST_STEP, status: 'specialist' });
   assert.deepEqual(resolveInquiryEntry({ branch: 'tech', service: 'unavailable-service' }, published, creatives), { branch: 'tech', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-service' });
   assert.deepEqual(resolveInquiryEntry({}, published, creatives), { branch: '', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'direct' });
   assert.deepEqual(resolveInquiryEntry({ branch: 'studio', service: 'photo' }, ['tech'], creatives), { branch: '', serviceKey: '', creativeSlug: '', step: INQUIRY_SELECTION_STEP, status: 'invalid-branch' });
-  assert.deepEqual(inquiryNavigationState({ branch: 'tech', service: 'Device Setup' }), { inquirySelection: { branch: 'tech', service: 'setup' } });
+  assert.deepEqual(inquiryNavigationState({ branch: 'tech', service: 'Destination Information' }), { inquirySelection: { branch: 'tech', service: 'destination-information', path: '', context: null } });
 });
 
 test('draft context persists valid fields and rejects invalid branch state', () => {
   const draft = mergeInquiryContext(emptyInquiryDraft(), { branch: 'tech', service: 'Virtual Assistance', creative: 'alex' });
   const restored = safeInquiryDraft(JSON.parse(JSON.stringify(draft)));
   assert.equal(restored.branch, 'tech');
-  assert.equal(restored.serviceKey, 'remote-assistance');
+  assert.equal(restored.serviceKey, 'visitor-routing');
   assert.equal(restored.creativeSlug, 'alex');
   assert.equal(safeInquiryDraft({ ...draft, branch: 'invalid' }).branch, '');
 });
@@ -48,7 +48,7 @@ test('changing branches clears branch-specific answers but preserves shared clie
 test('submission boundary sends only canonical service keys', () => {
   const expected = {
     studio: ['photo', 'video', 'same-day-edit', 'highlights', 'editing', 'other-creative-work'],
-    tech: ['diagnostics', 'setup', 'remote-assistance', 'on-site-support', 'maintenance-and-optimization', 'consultation'],
+    tech: ['destination-information', 'event-or-activity', 'local-product', 'tourism-question', 'correction-or-concern', 'visitor-routing'],
     digital: ['website', 'app', 'design-and-prototype', 'system', 'maintenance-and-improvements', 'consultation'],
     social: ['management', 'content', 'digital-marketing', 'campaign', 'page-setup', 'review-and-consultation'],
   };
@@ -61,7 +61,7 @@ test('submission boundary sends only canonical service keys', () => {
   }
   assert.equal(buildInquirySubmissionRequest({ branch: 'digital', serviceKey: 'digital-product' }).serviceKey, 'maintenance-and-improvements');
   assert.equal(buildInquirySubmissionRequest({ branch: 'social', serviceKey: 'strategy' }).serviceKey, 'digital-marketing');
-  assert.equal(buildInquirySubmissionRequest({ branch: 'tech', serviceKey: 'other-technical-help' }).serviceKey, 'maintenance-and-optimization');
+  assert.equal(buildInquirySubmissionRequest({ branch: 'tech', serviceKey: 'other-technical-help' }).serviceKey, 'visitor-routing');
   assert.equal(buildInquirySubmissionRequest({ branch: 'studio', serviceKey: 'unlisted-service' }).serviceKey, '');
 });
 
@@ -87,7 +87,7 @@ test('every inquiry branch exposes distinct labels, examples, roles, and follow-
     studio: ['Tell us about the shoot or visual project', 'Shoot or production summary', 'What visual output do you need?', 'Creative or production specialist', 'Shoot date, event date, or turnaround'],
     digital: ['Tell us about the digital product or system', 'Product or system summary', 'What should the product or system accomplish?', 'Developer or digital specialist', 'Preferred timeline or launch target'],
     social: ['Tell us about your brand or campaign', 'Marketing or social media summary', 'What kind of marketing support do you need?', 'Social media or marketing specialist', 'Campaign dates or preferred start'],
-    tech: ['Tell us about the device or technical issue', 'Technical request summary', 'What problem or setup do you need help with?', 'Technician or technical specialist', 'When do you need technical support?'],
+    tech: ['Tell us your question', 'Question summary', 'What would you like to know?', 'Routing preference', 'When do you need this information?'],
     general: ['Tell us what you need', 'Request summary', 'Describe your request', 'Preferred published creative', 'Preferred date or timeline'],
   };
   for (const [branch, [sectionTitle, summaryLabel, detailsLabel, recipientLabel, scheduleLabel]] of Object.entries(expected)) {
@@ -99,7 +99,7 @@ test('every inquiry branch exposes distinct labels, examples, roles, and follow-
     assert.equal(copy.scheduleLabel, scheduleLabel);
     assert.ok(copy.summaryHelper.length > 20);
     assert.ok(copy.detailsHelper.length > 40);
-    if (branch !== 'general') {
+    if (!['general', 'tech'].includes(branch)) {
       assert.equal(copy.examples.length, 2);
       assert.ok(copy.reviewFields.length >= 3);
     }
@@ -114,7 +114,7 @@ test('every branch owns exact service-selection heading and supporting descripti
     studio: ['Choose the visual service you need.', 'For shoots, event coverage, editing, highlights, and other visual work.'],
     digital: ['Choose the digital service you need.', 'For websites, applications, systems, prototypes, maintenance, and development guidance.'],
     social: ['Choose the marketing support you need.', 'For social media management, content planning, campaigns, branding, and audience growth.'],
-    tech: ['Choose the technical support you need.', 'For computer troubleshooting, device setup, software assistance, system support, and maintenance.'],
+    tech: ['What would you like to ask about?', 'Independent tourism information and visitor routing for Aklan.'],
     general: ['Choose the type of support you need.', 'For requests that may involve one or more Liwa branches, consultation, or general assistance.'],
   };
 
@@ -142,7 +142,7 @@ test('every branch owns exact service-selection heading and supporting descripti
 test('every branch exposes exactly six balanced services while legacy URLs remain compatible', () => {
   const expected = {
     studio: ['Photography', 'Videography', 'Same-Day Edit (SDE)', 'Highlights', 'Photo & Video Editing', 'Other Visual Work'],
-    tech: ['Computer Troubleshooting', 'Device Setup', 'Software Assistance', 'System & Network Support', 'Maintenance & Optimization', 'Technical Consultation'],
+    tech: ['Destination Information', 'Event or Activity Question', 'Local Product Question', 'Tourism Question', 'Correction or Public Concern', 'Visitor Support and Routing'],
     digital: ['Website Development', 'Application Development', 'UI & Prototyping', 'Digital Systems', 'Maintenance & Improvements', 'Technical Consultation'],
     social: ['Social Media Management', 'Content Planning', 'Digital Marketing', 'Campaign Support', 'Branding & Page Support', 'Marketing Consultation'],
     general: ['General Service Request', 'Multi-Branch Request', 'Partnership & Collaboration', 'Event or Organization Support', 'Consultation & Planning', 'Not Sure Yet'],
@@ -163,16 +163,16 @@ test('every branch exposes exactly six balanced services while legacy URLs remai
   assert.equal(canonicalServiceKey('studio', 'portrait-photography'), 'photo');
   assert.equal(canonicalServiceKey('digital', 'landing-pages'), 'website');
   assert.equal(canonicalServiceKey('social', 'digital-marketing-support'), 'digital-marketing');
-  assert.equal(canonicalServiceKey('tech', 'virtual-assistance'), 'remote-assistance');
+  assert.equal(canonicalServiceKey('tech', 'virtual-assistance'), 'visitor-routing');
   assert.equal(canonicalServiceKey('digital', 'digital-product'), 'maintenance-and-improvements');
   assert.equal(canonicalServiceKey('social', 'strategy'), 'digital-marketing');
-  assert.equal(canonicalServiceKey('tech', 'other-technical-help'), 'maintenance-and-optimization');
+  assert.equal(canonicalServiceKey('tech', 'other-technical-help'), 'visitor-routing');
   assert.deepEqual(serviceCategoriesForBranch('studio', ['Photography', 'Photo Editing', 'Audio Production']), serviceCategoriesForBranch('studio'));
 });
 
 test('branch descriptions are specific, stable, and replace known template copy without hiding intentional CMS wording', () => {
   assert.match(branchMeta('studio').description, /shoot, coverage, production, or editing request/);
-  assert.match(branchMeta('tech').description, /technician or technical specialist/);
+  assert.match(branchMeta('tech').description, /Tourism information, destination storytelling/);
   assert.match(branchMeta('digital').description, /developer or digital specialist/);
   assert.match(branchMeta('social').description, /social media or marketing specialist/);
   assert.match(branchMeta('general').description, /appropriate Liwa branch/);
@@ -199,9 +199,9 @@ test('router and CTA sources use the shared inquiry system', async () => {
   assert.doesNotMatch(`${hero}\n${profile}\n${services}`, /href="#"/);
 });
 
-test('guided form keeps mobile controls bounded and includes the Tech safety warning', async () => {
+test('guided form keeps mobile controls bounded and includes the tourism independence notice', async () => {
   const source = await readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8');
-  assert.match(source, /Never submit passwords, one-time codes, banking details/);
+  assert.match(source, /not an official tourism office, emergency service, travel agency/);
   assert.match(source, /overflow-x-auto/);
   assert.doesNotMatch(source, /min-w-screen|w-screen/);
   assert.match(source, /const copy = inquiryCopy\(draft\.branch\)/);
@@ -222,8 +222,8 @@ test('services preselection skips safely and exposes an accessible change-select
   assert.match(form, /entry\.status === 'specialist'[\s\S]*moveToStep\(entry\.step\)/);
   assert.match(form, /function changeSelection\(\)[\s\S]*delete nextState\.inquirySelection[\s\S]*moveToStep\(INQUIRY_SELECTION_STEP\)[\s\S]*replace: true/);
   assert.match(form, /function changeSpecialist\(\)[\s\S]*delete nextState\.inquirySelection\.creative[\s\S]*moveToStep\(INQUIRY_SPECIALIST_STEP\)[\s\S]*replace: true/);
-  assert.match(form, /<SelectionSummary[\s\S]*?onChange=\{changeSelection\}/);
-  assert.match(form, /onChangeSpecialist=\{step > INQUIRY_SPECIALIST_STEP \? changeSpecialist : null\}/);
+  assert.match(form, /<SelectionSummary[\s\S]*?onChange=\{inquiryPath === 'service' \? changeSelection : changeInquiryPath\}/);
+  assert.match(form, /onChangeSpecialist=\{inquiryPath === 'service' && step > INQUIRY_SPECIALIST_STEP \? changeSpecialist : null\}/);
   assert.match(form, /Preferred creative:/);
   assert.match(form, /aria-live="polite" aria-atomic="true"/);
   assert.match(form, /ref=\{stepHeadingRef\} tabIndex="-1"/);

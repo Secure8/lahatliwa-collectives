@@ -66,7 +66,7 @@ test('theme motion stays available on every viewport except reduced-motion envir
 });
 
 test('provider, one global toggle, startup, and rapid-change contracts stay shared across public and admin', async () => {
-  const [provider, toggle, appearance, modeIcon, app, navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute, index, main, css, home, contentApi] = await Promise.all([
+  const [provider, toggle, appearance, modeIcon, app, navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute, index, main, css, home, collectiveHero, contentApi] = await Promise.all([
     readFile(new URL('./ThemeProvider.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/ThemeToggle.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/AppearanceMenuAction.jsx', import.meta.url), 'utf8'),
@@ -82,12 +82,14 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
     readFile(new URL('../main.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
     readFile(new URL('../pages/Home.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/CollectiveHero.jsx', import.meta.url), 'utf8'),
     readFile(new URL('./contentApi.js', import.meta.url), 'utf8'),
   ]);
   assert.match(provider, /matchMedia\?\.\('\(prefers-color-scheme: dark\)'\)/);
   assert.match(provider, /addEventListener\?\.\('change', onSystemChange\)/);
   assert.doesNotMatch(provider, /startViewTransition|clipPath|themeRevealRadius|pseudoElement/);
   assert.match(provider, /createThemeTransitionController/);
+  assert.match(provider, /\{ transition = true \} = \{\}/);
   assert.match(provider, /transitionControllerRef\.current\?\.begin\(\)/);
   assert.match(provider, /controller\.dispose\(\)/);
   assert.doesNotMatch(provider, /\.animate\?|contentAnimationRef|opacity: 0\.82/);
@@ -107,7 +109,7 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.match(toggle, /const focusVisible = element\.matches\(':focus-visible'\)/);
   assert.match(toggle, /if \(!focusVisible\) element\.blur\(\)/);
   assert.match(toggle, /adminWorkspaceHasIntegratedToggle/);
-  assert.match(toggle, /if \(adminWorkspaceHasIntegratedToggle\) return null/);
+  assert.match(toggle, /if \(adminWorkspaceHasIntegratedToggle \|\| editorialWorkspaceHasIntegratedToggle\) return null/);
   assert.match(toggle, /window\.addEventListener\('scroll', controller\.onScroll, \{ passive: true \}\)/);
   assert.match(toggle, /window\.removeEventListener\('scroll', controller\.onScroll\)/);
   assert.match(toggle, /ref=\{buttonRef\}/);
@@ -128,7 +130,7 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.doesNotMatch(main, /hydrateRoot/);
   assert.doesNotMatch(index, /startViewTransition/);
   assert.match(css, /--theme-page-background/);
-  assert.match(home, /backgroundColor: content\.accentColor/);
+  assert.match(collectiveHero, /backgroundColor: content\.accentColor/);
   assert.match(contentApi, /'--site-brand-accent': content\.accentColor \|\| defaultSiteContent\.accentColor/);
   assert.match(css, /\[data-theme="light"\] \.theme-content-root[\s\S]*?--site-accent: var\(--site-brand-accent, #f6d58b\)/);
   assert.match(css, /--site-accent-text: color-mix\(in srgb, var\(--site-brand-accent, #f6d58b\) 72%, black\)/);

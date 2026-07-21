@@ -1,14 +1,14 @@
 export const PROJECT_BRANCHES = [
   { key: 'studio', label: 'Liwa Studio', description: 'Photo, video, and visual production' },
   { key: 'digital', label: 'Liwa Digital', description: 'Websites, applications, and digital systems' },
-  { key: 'tech', label: 'Liwa Tech', description: 'Technical support and computer solutions' },
+  { key: 'tech', label: 'Liwa Explore', description: 'Tourism stories, information, and visitor support' },
   { key: 'social', label: 'Liwa Social', description: 'Social media, campaigns, and content' },
 ];
 
 const categoryAliases = new Map([
   ['liwa studio', 'studio'], ['photography', 'studio'], ['videography', 'studio'], ['photo editing', 'studio'], ['video editing', 'studio'], ['event coverage', 'studio'], ['visual production', 'studio'],
   ['liwa digital', 'digital'], ['website development', 'digital'], ['app development', 'digital'], ['ui design', 'digital'], ['digital systems', 'digital'], ['software projects', 'digital'],
-  ['liwa tech', 'tech'], ['it support', 'tech'], ['computer services', 'tech'], ['device setup', 'tech'], ['technical assistance', 'tech'], ['software installation', 'tech'], ['system maintenance', 'tech'],
+  ['liwa tech', 'tech'], ['liwa explore', 'tech'], ['tourism', 'tech'], ['destination storytelling', 'tech'], ['it support', 'tech'], ['computer services', 'tech'], ['device setup', 'tech'], ['technical assistance', 'tech'], ['software installation', 'tech'], ['system maintenance', 'tech'],
   ['liwa social', 'social'], ['social media management', 'social'], ['digital marketing', 'social'], ['content planning', 'social'], ['campaigns', 'social'], ['social graphics', 'social'], ['page management', 'social'], ['promotional content', 'social'],
 ]);
 

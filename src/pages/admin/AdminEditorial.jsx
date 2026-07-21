@@ -1,4 +1,4 @@
-import { BookOpen, Check, ExternalLink, FileText, Flag, LayoutTemplate, Plus, Settings, Tags, Users } from 'lucide-react';
+import { BookOpen, Check, ExternalLink, FileText, Flag, LayoutTemplate, Plus, Save, Settings, Tags, Trash2, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
@@ -8,9 +8,10 @@ import { CONTENT_TYPES, listEditorialWorkspace, slugifyEditorial } from '../../f
 import { DISABLED_EDITORIAL_FLAGS, normalizeEditorialFlags } from '../../features/editorial/editorialFlags.js';
 import { useAdminAccess } from '../../lib/adminAccess.jsx';
 import { supabase } from '../../lib/supabaseClient.js';
+import { editorialPublicPath, TOURISM_SLIDE_SLOTS } from '../../lib/tourismHomepage.js';
 
 const sections = [
-  ['Overview', '/admin/editorial', BookOpen], ['Content', '/admin/editorial/content', FileText], ['Review', '/admin/editorial/review', Check],
+  ['Overview', '/admin/editorial', BookOpen], ['Content', '/admin/editorial/content', FileText], ['Destinations', '/admin/editorial/destinations', LayoutTemplate], ['Review', '/admin/editorial/review', Check],
   ['Homepage', '/admin/editorial/homepage', LayoutTemplate], ['Categories', '/admin/editorial/categories', Tags], ['Tags', '/admin/editorial/tags', Tags],
   ['Municipalities', '/admin/editorial/municipalities', Tags], ['Contributors', '/admin/editorial/contributors', Users],
   ['Settings', '/admin/editorial/settings', Settings], ['Audit', '/admin/editorial/audit', Flag],
@@ -32,7 +33,7 @@ function AdminEditorialSection({ section }) {
 
 function EditorialContent({ section }) {
   const { user, role } = useAdminAccess(); const [state, setState] = useState({ loading: true, posts: [], error: '' });
-  useEffect(() => { let active = true; listEditorialWorkspace({ userId: user.id, role, scope: section === 'review' ? 'review' : 'all' }).then((posts) => { if (active) setState({ loading: false, posts, error: '' }); }).catch(() => { if (active) setState({ loading: false, posts: [], error: 'Editorial content could not be loaded. Apply the migration before using this area.' }); }); return () => { active = false; }; }, [role, section, user.id]);
+  useEffect(() => { let active = true; listEditorialWorkspace({ userId: user.id, role, scope: section === 'review' ? 'review' : 'all', type: section === 'destinations' ? 'place' : '' }).then((posts) => { if (active) setState({ loading: false, posts, error: '' }); }).catch(() => { if (active) setState({ loading: false, posts: [], error: 'Editorial content could not be loaded. Apply the migration before using this area.' }); }); return () => { active = false; }; }, [role, section, user.id]);
   if (state.loading) return <LoadingState label="Loading editorial content" />;
   if (state.error) return <AdminNotice>{state.error}</AdminNotice>;
   if (!state.posts.length) return <AdminEmptyState title="No editorial content" message="No demo tourism claims were created. Start with a reviewed draft when the module is ready." action={<AdminButton to="/editorial/new" variant="primary">New</AdminButton>} />;
@@ -59,6 +60,66 @@ function TaxonomyManager({ section }) {
 }
 
 function HomepageManager() {
+  const { role } = useAdminAccess();
+  const [state, setState] = useState({ loading: true, slides: [], posts: [], saving: '', error: '', message: '' });
+
+  async function load() {
+    const [slidesResult, postsResult] = await Promise.all([
+      supabase.from('editorial_homepage_slides').select('*').order('sort_order'),
+      supabase.from('editorial_posts').select('id,content_type,title,slug,summary,cover_image_url,status,published_at,published_revision_id,archived_at').eq('status', 'published').not('published_revision_id', 'is', null).not('published_at', 'is', null).is('archived_at', null).order('published_at', { ascending: false }).limit(150),
+    ]);
+    setState((current) => ({ ...current, loading: false, slides: slidesResult.data || [], posts: postsResult.data || [], error: slidesResult.error || postsResult.error ? 'The slideshow manager could not be loaded.' : '' }));
+  }
+
+  useEffect(() => { load(); }, []);
+
+  function changeSlot(type, patch) {
+    setState((current) => ({ ...current, slides: current.slides.map((slide) => slide.slot_type === type ? { ...slide, ...patch } : slide), error: '', message: '' }));
+  }
+
+  async function saveSlot(slot) {
+    setState((current) => ({ ...current, saving: slot.slot_type, error: '', message: '' }));
+    const { error } = await supabase.from('editorial_homepage_slides').update({ post_id: slot.post_id || null, enabled: Boolean(slot.enabled && slot.post_id), sort_order: Number(slot.sort_order), eyebrow: slot.eyebrow || '', description: slot.description || '', focal_x: Number(slot.focal_x ?? 50), focal_y: Number(slot.focal_y ?? 50) }).eq('slot_type', slot.slot_type);
+    setState((current) => ({ ...current, saving: '', error: error ? (error.message || 'The slide could not be saved.') : '', message: error ? '' : `${TOURISM_SLIDE_SLOTS.find((item) => item.key === slot.slot_type)?.label} slide saved.` }));
+    if (!error) await load();
+  }
+
+  async function clearSlot(slot) {
+    const cleared = { ...slot, post_id: null, enabled: false, eyebrow: '', description: '', focal_x: 50, focal_y: 50 };
+    changeSlot(slot.slot_type, cleared);
+    await saveSlot(cleared);
+  }
+
+  if (role !== 'super_admin') return <AdminNotice>Homepage slideshow changes are limited to Super Admin. You can continue managing Editorial content from the Content Library.</AdminNotice>;
+  if (state.loading) return <LoadingState label="Loading homepage slideshow" />;
+  if (!state.slides.length) return <AdminNotice>The slideshow table is not available yet. Apply the Explore Aklan homepage migration first.</AdminNotice>;
+
+  return <div className="grid gap-5">
+    <AdminSurface><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Homepage Slideshow</p><h2 className="mt-2 text-xl font-semibold">Five story slots</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">Choose up to one published story for each type. Disabled, missing, unpublished, archived, deleted, or imageless stories are skipped automatically on the public homepage.</p>{state.error && <AdminNotice className="mt-4">{state.error}</AdminNotice>}{state.message && <AdminNotice tone="success" className="mt-4">{state.message}</AdminNotice>}</AdminSurface>
+    {TOURISM_SLIDE_SLOTS.map((meta) => {
+      const slot = state.slides.find((item) => item.slot_type === meta.key) || { slot_type: meta.key, sort_order: TOURISM_SLIDE_SLOTS.indexOf(meta), enabled: false, post_id: '', eyebrow: '', description: '', focal_x: 50, focal_y: 50 };
+      const choices = state.posts.filter((post) => post.content_type === meta.key && post.cover_image_url);
+      const selected = choices.find((post) => post.id === slot.post_id) || null;
+      return <AdminSurface key={meta.key} className="grid gap-5 lg:grid-cols-[minmax(0,16rem)_1fr]">
+        <div>{selected?.cover_image_url ? <img src={selected.cover_image_url} alt="" loading="lazy" className="aspect-[16/10] w-full rounded-lg object-cover" style={{ objectPosition: `${slot.focal_x}% ${slot.focal_y}%` }} /> : <div className="grid aspect-[16/10] place-items-center rounded-lg border border-dashed border-white/[0.14] bg-white/[0.02] text-sm text-zinc-600">No story selected</div>}<p className="mt-3 text-sm font-semibold text-white">{meta.label}</p><p className="mt-1 text-xs text-zinc-500">Position {Number(slot.sort_order) + 1}</p></div>
+        <div className="grid gap-4">
+          <label className="grid gap-2 text-sm text-zinc-300"><span>Published story</span><select value={slot.post_id || ''} onChange={(event) => changeSlot(meta.key, { post_id: event.target.value, enabled: event.target.value ? slot.enabled : false })} className="h-11 w-full rounded-md border border-white/[0.12] bg-zinc-950 px-3 text-sm focus:border-amber-200/40 focus:outline-none focus:ring-2 focus:ring-amber-200/30"><option value="">None</option>{choices.map((post) => <option key={post.id} value={post.id}>{post.title}</option>)}</select></label>
+          <div className="grid gap-4 sm:grid-cols-2"><AdminCheckbox label="Enabled" checked={Boolean(slot.enabled)} onChange={(enabled) => changeSlot(meta.key, { enabled })} disabled={!slot.post_id} /><label className="grid gap-2 text-sm text-zinc-300"><span>Display order</span><select value={slot.sort_order} onChange={(event) => changeSlot(meta.key, { sort_order: Number(event.target.value) })} className="h-11 rounded-md border border-white/[0.12] bg-zinc-950 px-3">{TOURISM_SLIDE_SLOTS.map((_, index) => <option key={index} value={index}>{index + 1}</option>)}</select></label></div>
+          <AdminInput label="Eyebrow (optional)" value={slot.eyebrow || ''} onChange={(eyebrow) => changeSlot(meta.key, { eyebrow })} />
+          <label className="grid gap-2 text-sm text-zinc-300"><span>Short description (optional)</span><textarea value={slot.description || ''} maxLength={240} rows={3} onChange={(event) => changeSlot(meta.key, { description: event.target.value })} className="rounded-md border border-white/[0.12] bg-zinc-950 px-3 py-2 focus:border-amber-200/40 focus:outline-none focus:ring-2 focus:ring-amber-200/30" /></label>
+          <div className="grid gap-4 sm:grid-cols-2"><RangeField label="Horizontal focal point" value={slot.focal_x ?? 50} onChange={(focal_x) => changeSlot(meta.key, { focal_x })} /><RangeField label="Vertical focal point" value={slot.focal_y ?? 50} onChange={(focal_y) => changeSlot(meta.key, { focal_y })} /></div>
+          <div className="flex flex-wrap gap-2"><AdminButton onClick={() => saveSlot(slot)} disabled={state.saving === meta.key} variant="primary"><Save size={15} />{state.saving === meta.key ? 'Saving…' : 'Save'}</AdminButton>{selected && <AdminButton to={editorialPublicPath(selected)} target="_blank" rel="noreferrer noopener" variant="secondary"><ExternalLink size={15} />Preview</AdminButton>}<AdminButton onClick={() => clearSlot(slot)} disabled={!slot.post_id || state.saving === meta.key} variant="ghost"><Trash2 size={15} />Clear</AdminButton></div>
+        </div>
+      </AdminSurface>;
+    })}
+  </div>;
+}
+
+function RangeField({ label, value, onChange }) {
+  return <label className="grid gap-2 text-sm text-zinc-300"><span>{label}: {value}%</span><input type="range" min="0" max="100" step="1" value={value} onChange={(event) => onChange(Number(event.target.value))} className="h-11 w-full accent-amber-300" /></label>;
+}
+
+function LegacyHomepageManager() {
   const { user } = useAdminAccess();
   const [state, setState] = useState({ loading: true, rows: [], posts: [], heading: '', error: '', message: '' });
   async function load() {

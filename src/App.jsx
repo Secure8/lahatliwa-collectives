@@ -53,10 +53,10 @@ const EditorialStudio = lazy(() => import('./pages/editorial/EditorialStudio'));
 const AdminEditorial = lazy(() => import('./pages/admin/AdminEditorial'));
 
 const routeMetadata = {
-  '/': ['Lahat Liwa Collectives', 'Practical services, published work, credited contributions, and creative profiles across four Liwa branches.'],
+  '/': ['Explore Aklan | Destinations, Events and Local Stories', 'Discover destinations, events, activities, local products, and community stories across Aklan through Lahat Liwa Collectives.'],
   '/about': ['About | Lahat Liwa Collectives', 'Learn how this independently operated platform supports client inquiries, published creative profiles, and clear contributor credit.'],
-  '/projects': ['Projects | Lahat Liwa Collectives', 'Explore complete project records, visible outputs, and credited contributions across visual, digital, social, and technical work.'],
-  '/services': ['Services | Lahat Liwa Collectives', 'Explore focused support across Liwa Studio, Liwa Digital, Liwa Social, and Liwa Tech.'],
+  '/projects': ['Projects | Lahat Liwa Collectives', 'Explore complete project records, visible outputs, and credited contributions across visual, digital, social, and community work.'],
+  '/services': ['Services | Lahat Liwa Collectives', 'Explore focused support across Liwa Studio, Liwa Digital, Liwa Social, and Liwa Explore.'],
   '/creatives': ['Creatives | Lahat Liwa Collectives', 'Discover published creative profiles, skills, portfolio work, and credited project contributions.'],
   '/start-a-project': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
@@ -78,7 +78,7 @@ function SiteDocumentMetadata() {
         : isCreative
           ? [`Creative Profile | ${brand}`, 'View a published creative profile, portfolio work, and credited project contributions.']
           : [brand, content.tagline || routeMetadata['/'][1]]);
-    const title = pathname === '/' ? brand : configuredTitle;
+    const title = configuredTitle;
     applyPublicMetadata({ title, description, pathname, type: isProject || isCreative ? 'article' : 'website' });
   }, [content.displayName, content.tagline, pathname]);
 

@@ -41,12 +41,14 @@ test('published revisions and metadata stay stable while a new draft is edited',
   assert.doesNotMatch(api, /from\('editorial_posts'\)\.update/);
 });
 
-test('tourism homepage is separately flagged and lazy-loaded', () => {
+test('tourism homepage is separately flagged and uses bounded dedicated queries', () => {
   const home = source('src/pages/Home.jsx');
-  const sections = source('src/pages/tourism/TourismHomepageSections.jsx');
-  assert.match(home, /lazy\(\(\) => import\('\.\/tourism\/TourismHomepageSections\.jsx'\)\)/);
-  assert.match(sections, /homepageTourismEnabled/);
-  assert.match(sections, /listTourismHomepageSections/);
+  const api = source('src/features/editorial/editorialApi.js');
+  assert.match(home, /homepageTourismEnabled/);
+  assert.match(home, /listExploreHomepageSlides/);
+  assert.match(home, /<DestinationsFeed/);
+  assert.match(api, /listPublishedDestinations/);
+  assert.match(api, /\.range\(from, from \+ pageSize\)/);
 });
 
 test('writer permissions remain separate from review and publishing', () => {

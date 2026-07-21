@@ -1,8 +1,9 @@
 import { canonicalServiceKey, resolveServiceCategory, serviceCategoriesForBranch, serviceKey } from './serviceCatalog.js';
+import { contextualInquiryUrl, defaultTourismInquiryCategory, normalizeInquiryContext } from './inquiryContext.js';
 
 export const SERVICE_BRANCHES = [
   { key: 'studio', label: 'Liwa Studio', action: 'Request Studio Services', description: 'Tell us about the shoot, coverage, production, or editing request. Share the subject or event, visual style, schedule, and required photos or videos so the requirements can be reviewed clearly.' },
-  { key: 'tech', label: 'Liwa Tech', action: 'Request Technical Support', description: 'Describe the device, software, setup, or technical issue that needs attention. Include the symptoms, timing, and preferred support arrangement so a technician or technical specialist can review it.' },
+  { key: 'tech', label: 'Liwa Explore', action: 'Ask Explore Aklan', description: 'Tourism information, destination storytelling, local coordination, and visitor support for exploring Aklan. This is independent guidance, not an official tourism, booking, transport, or emergency service.' },
   { key: 'digital', label: 'Liwa Digital', action: 'Start a Digital Request', description: 'Tell us about the website, application, prototype, system, automation, or integration you want to build or improve so a developer or digital specialist can review the requirements.' },
   { key: 'social', label: 'Liwa Social', action: 'Start a Marketing Request', description: 'Tell us about the brand, page, audience, content plan, or campaign that needs support so a social media or marketing specialist can review your goals.' },
 ];
@@ -225,6 +226,47 @@ export const BRANCH_INQUIRY_COPY = {
   },
 };
 
+// The stable database key remains `tech` so historical records and constraints keep working.
+// Public copy now presents that branch as Liwa Explore.
+BRANCH_INQUIRY_COPY.tech = {
+  ...BRANCH_INQUIRY_COPY.tech,
+  pageEyebrow: 'Liwa Explore inquiry',
+  pageTitle: 'Ask about exploring Aklan.',
+  pageDescription: 'Choose the closest tourism topic, then share the destination, event, activity, local product, correction, or visitor question you need help with.',
+  serviceSelectionHeading: 'What would you like to ask about?',
+  serviceSelectionDescription: 'Independent tourism information and visitor routing for Aklan.',
+  serviceHelper: 'Choose the closest topic. Lahat Liwa is not an official tourism office, travel agency, booking authority, transportation provider, or emergency service.',
+  submitLabel: 'Send Explore inquiry',
+  steps: ['Tourism topic', 'Routing preference', 'Tell us your question', 'Contact details', 'Review inquiry'],
+  summaryLabel: 'Question summary',
+  summaryHelper: 'Briefly describe the destination, event, activity, local product, or concern.',
+  summaryPlaceholder: 'Question about visiting a destination in Aklan',
+  summaryError: 'Please add a short question summary.',
+  detailsLabel: 'What would you like to know?',
+  detailsHelper: 'Include the place or story involved, timing, what you have already checked, and the information or correction you need.',
+  detailsPlaceholder: 'Tell us what you would like to know about exploring Aklan…',
+  detailsError: 'Please describe your question in at least 20 characters.',
+  examples: [],
+  recipientLabel: 'Routing preference',
+  recipientLegend: 'Where should this inquiry be reviewed?',
+  recipientHelper: 'Continue with the general Explore Aklan team unless a relevant published contributor is available. Choosing a contributor is only a preference and does not guarantee availability or assignment.',
+  teamOption: 'General Explore inquiry',
+  teamOptionDetail: 'Send this question for Explore Aklan review without choosing a specific person.',
+  recipientError: 'Choose an available contributor or continue with a general Explore inquiry.',
+  scheduleLabel: 'When do you need this information?',
+  schedulePlaceholder: 'Travel date, event date, or preferred response timing',
+  serviceModeLabel: 'Response format (optional)',
+  serviceModes: ['', 'Email response', 'Phone or message', 'To be discussed'],
+  locationLabel: 'Related location (optional)',
+  locationPlaceholder: 'Municipality, destination, or area in Aklan',
+  reviewFields: [],
+  reviewLabel: 'Explore Aklan question',
+  matchingCopy: 'Lahat Liwa will review the public information available and route the question where practical. This does not confirm official advice, reservations, transport, accommodation, tours, or emergency assistance.',
+  confirmationTitle: 'Your Explore Aklan inquiry has been received.',
+  confirmationDescription: 'Keep your reference number nearby. The inquiry will be reviewed as an independent public-information request.',
+  directoryLabel: 'Explore published stories',
+};
+
 export function inquiryCopy(branch = '') {
   return BRANCH_INQUIRY_COPY[branch] || BRANCH_INQUIRY_COPY.general;
 }
@@ -238,7 +280,7 @@ export { canonicalServiceKey, serviceCategoriesForBranch };
 export function branchKeyFromRecord(record = {}) {
   const source = `${record.slug || ''} ${record.name || ''}`.toLowerCase();
   if (source.includes('studio')) return 'studio';
-  if (source.includes('tech')) return 'tech';
+  if (source.includes('tech') || source.includes('explore')) return 'tech';
   if (source.includes('digital') || source.includes('web')) return 'digital';
   if (source.includes('social')) return 'social';
   return '';
@@ -268,9 +310,9 @@ export function resolveInquiryEntry(context = {}, availableBranchKeys = null, el
   return { branch, serviceKey: service.key, creativeSlug: creative.slug, step: INQUIRY_DETAILS_STEP, status: 'ready-specialist' };
 }
 
-export function inquiryNavigationState({ branch = '', service = '', creative = '' } = {}) {
+export function inquiryNavigationState({ branch = '', service = '', creative = '', path = '', context = null } = {}) {
   const entry = resolveInquiryEntry({ branch, service });
-  return { inquirySelection: { branch: entry.branch, service: entry.serviceKey, ...(creative ? { creative: String(creative).trim().toLowerCase() } : {}) } };
+  return { inquirySelection: { branch: entry.branch, service: entry.serviceKey, path, context: normalizeInquiryContext(context), ...(creative ? { creative: String(creative).trim().toLowerCase() } : {}) } };
 }
 
 const REPLACED_BRANCH_DESCRIPTION = /(start a guided .+ request|flexible photo, video, editing, and visual-production support|practical technical support for devices, software, setup, troubleshooting|websites, applications, systems, interfaces, and other digital solutions|flexible social-media support for planning, content, account management|planning and shaping social content|photo and video coverage|first-version mindset|simple technical help|everyday computer support)/i;
@@ -281,13 +323,8 @@ export function publicBranchDescription(key, configuredDescription = '') {
   return !configured || REPLACED_BRANCH_DESCRIPTION.test(configured) ? fallback : configured;
 }
 
-export function inquiryUrl({ branch = '', service = '', creative = '' } = {}) {
-  const params = new URLSearchParams();
-  if (branchMeta(branch)) params.set('branch', branch);
-  if (service) params.set('service', canonicalServiceKey(branch, service));
-  if (creative) params.set('creative', String(creative).trim().toLowerCase());
-  const query = params.toString();
-  return `/inquiry${query ? `?${query}` : ''}`;
+export function inquiryUrl({ branch = '', service = '', creative = '', path = '', context = null } = {}) {
+  return contextualInquiryUrl({ path, branch: branchMeta(branch) ? branch : '', service: service ? canonicalServiceKey(branch, service) : '', creative: String(creative || '').trim().toLowerCase(), context });
 }
 
 export function servicesPath(branch = '') {
@@ -313,7 +350,10 @@ export function emptyInquiryDraft(context = {}) {
     consent: false,
     honeypot: '',
     branchDetails: {},
-    editorialContext: context.editorialContext || null,
+    inquiryKind: context.inquiryKind || (context.editorialContext ? 'tourism' : 'service'),
+    inquiryCategory: context.inquiryCategory || defaultTourismInquiryCategory(context.editorialContext?.type),
+    editorialContext: normalizeInquiryContext(context.editorialContext),
+    projectContext: normalizeInquiryContext(context.projectContext)?.type === 'project' ? normalizeInquiryContext(context.projectContext) : null,
     idempotencyKey: globalThis.crypto?.randomUUID?.() || '',
   };
 }
@@ -323,7 +363,10 @@ export function mergeInquiryContext(draft, context = {}) {
   if (branchMeta(context.branch)) next.branch = context.branch;
   if (context.service) next.serviceKey = canonicalServiceKey(next.branch, context.service);
   if (context.creative) next.creativeSlug = String(context.creative).trim().toLowerCase();
-  if (context.editorialContext) next.editorialContext = context.editorialContext;
+  if (context.inquiryKind) next.inquiryKind = context.inquiryKind;
+  if (context.inquiryCategory) next.inquiryCategory = context.inquiryCategory;
+  if (context.editorialContext) next.editorialContext = normalizeInquiryContext(context.editorialContext);
+  if (context.projectContext) next.projectContext = normalizeInquiryContext(context.projectContext);
   return next;
 }
 
@@ -362,6 +405,7 @@ export function validateInquiryStep(step, draft, availableServices = [], eligibl
   }
   if (step === 1 && draft.creativeSlug && !eligibleCreatives.some((creative) => creative.slug === draft.creativeSlug)) errors.creativeSlug = copy.recipientError;
   if (step === 2) {
+    if (draft.inquiryKind === 'tourism' && !draft.inquiryCategory) errors.inquiryCategory = 'Choose the tourism topic that best matches your question.';
     if (String(draft.summary || '').trim().length < 5) errors.summary = copy.summaryError;
     if (String(draft.details || '').trim().length < 20) errors.details = copy.detailsError;
   }
@@ -380,7 +424,10 @@ export function safeInquiryDraft(value) {
   if (!branchMeta(next.branch)) next.branch = '';
   next.serviceKey = canonicalServiceKey(next.branch, next.serviceKey);
   next.creativeSlug = String(next.creativeSlug || '').trim().toLowerCase();
-  if (!next.editorialContext || typeof next.editorialContext !== 'object' || Array.isArray(next.editorialContext)) next.editorialContext = null;
+  next.inquiryKind = ['service', 'tourism', 'general'].includes(next.inquiryKind) ? next.inquiryKind : 'service';
+  next.inquiryCategory = String(next.inquiryCategory || '').trim().toLowerCase();
+  next.editorialContext = normalizeInquiryContext(next.editorialContext);
+  next.projectContext = normalizeInquiryContext(next.projectContext)?.type === 'project' ? normalizeInquiryContext(next.projectContext) : null;
   return next;
 }
 

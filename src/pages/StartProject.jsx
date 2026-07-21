@@ -10,6 +10,7 @@ import { branchKeyFromRecord, branchMeta, buildInquirySubmissionRequest, changeI
 import { supabase } from '../lib/supabaseClient';
 import useStepScroll, { motionSafeScrollBehavior } from '../lib/useStepScroll';
 import useProgressiveNavigation from '../lib/useProgressiveNavigation';
+import { defaultTourismInquiryCategory, INQUIRY_PATHS, inquiryContextFromSearchParams, TOURISM_INQUIRY_CATEGORIES } from '../lib/inquiryContext.js';
 
 const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
 const contactMethods = ['Email', 'Phone', 'Facebook / Messenger', 'WhatsApp', 'Other'];
@@ -45,18 +46,23 @@ export default function StartProject() {
   const { content } = usePublicContent([]);
   const queryContext = useMemo(() => {
     const navigationSelection = location.state?.inquirySelection || {};
+    const relatedContext = inquiryContextFromSearchParams(searchParams) || navigationSelection.context || null;
+    const editorialContext = relatedContext?.type === 'project' ? null : relatedContext;
+    const projectContext = relatedContext?.type === 'project' ? relatedContext : null;
+    const path = searchParams.get('path') || navigationSelection.path || (editorialContext ? 'tourism' : projectContext ? 'service' : '');
     return {
-      branch: searchParams.get('branch') || navigationSelection.branch || '',
-      service: searchParams.get('service') || navigationSelection.service || '',
-      creative: searchParams.get('creative') || navigationSelection.creative || '',
-      editorialContext: searchParams.get('contextType') && searchParams.get('contextSlug') ? {
-        type: searchParams.get('contextType'),
-        slug: searchParams.get('contextSlug'),
-        title: searchParams.get('contextTitle') || '',
-      } : null,
+      path,
+      branch: searchParams.get('branch') || navigationSelection.branch || projectContext?.branch || (path === 'tourism' ? 'tech' : path === 'general' ? 'general' : ''),
+      service: searchParams.get('service') || navigationSelection.service || projectContext?.service || (path === 'tourism' ? defaultTourismInquiryCategory(editorialContext?.type) : path === 'general' ? 'general-inquiry' : ''),
+      creative: searchParams.get('creative') || navigationSelection.creative || projectContext?.creative || '',
+      inquiryKind: path || 'service',
+      inquiryCategory: searchParams.get('inquiryCategory') || editorialContext?.inquiryCategory || '',
+      editorialContext,
+      projectContext,
     };
   }, [location.state, searchParams]);
   const [draft, setDraft] = useState(() => readDraft(queryContext));
+  const [inquiryPath, setInquiryPath] = useState(queryContext.path || '');
   const [step, setStep] = useState(0);
   const [branches, setBranches] = useState([]);
   const [creatives, setCreatives] = useState([]);
@@ -93,12 +99,13 @@ export default function StartProject() {
 
   useEffect(() => {
     if (loadingChoices) return;
+    setInquiryPath(queryContext.path || '');
     const requestedBranch = queryContext.branch;
     const requestedService = queryContext.service;
     const entry = resolveInquiryEntry(queryContext, branches.map(branchKeyFromRecord).filter(Boolean), creatives);
     let contextNotice = '';
     setDraft((current) => {
-      const next = { ...current };
+      const next = mergeInquiryContext(current, queryContext);
       if (next.branch && next.branch !== 'general' && !branches.some((item) => branchKeyFromRecord(item) === next.branch)) {
         next.branch = '';
         next.serviceKey = '';
@@ -123,7 +130,8 @@ export default function StartProject() {
       }
       return next;
     });
-    if (entry.status === 'specialist' || entry.status === 'invalid-specialist' || entry.status === 'ready-specialist' || entry.status === 'ready-team') moveToStep(entry.step);
+    if ((queryContext.path === 'tourism' || queryContext.path === 'general') && entry.serviceKey) moveToStep(INQUIRY_SPECIALIST_STEP + 1);
+    else if (entry.status === 'specialist' || entry.status === 'invalid-specialist' || entry.status === 'ready-specialist' || entry.status === 'ready-team') moveToStep(entry.step);
     else setStep(INQUIRY_SELECTION_STEP);
     setNotice(contextNotice);
   }, [branches, creatives, loadingChoices, queryContext]);
@@ -228,6 +236,34 @@ export default function StartProject() {
     navigate({ pathname: location.pathname, search: nextParams.toString() ? `?${nextParams}` : '' }, { replace: true, state: nextState });
   }
 
+  function chooseInquiryPath(path) {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('path', path);
+    setInquiryPath(path);
+    setErrors({}); setNotice(''); setSubmitError('');
+    if (path === 'service') {
+      setDraft((current) => ({ ...changeInquiryBranchSelection(current, ''), inquiryKind: 'service', inquiryCategory: '', editorialContext: null }));
+      moveToStep(INQUIRY_SELECTION_STEP);
+    } else {
+      const tourism = path === 'tourism';
+      const branch = tourism ? 'tech' : 'general';
+      const serviceKey = tourism ? defaultTourismInquiryCategory(draft.editorialContext?.type) : 'general-inquiry';
+      setDraft((current) => ({ ...changeInquiryBranchSelection(current, branch), branch, serviceKey, inquiryKind: path, inquiryCategory: tourism ? (current.inquiryCategory || serviceKey) : '', editorialContext: tourism ? current.editorialContext : null }));
+      nextParams.set('branch', branch);
+      nextParams.set('service', serviceKey);
+      moveToStep(INQUIRY_SPECIALIST_STEP + 1);
+    }
+    navigate({ pathname: location.pathname, search: `?${nextParams}` }, { replace: true, state: location.state });
+  }
+
+  function changeInquiryPath() {
+    const nextParams = new URLSearchParams(searchParams);
+    for (const key of ['path', 'branch', 'service', 'creative']) nextParams.delete(key);
+    setInquiryPath('');
+    moveToStep(INQUIRY_SELECTION_STEP);
+    navigate({ pathname: location.pathname, search: nextParams.toString() ? `?${nextParams}` : '' }, { replace: true, state: {} });
+  }
+
   function goNext() {
     const nextErrors = validateInquiryStep(step, draft, availableServices, creatives);
     if (Object.keys(nextErrors).length) {
@@ -273,10 +309,12 @@ export default function StartProject() {
     }
   }
 
+  if (!inquiryPath) return <InquiryPathLanding content={content} onChoose={chooseInquiryPath} />;
+
   return <div className="public-inquiry-flow page-shell py-16 sm:py-20" style={{ '--project-accent': content.accentColor, '--project-secondary': content.secondaryTextColor }}>
     <PublicPageHeader eyebrow={copy.pageEyebrow} title={step === 0 ? copy.serviceSelectionHeading : copy.pageTitle} description={step === 0 ? copy.serviceSelectionDescription : copy.pageDescription} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} />
 
-    {step > INQUIRY_SELECTION_STEP && selectedBranch && selectedService && <SelectionSummary branch={selectedBranch.label} service={selectedService.name} specialist={selectedCreative?.name || (step > INQUIRY_SPECIALIST_STEP ? copy.teamOption : '')} onChange={changeSelection} onChangeSpecialist={step > INQUIRY_SPECIALIST_STEP ? changeSpecialist : null} />}
+    {step > INQUIRY_SELECTION_STEP && selectedBranch && selectedService && <SelectionSummary branch={selectedBranch.label} service={selectedService.name} specialist={selectedCreative?.name || (step > INQUIRY_SPECIALIST_STEP ? copy.teamOption : '')} onChange={inquiryPath === 'service' ? changeSelection : changeInquiryPath} onChangeSpecialist={inquiryPath === 'service' && step > INQUIRY_SPECIALIST_STEP ? changeSpecialist : null} />}
 
     <section ref={inquiryContainerRef} className="inquiry-step-shell scroll-mt-20" aria-label="Active inquiry step">
     <StepProgress current={step} steps={steps} />
@@ -288,7 +326,9 @@ export default function StartProject() {
 
         {step === 0 && <ServiceStep draft={draft} branches={branches} availableServices={availableServices} selectBranch={selectBranch} selectService={selectService} serviceCategoryRef={serviceCategoryRef} loading={loadingChoices} errors={errors} copy={copy} />}
         {step === 1 && <RecipientStep creatives={creatives} selected={draft.creativeSlug} selectRecipient={selectRecipient} loading={loadingChoices} error={errors.creativeSlug} copy={copy} />}
-        {step === 2 && <DetailsStep draft={draft} update={update} updateBranchDetails={updateBranchDetails} errors={errors} copy={copy} />}
+        {step === 2 && inquiryPath === 'tourism' && <TourismInquiryContext draft={draft} update={update} error={errors.inquiryCategory} />}
+        {step === 2 && draft.projectContext && <ProjectInquiryContext context={draft.projectContext} />}
+        {step === 2 && <DetailsStep draft={draft} update={update} updateBranchDetails={updateBranchDetails} errors={errors} copy={copy} inquiryPath={inquiryPath} />}
         {step === 3 && <ContactStep draft={draft} update={update} errors={errors} copy={copy} />}
         {step === 4 && <ReviewStep draft={draft} branch={selectedBranch} service={selectedService} creative={selectedCreative} copy={copy} />}
 
@@ -304,6 +344,15 @@ export default function StartProject() {
     </div>
     </section>
   </div>;
+}
+
+function InquiryPathLanding({ content, onChoose }) {
+  const choices = [
+    [INQUIRY_PATHS.service, 'Photography, video, websites, applications, social media, and other collective services.'],
+    [INQUIRY_PATHS.tourism, 'Destinations, events, activities, local products, corrections, and questions about exploring Aklan.'],
+    [INQUIRY_PATHS.general, 'Partnerships, platform questions, public concerns, and anything that does not fit the other paths.'],
+  ];
+  return <div className="page-shell py-16 sm:py-20"><PublicPageHeader eyebrow="Contact Lahat Liwa" title="How can we help?" description="Choose one path first. We’ll show only the questions that apply to your request." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} /><div className="mt-10 grid gap-4 lg:grid-cols-3">{choices.map(([choice, detail]) => <button key={choice.key} type="button" onClick={() => onChoose(choice.key)} className="group min-h-52 border border-white/[0.1] bg-white/[0.02] p-6 text-left transition hover:border-orange-300/45 hover:bg-orange-300/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><p className="text-lg font-semibold text-[var(--site-primary-text)]">{choice.label}</p><p className="mt-4 text-sm leading-6 text-[var(--site-secondary-text)]">{detail}</p><span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-accent-text)]">Continue <ArrowRight size={16} /></span></button>)}</div><div className="mt-8 flex items-start gap-3 border-y border-white/[0.1] py-5 text-sm leading-6 text-[var(--site-secondary-text)]"><ShieldAlert size={18} className="mt-0.5 shrink-0 text-orange-200" /><p>Lahat Liwa is an independent creative collective and information platform. It is not an official tourism office, emergency service, travel agency, booking authority, transportation provider, or tour operator.</p></div></div>;
 }
 
 function servicesForBranch(branch, rows) {
@@ -335,12 +384,21 @@ function RecipientStep({ creatives, selected, selectRecipient, loading, error, c
   return <div data-flow-step="specialist"><ChoiceGroup fieldKey="creativeSlug" legend={copy.recipientLegend} error={error}><p className="mt-2 text-sm leading-6 text-zinc-500">{copy.recipientHelper}</p><div className="mt-5 grid gap-3 sm:grid-cols-2"><ChoiceButton selected={!selected} onClick={() => selectRecipient('')} title={copy.teamOption} detail={copy.teamOptionDetail} icon={<UserRound size={17} />} />{!loading && creatives.map((creative) => <ChoiceButton key={creative.id} selected={selected === creative.slug} onClick={() => selectRecipient(creative.slug)} title={creative.name} detail={copy.recipientLabel} image={creative.profile_image_url} />)}</div></ChoiceGroup></div>;
 }
 
-function DetailsStep({ draft, update, updateBranchDetails, errors, copy }) {
+function DetailsStep({ draft, update, updateBranchDetails, errors, copy, inquiryPath }) {
   return <div className="grid gap-6"><Field fieldKey="summary" label={copy.summaryLabel} hint={copy.summaryHelper} value={draft.summary} onChange={(value) => update('summary', value)} error={errors.summary} maxLength={160} placeholder={copy.summaryPlaceholder} /><TextArea fieldKey="details" label={copy.detailsLabel} value={draft.details} onChange={(value) => update('details', value)} error={errors.details} maxLength={5000} placeholder={copy.detailsPlaceholder} hint={copy.detailsHelper} />{copy.examples.length > 0 && <div className="border-l border-orange-300/30 pl-4 text-xs leading-6 text-zinc-500"><p className="uppercase tracking-[0.14em] text-zinc-600">Examples</p>{copy.examples.map((example) => <p key={example} className="mt-1">“{example}”</p>)}</div>}<BranchFields branch={draft.branch} details={draft.branchDetails} update={updateBranchDetails} /><label className="sr-only" aria-hidden="true">Company website<input tabIndex="-1" autoComplete="off" value={draft.honeypot} onChange={(event) => update('honeypot', event.target.value)} /></label></div>;
 }
 
+function TourismInquiryContext({ draft, update, error }) {
+  const context = draft.editorialContext;
+  return <div className="mb-6 grid gap-5"><label data-inquiry-field="inquiryCategory" className="grid gap-2 text-sm text-zinc-300"><span>Inquiry topic</span><select value={draft.inquiryCategory || ''} onChange={(event) => update('inquiryCategory', event.target.value)} aria-invalid={Boolean(error)} className="dark-select min-h-12 w-full rounded-sm border border-white/[0.11] bg-black/20 px-3.5 text-white outline-none focus:border-orange-300/60"><option value="">Choose a topic</option>{TOURISM_INQUIRY_CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><FieldError>{error}</FieldError></label>{context && <div className="border-l-2 border-orange-300/60 bg-orange-300/[0.04] px-4 py-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-200">You’re asking about</p><p className="mt-2 font-medium text-white">{context.title || context.slug}</p>{context.municipality && <p className="mt-1 text-sm text-zinc-400">{context.municipality}</p>}<p className="mt-3 text-xs leading-5 text-zinc-500">This published page will be verified again when your inquiry is submitted.</p></div>}<div className="flex items-start gap-3 border-y border-white/[0.08] py-4 text-sm leading-6 text-zinc-400"><ShieldAlert size={17} className="mt-0.5 shrink-0 text-orange-200" /><p>For emergencies, contact the appropriate local authority or emergency service. Lahat Liwa cannot provide reservations, transport, accommodation, tours, or official government information.</p></div></div>;
+}
+
+function ProjectInquiryContext({ context }) {
+  return <div className="mb-6 border-l-2 border-orange-300/60 bg-orange-300/[0.04] px-4 py-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-200">You’re asking about this project</p><p className="mt-2 font-medium text-white">{context.title || context.slug}</p><p className="mt-3 text-xs leading-5 text-zinc-500">The published project and its contributor credits will be verified again when your inquiry is submitted.</p></div>;
+}
+
 function BranchFields({ branch, details, update }) {
-  if (branch === 'tech') return <div className="grid gap-5"><div className="flex items-start gap-3 border-y border-red-300/20 bg-red-300/[0.04] px-3 py-3 text-sm leading-6 text-red-100"><ShieldAlert size={18} className="mt-0.5 shrink-0" /><span>Never submit passwords, one-time codes, banking details, confidential files, or access credentials. For on-site support, provide only a general location until arrangements are reviewed and confirmed.</span></div><div className="grid gap-5 sm:grid-cols-2"><Field label="Device type and operating system (optional)" value={details.device || ''} onChange={(value) => update('device', value)} placeholder="Windows laptop, macOS desktop, office network…" /><Field label="Symptoms, error message, or software involved (optional)" value={details.issueCategory || ''} onChange={(value) => update('issueCategory', value)} placeholder="Slow startup, error 0x…, software installation…" /><Select label="Preferred technical support (optional)" value={details.supportMode || ''} onChange={(value) => update('supportMode', value)} options={['', 'Remote support', 'Consultation', 'Drop-off', 'On-site support']} className="sm:col-span-2" /></div></div>;
+  if (branch === 'tech') return null;
   if (branch === 'studio') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Shoot, event, or editing request (optional)" value={details.eventType || ''} onChange={(value) => update('eventType', value)} placeholder="Event coverage, portrait shoot, raw-footage editing…" /><Field label="Shoot date and coverage hours (optional)" value={details.duration || ''} onChange={(value) => update('duration', value)} placeholder="June 20 · 4 hours of coverage" /><Field label="Required visual outputs and quantity (optional)" value={details.deliverables || ''} onChange={(value) => update('deliverables', value)} placeholder="80 edited photos, raw files, 2-minute highlight video, SDE…" className="sm:col-span-2" /><Field label="Visual style, references, or existing files (optional)" value={details.existingAssets || ''} onChange={(value) => update('existingAssets', value)} placeholder="Documentary style, reference links, existing raw photos or footage…" className="sm:col-span-2" /></div>;
   if (branch === 'digital') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Product or system goal (optional)" value={details.projectGoal || ''} onChange={(value) => update('projectGoal', value)} placeholder="Launch a café website, automate reports, improve a dashboard…" /><Field label="Users or audience (optional)" value={details.targetUsers || ''} onChange={(value) => update('targetUsers', value)} placeholder="Customers, staff, administrators, members…" /><Field label="Required features and integrations (optional)" value={details.features || ''} onChange={(value) => update('features', value)} placeholder="User accounts, CMS, payments, dashboard, API integration…" className="sm:col-span-2" /><Field label="Current platform, website, hosting, or domain (optional)" value={details.existingSystem || ''} onChange={(value) => update('existingSystem', value)} placeholder="Existing URL, platform, prototype, hosting, or current system…" className="sm:col-span-2" /><CheckField label="Request a development consultation" checked={Boolean(details.meetingRequested)} onChange={(value) => update('meetingRequested', value)} /></div>;
   if (branch === 'social') return <div className="grid gap-5 sm:grid-cols-2"><Field label="Platforms or pages (optional)" value={details.platforms || ''} onChange={(value) => update('platforms', value)} placeholder="Facebook, Instagram, TikTok…" /><Field label="Audience and campaign goal (optional)" value={details.campaignGoal || ''} onChange={(value) => update('campaignGoal', value)} placeholder="Reach local customers, launch a product, improve engagement…" /><Field label="Content and posting frequency (optional)" value={details.postingNeeds || ''} onChange={(value) => update('postingNeeds', value)} placeholder="Content calendar, 3 posts per week, captions, page management…" /><Field label="Available assets and brand direction (optional)" value={details.brandAssets || ''} onChange={(value) => update('brandAssets', value)} placeholder="Logo, photos, brand voice, existing promotional materials…" /><Field label="Campaign dates or preferred start (optional)" value={details.campaignDates || ''} onChange={(value) => update('campaignDates', value)} placeholder="Launch date, campaign period, or monthly arrangement…" /><Field label="Strategy, management, or consultation (optional)" value={details.arrangement || ''} onChange={(value) => update('arrangement', value)} placeholder="Full page management, campaign support, analytics review…" /></div>;

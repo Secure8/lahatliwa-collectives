@@ -25,8 +25,9 @@ export function ThemeProvider({ children }) {
     setTheme({ preference, resolvedTheme });
   }, []);
 
-  const setPreference = useCallback((nextPreference) => {
-    transitionControllerRef.current?.begin();
+  const setPreference = useCallback((nextPreference, { transition = true } = {}) => {
+    if (transition) transitionControllerRef.current?.begin();
+    else transitionControllerRef.current?.finish();
     applyPreference(nextPreference);
   }, [applyPreference]);
 

@@ -11,7 +11,6 @@ import BrandLogo from './BrandLogo';
 import BrandWordmark from './BrandWordmark';
 import AppearanceMenuAction from './AppearanceMenuAction';
 import MobileTopNavigation from './MobileTopNavigation';
-import { useEditorialFlags } from '../features/editorial/editorialFlags';
 
 const links = [
   ['Home', '/'],
@@ -33,9 +32,8 @@ export default function Navbar() {
   const [headerFocused, setHeaderFocused] = useState(false);
   const location = useLocation();
   const { content } = usePublicContent([]);
-  const { flags: editorialFlags } = useEditorialFlags();
-  const visibleLinks = editorialFlags.publicPortalEnabled ? [...links.slice(0, 1), ['Explore Aklan', '/explore'], ...links.slice(1)] : links;
-  const visibleSecondaryLinks = editorialFlags.publicPortalEnabled ? [['Explore Aklan', '/explore'], ...mobileSecondaryLinks] : mobileSecondaryLinks;
+  const visibleLinks = links;
+  const visibleSecondaryLinks = mobileSecondaryLinks;
   const mobileMode = publicAppBarMode(location.pathname);
   const secondaryDestination = visibleSecondaryLinks.find(([, href]) => location.pathname === href || location.pathname.startsWith(`${href}/`));
   const secondaryRouteIsActive = Boolean(secondaryDestination);

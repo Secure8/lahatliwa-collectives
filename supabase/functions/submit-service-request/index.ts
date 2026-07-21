@@ -26,7 +26,14 @@ function publicSiteUrl(value: string) {
 }
 
 function branchLabel(branch: string) {
-  return branch === 'general' ? 'General inquiry' : `Liwa ${branch[0].toUpperCase()}${branch.slice(1)}`;
+  if (branch === 'general') return 'General inquiry';
+  if (branch === 'tech') return 'Liwa Explore';
+  return `Liwa ${branch[0].toUpperCase()}${branch.slice(1)}`;
+}
+
+function editorialPublicPath(type: string, slug: string) {
+  const roots: Record<string, string> = { journal: 'journal', event: 'events', place: 'places', activity: 'activities', local_product: 'local-products' };
+  return roots[type] && slug ? `/${roots[type]}/${encodeURIComponent(slug)}` : '';
 }
 
 function emailHtml(title: string, inquiry: any, siteUrl: string, includeAdminLink = false) {
@@ -305,19 +312,29 @@ Deno.serve(async (req) => {
       message: normalized.details, status: 'new', branch: normalized.branch, service_key: canonicalServiceKey,
       client_email: normalized.clientEmail, client_phone: normalized.clientPhone || null, summary: normalized.summary,
       details: normalized.details, preferred_schedule: normalized.preferredSchedule || null, service_mode: normalized.serviceMode || null,
-      general_location: normalized.generalLocation || null, request_metadata: safeBranchDetails(normalized.branchDetails), source_path: sourcePath || null,
+      general_location: normalized.generalLocation || null, request_metadata: { ...safeBranchDetails(normalized.branchDetails), inquiry_kind: normalized.inquiryKind, ...(normalized.inquiryCategory ? { inquiry_category: normalized.inquiryCategory } : {}) }, source_path: sourcePath || null,
       preferred_creative_id: creative?.id || null, assigned_creative_id: creative?.id || null, idempotency_key: normalized.idempotencyKey, submitter_hash: submitterHash,
       notification_status: 'pending', notification_state: {}, unread: true,
     };
     if (normalized.editorialContext) {
       const [{ data: flags, error: flagError }, { data: editorialPost, error: postError }] = await Promise.all([
         admin.from('editorial_feature_flags').select('module_enabled,public_inquiries_enabled').eq('singleton', true).maybeSingle(),
-        admin.from('editorial_posts').select('id,content_type,slug,title').eq('content_type', normalized.editorialContext.type).eq('slug', normalized.editorialContext.slug).eq('status', 'published').maybeSingle(),
+        admin.from('editorial_posts').select('id,content_type,slug,title,published_revision_id,published_at,archived_at,editorial_municipalities(name)').eq('content_type', normalized.editorialContext.type).eq('slug', normalized.editorialContext.slug).eq('status', 'published').not('published_revision_id', 'is', null).not('published_at', 'is', null).is('archived_at', null).maybeSingle(),
       ]);
       if (flagError || postError) return fail('EDITORIAL_CONTEXT_UNAVAILABLE', 'This page context could not be verified. Start a general inquiry instead.', 503, cors);
       if (!flags?.module_enabled || !flags?.public_inquiries_enabled) return fail('EDITORIAL_INQUIRY_DISABLED', 'Inquiries for tourism pages are not available yet.', 409, cors);
       if (!editorialPost) return fail('EDITORIAL_CONTEXT_INVALID', 'The linked tourism page is no longer available.', 400, cors);
-      payload.request_metadata = { ...payload.request_metadata, editorial_content_id: editorialPost.id, editorial_content_type: editorialPost.content_type, editorial_content_slug: editorialPost.slug, editorial_content_title: editorialPost.title };
+      if (normalized.editorialContext.id && normalized.editorialContext.id !== editorialPost.id) return fail('EDITORIAL_CONTEXT_INVALID', 'The linked tourism page could not be verified.', 400, cors);
+      const verifiedPath = editorialPublicPath(editorialPost.content_type, editorialPost.slug);
+      payload.request_metadata = { ...payload.request_metadata, editorial_content_id: editorialPost.id, editorial_content_type: editorialPost.content_type, editorial_content_slug: editorialPost.slug, editorial_content_title: editorialPost.title, editorial_public_path: verifiedPath, editorial_municipality: editorialPost.editorial_municipalities?.name || '', source_action: normalized.editorialContext.sourceAction || 'ask-about-story' };
+    }
+    if (normalized.projectContext) {
+      const { data: project, error: projectError } = await admin.from('projects').select('id,title,slug,category,status,project_creatives(creative_member_id,role,contribution_role,credit_roles,creative_members(name,slug))').eq('id', normalized.projectContext.id).eq('slug', normalized.projectContext.slug).eq('status', 'published').maybeSingle();
+      if (projectError) return fail('PROJECT_CONTEXT_UNAVAILABLE', 'This project context could not be verified. Start a general inquiry instead.', 503, cors);
+      if (!project) return fail('PROJECT_CONTEXT_INVALID', 'The linked project is no longer publicly available.', 400, cors);
+      const projectBranch = branchKey({ name: project.category });
+      if (projectBranch && normalized.branch !== projectBranch) return fail('PROJECT_CONTEXT_INVALID', 'The linked project branch could not be verified.', 400, cors);
+      payload.request_metadata = { ...payload.request_metadata, project_id: project.id, project_slug: project.slug, project_title: project.title, project_public_path: `/projects/${encodeURIComponent(project.slug)}`, project_branch: projectBranch || normalized.branch, project_contributors: (project.project_creatives || []).slice(0, 24).map((credit: any) => ({ creative_slug: credit.creative_members?.slug || '', creative_name: credit.creative_members?.name || '', roles: Array.isArray(credit.credit_roles) && credit.credit_roles.length ? credit.credit_roles.slice(0, 12) : [credit.role || credit.contribution_role].filter(Boolean) })), source_action: normalized.projectContext.sourceAction || 'project-detail-inquiry' };
     }
     let inquiry;
     let insertError;

@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { branchKey, deliverGeneralNotificationPlan, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, safeEditorialContext, slugify, validateSubmission } from './serviceRequest.js';
+import { branchKey, deliverGeneralNotificationPlan, deliverNotificationPlan, generateReference, notificationOutcome, REFERENCE_PATTERN, safeBranchDetails, safeEditorialContext, safeProjectContext, slugify, validateSubmission } from './serviceRequest.js';
 import { SERVICE_CATALOG, resolveServiceCategory } from '../../../src/lib/serviceCatalog.js';
 
 const BRANCH_SERVICE_KEYS = {
   studio: ['photo', 'video', 'same-day-edit', 'highlights', 'editing', 'other-creative-work'],
-  tech: ['diagnostics', 'setup', 'remote-assistance', 'on-site-support', 'maintenance-and-optimization', 'consultation'],
+  tech: ['destination-information', 'event-or-activity', 'local-product', 'tourism-question', 'correction-or-concern', 'visitor-routing'],
   digital: ['website', 'app', 'design-and-prototype', 'system', 'maintenance-and-improvements', 'consultation'],
   social: ['management', 'content', 'digital-marketing', 'campaign', 'page-setup', 'review-and-consultation'],
 };
@@ -21,12 +21,12 @@ test('server validation accepts a valid request and rejects untrusted values', (
   assert.ok(validateSubmission(validRequest({ consent: false })).errors.length);
   assert.ok(validateSubmission(validRequest({ idempotencyKey: 'guessable' })).errors.length);
   assert.ok(validateSubmission(validRequest({ branch: 'general', serviceKey: '' })).errors.includes('Choose an available service category.'));
-  assert.deepEqual(validateSubmission(validRequest({ branch: 'tech', serviceKey: 'diagnostics', branchDetails: {} })).errors, []);
+  assert.deepEqual(validateSubmission(validRequest({ branch: 'tech', serviceKey: 'destination-information', branchDetails: {} })).errors, []);
 });
 
 test('server resolves balanced and legacy service categories while rejecting unlisted custom values', () => {
   assert.deepEqual(resolveServiceCategory('studio', 'photo-editing'), { key: 'editing', name: 'Photo & Video Editing' });
-  assert.deepEqual(resolveServiceCategory('tech', 'virtual-assistance'), { key: 'remote-assistance', name: 'Software Assistance' });
+  assert.deepEqual(resolveServiceCategory('tech', 'virtual-assistance'), { key: 'visitor-routing', name: 'Visitor Support and Routing' });
   assert.deepEqual(resolveServiceCategory('general', 'unsure'), { key: 'not-sure-yet', name: 'Not Sure Yet' });
   assert.equal(resolveServiceCategory('digital', 'Accessibility Audit', ['Accessibility Audit']), null);
 });
@@ -51,8 +51,8 @@ test('server canonicalizes explicit legacy aliases and old display values', () =
     ['studio', 'Photography', 'photo'],
     ['studio', 'Photo & Video Editing', 'editing'],
     ['studio', 'Other Visual Work', 'other-creative-work'],
-    ['tech', 'Virtual Assistance', 'remote-assistance'],
-    ['tech', 'Other Technical Help', 'maintenance-and-optimization'],
+    ['tech', 'Virtual Assistance', 'visitor-routing'],
+    ['tech', 'Other Technical Help', 'visitor-routing'],
     ['digital', 'Digital Product', 'maintenance-and-improvements'],
     ['digital', 'Other Digital Work', 'consultation'],
     ['social', 'Strategy', 'digital-marketing'],
@@ -223,7 +223,13 @@ test('branch metadata is bounded and strips control characters', () => {
 });
 
 test('editorial inquiry context accepts only known types and safe slugs', () => {
-  assert.deepEqual(safeEditorialContext({ type: 'place', slug: 'demo-place', title: 'Demo place' }), { type: 'place', slug: 'demo-place', title: 'Demo place' });
+  assert.deepEqual(safeEditorialContext({ type: 'place', slug: 'demo-place', title: 'Demo place' }), { type: 'place', slug: 'demo-place', title: 'Demo place', publicUrl: '', municipality: '', inquiryCategory: '', sourceAction: '' });
   assert.equal(safeEditorialContext({ type: 'html', slug: '<script>' }), null);
   assert.equal(safeEditorialContext({ type: 'event', slug: '../private' }), null);
+});
+
+test('project inquiry context requires a UUID and safe public slug', () => {
+  assert.deepEqual(safeProjectContext({ type: 'project', id: '123e4567-e89b-42d3-a456-426614174000', slug: 'community-film', title: 'Community Film' }), { id: '123e4567-e89b-42d3-a456-426614174000', type: 'project', slug: 'community-film', title: 'Community Film', sourceAction: 'project-detail-inquiry' });
+  assert.equal(safeProjectContext({ id: 'undefined', slug: 'community-film' }), null);
+  assert.equal(safeProjectContext({ id: '123e4567-e89b-42d3-a456-426614174000', slug: '../private' }), null);
 });

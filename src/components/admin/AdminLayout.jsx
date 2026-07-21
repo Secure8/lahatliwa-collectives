@@ -18,26 +18,40 @@ import AdminCommandPalette from './AdminCommandPalette';
 const links = [
   ['Overview', [
     ['Dashboard', '/admin/dashboard', LayoutDashboard, () => true],
+    ['Live Website', '/', ExternalLink, () => true],
   ]],
-  ['Studio', [
+  ['Explore Aklan', [
+    ['Content Library', '/admin/editorial/content', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Create Story', '/editorial/new', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
+    ['Homepage Slideshow', '/admin/editorial/homepage', GalleryHorizontalEnd, ({ role }) => role === 'super_admin'],
+    ['Destinations', '/admin/editorial/destinations', GalleryHorizontalEnd, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Categories', '/admin/editorial/categories', Workflow, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Municipalities', '/admin/editorial/municipalities', Workflow, ({ role }) => ['super_admin', 'admin'].includes(role)],
+  ]],
+  ['Creative Collective', [
     ['My Profile', '/admin/my-profile', User, ({ role }) => ['super_admin', 'admin', 'editor', 'creative'].includes(role)],
-    ['Directory', '/admin/directory', Users, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
+    ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
-    ['Services', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
-    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
-    ['Storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
+    ['Services & Branches', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
+    ['Directory', '/admin/directory', Users, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
   ]],
-  ['People', [
-    ['Creative Profiles', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
-    ['Team Access', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
+  ['Communication', [
+    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
+    ['Assignments', '/admin/inquiries?view=assigned', MessagesSquare, ({ role }) => ['super_admin', 'admin', 'editor', 'creative'].includes(role)],
+    ['Delivery Status', '/admin/inquiries?delivery=failed', MessagesSquare, ({ role }) => ['super_admin', 'admin'].includes(role)],
+  ]],
+  ['Team', [
+    ['Members & Invitations', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Website', [
-    ['Editorial', '/admin/editorial', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Content', '/admin/content', FileText, ({ role }) => isPrivilegedRole(role)],
+    ['Homepage Content', '/admin/content', FileText, ({ role }) => isPrivilegedRole(role)],
+    ['Feature Flags', '/admin/editorial/settings', Settings, ({ role }) => ['super_admin', 'admin'].includes(role)],
     ['Media', '/admin/media/icons', Images, ({ role }) => isPrivilegedRole(role) || ['editor', 'creative'].includes(role)],
-    ['Settings', '/admin/settings', Settings, ({ role }) => canManageSettings(role)],
+    ['Media & Storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
   ]],
-  ['Editorial Studio', [
+  ['Administration', [
+    ['Audit', '/admin/editorial/audit', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Settings', '/admin/settings', Settings, ({ role }) => canManageSettings(role)],
     ['Open Studio', '/editorial', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
   ]],
 ];

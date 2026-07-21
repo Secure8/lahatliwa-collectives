@@ -64,9 +64,9 @@ export const defaultSiteContent = {
       items: ['Website Development', 'Application Development', 'UI & Prototyping', 'Digital Systems', 'Maintenance & Improvements', 'Technical Consultation'],
     },
     {
-      name: 'Liwa Tech',
-      description: 'Describe the device, software, setup, or technical issue you need help with. Let us know what is happening, how urgent it is, and whether you prefer remote or on-site support.',
-      items: ['Computer Troubleshooting', 'Device Setup', 'Software Assistance', 'System & Network Support', 'Maintenance & Optimization', 'Technical Consultation'],
+      name: 'Liwa Explore',
+      description: 'Tourism information, destination storytelling, local coordination, and visitor support for exploring Aklan.',
+      items: ['Destination Information', 'Event or Activity Question', 'Local Product Question', 'Tourism Question', 'Correction or Public Concern', 'Visitor Support and Routing'],
     },
   ],
   socialLinks: [],

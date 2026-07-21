@@ -206,10 +206,10 @@ export function AdminSelect({ label, value, options, onChange, className = '' })
   );
 }
 
-export function AdminCheckbox({ label, checked, onChange }) {
+export function AdminCheckbox({ label, checked, onChange, disabled = false }) {
   return (
     <label className="admin-choice inline-flex items-center gap-3 rounded-lg border border-white/[0.1] bg-zinc-950/45 px-3 py-2.5 text-sm font-medium text-zinc-200">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-amber-300" />
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-amber-300 disabled:opacity-40" />
       {label}
     </label>
   );

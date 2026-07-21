@@ -1,158 +1,98 @@
-import { ArrowRight, FolderKanban, Plus, User, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowRight, ExternalLink, Inbox, MapPinned, Plus, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import AdminLayout from '../../components/admin/AdminLayout';
-import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminStatusBadge } from '../../components/admin/AdminUI';
-import { canCreateProjects, canManageAllProjects, roleLabel, useAdminAccess } from '../../lib/adminAccess';
-import { formatDate } from '../../lib/helpers';
-import { supabase } from '../../lib/supabaseClient';
+import AdminLayout from '../../components/admin/AdminLayout.jsx';
+import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader, AdminStatusBadge, AdminSurface } from '../../components/admin/AdminUI.jsx';
+import { canManageTeam, roleLabel, useAdminAccess } from '../../lib/adminAccess.jsx';
+import { formatDate } from '../../lib/helpers.js';
+import { supabase } from '../../lib/supabaseClient.js';
 
 const focusLink = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50';
+const inquiryRoles = new Set(['super_admin', 'admin', 'editor', 'creative', 'viewer']);
+const editorialRoles = new Set(['super_admin', 'admin', 'editor', 'writer']);
 
 export default function Dashboard() {
-  const { role, user, adminUser } = useAdminAccess();
-  const canSeeAll = canManageAllProjects(role);
-  const canViewInquiries = ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role);
-  const canEditProfile = ['super_admin', 'admin', 'editor', 'creative'].includes(role);
-  const [stats, setStats] = useState({ total: null, published: null, draft: null, featured: null, creatives: null, newInquiries: null, serviceBranches: null });
-  const [recentProjects, setRecentProjects] = useState([]);
-  const [latestInquiries, setLatestInquiries] = useState([]);
-  const [errors, setErrors] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const access = useAdminAccess();
+  const { role, user, adminUser } = access;
+  const canUseEditorial = editorialRoles.has(role) || access.editorialRoles?.some((item) => editorialRoles.has(item));
+  const canViewInquiries = inquiryRoles.has(role);
+  const canManagePeople = canManageTeam(role);
+  const [state, setState] = useState({ loading: true, error: '', totals: {}, attention: [], activity: [] });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!canSeeAll && !user?.id) return undefined;
     let active = true;
-
     async function loadDashboard() {
-      setLoading(true);
-      setErrors([]);
-      let projectQuery = supabase
-        .from('projects')
-        .select('id, title, status, featured, category, created_at, updated_at, review_status, owner_user_id, created_by')
-        .order('created_at', { ascending: false });
-      if (!canSeeAll) projectQuery = projectQuery.or(`owner_user_id.eq.${user.id},created_by.eq.${user.id}`);
-
+      setState((current) => ({ ...current, loading: true, error: '' }));
       const requests = [
-        ['projects', projectQuery],
-        ...(canSeeAll ? [['creatives', supabase.from('creative_members').select('id, is_published')]] : []),
-        ...(canViewInquiries ? [['inquiries', supabase.from('project_inquiries').select('id, name, project_type, message, status, created_at').order('created_at', { ascending: false })]] : []),
-        ...(canSeeAll ? [['branches', supabase.from('service_branches').select('id, is_published')]] : []),
+        ['destinations', supabase.from('editorial_posts').select('id', { count: 'exact', head: true }).eq('content_type', 'place').eq('status', 'published').is('archived_at', null)],
+        ['stories', supabase.from('editorial_posts').select('id', { count: 'exact', head: true }).eq('status', 'published').is('archived_at', null)],
+        ...(canViewInquiries ? [['openInquiries', supabase.from('project_inquiries').select('id', { count: 'exact', head: true }).in('status', ['new', 'open', 'awaiting_response', 'accepted', 'in_progress'])], ['failedDelivery', supabase.from('project_inquiries').select('id,name,public_reference,notification_status,created_at').in('notification_status', ['failed', 'partially_sent']).order('created_at', { ascending: false }).limit(4)], ['recentInquiries', supabase.from('project_inquiries').select('id,name,public_reference,status,created_at').order('created_at', { ascending: false }).limit(4)]] : []),
+        ...(canManagePeople ? [['team', supabase.from('admin_users').select('id', { count: 'exact', head: true }).eq('status', 'active')], ['pendingInvites', supabase.from('admin_users').select('id,email,status,created_at').eq('status', 'invited').order('created_at', { ascending: false }).limit(4)], ['recentTeam', supabase.from('admin_users').select('id,display_name,email,status,updated_at').order('updated_at', { ascending: false }).limit(3)]] : []),
+        ...(canUseEditorial ? [['incompleteStories', supabase.from('editorial_posts').select('id,title,status,summary,cover_image_url,updated_at').in('status', ['draft', 'needs_revision']).order('updated_at', { ascending: false }).limit(6)], ['recentStories', supabase.from('editorial_posts').select('id,title,content_type,status,updated_at,published_at').order('updated_at', { ascending: false }).limit(5)]] : []),
+        ...(role === 'super_admin' ? [['slides', supabase.from('editorial_homepage_slides').select('slot_type,post_id,enabled,editorial_posts(id,status,cover_image_url,published_revision_id,archived_at)')]] : []),
       ];
-
-      const settled = await Promise.allSettled(requests.map(([, request]) => request));
+      const results = await Promise.allSettled(requests.map(([, request]) => request));
       if (!active) return;
-      const nextErrors = [];
-      const resultByName = {};
-      settled.forEach((result, index) => {
+      const byName = {};
+      const failed = [];
+      results.forEach((result, index) => {
         const name = requests[index][0];
-        if (result.status === 'rejected' || result.value?.error) {
-          nextErrors.push(`Unable to load ${name}.`);
-          resultByName[name] = null;
-        } else resultByName[name] = result.value.data || [];
+        if (result.status === 'rejected' || result.value?.error) failed.push(name);
+        else byName[name] = result.value;
       });
 
-      const projects = resultByName.projects;
-      const inquiries = resultByName.inquiries;
-      setStats({
-        total: projects ? projects.length : null,
-        published: projects ? projects.filter((project) => project.status === 'published').length : null,
-        draft: projects ? projects.filter((project) => project.status === 'draft').length : null,
-        featured: projects ? projects.filter((project) => project.featured).length : null,
-        creatives: resultByName.creatives ? resultByName.creatives.length : null,
-        newInquiries: inquiries ? inquiries.filter((inquiry) => inquiry.status === 'new').length : null,
-        serviceBranches: resultByName.branches ? resultByName.branches.length : null,
-      });
-      setRecentProjects((projects || []).slice(0, 5));
-      setLatestInquiries((inquiries || []).slice(0, 4));
-      setErrors(nextErrors);
-      setLoading(false);
+      const attention = [];
+      for (const inquiry of byName.failedDelivery?.data || []) attention.push({ key: `delivery-${inquiry.id}`, to: `/admin/inquiries?reference=${inquiry.public_reference}`, label: 'Inquiry delivery failed', detail: inquiry.name, status: 'failed' });
+      for (const post of (byName.incompleteStories?.data || []).filter((item) => !item.cover_image_url || String(item.summary || '').trim().length < 20).slice(0, 4)) attention.push({ key: `story-${post.id}`, to: `/editorial/content/${post.id}/edit`, label: 'Story needs details', detail: post.title, status: post.status });
+      for (const invite of byName.pendingInvites?.data || []) attention.push({ key: `invite-${invite.id}`, to: '/admin/team', label: 'Invitation pending', detail: invite.email, status: 'invited' });
+      for (const slide of byName.slides?.data || []) {
+        const post = slide.editorial_posts;
+        if (slide.enabled && (!post || post.status !== 'published' || !post.cover_image_url || !post.published_revision_id || post.archived_at)) attention.push({ key: `slide-${slide.slot_type}`, to: '/admin/editorial/homepage', label: 'Slideshow selection is unavailable', detail: slide.slot_type.replace('_', ' '), status: 'disabled' });
+      }
+
+      const activity = [
+        ...(byName.recentStories?.data || []).map((item) => ({ key: `story-${item.id}`, to: `/editorial/content/${item.id}/edit`, title: item.title, meta: `${item.content_type.replace('_', ' ')} · ${formatDate(item.updated_at)}`, occurredAt: item.updated_at, status: item.status })),
+        ...(byName.recentInquiries?.data || []).map((item) => ({ key: `inquiry-${item.id}`, to: `/admin/inquiries?reference=${item.public_reference}`, title: item.name, meta: `Inquiry · ${formatDate(item.created_at)}`, occurredAt: item.created_at, status: item.status })),
+        ...(byName.recentTeam?.data || []).map((item) => ({ key: `team-${item.id}`, to: '/admin/team', title: item.display_name || item.email, meta: `Team · ${formatDate(item.updated_at)}`, occurredAt: item.updated_at, status: item.status })),
+      ].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()).slice(0, 8);
+
+      setState({ loading: false, error: failed.length ? `Some dashboard information is unavailable: ${failed.join(', ')}.` : '', totals: { destinations: byName.destinations?.count ?? null, stories: byName.stories?.count ?? null, openInquiries: byName.openInquiries?.count ?? null, team: byName.team?.count ?? null, slideshow: byName.slides?.data ? (byName.slides.data.filter((item) => item.enabled).length ? 'Active' : 'Not set') : null }, attention, activity });
     }
-
     loadDashboard();
     return () => { active = false; };
-  }, [canSeeAll, canViewInquiries, reloadKey, user?.id]);
+  }, [canManagePeople, canUseEditorial, canViewInquiries, reloadKey, role, user?.id]);
 
   const displayName = adminUser?.display_name || adminUser?.name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'there';
-  const metricItems = [
-    ['total', canSeeAll ? 'Total projects' : 'Accessible projects', 'Available to your role'],
-    ['published', 'Published', 'Currently public'],
-    ['draft', 'Drafts', 'Still in progress'],
-    ...(canViewInquiries ? [['newInquiries', 'New inquiries', 'Awaiting review']] : canSeeAll ? [['creatives', 'Creative profiles', 'People in the directory']] : []),
+  const actions = useMemo(() => [
+    ...(canUseEditorial ? [{ to: '/editorial/new', icon: Plus, label: 'Create Story', primary: true }, { to: ['super_admin', 'admin'].includes(role) ? '/admin/editorial/destinations' : '/editorial', icon: MapPinned, label: 'Manage Destinations' }] : []),
+    ...(canViewInquiries ? [{ to: '/admin/inquiries', icon: Inbox, label: 'Review Inquiries' }] : []),
+    ...(canManagePeople ? [{ to: '/admin/team', icon: Users, label: 'Manage Team' }] : []),
+    { to: '/', icon: ExternalLink, label: 'View Live Website', external: true },
+  ], [canManagePeople, canUseEditorial, canViewInquiries, role]);
+
+  const metrics = [
+    ['destinations', 'Published destinations'], ['stories', 'Published stories'],
+    ...(canViewInquiries ? [['openInquiries', 'Open inquiries']] : []),
+    ...(canManagePeople ? [['team', 'Active team members']] : []),
+    ...(role === 'super_admin' ? [['slideshow', 'Slideshow status']] : []),
   ];
-  const quickActions = [
-    ...(canCreateProjects(role) ? [{ to: '/admin/projects/new', icon: Plus, label: 'New project', tone: 'primary' }] : []),
-    { to: '/admin/projects', icon: FolderKanban, label: 'Open projects' },
-    ...(canSeeAll ? [{ to: '/admin/creatives', icon: Users, label: 'Manage people' }] : canEditProfile ? [{ to: '/admin/my-profile', icon: User, label: 'Edit my profile' }] : []),
-  ].slice(0, 3);
-  const nothingUrgent = !loading && !stats.draft && (!canViewInquiries || !stats.newInquiries);
 
-  return (
-    <AdminLayout>
-      <AdminPageHeader
-        eyebrow={`${roleLabel(role)} workspace`}
-        title={`Welcome, ${displayName}`}
-        description={canSeeAll ? 'Projects, people, services, and client activity at a glance.' : 'Your accessible projects, profile, and current activity.'}
-        action={canCreateProjects(role) && <AdminButton to="/admin/projects/new" variant="primary"><Plus size={16} /> New project</AdminButton>}
-      />
+  return <AdminLayout>
+    <AdminPageHeader eyebrow={`${roleLabel(role)} workspace`} title={`Welcome, ${displayName}`} description="Start common work, see what needs attention, and understand the live website without technical details." action={canUseEditorial && <AdminButton to="/editorial/new" variant="primary"><Plus size={16} />Create Story</AdminButton>} />
+    {state.error && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{state.error}</span><button type="button" onClick={() => setReloadKey((value) => value + 1)} className={`text-sm underline decoration-white/30 underline-offset-4 ${focusLink}`}>Retry</button></div></AdminNotice>}
 
-      {errors.length > 0 && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{errors.join(' ')}</span><button type="button" onClick={() => setReloadKey((current) => current + 1)} className={`border-b border-red-200/30 pb-1 text-sm text-red-100 ${focusLink}`}>Retry</button></div></AdminNotice>}
+    <section aria-labelledby="quick-actions-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Start here</p><h2 id="quick-actions-heading" className="mt-1 text-xl font-semibold">Quick actions</h2></div><nav className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Quick actions">{actions.map((action) => <QuickAction key={action.label} {...action} />)}</nav></section>
 
-      <nav aria-label="Primary dashboard actions" className="admin-dashboard-actions mb-6 flex flex-wrap gap-2">
-        {quickActions.map((action) => <QuickAction key={action.to} {...action} />)}
-      </nav>
+    <section className="mt-8" aria-labelledby="overview-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Live overview</p><h2 id="overview-heading" className="mt-1 text-xl font-semibold">Website overview</h2></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{metrics.map(([key, label]) => <AdminSurface key={key} className="min-h-32"><p className="text-sm text-zinc-400">{label}</p><p className="mt-6 text-3xl font-semibold text-white">{state.loading ? '…' : state.totals[key] ?? '—'}</p></AdminSurface>)}</div></section>
 
-      <section aria-labelledby="summary-heading">
-        <h2 id="summary-heading" className="sr-only">System summary</h2>
-        <div className="admin-dashboard-grid grid gap-px overflow-hidden rounded-lg border border-white/[0.1] bg-white/[0.1] sm:grid-cols-2 lg:grid-cols-4">
-          {metricItems.map(([key, label, detail]) => <Metric key={key} label={label} value={stats[key]} detail={detail} loading={loading} />)}
-        </div>
-      </section>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-12">
-        <div className="rounded-lg border border-white/[0.1] bg-zinc-900 p-4 sm:p-5 lg:col-span-8">
-          <ActivitySection title="Recent projects" description={canSeeAll ? 'Latest portfolio additions.' : 'Latest projects available to you.'} actionTo="/admin/projects" actionLabel="View all">
-            {loading ? <ActivitySkeleton /> : recentProjects.length ? recentProjects.map((project) => (
-              <Link key={project.id} to={`/admin/projects/${project.id}/edit`} className={`grid cursor-pointer gap-2 border-t border-white/[0.1] px-2 py-4 transition hover:bg-white/[0.025] first:border-t-0 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-start ${focusLink}`}>
-                <div className="min-w-0"><h3 className="truncate font-medium text-white">{project.title}</h3><p className="mt-1 text-xs text-zinc-500">{project.category || 'Uncategorized'} · {formatDate(project.updated_at || project.created_at)}</p></div>
-                <div className="flex flex-wrap gap-2"><AdminStatusBadge status={project.review_status || project.status} />{project.featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}</div>
-              </Link>
-            )) : <AdminEmptyState title="No projects yet" message={canCreateProjects(role) ? 'Create a project to begin building the portfolio.' : 'No projects are currently available to your account.'} />}
-          </ActivitySection>
-        </div>
-
-        <aside className="rounded-lg border border-white/[0.1] bg-zinc-900 p-4 sm:p-5 lg:col-span-4" aria-labelledby="attention-heading">
-          <div className="mb-4"><p className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-amber-200/70">Priorities</p><h2 id="attention-heading" className="mt-1 text-lg font-semibold text-white">Needs attention</h2></div>
-          <div className="divide-y divide-white/[0.08]">
-            {stats.draft > 0 && <AttentionLink to="/admin/projects" label="Draft projects" value={stats.draft} />}
-            {canViewInquiries && stats.newInquiries > 0 && <AttentionLink to="/admin/inquiries" label="New inquiries" value={stats.newInquiries} />}
-            {canViewInquiries && latestInquiries.slice(0, 2).map((inquiry) => <AttentionLink key={inquiry.id} to="/admin/inquiries" label={inquiry.name} meta={inquiry.project_type || 'General inquiry'} status={inquiry.status} />)}
-            {nothingUrgent && <p className="py-8 text-center text-sm text-zinc-500">Nothing urgent right now.</p>}
-          </div>
-        </aside>
-      </section>
-    </AdminLayout>
-  );
+    <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
+      <AdminSurface aria-labelledby="activity-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">What changed</p><h2 id="activity-heading" className="mt-1 text-xl font-semibold">Recent activity</h2></div>{state.loading ? <p className="py-8 text-sm text-zinc-500">Loading activity…</p> : state.activity.length ? <div className="divide-y divide-white/[0.08]">{state.activity.map((item) => <Link key={item.key} to={item.to} className={`grid gap-2 py-4 sm:grid-cols-[1fr_auto] sm:items-center ${focusLink}`}><div className="min-w-0"><p className="truncate font-medium text-zinc-100">{item.title}</p><p className="mt-1 text-xs capitalize text-zinc-500">{item.meta}</p></div><AdminStatusBadge status={item.status} /></Link>)}</div> : <AdminEmptyState title="No recent activity" message="Recent stories, inquiries, and team updates will appear here when available." />}</AdminSurface>
+      <AdminSurface aria-labelledby="attention-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Actionable only</p><h2 id="attention-heading" className="mt-1 text-xl font-semibold">Needs attention</h2></div>{state.loading ? <p className="py-8 text-sm text-zinc-500">Checking…</p> : state.attention.length ? <div className="divide-y divide-white/[0.08]">{state.attention.slice(0, 8).map((item) => <Link key={item.key} to={item.to} className={`flex items-center gap-3 py-4 ${focusLink}`}><span className="min-w-0 flex-1"><span className="block text-sm font-medium text-zinc-200">{item.label}</span><span className="mt-1 block truncate text-xs capitalize text-zinc-500">{item.detail}</span></span><AdminStatusBadge status={item.status} /><ArrowRight size={15} className="text-zinc-600" /></Link>)}</div> : <p className="py-10 text-center text-sm text-zinc-500">Nothing needs attention right now.</p>}</AdminSurface>
+    </div>
+  </AdminLayout>;
 }
 
-function Metric({ label, value, detail, loading }) {
-  return <div className="flex min-h-32 min-w-0 flex-col gap-3 bg-zinc-900 px-4 py-4"><p className="min-w-0 break-words text-[0.66rem] font-semibold uppercase leading-4 tracking-[0.14em] text-zinc-600">{label}</p><div className="mt-auto min-w-0">{loading ? <div className="h-7 w-12 animate-pulse bg-white/[0.05]" /> : <p className="text-2xl font-semibold leading-none tabular-nums text-white">{value ?? '—'}</p>}{detail && <p className="mt-2 min-w-0 break-words text-xs leading-5 text-zinc-500">{detail}</p>}</div></div>;
-}
-
-function QuickAction({ to, icon: Icon, label, tone = 'default' }) {
-  const primary = tone === 'primary';
-  return <Link to={to} className={`group inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold transition ${focusLink} ${primary ? 'border-amber-200/60 bg-amber-300 text-zinc-950 hover:bg-amber-200' : 'border-white/[0.12] bg-zinc-900 text-zinc-300 hover:border-white/[0.22] hover:text-white'}`}><Icon size={15} /><span>{label}</span><ArrowRight size={14} className="ml-1 opacity-50 transition group-hover:translate-x-0.5 group-hover:opacity-100" /></Link>;
-}
-
-function AttentionLink({ to, label, value, meta, status }) {
-  return <Link to={to} className={`flex items-center gap-3 py-3.5 text-sm transition hover:text-white ${focusLink}`}><span className="min-w-0 flex-1"><span className="block truncate font-medium text-zinc-300">{label}</span>{meta && <span className="mt-0.5 block truncate text-xs text-zinc-600">{meta}</span>}</span>{value != null ? <span className="rounded-md bg-amber-300/10 px-2 py-1 text-xs font-semibold tabular-nums text-amber-100">{value}</span> : status ? <AdminStatusBadge status={status} /> : null}<ArrowRight size={14} className="text-zinc-600" /></Link>;
-}
-
-function ActivitySection({ title, description, actionTo, actionLabel, children }) {
-  return <div className="min-w-0"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-white">{title}</h2><p className="mt-1 text-sm text-zinc-500">{description}</p></div><Link to={actionTo} className={`shrink-0 rounded-md px-2 py-1 text-xs text-zinc-400 hover:bg-white/[0.05] hover:text-white ${focusLink}`}>{actionLabel}</Link></div>{children}</div>;
-}
-
-function ActivitySkeleton() {
-  return <div aria-label="Loading recent activity">{[0, 1, 2].map((item) => <div key={item} className="grid gap-3 border-t border-white/[0.08] py-4 first:border-t-0 first:pt-0"><div className="h-3 w-2/3 animate-pulse bg-white/[0.05]" /><div className="h-2 w-1/3 animate-pulse bg-white/[0.04]" /></div>)}</div>;
+function QuickAction({ to, icon: Icon, label, primary = false, external = false }) {
+  return <Link to={to} target={external ? '_blank' : undefined} rel={external ? 'noreferrer noopener' : undefined} className={`group flex min-h-28 flex-col justify-between rounded-lg border p-4 transition ${focusLink} ${primary ? 'border-amber-200/60 bg-amber-300 text-zinc-950 hover:bg-amber-200' : 'border-white/[0.1] bg-zinc-900 text-zinc-200 hover:border-amber-200/30 hover:bg-zinc-800'}`}><Icon size={19} /><span className="flex items-center justify-between gap-3 text-sm font-semibold">{label}<ArrowRight size={15} className="opacity-55 transition group-hover:translate-x-0.5" /></span></Link>;
 }

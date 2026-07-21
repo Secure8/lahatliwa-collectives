@@ -4,6 +4,8 @@ export const BRANCHES = new Set(['studio', 'tech', 'digital', 'social', 'general
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const REFERENCE_PATTERN = /^LLC-\d{4}-[A-Z0-9]{6}$/;
 const EDITORIAL_TYPES = new Set(['journal', 'event', 'place', 'activity', 'local_product']);
+const INQUIRY_KINDS = new Set(['service', 'tourism', 'general']);
+const TOURISM_CATEGORIES = new Set(['destination-information', 'event-or-activity', 'local-product', 'tourism-question', 'correction-or-concern']);
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export function cleanText(value, max = 5000) {
@@ -17,7 +19,7 @@ export function slugify(value = '') {
 export function branchKey(record = {}) {
   const value = `${record.slug || ''} ${record.name || ''}`.toLowerCase();
   if (value.includes('studio')) return 'studio';
-  if (value.includes('tech')) return 'tech';
+  if (value.includes('tech') || value.includes('explore')) return 'tech';
   if (value.includes('digital') || value.includes('web')) return 'digital';
   if (value.includes('social')) return 'social';
   return '';
@@ -48,7 +50,10 @@ export function validateSubmission(raw = {}) {
     generalLocation: cleanText(request.generalLocation, 240),
     budgetRange: cleanText(request.budgetRange, 120),
     branchDetails: request.branchDetails && typeof request.branchDetails === 'object' && !Array.isArray(request.branchDetails) ? request.branchDetails : {},
+    inquiryKind: INQUIRY_KINDS.has(cleanText(request.inquiryKind, 20).toLowerCase()) ? cleanText(request.inquiryKind, 20).toLowerCase() : 'service',
+    inquiryCategory: cleanText(request.inquiryCategory, 60).toLowerCase(),
     editorialContext: safeEditorialContext(request.editorialContext),
+    projectContext: safeProjectContext(request.projectContext),
     consent: request.consent === true,
     honeypot: cleanText(request.honeypot, 240),
     idempotencyKey: cleanText(request.idempotencyKey, 64),
@@ -56,6 +61,7 @@ export function validateSubmission(raw = {}) {
   const errors = [];
   if (!BRANCHES.has(normalized.branch)) errors.push('Choose an available service branch.');
   if (!normalized.serviceKey) errors.push('Choose an available service category.');
+  if (normalized.inquiryKind === 'tourism' && !TOURISM_CATEGORIES.has(normalized.inquiryCategory)) errors.push('Choose an available tourism inquiry topic.');
   if (normalized.clientName.length < 2) errors.push('Enter your name or organization contact.');
   if (!EMAIL_PATTERN.test(normalized.clientEmail)) errors.push('Enter a valid email address.');
   if (normalized.summary.length < 5) errors.push('Add a short project summary.');
@@ -71,8 +77,28 @@ export function safeEditorialContext(value = null) {
   const type = cleanText(value.type, 40).toLowerCase();
   const slug = cleanText(value.slug, 120).toLowerCase();
   const title = cleanText(value.title, 180);
+  const id = cleanText(value.id || value.postId, 36).toLowerCase();
   if (!EDITORIAL_TYPES.has(type) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
-  return { type, slug, title };
+  if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id)) return null;
+  return {
+    type,
+    slug,
+    title,
+    ...(id ? { id } : {}),
+    publicUrl: cleanText(value.publicUrl, 500),
+    municipality: cleanText(value.municipality, 120),
+    inquiryCategory: TOURISM_CATEGORIES.has(cleanText(value.inquiryCategory, 60).toLowerCase()) ? cleanText(value.inquiryCategory, 60).toLowerCase() : '',
+    sourceAction: cleanText(value.sourceAction, 80),
+  };
+}
+
+export function safeProjectContext(value = null) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const id = cleanText(value.id, 36).toLowerCase();
+  const slug = cleanText(value.slug, 120).toLowerCase();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id)) return null;
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
+  return { id, type: 'project', slug, title: cleanText(value.title, 180), sourceAction: cleanText(value.sourceAction, 80) || 'project-detail-inquiry' };
 }
 
 export function safeBranchDetails(value = {}) {

@@ -173,15 +173,17 @@ test('service branch admin previews reuse real uploaded public media without gen
 
 test('dashboard prioritizes summary, urgent work, and a small primary action set', async () => {
   const dashboard = await source('../pages/admin/Dashboard.jsx');
-  assert.match(dashboard, /aria-label="Primary dashboard actions"/);
-  assert.match(dashboard, /\.slice\(0, 3\)/);
-  assert.match(dashboard, /lg:grid-cols-4/);
+  assert.match(dashboard, /aria-label="Quick actions"/);
+  assert.match(dashboard, /Create Story/);
+  assert.match(dashboard, /Manage Destinations/);
+  assert.match(dashboard, /Review Inquiries/);
+  assert.match(dashboard, /Manage Team/);
+  assert.match(dashboard, /View Live Website/);
   assert.match(dashboard, /Needs attention/);
-  assert.match(dashboard, /lg:col-span-8/);
-  assert.match(dashboard, /lg:col-span-4/);
-  assert.match(dashboard, /Currently public/);
-  assert.match(dashboard, /min-h-32 min-w-0 flex-col gap-3/);
-  assert.match(dashboard, /break-words[\s\S]*?leading-5/);
+  assert.match(dashboard, /Website overview/);
+  assert.match(dashboard, /Recent activity/);
+  assert.match(dashboard, /\.slice\(0, 8\)/);
+  assert.match(dashboard, /canManagePeople/);
 });
 
 test('admin command palette supports keyboard access, navigation search, and focus containment', async () => {
@@ -202,8 +204,9 @@ test('admin people management connects profiles and access while preserving thei
     source('../pages/admin/AdminCreatives.jsx'),
     source('../pages/admin/SiteSettings.jsx'),
   ]);
-  assert.match(layout, /\['People', \[/);
-  assert.match(layout, /Creative Profiles[\s\S]*Team Access/);
+  assert.match(layout, /\['Creative Collective', \[/);
+  assert.match(layout, /\['Team', \[/);
+  assert.match(layout, /Creatives[\s\S]*Members & Invitations/);
   assert.match(peopleNav, /aria-label="People management"/);
   assert.match(team, /profile_image_url/);
   assert.match(team, /member\.avatar_url \|\| creatives\.find/);

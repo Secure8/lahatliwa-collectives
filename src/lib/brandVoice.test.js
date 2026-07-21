@@ -20,8 +20,8 @@ test('public positioning serves clients and published creatives without agency c
   const creatives = source('pages/Creatives.jsx');
   const footer = source('components/Footer.jsx');
 
-  assert.match(home, /four Liwa branches/i);
-  assert.match(home, /published creatives/i);
+  assert.match(home, /Independent community stories/i);
+  assert.match(home, /Featured Creatives/i);
   assert.match(about, /independently operated/i);
   assert.match(about, /does not automatically mean being employed/i);
   assert.match(about, /Built from Aklan/i);
@@ -40,7 +40,7 @@ test('service branches stay distinct and inquiry copy frames creative selection 
     const copy = BRANCH_INQUIRY_COPY[branch];
     assert.match(copy.recipientHelper, /preference/i);
     assert.match(copy.recipientHelper, /does not guarantee availability or assignment/i);
-    assert.match(copy.teamOption, /General .*request/i);
+    assert.match(copy.teamOption, /General .*(?:request|inquiry)/i);
     assert.match(copy.confirmationTitle, /received/i);
     assert.doesNotMatch(copy.confirmationTitle, /safely with the team|safely with the collective/i);
   }
@@ -59,12 +59,12 @@ test('public project and profile copy emphasizes publication and contributor cre
 });
 
 test('public brand names remain CMS-driven and custom logo behavior stays separate', () => {
-  const home = source('pages/Home.jsx');
+  const collectiveHero = source('components/CollectiveHero.jsx');
   const about = source('pages/About.jsx');
   const creatives = source('pages/Creatives.jsx');
   const footer = source('components/Footer.jsx');
 
-  assert.match(home, /content\.displayName/);
+  assert.match(collectiveHero, /content\.displayName/);
   assert.match(about, /content\.displayName/);
   assert.match(creatives, /content\.displayName/);
   assert.match(footer, /name=\{content\.displayName\}/);

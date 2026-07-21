@@ -5,12 +5,13 @@ import LoadingState from '../components/LoadingState';
 import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
 import PublicPageHeader from '../components/PublicPageHeader';
+import CollectiveHero from '../components/CollectiveHero.jsx';
 
 export default function Creatives() {
   const [creatives, setCreatives] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { content } = usePublicContent([]);
+  const { content } = usePublicContent(['home']);
 
   useEffect(() => {
     let active = true;
@@ -33,7 +34,9 @@ export default function Creatives() {
   }, []);
 
   return (
-    <div className="page-shell py-20">
+    <div>
+      <CollectiveHero content={content} />
+      <div className="page-shell py-20">
       <PublicPageHeader eyebrow="Creative directory" title="Discover published creatives and credited work." description={`Explore profiles, skills, portfolio work, and project contributions published through ${content.displayName}. A published profile supports visibility and discovery without implying employment or permanent affiliation.`} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} aside={<><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Profile focus</p><p className="mt-2 max-w-44 text-sm leading-6 text-zinc-300">Skills, selected work, and contributor credits.</p></>} />
       <div className="pt-12">
       {loading && <LoadingState label="Loading creatives" />}
@@ -45,6 +48,7 @@ export default function Creatives() {
           </div>
         ) : <EmptyState title="No published profiles yet" message="Published creative profiles will appear here." />
       )}
+      </div>
       </div>
     </div>
   );

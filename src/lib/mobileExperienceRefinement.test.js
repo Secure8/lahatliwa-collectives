@@ -47,21 +47,18 @@ test('public and admin mobile navigation identify the current page without clutt
   assert.doesNotMatch(styles, /\.public-footer[\s\S]*?padding-bottom: calc\(4\.5rem \+ env\(safe-area-inset-bottom\)\)/);
 });
 
-test('mobile Home keeps bounded preview rails and the shared page footer', async () => {
+test('mobile Home keeps the tourism order, bounded content, and shared footer', async () => {
   const [home, app, styles] = await Promise.all([
     readFile(new URL('../pages/Home.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
   ]);
-  assert.match(home, /home-mobile-branches[\s\S]*?lg:hidden/);
-  assert.match(home, /PROJECT_BRANCHES\.map/);
-  assert.match(home, /home-project-grid/);
+  assert.match(home, /<ExploreAklanHero/);
+  assert.match(home, /<DestinationsFeed/);
   assert.match(home, /home-creatives-grid/);
-  assert.match(home, /home-full-services[\s\S]*?hidden[\s\S]*?lg:block/);
-  assert.match(home, /home-featured-projects/);
   assert.match(home, /home-featured-creatives/);
-  assert.match(styles, /\.home-project-grid,[\s\S]*?grid-auto-flow: column/);
-  assert.doesNotMatch(home, /home-publication-feed|FEED_BATCH_SIZE|IntersectionObserver|Show more posts/);
+  assert.doesNotMatch(home, /ProjectGrid|home-project-grid|home-featured-projects/);
+  assert.match(styles, /overflow-x: clip/);
   assert.match(app, /<Footer \/>/);
   assert.doesNotMatch(app, /hidden lg:block' : ''/);
 });
@@ -100,7 +97,7 @@ test('project cards stretch equally on desktop without fixed mobile heights', as
   assert.match(projects, /<ProjectGrid projects=\{visible\}/);
 });
 
-test('admin keeps stable role-aware navigation, compact dashboard rails, and a one-handed primary bar', async () => {
+test('admin keeps stable role-aware navigation, a responsive dashboard, and a one-handed primary bar', async () => {
   const [admin, dashboard, styles] = await Promise.all([
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/admin/Dashboard.jsx', import.meta.url), 'utf8'),
@@ -115,9 +112,9 @@ test('admin keeps stable role-aware navigation, compact dashboard rails, and a o
   assert.match(admin, /ref=\{triggerRef\}[\s\S]*?Open all admin sections/);
   assert.match(admin, /Studio OS[\s\S]*?currentPageTitle/);
   assert.match(admin, /AppearanceMenuAction[\s\S]*?iconOnly/);
-  assert.match(dashboard, /admin-dashboard-grid/);
-  assert.match(dashboard, /admin-dashboard-actions/);
-  assert.match(styles, /\.admin-dashboard-grid[\s\S]*?grid-auto-flow: column/);
+  assert.match(dashboard, /aria-label="Quick actions"/);
+  assert.match(dashboard, /sm:grid-cols-2 xl:grid-cols-5/);
+  assert.match(dashboard, /Website overview/);
   assert.match(styles, /\.admin-record-actions[\s\S]*?grid-template-columns/);
 });
 

@@ -103,7 +103,7 @@ function EditorialStudioShell() {
           <p className="truncate text-sm font-semibold">Editorial Studio</p>
         </Link>
         <div className="flex items-center gap-2">
-          <AppearanceMenuAction iconOnly className="grid h-10 w-10 place-items-center rounded-full text-zinc-400 hover:bg-white/[0.06] hover:text-white" />
+          <AppearanceMenuAction iconOnly instant className="grid h-10 w-10 place-items-center rounded-full text-zinc-400 hover:bg-white/[0.06] hover:text-white" />
           {!editorMode && <Link to="/editorial/new" className="inline-flex h-10 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950 shadow-[0_0_28px_rgba(251,146,60,0.16)]"><Plus size={16} />New Content</Link>}
           {!editorMode && <button type="button" onClick={() => setMenuOpen((value) => !value)} className="grid h-11 w-11 place-items-center rounded-full hover:bg-white/[0.06] lg:hidden" aria-label="Open studio menu">{menuOpen ? <X /> : <Menu />}</button>}
           <button type="button" onClick={logout} className="hidden h-10 items-center gap-2 rounded-full px-3 text-sm text-zinc-400 hover:bg-white/[0.05] hover:text-white sm:inline-flex"><LogOut size={16} />Logout</button>

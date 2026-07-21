@@ -1,4 +1,4 @@
-import { ArrowUpRight, Calendar, ExternalLink, FileText, Github, Play, Share2 } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Calendar, ExternalLink, FileText, Github, Play, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
@@ -14,6 +14,8 @@ import { safeExternalUrl } from '../lib/externalUrls';
 import { applyPublicMetadata } from '../lib/publicMetadata';
 import { getSingleProjectExternalLink, projectExternalLinkLabel, projectExternalLinkText } from '../lib/projectExternalLinks';
 import BrandWordmark from '../components/BrandWordmark';
+import { inquiryUrl } from '../lib/serviceRequest';
+import { projectBranchKey } from '../lib/projectBranches';
 
 function isMissingCreditRolesColumn(error) {
   const message = `${error?.message || ''} ${error?.details || ''}`;
@@ -122,6 +124,7 @@ export default function ProjectDetails() {
             <Action href={project.social_post_url} icon={Share2} label="Open Post" />
             <Action href={project.live_url} icon={ArrowUpRight} label="Open Full Project" />
             <Action href={project.github_url} icon={Github} label="GitHub" />
+            <Link to={inquiryUrl({ branch: projectBranchKey(project.category), context: { type: 'project', id: project.id, slug: project.slug, title: project.title, branch: projectBranchKey(project.category), sourceAction: 'project-detail-inquiry' } })} className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--site-accent)] px-4 text-sm font-semibold text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">Ask about this project <ArrowRight size={16} /></Link>
           </div>
         </div>
       </div>

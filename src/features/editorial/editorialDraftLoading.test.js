@@ -50,6 +50,13 @@ test('draft creation recovers an earlier row with no initial revision and cleans
   assert.match(createSource, /if \(inserted\) await supabase\.rpc\('delete_editorial_post'/);
 });
 
+test('owner deletion uses the protected direct RPC instead of the service workflow bridge', () => {
+  const api = source('src/features/editorial/editorialApi.js');
+  const workflow = api.slice(api.indexOf('export async function runEditorialWorkflow'), api.indexOf('export async function restoreEditorialRevision'));
+  assert.match(workflow, /action === 'delete'/);
+  assert.match(workflow, /supabase\.rpc\('delete_editorial_post', \{ p_post_id: postId \}\)/);
+});
+
 test('getEditorialDraft returns not-found only after a successful authenticated row query', () => {
   const api = source('src/features/editorial/editorialApi.js');
   const getDraftSource = api.slice(api.indexOf('export async function getEditorialDraft'), api.indexOf('export async function saveEditorialAutosave'));

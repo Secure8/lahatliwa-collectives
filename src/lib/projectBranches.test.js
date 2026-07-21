@@ -6,6 +6,7 @@ test('current project categories map to the four branches', () => {
   assert.equal(projectBranchKey('Liwa Studio'), 'studio');
   assert.equal(projectBranchKey('Liwa Digital'), 'digital');
   assert.equal(projectBranchKey('Liwa Tech'), 'tech');
+  assert.equal(projectBranchKey('Liwa Explore'), 'tech');
   assert.equal(projectBranchKey('Liwa Social'), 'social');
 });
 

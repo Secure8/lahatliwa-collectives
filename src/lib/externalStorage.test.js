@@ -149,7 +149,7 @@ test('admin Storage exposes safe connection actions and an isolated flagged test
   assert.doesNotMatch(page, /storage_connection_operations|Connection overview/);
   assert.doesNotMatch(page, /credential_secret_id|access_token|refresh_token/);
   assert.match(app, /allow=\{\['super_admin', 'creative'\]\}/);
-  assert.match(layout, /\['Storage', '\/admin\/storage', HardDrive, canSeeStorageNavigation\]/);
+  assert.match(layout, /\['Media & Storage', '\/admin\/storage', HardDrive, canSeeStorageNavigation\]/);
   assert.equal((layout.match(/visibleGroups\.map/g) || []).length >= 2, true);
 });
 

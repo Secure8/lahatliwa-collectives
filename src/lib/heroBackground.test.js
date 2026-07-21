@@ -18,15 +18,15 @@ test('hero overlay opacity normalizes invalid and out-of-range values safely', (
   assert.equal(normalizeHeroOverlayOpacity(2), 1);
 });
 
-test('public hero and admin preview use the shared overlay style without a theme-recolored utility', async () => {
-  const [home, settings, css] = await Promise.all([
-    readFile(new URL('../pages/Home.jsx', import.meta.url), 'utf8'),
+test('collective hero and admin preview use the shared overlay style without a theme-recolored utility', async () => {
+  const [collectiveHero, settings, css] = await Promise.all([
+    readFile(new URL('../components/CollectiveHero.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/admin/SiteSettings.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
   ]);
-  assert.match(home, /className="hero-background-overlay absolute inset-0" style=\{heroBackground\.overlayStyle\}/);
+  assert.match(collectiveHero, /className="hero-background-overlay absolute inset-0" style=\{background\.overlayStyle\}/);
   assert.match(settings, /className="hero-background-overlay absolute inset-0" style=\{background\.overlayStyle\}/);
-  assert.doesNotMatch(home, /className="absolute inset-0 bg-zinc-950" style=\{\{ opacity:/);
+  assert.doesNotMatch(collectiveHero, /className="absolute inset-0 bg-zinc-950" style=\{\{ opacity:/);
   assert.match(css, /--hero-overlay-color: #2b2622/);
   assert.doesNotMatch(css, /\.hero-background-overlay[\s\S]*?background(?:-color)?:\s*(?:white|#fff)/i);
 });

@@ -30,7 +30,7 @@ test('deleted, unpublished, mismatched, and duplicate selections are rejected', 
 });
 
 test('carousel helpers support wraparound, swipe thresholds, and calm timing', () => {
-  assert.equal(TOURISM_SLIDE_AUTOPLAY_MS, 9000);
+  assert.equal(TOURISM_SLIDE_AUTOPLAY_MS, 6500);
   assert.equal(carouselStep(4, 5, 1), 0);
   assert.equal(carouselStep(0, 5, -1), 4);
   assert.equal(swipeDirection(200, 110), 1);
@@ -55,6 +55,13 @@ test('homepage implementation is tourism-led, bounded, accessible, and has no pr
   assert.match(hero, /prefers-reduced-motion/);
   assert.match(hero, /onMouseEnter/);
   assert.match(hero, /onFocusCapture/);
+  assert.match(hero, /:focus-visible/);
+  assert.match(hero, /setTimeout/);
+  assert.match(hero, /event\?\.detail > 0/);
+  assert.match(hero, /data-carousel-slide/);
+  assert.match(hero, /translate3d\(-100%,0,0\)/);
+  assert.match(hero, /translate3d\(100%,0,0\)/);
+  assert.match(hero, /grid-cols-\[2\.75rem_minmax\(0,1fr\)_2\.75rem\]/);
   assert.match(hero, /onPointerDown/);
   assert.match(hero, /ArrowLeft/);
   assert.match(hero, /aria-roledescription="carousel"/);

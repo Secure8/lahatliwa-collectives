@@ -523,14 +523,7 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
     };
   }, [scope]);
 
-  const value = contentScope === scope
-    ? { content, loading, resolved, error }
-    : {
-        content: cached || mergePublicContent(),
-        loading: !cached,
-        resolved: Boolean(cached),
-        error: '',
-      };
+  const value = { content, loading: contentScope === scope ? loading : true, resolved, error };
 
   return createElement(
     PublicContentContext.Provider,

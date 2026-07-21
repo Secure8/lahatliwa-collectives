@@ -16,17 +16,16 @@ test('public CMS cache identity is exact, stable, and page-specific', () => {
   assert.equal(cachedContentMatchesScope({ scope: 'about', content: { about: {} } }, ['contact']), false);
 });
 
-test('unresolved public shell contains neutral status text, not marketing copy', () => {
+test('public shell renders immediately while content refresh stays non-blocking', () => {
   const app = readFileSync(resolve(root, 'src/App.jsx'), 'utf8');
-  const unresolvedShell = app.slice(app.indexOf('if (!resolved)'), app.indexOf('return (\n    <>', app.indexOf('if (!resolved)')));
-  assert.match(unresolvedShell, /Loading site content/);
-  assert.doesNotMatch(unresolvedShell, /creative digital collective|Selected Projects|Need visuals/i);
+  assert.doesNotMatch(app, /if \(!resolved\)/);
+  assert.match(app, /Refreshing website content/);
 });
 
 test('public content scope changes cannot paint stale fallback copy', () => {
   const contentApi = readFileSync(resolve(root, 'src/lib/contentApi.js'), 'utf8');
   assert.match(contentApi, /contentScope === scope/);
-  assert.match(contentApi, /resolved: Boolean\(cached\)/);
+  assert.match(contentApi, /const value = \{ content/);
   assert.match(contentApi, /setContentScope\(scope\)/);
 });
 

@@ -90,7 +90,7 @@ function SiteDocumentMetadata() {
 
 function PublicSiteFrame() {
   const location = useLocation();
-  const { content, loading, resolved, error } = usePublicContent([]);
+  const { content, loading, error } = usePublicContent([]);
   const appBarMode = publicAppBarMode(location.pathname);
 
   useEffect(() => {
@@ -98,25 +98,14 @@ function PublicSiteFrame() {
     return () => document.documentElement.classList.remove('public-mode');
   }, []);
 
-  if (!resolved) {
-    return (
-      <main className="min-h-screen bg-zinc-950 text-zinc-100">
-        <div className="page-shell flex min-h-screen items-center justify-center py-20">
-          <div className="w-full max-w-xl">
-            <BrandWordmark name={content.displayName} variant="auth" to="/" />
-            <div className="mt-8">{loading ? <LoadingState label="Loading site content" /> : <p className="max-w-md text-sm leading-6 text-zinc-400">{error || 'Live site content is temporarily unavailable. Please try again.'}</p>}</div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <>
       <SiteDocumentMetadata />
       <PublicScrollRestoration />
       <a href="#public-main-content" className="skip-link">Skip to main content</a>
       <Navbar />
+      {loading && <p className="sr-only" role="status">Refreshing website content</p>}
+      {error && <p className="sr-only" role="alert">{error}</p>}
       <main id="public-main-content" tabIndex={-1} data-public-app-content data-app-bar-mode={appBarMode} className={`public-app-content public-app-content--${appBarMode} min-h-[60vh] overflow-x-hidden`}><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
       <Footer />
     </>

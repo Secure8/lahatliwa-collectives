@@ -65,6 +65,18 @@ test('theme motion stays available on every viewport except reduced-motion envir
   assert.equal(THEME_REDUCED_MOTION_QUERY, '(prefers-reduced-motion: reduce)');
 });
 
+test('Editorial Studio uses the shared light and dark surface tokens', async () => {
+  const studio = await readFile(new URL('../pages/editorial/EditorialStudio.jsx', import.meta.url), 'utf8');
+  assert.match(studio, /editorial-studio-shell/);
+  assert.match(studio, /<AppearanceMenuAction iconOnly className=/);
+  assert.doesNotMatch(studio, /<AppearanceMenuAction iconOnly instant/);
+  assert.match(studio, /bg-\[var\(--theme-page-background\)\]/);
+  assert.match(studio, /bg-\[var\(--theme-navigation-surface\)\]/);
+  assert.match(studio, /bg-\[var\(--theme-primary-surface\)\]/);
+  assert.match(studio, /bg-\[var\(--theme-input-background\)\]/);
+  assert.doesNotMatch(studio, /bg-\[#(?:090908|0c0c0b|0d0d0b|0b0b0a|10100e|11110f|151512|171714|181815|1c1c18)/i);
+});
+
 test('provider, one global toggle, startup, and rapid-change contracts stay shared across public and admin', async () => {
   const [provider, toggle, appearance, modeIcon, app, navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute, index, main, css, home, collectiveHero, contentApi] = await Promise.all([
     readFile(new URL('./ThemeProvider.jsx', import.meta.url), 'utf8'),

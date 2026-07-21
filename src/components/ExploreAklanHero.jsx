@@ -7,7 +7,8 @@ import TourismStoryFallback from './TourismStoryFallback.jsx';
 export default function ExploreAklanHero({ slides: sourceSlides = [], loading = false }) {
   const slides = normalizeHomepageSlides(sourceSlides);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [hoverPaused, setHoverPaused] = useState(false);
+  const [keyboardPaused, setKeyboardPaused] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const touchStart = useRef(null);
@@ -31,13 +32,19 @@ export default function ExploreAklanHero({ slides: sourceSlides = [], loading = 
   }, []);
 
   useEffect(() => {
-    if (paused || !pageVisible || reducedMotion || slides.length < 2) return undefined;
-    const timer = window.setInterval(() => setActiveIndex((current) => carouselStep(current, slides.length, 1)), TOURISM_SLIDE_AUTOPLAY_MS);
-    return () => window.clearInterval(timer);
-  }, [pageVisible, paused, reducedMotion, slides.length]);
+    if (hoverPaused || keyboardPaused || !pageVisible || reducedMotion || slides.length < 2) return undefined;
+    const timer = window.setTimeout(() => setActiveIndex((current) => carouselStep(current, slides.length, 1)), TOURISM_SLIDE_AUTOPLAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, hoverPaused, keyboardPaused, pageVisible, reducedMotion, slides.length]);
 
-  function move(direction) {
+  function move(direction, event) {
+    if (event?.detail > 0) setKeyboardPaused(false);
     setActiveIndex((current) => carouselStep(current, slides.length, direction));
+  }
+
+  function selectSlide(index, event) {
+    if (event?.detail > 0) setKeyboardPaused(false);
+    setActiveIndex(index);
   }
 
   function handleKeyDown(event) {
@@ -62,18 +69,19 @@ export default function ExploreAklanHero({ slides: sourceSlides = [], loading = 
       aria-label="Explore Aklan featured stories"
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}
-      onPointerDown={(event) => { if (event.pointerType === 'touch') touchStart.current = event.clientX; }}
+      onMouseEnter={() => setHoverPaused(true)}
+      onMouseLeave={() => setHoverPaused(false)}
+      onFocusCapture={(event) => { if (event.target.matches?.(':focus-visible')) setKeyboardPaused(true); }}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setKeyboardPaused(false); }}
+      onPointerDown={(event) => { if (event.pointerType === 'touch') { setKeyboardPaused(false); touchStart.current = event.clientX; } }}
       onPointerUp={(event) => { if (event.pointerType === 'touch') finishSwipe(event.clientX); }}
       onPointerCancel={() => { touchStart.current = null; }}
     >
       {slides.map((slide, index) => {
         const post = slide.editorial_posts;
         const visible = index === activeIndex;
-        return <div key={slide.slot_type} className={`absolute inset-0 transition-opacity duration-700 motion-reduce:transition-none ${visible ? 'opacity-100' : 'pointer-events-none opacity-0'}`} aria-hidden={!visible}>
+        const transform = visible ? 'translate3d(0,0,0)' : index < activeIndex ? 'translate3d(-100%,0,0)' : 'translate3d(100%,0,0)';
+        return <div key={slide.slot_type} data-carousel-slide data-active={visible ? 'true' : 'false'} className={`absolute inset-0 transition-[transform,opacity] duration-700 ease-out motion-reduce:transition-none ${visible ? 'z-[1] opacity-100' : 'pointer-events-none z-0 opacity-30'}`} style={{ transform }} aria-hidden={!visible}>
           {post.cover_image_url
             ? <img src={post.cover_image_url} alt="" loading={index === 0 ? 'eager' : 'lazy'} fetchpriority={index === 0 ? 'high' : 'auto'} decoding="async" width="1920" height="1080" sizes="100vw" className="h-full w-full object-cover" style={{ objectPosition: `${slide.focal_x ?? 50}% ${slide.focal_y ?? 50}%` }} />
             : <TourismStoryFallback className="h-full w-full" />}
@@ -94,15 +102,13 @@ export default function ExploreAklanHero({ slides: sourceSlides = [], loading = 
         </div>
       </div>
 
-      {slides.length > 1 && <div className="absolute inset-x-0 bottom-5 z-30">
-        <div className="page-shell flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2" role="tablist" aria-label="Choose a featured story">
-            {slides.map((slide, index) => <button key={slide.slot_type} type="button" role="tab" aria-selected={index === activeIndex} aria-label={`Show ${slide.editorial_posts.title}`} onClick={() => setActiveIndex(index)} className={`h-11 min-w-11 px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${index === activeIndex ? 'text-orange-200' : 'text-white/60 hover:text-white'}`}><span className={`block h-0.5 transition-all ${index === activeIndex ? 'w-8 bg-orange-300' : 'w-4 bg-white/45'}`} /></button>)}
+      {slides.length > 1 && <div className="absolute inset-x-0 bottom-4 z-30 sm:bottom-5">
+        <div className="page-shell grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2 sm:flex sm:justify-between sm:gap-4">
+          <button type="button" onClick={(event) => move(-1, event)} className="grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-sm transition hover:border-orange-200/70 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:order-2 sm:ml-auto" aria-label="Previous story"><ArrowLeft size={18} /></button>
+          <div className="flex min-w-0 items-center justify-center" role="tablist" aria-label="Choose a featured story">
+            {slides.map((slide, index) => <button key={slide.slot_type} type="button" role="tab" aria-selected={index === activeIndex} aria-label={`Show ${slide.editorial_posts.title}`} onClick={(event) => selectSlide(index, event)} className={`grid h-11 min-w-0 flex-1 place-items-center px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:min-w-11 sm:flex-none sm:px-3 ${index === activeIndex ? 'text-orange-200' : 'text-white/60 hover:text-white'}`}><span className={`block h-0.5 max-w-full transition-all ${index === activeIndex ? 'w-8 bg-orange-300' : 'w-4 bg-white/45'}`} /></button>)}
           </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => move(-1)} className="grid h-11 w-11 place-items-center border border-white/25 bg-black/25 text-white backdrop-blur-sm transition hover:border-orange-200/70 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Previous story"><ArrowLeft size={18} /></button>
-            <button type="button" onClick={() => move(1)} className="grid h-11 w-11 place-items-center border border-white/25 bg-black/25 text-white backdrop-blur-sm transition hover:border-orange-200/70 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Next story"><ArrowRight size={18} /></button>
-          </div>
+          <button type="button" onClick={(event) => move(1, event)} className="grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-sm transition hover:border-orange-200/70 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:order-3" aria-label="Next story"><ArrowRight size={18} /></button>
         </div>
       </div>}
       <p className="sr-only" aria-live="polite">Featured story {activeIndex + 1} of {slides.length}: {active.editorial_posts.title}</p>

@@ -6,7 +6,7 @@ export const TOURISM_SLIDE_SLOTS = Object.freeze([
   { key: 'local_product', label: 'Local Product', action: 'View Local Product', path: '/local-products' },
 ]);
 
-export const TOURISM_SLIDE_AUTOPLAY_MS = 9000;
+export const TOURISM_SLIDE_AUTOPLAY_MS = 6500;
 const SLOT_BY_TYPE = new Map(TOURISM_SLIDE_SLOTS.map((slot) => [slot.key, slot]));
 
 export function tourismSlideMeta(type) {

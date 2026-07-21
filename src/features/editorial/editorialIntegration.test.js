@@ -100,3 +100,14 @@ test('studio integrates sources and type-specific tourism data inside the visual
   assert.match(api, /editorial_event_details/);
   assert.match(studio, /verification_status/);
 });
+
+test('studio exposes search title and description fields that save with the revision', () => {
+  const studio = source('src/pages/editorial/EditorialStudio.jsx');
+  const api = source('src/features/editorial/editorialApi.js');
+  assert.match(studio, /label="Search title"/);
+  assert.match(studio, /label="Search description"/);
+  assert.match(studio, /patchRevision\('seo_title'/);
+  assert.match(studio, /patchRevision\('seo_description'/);
+  assert.match(api, /seoTitle: revision\.seo_title/);
+  assert.match(api, /seoDescription: revision\.seo_description/);
+});

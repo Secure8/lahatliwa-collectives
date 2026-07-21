@@ -145,6 +145,7 @@ test('page-specific Website Studio copy reaches homepage, Explore, inquiries, me
 
 test('migration keeps drafts private, limits writers, validates content, and audits every action', () => {
   const sql = read('supabase/migrations/20260722210000_connected_website_studio.sql');
+  const policyGrant = read('supabase/migrations/20260722214500_fix_website_studio_rls_helper_grant.sql');
   assert.match(sql, /revoke all on public\.website_studio_entries from public, anon, authenticated/i);
   assert.match(sql, /grant execute on function public\.get_public_website_studio\(\) to anon, authenticated/i);
   assert.doesNotMatch(sql, /grant (select|insert|update|delete).* to anon/i);
@@ -154,6 +155,9 @@ test('migration keeps drafts private, limits writers, validates content, and aud
   assert.match(sql, /website_studio_revisions/);
   assert.match(sql, /changed_fields/);
   assert.match(sql, /javascript\\s\*:/);
+  assert.match(policyGrant, /grant execute on function private\.website_studio_can_manage\(uuid\) to authenticated/i);
+  assert.match(policyGrant, /revoke all on function private\.website_studio_can_manage\(uuid\) from public, anon/i);
+  assert.doesNotMatch(policyGrant, /grant execute[\s\S]* to anon/i);
 });
 
 test('original Creatives hero wording and identity remain protected', () => {

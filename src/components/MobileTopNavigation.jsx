@@ -2,24 +2,35 @@ import { GalleryHorizontalEnd, House, MessageSquarePlus, PanelsTopLeft, UsersRou
 import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { PUBLIC_PRIMARY_DESTINATIONS, publicDestinationIsActive } from '../lib/mobileAppShell';
+import { usePublicContent } from '../lib/contentApi';
 import { preloadPublicRoute } from '../lib/publicRoutePreload';
 
 const icons = {
-  Home: House,
-  Services: PanelsTopLeft,
-  Projects: GalleryHorizontalEnd,
-  Creatives: UsersRound,
-  Inquiry: MessageSquarePlus,
+  '/': House,
+  '/services': PanelsTopLeft,
+  '/projects': GalleryHorizontalEnd,
+  '/creatives': UsersRound,
+  '/inquiry': MessageSquarePlus,
 };
 
 export default function MobileTopNavigation() {
   const location = useLocation();
+  const { content } = usePublicContent([]);
+  const navigation = content.websiteNavigation || {};
+  const labelsByPath = {
+    '/': navigation.homeLabel || 'Home',
+    '/services': navigation.servicesLabel || 'Services',
+    '/projects': navigation.projectsLabel || 'Projects',
+    '/creatives': navigation.creativesLabel || 'Creatives',
+    '/inquiry': 'Inquiry',
+  };
 
   return (
     <nav aria-label="Primary mobile navigation" data-mobile-top-navigation className="page-shell lg:hidden">
       <div className="grid grid-cols-5">
-        {PUBLIC_PRIMARY_DESTINATIONS.map(([label, href]) => {
-          const Icon = icons[label];
+        {PUBLIC_PRIMARY_DESTINATIONS.map(([, href]) => {
+          const label = labelsByPath[href];
+          const Icon = icons[href];
           const active = publicDestinationIsActive(location.pathname, href);
           return (
             <NavLink

@@ -20,6 +20,10 @@ test('public and admin mobile navigation identify the current page without clutt
   assert.match(component, /GalleryHorizontalEnd/);
   assert.match(component, /UsersRound/);
   assert.match(component, /MessageSquarePlus/);
+  assert.match(component, /usePublicContent/);
+  assert.match(component, /navigation\.servicesLabel \|\| 'Services'/);
+  assert.match(component, /navigation\.projectsLabel \|\| 'Projects'/);
+  assert.match(component, /navigation\.creativesLabel \|\| 'Creatives'/);
   assert.doesNotMatch(component, /h-9 w-12 place-items-center rounded-xl/);
   assert.doesNotMatch(component, /active && 'bg-\[var\(--site-accent-surface\)\]'/);
   assert.match(navbar, /<MobileTopNavigation \/>/);

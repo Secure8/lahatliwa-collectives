@@ -12,28 +12,21 @@ import BrandWordmark from './BrandWordmark';
 import AppearanceMenuAction from './AppearanceMenuAction';
 import MobileTopNavigation from './MobileTopNavigation';
 
-const links = [
-  ['Home', '/'],
-  ['About', '/about'],
-  ['Projects', '/projects'],
-  ['Services', '/services'],
-  ['Creatives', '/creatives'],
-  ['Contact', '/contact'],
-];
-
-const mobileSecondaryLinks = [
-  ['About', '/about'],
-  ['Contact', '/contact'],
-  ['Privacy', '/privacy'],
-];
-
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [headerFocused, setHeaderFocused] = useState(false);
   const location = useLocation();
   const { content } = usePublicContent([]);
-  const visibleLinks = links;
-  const visibleSecondaryLinks = mobileSecondaryLinks;
+  const navigation = content.websiteNavigation || {};
+  const visibleLinks = [
+    [navigation.homeLabel || 'Home', '/', true],
+    [navigation.aboutLabel || 'About', '/about', navigation.showAbout !== false],
+    [navigation.projectsLabel || 'Projects', '/projects', navigation.showProjects !== false],
+    [navigation.servicesLabel || 'Services', '/services', navigation.showServices !== false],
+    [navigation.creativesLabel || 'Creatives', '/creatives', navigation.showCreatives !== false],
+    [navigation.contactLabel || 'Contact', '/contact', navigation.showContact !== false],
+  ].filter(([, , visible]) => visible).map(([label, href]) => [label, href]);
+  const visibleSecondaryLinks = [[navigation.aboutLabel || 'About', '/about'], [navigation.contactLabel || 'Contact', '/contact'], ['Privacy', '/privacy']].filter(([, href]) => visibleLinks.some(([, primaryHref]) => primaryHref === href) || href === '/privacy');
   const mobileMode = publicAppBarMode(location.pathname);
   const secondaryDestination = visibleSecondaryLinks.find(([, href]) => location.pathname === href || location.pathname.startsWith(`${href}/`));
   const secondaryRouteIsActive = Boolean(secondaryDestination);

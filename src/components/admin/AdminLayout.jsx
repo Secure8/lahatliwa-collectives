@@ -2,7 +2,7 @@ import { Activity, CircleUserRound, Ellipsis, ExternalLink, FileText, FolderKanb
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { canCreateProjects, canManageSettings, canManageTeam, isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
+import { canCreateProjects, canManageTeam, isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
 import { usePublicContent } from '../../lib/contentApi';
 import { supabase } from '../../lib/supabaseClient';
 import BrandLogo from '../BrandLogo';
@@ -20,29 +20,20 @@ const links = [
     ['Dashboard', '/admin/dashboard', LayoutDashboard, () => true],
     ['View website', '/', ExternalLink, () => true],
   ]],
-  ['Explore Aklan', [
-    ['Stories', '/admin/editorial/content', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Create story', '/editorial/new', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
-    ['Destinations', '/admin/editorial/destinations', GalleryHorizontalEnd, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Homepage slideshow', '/admin/editorial/homepage', GalleryHorizontalEnd, ({ role }) => role === 'super_admin'],
-  ]],
-  ['Creative work', [
-    ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
+  ['Content', [
+    ['Website Studio', '/admin/website', Workflow, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Editorial Studio', '/editorial', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
-    ['Services', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
+    ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
   ]],
   ['Messages', [
     ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
   ]],
   ['Team', [
-    ['Members and invitations', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
-  ]],
-  ['Website', [
-    ['Homepage', '/admin/content/home', FileText, ({ role }) => isPrivilegedRole(role)],
-    ['Media and storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
-    ['Settings', '/admin/settings', Settings, ({ role }) => canManageSettings(role)],
+    ['Members', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Advanced', [
+    ['Media and storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
     ['Feature flags', '/admin/editorial/settings', Settings, ({ role }) => ['super_admin', 'admin'].includes(role)],
     ['Audit history', '/admin/editorial/audit', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
     ['System status', '/admin/system-status', Activity, ({ role }) => ['super_admin', 'admin'].includes(role)],
@@ -73,7 +64,7 @@ export default function AdminLayout({ children }) {
     : ['Profile', '/admin/my-profile', CircleUserRound];
   const defaultMobilePrimaryLinks = [
     ['Home', '/admin/dashboard', House],
-    ['Projects', '/admin/projects', GalleryHorizontalEnd],
+    [isPrivilegedRole(access.role) ? 'Website' : 'Projects', isPrivilegedRole(access.role) ? '/admin/website' : '/admin/projects', isPrivilegedRole(access.role) ? Workflow : GalleryHorizontalEnd],
     ['Inquiries', '/admin/inquiries', MessagesSquare],
     profileDestination,
   ];

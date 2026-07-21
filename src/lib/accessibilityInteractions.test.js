@@ -174,8 +174,8 @@ test('service branch admin previews reuse real uploaded public media without gen
 test('dashboard prioritizes summary, urgent work, and a small primary action set', async () => {
   const dashboard = await source('../pages/admin/Dashboard.jsx');
   assert.match(dashboard, /aria-label="Primary actions"/);
+  assert.match(dashboard, /Website Studio/);
   assert.match(dashboard, /Create a story/);
-  assert.match(dashboard, /Manage destinations/);
   assert.match(dashboard, /Review inquiries/);
   assert.match(dashboard, /Manage team/);
   assert.match(dashboard, /View live website/);
@@ -204,9 +204,9 @@ test('admin people management connects profiles and access while preserving thei
     source('../pages/admin/AdminCreatives.jsx'),
     source('../pages/admin/SiteSettings.jsx'),
   ]);
-  assert.match(layout, /\['Creative work', \[/);
+  assert.match(layout, /\['Content', \[/);
   assert.match(layout, /\['Team', \[/);
-  assert.match(layout, /Creatives[\s\S]*Members and invitations/);
+  assert.match(layout, /Website Studio[\s\S]*Editorial Studio[\s\S]*Projects[\s\S]*Creatives/);
   assert.match(peopleNav, /aria-label="People management"/);
   assert.match(team, /profile_image_url/);
   assert.match(team, /member\.avatar_url \|\| creatives\.find/);

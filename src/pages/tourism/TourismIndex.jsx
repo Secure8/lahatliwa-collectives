@@ -6,6 +6,7 @@ import LoadingState from '../../components/LoadingState.jsx';
 import TourismStoryFallback from '../../components/TourismStoryFallback.jsx';
 import { PublicEditorialGate } from '../../features/editorial/EditorialGate.jsx';
 import { CONTENT_TYPES, contentTypeMeta, listEditorialTaxonomy, listPublishedEditorial } from '../../features/editorial/editorialApi.js';
+import { usePublicContent } from '../../lib/contentApi.js';
 
 export default function TourismIndex({ type = '' }) {
   return <PublicEditorialGate><TourismIndexContent type={type} /></PublicEditorialGate>;
@@ -13,6 +14,8 @@ export default function TourismIndex({ type = '' }) {
 
 function TourismIndexContent({ type }) {
   const meta = type ? contentTypeMeta(type) : { plural: 'Explore Aklan', path: '/explore' };
+  const { content } = usePublicContent([]);
+  const page = content.websitePages?.explore || {};
   const [params, setParams] = useSearchParams();
   const [state, setState] = useState({ loading: true, error: '', posts: [], taxonomy: { municipalities: [], categories: [], tags: [] } });
   const filters = useMemo(() => ({ search: params.get('q') || '', municipality: params.get('municipality') || '', category: params.get('category') || '', tag: params.get('tag') || '', from: params.get('from') || '', to: params.get('to') || '' }), [params]);
@@ -35,9 +38,9 @@ function TourismIndexContent({ type }) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <section className="page-shell pb-10 pt-16 sm:pt-20">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Aklan Tourism</p>
-        <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-[var(--site-primary-text)] sm:text-6xl">{meta.plural}</h1>
-        <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--site-secondary-text)]">Locally edited guides, stories, events, destinations, activities, and products. Published entries are reviewed before they appear here.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--site-accent-text)]">{!type && page.eyebrow ? page.eyebrow : 'Aklan Tourism'}</p>
+        <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-[var(--site-primary-text)] sm:text-6xl">{!type && page.title ? page.title : meta.plural}</h1>
+        <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--site-secondary-text)]">{!type && page.description ? page.description : 'Locally edited guides, stories, events, destinations, activities, and products. Published entries are reviewed before they appear here.'}</p>
         <nav className="mt-8 flex flex-wrap gap-x-5 gap-y-3" aria-label="Tourism sections">
           <Link to="/explore" className="fine-link text-sm text-[var(--site-accent-text)]">Explore</Link>
           {CONTENT_TYPES.map((item) => <Link key={item.key} to={item.path} className="fine-link text-sm text-zinc-300">{item.plural}</Link>)}

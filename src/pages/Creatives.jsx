@@ -12,6 +12,7 @@ export default function Creatives() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { content } = usePublicContent(['home']);
+  const page = content.websitePages?.creatives || {};
 
   useEffect(() => {
     let active = true;
@@ -37,7 +38,7 @@ export default function Creatives() {
     <div>
       <CollectiveHero content={content} />
       <div className="page-shell py-20">
-      <PublicPageHeader eyebrow="Creative directory" title="Discover published creatives and credited work." description={`Explore profiles, skills, portfolio work, and project contributions published through ${content.displayName}. A published profile supports visibility and discovery without implying employment or permanent affiliation.`} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} aside={<><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Profile focus</p><p className="mt-2 max-w-44 text-sm leading-6 text-zinc-300">Skills, selected work, and contributor credits.</p></>} />
+      <PublicPageHeader eyebrow={page.directoryEyebrow || 'Creative directory'} title={page.directoryTitle || 'Discover published creatives and credited work.'} description={page.directoryDescription || `Explore profiles, skills, portfolio work, and project contributions published through ${content.displayName}. A published profile supports visibility and discovery without implying employment or permanent affiliation.`} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} aside={<><p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Profile focus</p><p className="mt-2 max-w-44 text-sm leading-6 text-zinc-300">Skills, selected work, and contributor credits.</p></>} />
       <div className="pt-12">
       {loading && <LoadingState label="Loading creatives" />}
       {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}

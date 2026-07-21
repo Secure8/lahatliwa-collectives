@@ -6,6 +6,7 @@ import { collectReferencedStoragePaths, normalizeStoragePath } from './projectMe
 import { cachedContentMatchesScope, publicContentScope } from './publicContentScope.js';
 import { safeExternalUrl } from './externalUrls.js';
 import { requestManagedMediaDeletion, uploadManagedWebsiteImage } from './r2Media.js';
+import { fetchPublicWebsiteStudio, websiteBundleToContent } from './websiteStudio.js';
 
 const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
@@ -15,7 +16,6 @@ const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache-v3';
 const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache', 'hevv-public-content-cache-v2'];
 const PUBLIC_CONTENT_UPDATED_EVENT = 'hevv-public-content-updated';
 const ALL_PAGE_KEYS = ['home', 'about', 'services', 'contact'];
-const PUBLIC_CONTENT_MEMORY_TTL = 60 * 1000;
 const PublicContentContext = createContext(null);
 const OPTIONAL_SETTINGS_COLUMNS = new Set(['divider_line_color', 'show_hero_portrait']);
 const memoryPublicContentByScope = new Map();
@@ -339,6 +339,20 @@ export function mergePublicContent(settings = {}, pages = {}) {
   };
 }
 
+function mergeWebsiteStudioContent(content, bundle = {}) {
+  if (!bundle || !Object.keys(bundle).length) return content;
+  const website = websiteBundleToContent(bundle);
+  const page = website.websitePages || {};
+  return {
+    ...content,
+    ...Object.fromEntries(Object.entries(website).filter(([, value]) => value !== '' && value !== undefined)),
+    home: { ...content.home, ...(page.home || {}) },
+    about: { ...content.about, ...(page.about || {}) },
+    servicesPage: { ...content.servicesPage, ...(page.services || {}) },
+    contactPage: { ...content.contactPage, ...(page.inquiries || {}) },
+  };
+}
+
 function readCachedPublicContent(pageKeys = ALL_PAGE_KEYS) {
   if (typeof window === 'undefined') return null;
   const scope = publicContentScope(pageKeys);
@@ -411,18 +425,16 @@ function clearCachedPublicContent() {
 }
 
 async function fetchPublicContentBundle(pageKeys) {
-  const [settings, pageEntries] = await Promise.all([
+  const [settings, pageEntries, websiteBundle] = await Promise.all([
     fetchSiteSettings(),
     Promise.all(pageKeys.map(async (key) => [key, await fetchPageContent(key)])),
+    fetchPublicWebsiteStudio().catch(() => ({})),
   ]);
-  return mergePublicContent(settings, Object.fromEntries(pageEntries));
+  return mergeWebsiteStudioContent(mergePublicContent(settings, Object.fromEntries(pageEntries)), websiteBundle);
 }
 
 async function loadPublicContentBundle(pageKeys) {
   const scope = publicContentScope(pageKeys);
-  const memoryEntry = memoryPublicContentByScope.get(scope);
-  const memoryIsFresh = memoryEntry?.updatedAt && Date.now() - memoryEntry.updatedAt < PUBLIC_CONTENT_MEMORY_TTL;
-  if (memoryIsFresh) return memoryEntry.content;
   if (publicContentRequests.has(scope)) return publicContentRequests.get(scope);
 
   const request = fetchPublicContentBundle(pageKeys);
@@ -484,20 +496,22 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
     }
     loadContent();
 
-    const handleCacheChange = () => {
+    const handleCacheChange = (event) => {
       const nextContent = readCurrentCachedContent(pageKeys);
       if (nextContent) {
         setContent(nextContent);
         setResolved(true);
         setLoading(false);
         setError('');
+      } else if (event?.detail?.reload || event?.type === 'storage') {
+        loadContent();
       }
     };
 
     const handleStorageChange = (event) => {
       if (event.key && event.key !== PUBLIC_CONTENT_CACHE_KEY) return;
       memoryPublicContentByScope.delete(scope);
-      handleCacheChange();
+      handleCacheChange(event);
     };
 
     window.addEventListener(PUBLIC_CONTENT_UPDATED_EVENT, handleCacheChange);
@@ -539,30 +553,33 @@ export function usePublicContent(pageKeys = []) {
     async function loadContent() {
       setLoading(true);
       try {
-        const [settings, pageEntries] = await Promise.all([
+        const [settings, pageEntries, websiteBundle] = await Promise.all([
           fetchSiteSettings(),
           Promise.all(keys.map(async (key) => [key, await fetchPageContent(key)])),
+          fetchPublicWebsiteStudio().catch(() => ({})),
         ]);
         if (!active) return;
-        setContent(mergePublicContent(settings, Object.fromEntries(pageEntries)));
+        setContent(mergeWebsiteStudioContent(mergePublicContent(settings, Object.fromEntries(pageEntries)), websiteBundle));
       } finally {
         if (active) setLoading(false);
       }
     }
     loadContent();
 
-    const handleCacheChange = () => {
+    const handleCacheChange = (event) => {
       const nextContent = readCurrentCachedContent(keys);
       if (nextContent) {
         setContent(nextContent);
         setLoading(false);
+      } else if (event?.detail?.reload || event?.type === 'storage') {
+        loadContent();
       }
     };
 
     const handleStorageChange = (event) => {
       if (event.key && event.key !== PUBLIC_CONTENT_CACHE_KEY) return;
       memoryPublicContentByScope.delete(publicContentScope(keys));
-      handleCacheChange();
+      handleCacheChange(event);
     };
 
     window.addEventListener(PUBLIC_CONTENT_UPDATED_EVENT, handleCacheChange);

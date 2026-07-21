@@ -1,11 +1,11 @@
 import { ArrowRight, Camera, Check, Circle, Code2, Headphones, Megaphone, Sparkles, Wrench } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
 import PublicPageHeader from '../components/PublicPageHeader';
 import { resolvePublicAssetUrl, usePublicContent } from '../lib/contentApi';
 import { branchKeyFromRecord, branchMeta, GENERAL_BRANCH, inquiryCopy, inquiryNavigationState, inquiryUrl, publicBranchDescription, SERVICE_BRANCHES, serviceCategoriesForBranch, servicesPath, slugifyService } from '../lib/serviceRequest';
-import { supabase } from '../lib/supabaseClient';
+import { branchesFromWebsiteContent, servicesFromWebsiteContent } from '../lib/websiteStudio.js';
 
 const iconMap = { studio: Camera, tech: Wrench, digital: Code2, social: Megaphone, general: Headphones, Camera, Circle, Code2, Sparkles, Wrench };
 
@@ -25,23 +25,8 @@ function fallbackBranches(groups = []) {
 
 export default function Services() {
   const { branch: branchParam = '' } = useParams();
-  const { content } = usePublicContent(['services']);
-  const [branches, setBranches] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    supabase.from('service_branches')
-      .select('id, name, slug, description, included_services, icon_url, image_url, display_order')
-      .eq('is_published', true)
-      .order('display_order', { ascending: true, nullsFirst: false })
-      .then(({ data }) => {
-        if (!active) return;
-        setBranches(data || []);
-        setLoading(false);
-      });
-    return () => { active = false; };
-  }, []);
+  const { content, loading } = usePublicContent(['services']);
+  const branches = useMemo(() => branchesFromWebsiteContent(content), [content.websiteBranches, content.websiteServices]);
 
   const branchGroups = useMemo(() => {
     const rows = branches.length ? branches : fallbackBranches(content.servicesPage.groups);
@@ -52,21 +37,21 @@ export default function Services() {
       return meta ? {
         ...branch,
         key,
-        label: meta.label,
+        label: branch.name || branch.label || meta.label,
         action: meta.action,
-        description: publicBranchDescription(key, branch.description || contentGroup?.description),
-        services: serviceCategoriesForBranch(key, branch.included_services || branch.items || []),
+        description: branch.longDescription || branch.shortDescription || publicBranchDescription(key, branch.description || contentGroup?.description),
+        services: servicesFromWebsiteContent(content, key).length ? servicesFromWebsiteContent(content, key) : serviceCategoriesForBranch(key, branch.included_services || branch.items || []),
         iconUrl: resolvePublicAssetUrl(branch.icon_url || branch.image_url || contentGroup?.customIconUrl || contentGroup?.iconUrl),
       } : null;
     }).filter(Boolean);
-  }, [branches, content.servicesPage.groups]);
+  }, [branches, content.servicesPage.groups, content.websiteServices]);
 
   if (branchParam && !branchMeta(branchParam)) return <Navigate to="/services" replace />;
   const selected = branchParam ? branchGroups.find((branch) => branch.key === branchParam) : null;
 
   return (
     <div className="page-shell py-16 sm:py-20">
-      <PublicPageHeader eyebrow="Client services" title="Four practical paths for different kinds of support." description="Select the branch closest to your need, explore its available service categories, then begin a guided inquiry. You can express a preference for a published creative when relevant or continue through the general branch option." accentColor={content.accentColor} titleColor={content.servicesPage.headingColor || content.primaryTextColor} bodyColor={content.servicesPage.bodyTextColor || content.secondaryTextColor} />
+      <PublicPageHeader eyebrow="Client services" title={content.servicesPage.title || 'Four practical paths for different kinds of support.'} description={content.servicesPage.intro || 'Select the branch closest to your need, explore its available service categories, then begin a guided inquiry.'} accentColor={content.accentColor} titleColor={content.servicesPage.headingColor || content.primaryTextColor} bodyColor={content.servicesPage.bodyTextColor || content.secondaryTextColor} />
 
       <nav aria-label="Service branches" className="public-filter-scroll mt-10 flex gap-2 overflow-x-auto py-2">
         <Link to="/services" aria-current={!branchParam ? 'page' : undefined} className={`interactive-tab min-h-11 shrink-0 content-center px-3 text-xs uppercase tracking-[0.15em] ${!branchParam ? 'text-white' : 'text-zinc-500 hover:text-white'}`}>Overview</Link>

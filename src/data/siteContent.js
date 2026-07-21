@@ -2,7 +2,7 @@ export const SITE_TAGLINE = 'Build your presence. Shape your story.';
 
 export const defaultSiteContent = {
   legalName: 'Lahat Liwa Collectives',
-  displayName: 'Lahat Liwa',
+  displayName: 'Lahat Liwa Collectives',
   initials: 'LL',
   email: '',
   tagline: SITE_TAGLINE,

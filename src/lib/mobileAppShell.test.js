@@ -125,9 +125,9 @@ test('public and admin drawers provide modal keyboard behavior while mobile them
     assert.match(source, /AppearanceMenuAction/);
     assert.match(source, /safe-area-inset-bottom/);
   }
-  assert.match(navbar, /mobileSecondaryLinks/);
+  assert.match(navbar, /visibleSecondaryLinks/);
   assert.match(navbar, /aria-label="Secondary mobile navigation"/);
-  assert.doesNotMatch(navbar, /mobileSecondaryLinks[\s\S]*?\['Home', '\/'\]/);
+  assert.doesNotMatch(navbar, /visibleSecondaryLinks[\s\S]*?\['Home', '\/'\]/);
   assert.match(navbar, /LockKeyhole/);
   assert.match(navbar, /to="\/admin\/dashboard"/);
   assert.match(navbar, /AppearanceMenuAction[\s\S]*?iconOnly/);

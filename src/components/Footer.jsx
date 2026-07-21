@@ -21,6 +21,7 @@ export default function Footer() {
       <div className="page-shell grid gap-10 py-12 md:grid-cols-[1.4fr_1fr] md:py-14">
         <div>
           <BrandWordmark name={content.displayName} variant="footer" to="/" className="inline-flex min-h-11 items-center" />
+          {content.footerContextLabel && <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">{content.footerContextLabel}</p>}
           <p className="mt-3 text-sm font-medium text-[var(--site-brand-accent)]">{content.tagline}</p>
           <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">{content.footerText}</p>
         </div>
@@ -40,7 +41,7 @@ export default function Footer() {
       </div>
       <div className="page-shell flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] py-5 text-xs uppercase tracking-[0.1em] text-zinc-600">
         <span>Copyright {new Date().getFullYear()} {content.displayName}. All rights reserved.</span>
-        <Link className="inline-flex min-h-11 items-center transition hover:text-[var(--site-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]" to="/privacy">Privacy Policy</Link>
+        <Link className="inline-flex min-h-11 items-center transition hover:text-[var(--site-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]" to="/privacy">{content.privacyLabel || 'Privacy Policy'}</Link>
       </div>
     </footer>
   );

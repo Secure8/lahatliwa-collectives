@@ -1,4 +1,4 @@
-import { ArrowRight, ExternalLink, Inbox, MapPinned, Plus, Users } from 'lucide-react';
+import { ArrowRight, ExternalLink, Inbox, PanelsTopLeft, Plus, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
@@ -65,7 +65,8 @@ export default function Dashboard() {
 
   const displayName = adminUser?.display_name || adminUser?.name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'there';
   const actions = useMemo(() => [
-    ...(canUseEditorial ? [{ to: '/editorial/new', icon: Plus, label: 'Create a story', description: 'Start a tourism or community story.', primary: true }, { to: ['super_admin', 'admin'].includes(role) ? '/admin/editorial/destinations' : '/editorial', icon: MapPinned, label: 'Manage destinations', description: 'Review destination information.' }] : []),
+    ...(['super_admin', 'admin'].includes(role) ? [{ to: '/admin/website', icon: PanelsTopLeft, label: 'Website Studio', description: 'Edit the public website.', primary: true }] : []),
+    ...(canUseEditorial ? [{ to: '/editorial/new', icon: Plus, label: 'Create a story', description: 'Start a tourism or community story.', primary: !['super_admin', 'admin'].includes(role) }] : []),
     ...(canViewInquiries ? [{ to: '/admin/inquiries', icon: Inbox, label: 'Review inquiries', description: 'Read questions and continue follow-up.' }] : []),
     ...(canManagePeople ? [{ to: '/admin/team', icon: Users, label: 'Manage team', description: 'Invite members and update access.' }] : []),
     { to: '/', icon: ExternalLink, label: 'View live website', description: 'Open the public website.', external: true },

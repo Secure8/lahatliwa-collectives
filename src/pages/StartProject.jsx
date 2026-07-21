@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabaseClient';
 import useStepScroll, { motionSafeScrollBehavior } from '../lib/useStepScroll';
 import useProgressiveNavigation from '../lib/useProgressiveNavigation';
 import { defaultTourismInquiryCategory, INQUIRY_PATHS, inquiryContextFromSearchParams, TOURISM_INQUIRY_CATEGORIES } from '../lib/inquiryContext.js';
+import { branchesFromWebsiteContent } from '../lib/websiteStudio.js';
 
 const budgetRanges = ['Not specified', 'Below PHP 5,000', 'PHP 5,000 - 15,000', 'PHP 15,000 - 30,000', 'PHP 30,000+'];
 const contactMethods = ['Email', 'Phone', 'Facebook / Messenger', 'WhatsApp', 'Other'];
@@ -83,15 +84,16 @@ export default function StartProject() {
   useStepScroll({ containerRef: inquiryContainerRef, request: stepScrollRequest });
 
   useEffect(() => {
+    const websiteBranches = branchesFromWebsiteContent(content);
+    setBranches(websiteBranches.length ? websiteBranches : SERVICE_BRANCHES.map((branch) => ({ ...branch, name: branch.label, slug: branch.key, included_services: serviceCategoriesForBranch(branch.key) })));
+  }, [content.websiteBranches, content.websiteServices]);
+
+  useEffect(() => {
     let active = true;
-    Promise.all([
-      supabase.from('service_branches').select('name, slug, included_services').eq('is_published', true).order('display_order', { ascending: true, nullsFirst: false }),
-      supabase.functions.invoke('inquiry-public-options', { body: { action: 'list' } }),
-    ]).then(([branchResult, creativeResult]) => {
+    supabase.functions.invoke('inquiry-public-options', { body: { action: 'list' } }).then((creativeResult) => {
       if (!active) return;
-      setBranches(branchResult.data || []);
       setCreatives(creativeResult.data?.creatives || []);
-      if (branchResult.error || creativeResult.error) setChoiceLoadError('Some current service choices could not be verified. Unavailable options have been hidden for safety.');
+      if (creativeResult.error) setChoiceLoadError('Some current specialist choices could not be verified. Unavailable options have been hidden for safety.');
       setLoadingChoices(false);
     });
     return () => { active = false; };
@@ -161,7 +163,8 @@ export default function StartProject() {
   }, [focusStepHeadingRequest, step]);
 
   const availableServices = useMemo(() => servicesForBranch(draft.branch, branches), [branches, draft.branch]);
-  const selectedBranch = branchMeta(draft.branch);
+  const selectedBranchRow = branches.find((item) => branchKeyFromRecord(item) === draft.branch);
+  const selectedBranch = selectedBranchRow ? { ...branchMeta(draft.branch), label: selectedBranchRow.name || selectedBranchRow.label || branchMeta(draft.branch)?.label, description: selectedBranchRow.longDescription || selectedBranchRow.shortDescription || selectedBranchRow.description || branchMeta(draft.branch)?.description } : branchMeta(draft.branch);
   const selectedService = availableServices.find((service) => service.key === draft.serviceKey) || null;
   const selectedCreative = creatives.find((creative) => creative.slug === draft.creativeSlug) || null;
   const copy = inquiryCopy(draft.branch);
@@ -352,12 +355,14 @@ function InquiryPathLanding({ content, onChoose }) {
     [INQUIRY_PATHS.tourism, 'Destinations, events, activities, local products, corrections, and questions about exploring Aklan.'],
     [INQUIRY_PATHS.general, 'Partnerships, platform questions, public concerns, and anything that does not fit the other paths.'],
   ];
-  return <div className="page-shell py-16 sm:py-20"><PublicPageHeader eyebrow="Contact Lahat Liwa" title="How can we help?" description="Choose one path first. We’ll show only the questions that apply to your request." accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} /><div className="mt-10 grid gap-4 lg:grid-cols-3">{choices.map(([choice, detail]) => <button key={choice.key} type="button" onClick={() => onChoose(choice.key)} className="group min-h-52 border border-white/[0.1] bg-white/[0.02] p-6 text-left transition hover:border-orange-300/45 hover:bg-orange-300/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><p className="text-lg font-semibold text-[var(--site-primary-text)]">{choice.label}</p><p className="mt-4 text-sm leading-6 text-[var(--site-secondary-text)]">{detail}</p><span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-accent-text)]">Continue <ArrowRight size={16} /></span></button>)}</div><div className="mt-8 flex items-start gap-3 border-y border-white/[0.1] py-5 text-sm leading-6 text-[var(--site-secondary-text)]"><ShieldAlert size={18} className="mt-0.5 shrink-0 text-orange-200" /><p>Lahat Liwa is an independent creative collective and information platform. It is not an official tourism office, emergency service, travel agency, booking authority, transportation provider, or tour operator.</p></div></div>;
+  const page = content.contactPage || {};
+  return <div className="page-shell py-16 sm:py-20"><PublicPageHeader eyebrow={page.landingEyebrow || `Contact ${content.displayName}`} title={page.landingHeading || 'How can we help?'} description={page.landingDescription || 'Choose one path first. We’ll show only the questions that apply to your request.'} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} /><div className="mt-10 grid gap-4 lg:grid-cols-3">{choices.map(([choice, detail]) => <button key={choice.key} type="button" onClick={() => onChoose(choice.key)} className="group min-h-52 border border-white/[0.1] bg-white/[0.02] p-6 text-left transition hover:border-orange-300/45 hover:bg-orange-300/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"><p className="text-lg font-semibold text-[var(--site-primary-text)]">{choice.label}</p><p className="mt-4 text-sm leading-6 text-[var(--site-secondary-text)]">{detail}</p><span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-accent-text)]">Continue <ArrowRight size={16} /></span></button>)}</div><div className="mt-8 flex items-start gap-3 border-y border-white/[0.1] py-5 text-sm leading-6 text-[var(--site-secondary-text)]"><ShieldAlert size={18} className="mt-0.5 shrink-0 text-orange-200" /><p>{page.disclaimer || `${content.displayName} is an independent creative collective and information platform. It is not an official tourism office, emergency service, travel agency, booking authority, transportation provider, or tour operator.`}</p></div></div>;
 }
 
 function servicesForBranch(branch, rows) {
   const row = rows.find((item) => branchKeyFromRecord(item) === branch);
-  return serviceCategoriesForBranch(branch, row?.included_services || []);
+  const configured = Array.isArray(row?.included_services) ? row.included_services : [];
+  return configured.length && typeof configured[0] === 'object' ? configured : serviceCategoriesForBranch(branch, configured);
 }
 
 function SelectionSummary({ branch, service, specialist = '', onChange, onChangeSpecialist }) {
@@ -376,8 +381,8 @@ function StepProgress({ current, steps }) {
 
 function ServiceStep({ draft, branches, availableServices, selectBranch, selectService, serviceCategoryRef, loading, errors, copy }) {
   if (loading) return <LoadingState label="Loading available services" compact />;
-  const availableKeys = new Set(branches.map(branchKeyFromRecord));
-  return <div className="grid gap-8"><ChoiceGroup fieldKey="branch" legend="Choose a Liwa branch" error={errors.branch}><div data-flow-step="branch" className="mt-4 grid gap-3 sm:grid-cols-2">{[...SERVICE_BRANCHES.filter((branch) => availableKeys.has(branch.key)), branchMeta('general')].map((branch) => <ChoiceButton key={branch.key} selected={draft.branch === branch.key} onClick={() => selectBranch(branch.key)} title={branch.label} detail={branch.description} />)}</div></ChoiceGroup>{draft.branch && <div ref={serviceCategoryRef} data-flow-step="category" aria-live="polite"><ChoiceGroup fieldKey="serviceKey" legend={copy.serviceSelectionHeading} error={errors.serviceKey}><p className="mt-2 text-sm leading-6 text-zinc-400">{copy.serviceSelectionDescription}</p><p className="mt-2 text-xs leading-5 text-zinc-600">{copy.serviceHelper}</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{availableServices.map((service) => <ChoiceButton key={service.key} selected={draft.serviceKey === service.key} onClick={() => selectService(service.key)} title={service.name} compact />)}</div></ChoiceGroup></div>}</div>;
+  const availableBranches = branches.map((branch) => ({ key: branchKeyFromRecord(branch), label: branch.name || branch.label, description: branch.longDescription || branch.shortDescription || branch.description })).filter((branch) => branch.key);
+  return <div className="grid gap-8"><ChoiceGroup fieldKey="branch" legend="Choose a Liwa branch" error={errors.branch}><div data-flow-step="branch" className="mt-4 grid gap-3 sm:grid-cols-2">{[...availableBranches, branchMeta('general')].map((branch) => <ChoiceButton key={branch.key} selected={draft.branch === branch.key} onClick={() => selectBranch(branch.key)} title={branch.label} detail={branch.description} />)}</div></ChoiceGroup>{draft.branch && <div ref={serviceCategoryRef} data-flow-step="category" aria-live="polite"><ChoiceGroup fieldKey="serviceKey" legend={copy.serviceSelectionHeading} error={errors.serviceKey}><p className="mt-2 text-sm leading-6 text-zinc-400">{copy.serviceSelectionDescription}</p><p className="mt-2 text-xs leading-5 text-zinc-600">{copy.serviceHelper}</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{availableServices.map((service) => <ChoiceButton key={service.key} selected={draft.serviceKey === service.key} onClick={() => selectService(service.key)} title={service.name} compact />)}</div></ChoiceGroup></div>}</div>;
 }
 
 function RecipientStep({ creatives, selected, selectRecipient, loading, error, copy }) {

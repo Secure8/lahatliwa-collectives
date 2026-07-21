@@ -1025,7 +1025,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         {canEditCurrent && <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'save_draft'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">Save</button>}
         {canEditCurrent && !canApprove && (
           <button disabled={saving || uploadingImages} onClick={() => { submitActionRef.current = 'submit'; }} className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white/[0.055] px-3 text-sm font-semibold text-zinc-200 ring-1 ring-white/[0.08] hover:bg-white/[0.085] disabled:opacity-60 sm:col-auto sm:px-5">
-            Submit
+            Request review
           </button>
         )}
         {canApprove && (

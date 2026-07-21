@@ -18,7 +18,7 @@ export const EDITORIAL_SECTION_OPTIONS = Object.freeze(
 export const EDITORIAL_CONTENT_CHOICES = Object.freeze([
   { key: 'journal', label: 'Journal', description: 'Guides, culture stories, and tourism updates.' },
   { key: 'event', label: 'Event', description: 'Festivals, schedules, and community celebrations.' },
-  { key: 'place', label: 'Place', description: 'Destinations, nature spots, and heritage sites.' },
+  { key: 'place', label: 'Destination', description: 'Destinations, nature spots, and heritage sites.' },
   { key: 'activity', label: 'Activity', description: 'Tours, workshops, and visitor experiences.' },
   { key: 'local_product', label: 'Local Product', description: 'Food, crafts, makers, and product stories.' },
 ]);

@@ -15,12 +15,12 @@ test('homepage defines exactly one slot for all five Editorial types', () => {
   assert.equal(new Set(TOURISM_SLIDE_SLOTS.map((item) => item.key)).size, 5);
 });
 
-test('slide normalization orders valid selections and skips unsafe rows', () => {
+test('slide normalization orders valid selections and supports image-less stories', () => {
   const rows = [slide('place', { sort_order: 3 }), slide('journal', { sort_order: 0 }), slide('event', { editorial_posts: { ...slide('event').editorial_posts, status: 'archived', archived_at: '2026-07-21' } }), slide('activity', { editorial_posts: { ...slide('activity').editorial_posts, cover_image_url: '' } }), slide('local_product', { enabled: false })];
-  assert.deepEqual(normalizeHomepageSlides(rows).map((item) => item.slot_type), ['journal', 'place']);
+  assert.deepEqual(normalizeHomepageSlides(rows).map((item) => item.slot_type), ['journal', 'place', 'activity']);
 });
 
-test('deleted, unpublished, mismatched, duplicate, and imageless selections are rejected', () => {
+test('deleted, unpublished, mismatched, and duplicate selections are rejected', () => {
   const good = slide('place');
   const duplicate = slide('place', { sort_order: 2 });
   const mismatched = slide('event', { editorial_posts: { ...slide('event').editorial_posts, content_type: 'journal' } });
@@ -57,9 +57,18 @@ test('homepage implementation is tourism-led, bounded, accessible, and has no pr
   assert.match(hero, /onPointerDown/);
   assert.match(hero, /ArrowLeft/);
   assert.match(hero, /aria-roledescription="carousel"/);
-  assert.match(feed, /Load More/);
+  assert.match(hero, /TourismStoryFallback/);
+  assert.match(feed, /Load more/);
+  assert.match(feed, /TourismStoryFallback/);
   assert.match(api, /\.eq\('content_type', 'place'\)/);
   assert.match(api, /\.range\(from, from \+ pageSize\)/);
+});
+
+test('image-less fallback is visual-only and does not claim to depict a destination', () => {
+  const fallback = read('src/components/TourismStoryFallback.jsx');
+  assert.match(fallback, /data-tourism-story-fallback/);
+  assert.match(fallback, /aria-hidden="true"/);
+  assert.doesNotMatch(fallback, /<img|destination photograph|photo of/i);
 });
 
 test('slideshow migration is additive, typed, audited, feature-flagged, and Super Admin protected', () => {

@@ -51,6 +51,7 @@ const TourismIndex = lazy(() => import('./pages/tourism/TourismIndex'));
 const TourismDetail = lazy(() => import('./pages/tourism/TourismDetail'));
 const EditorialStudio = lazy(() => import('./pages/editorial/EditorialStudio'));
 const AdminEditorial = lazy(() => import('./pages/admin/AdminEditorial'));
+const AdminSystemStatus = lazy(() => import('./pages/admin/AdminSystemStatus'));
 
 const routeMetadata = {
   '/': ['Explore Aklan | Destinations, Events and Local Stories', 'Discover destinations, events, activities, local products, and community stories across Aklan through Lahat Liwa Collectives.'],
@@ -123,8 +124,8 @@ function PublicSiteFrame() {
 function PublicLayout() {
   const location = useLocation();
   const { pathname } = location;
-  const contentArea = pathname === '/' ? 'home' : pathname === '/about' ? 'about' : pathname.startsWith('/services') ? 'services' : pathname === '/contact' ? 'contact' : 'shared';
-  const pageKeys = useMemo(() => contentArea === 'home' ? ['home', 'services'] : contentArea === 'shared' ? [] : [contentArea], [contentArea]);
+  const contentArea = pathname === '/' ? 'home' : pathname === '/creatives' ? 'creatives' : pathname === '/about' ? 'about' : pathname.startsWith('/services') ? 'services' : pathname === '/contact' ? 'contact' : 'shared';
+  const pageKeys = useMemo(() => contentArea === 'home' ? ['home', 'services'] : contentArea === 'creatives' ? ['home'] : contentArea === 'shared' ? [] : [contentArea], [contentArea]);
   return (
     <PublicContentProvider pageKeys={pageKeys}>
       <PublicSiteFrame />
@@ -196,6 +197,7 @@ export default function App() {
         <Route path="/admin/media/icons" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative']}><IconsMedia /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/storage" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'creative']}><Storage /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/editorial/*" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminEditorial /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/system-status" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminSystemStatus /></AdminRouteGuard></AdminSuspense>} />
       </Route>
     </Routes><ThemeToggle /></>
   );

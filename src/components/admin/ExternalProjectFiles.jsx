@@ -114,9 +114,9 @@ export default function ExternalProjectFiles({ project, enabled, onGalleryReplac
   async function act(file, action) {
     if (action === 'delete') {
       requestConfirmation({
-        title: `Permanently delete “${file.filename}”?`,
+        title: `Delete “${file.filename}” permanently?`,
         description: `This removes the private Google Drive file${file.preview ? ' and its public Supabase preview' : ''}. This cannot be undone.`,
-        confirmLabel: 'Permanently delete',
+        confirmLabel: 'Delete permanently',
         destructive: true,
         onConfirm: () => act(file, 'delete_confirmed'),
       });

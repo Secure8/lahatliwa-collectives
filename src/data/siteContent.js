@@ -20,12 +20,12 @@ export const defaultSiteContent = {
   defaultBackgroundImageUrl: '',
   defaultBackgroundOverlayOpacity: 0.55,
   hero: {
-    eyebrow: 'Independent creative platform',
-    title: 'Practical support, published work, and room for creative growth.',
+    eyebrow: 'AKLAN CREATIVES',
+    title: 'Lahat Liwa Collectives',
     description:
-      'Find focused support across visual production, digital development, social media, and technical needs—or explore the creatives and work published through the platform.',
-    primaryCta: 'Send an Inquiry',
-    secondaryCta: 'Explore Published Work',
+      'Serve as a shared space where creatives can present their work, receive proper credit, and publish projects under one collective identity.',
+    primaryCta: 'View Projects',
+    secondaryCta: 'Contact Us',
   },
   about: {
     title: 'One platform for practical support and visible creative work.',

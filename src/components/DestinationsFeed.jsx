@@ -6,6 +6,7 @@ import { publicImageVariant } from '../lib/publicImages.js';
 import { mergeUniqueDestinations } from '../lib/tourismHomepage.js';
 import EmptyState from './EmptyState.jsx';
 import LoadingState from './LoadingState.jsx';
+import TourismStoryFallback from './TourismStoryFallback.jsx';
 
 const PAGE_SIZE = 5;
 
@@ -43,17 +44,17 @@ export default function DestinationsFeed() {
       <div className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-accent-text)]">Explore Aklan</p>
         <h2 id="destinations-heading" className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[var(--site-primary-text)] sm:text-5xl">Destinations</h2>
-        <p className="mt-5 text-base leading-7 text-[var(--site-secondary-text)]">Discover published places and locally edited destination stories from communities across Aklan.</p>
+        <p className="mt-5 text-base leading-7 text-[var(--site-secondary-text)]">Discover locally edited destination stories from communities across Aklan.</p>
       </div>
 
       <div className="mt-12">
         {state.loading ? <LoadingState label="Loading destinations" /> : state.error && !state.rows.length ? <p className="border-y border-red-300/20 py-5 text-sm text-red-100">{state.error}</p> : state.rows.length ? <div className="grid gap-14 sm:gap-16">
           {state.rows.map((post, index) => <DestinationStory key={post.id} post={post} reverse={index % 2 === 1} />)}
-        </div> : <EmptyState title="Destination stories are being prepared" message="Published places will appear here as the Explore Aklan collection grows." />}
+        </div> : <EmptyState title="Destination stories are being prepared" message="Published destinations will appear here as the Explore Aklan collection grows." />}
       </div>
 
       {state.error && state.rows.length > 0 && <p className="mt-8 text-sm text-red-100">{state.error}</p>}
-      {state.hasMore && <div className="mt-12 flex justify-center"><button type="button" disabled={state.loadingMore} onClick={() => loadPage(state.nextOffset, true)} className="inline-flex min-h-12 items-center gap-2 border border-[var(--site-accent-border)] px-5 text-sm font-semibold text-[var(--site-primary-text)] transition hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:opacity-50">{state.loadingMore ? 'Loading…' : 'Load More'} <ArrowRight size={16} /></button></div>}
+      {state.hasMore && <div className="mt-12 flex justify-center"><button type="button" disabled={state.loadingMore} onClick={() => loadPage(state.nextOffset, true)} className="inline-flex min-h-12 items-center gap-2 border border-[var(--site-accent-border)] px-5 text-sm font-semibold text-[var(--site-primary-text)] transition hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:opacity-50">{state.loadingMore ? 'Loading…' : 'Load more'} <ArrowRight size={16} /></button></div>}
     </section>
   );
 }
@@ -64,7 +65,9 @@ function DestinationStory({ post, reverse }) {
   const verified = placeDetails?.verification_status === 'verified';
   return <article className="grid items-center gap-7 lg:grid-cols-12 lg:gap-12">
     <Link to={`/places/${post.slug}`} preventScrollReset state={{ homepageDestination: true }} className={`group block overflow-hidden bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] lg:col-span-7 ${reverse ? 'lg:order-2' : ''}`} aria-label={`View destination: ${post.title}`}>
-      <img src={image} alt={post.cover_image_alt || post.title} loading="lazy" decoding="async" width="1280" height="800" sizes="(max-width: 1023px) calc(100vw - 2rem), 58vw" className="aspect-[16/10] w-full object-cover transition duration-700 group-hover:scale-[1.015] motion-reduce:transform-none motion-reduce:transition-none" />
+      {image
+        ? <img src={image} alt={post.cover_image_alt || post.title} loading="lazy" decoding="async" width="1280" height="800" sizes="(max-width: 1023px) calc(100vw - 2rem), 58vw" className="aspect-[16/10] w-full object-cover transition duration-700 group-hover:scale-[1.015] motion-reduce:transform-none motion-reduce:transition-none" />
+        : <TourismStoryFallback className="aspect-[16/10] w-full transition duration-700 group-hover:scale-[1.015] motion-reduce:transform-none motion-reduce:transition-none" />}
     </Link>
     <div className={`lg:col-span-5 ${reverse ? 'lg:order-1' : ''}`}>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--site-accent-text)]">

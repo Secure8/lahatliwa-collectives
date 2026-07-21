@@ -54,7 +54,7 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(protectedRoute, /<BrandWordmark variant="auth" to="\/"/);
   assert.match(creativeHero, /<BrandWordmark variant="eyebrow"/);
   assert.match(projectDetails, /Published through <BrandWordmark name=\{content\.displayName\} variant="inline"/);
-  assert.match(collectiveHero, /isBrandWordmarkText\(content\.home\.heroTitle, content\.displayName, \[defaultSiteContent\.displayName, defaultSiteContent\.legalName\]\)/);
+  assert.match(collectiveHero, /isBrandWordmarkText\(heroTitle, content\.displayName, \[defaultSiteContent\.displayName, defaultSiteContent\.legalName\]\)/);
   assert.match(css, /color: var\(--brand-wordmark-fill\)/);
   assert.match(css, /var\(--brand-wordmark-accent, var\(--site-brand-accent, #f6d58b\)\)/);
   assert.match(css, /\[data-theme="light"\] \.brand-wordmark/);

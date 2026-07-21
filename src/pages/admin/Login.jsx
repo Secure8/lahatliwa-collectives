@@ -208,7 +208,7 @@ export default function Login() {
 
           {isSetup && (
             <p className="mt-4 text-xs leading-5 text-zinc-500">
-              This is only for invited platform users. The email must already exist in Team Management with an invited or active status.
+              This sign-in is only for invited platform members. The email must already appear in Team with an invited or active status.
             </p>
           )}
 

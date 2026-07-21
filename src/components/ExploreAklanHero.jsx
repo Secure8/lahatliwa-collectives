@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { carouselStep, editorialPublicPath, normalizeHomepageSlides, swipeDirection, TOURISM_SLIDE_AUTOPLAY_MS, tourismSlideMeta } from '../lib/tourismHomepage.js';
+import TourismStoryFallback from './TourismStoryFallback.jsx';
 
 export default function ExploreAklanHero({ slides: sourceSlides = [], loading = false }) {
   const slides = normalizeHomepageSlides(sourceSlides);
@@ -73,7 +74,9 @@ export default function ExploreAklanHero({ slides: sourceSlides = [], loading = 
         const post = slide.editorial_posts;
         const visible = index === activeIndex;
         return <div key={slide.slot_type} className={`absolute inset-0 transition-opacity duration-700 motion-reduce:transition-none ${visible ? 'opacity-100' : 'pointer-events-none opacity-0'}`} aria-hidden={!visible}>
-          <img src={post.cover_image_url} alt="" loading={index === 0 ? 'eager' : 'lazy'} fetchpriority={index === 0 ? 'high' : 'auto'} decoding="async" width="1920" height="1080" sizes="100vw" className="h-full w-full object-cover" style={{ objectPosition: `${slide.focal_x ?? 50}% ${slide.focal_y ?? 50}%` }} />
+          {post.cover_image_url
+            ? <img src={post.cover_image_url} alt="" loading={index === 0 ? 'eager' : 'lazy'} fetchpriority={index === 0 ? 'high' : 'auto'} decoding="async" width="1920" height="1080" sizes="100vw" className="h-full w-full object-cover" style={{ objectPosition: `${slide.focal_x ?? 50}% ${slide.focal_y ?? 50}%` }} />
+            : <TourismStoryFallback className="h-full w-full" />}
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,10,0.88)_0%,rgba(8,8,10,0.56)_52%,rgba(8,8,10,0.2)_100%),linear-gradient(0deg,rgba(8,8,10,0.8)_0%,transparent_65%)]" />
         </div>;
       })}

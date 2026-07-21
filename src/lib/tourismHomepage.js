@@ -1,7 +1,7 @@
 export const TOURISM_SLIDE_SLOTS = Object.freeze([
   { key: 'journal', label: 'Journal', action: 'View Journal', path: '/journal' },
   { key: 'event', label: 'Event', action: 'View Event', path: '/events' },
-  { key: 'place', label: 'Place', action: 'View Place', path: '/places' },
+  { key: 'place', label: 'Destination', action: 'View Destination', path: '/places' },
   { key: 'activity', label: 'Activity', action: 'View Activity', path: '/activities' },
   { key: 'local_product', label: 'Local Product', action: 'View Local Product', path: '/local-products' },
 ]);
@@ -39,7 +39,6 @@ export function normalizeHomepageSlides(rows = []) {
         && post.published_revision_id
         && post.published_at
         && !post.archived_at
-        && String(post.cover_image_url || '').trim()
         && String(post.slug || '').trim()
       );
       if (valid) {

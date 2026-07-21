@@ -173,15 +173,15 @@ test('service branch admin previews reuse real uploaded public media without gen
 
 test('dashboard prioritizes summary, urgent work, and a small primary action set', async () => {
   const dashboard = await source('../pages/admin/Dashboard.jsx');
-  assert.match(dashboard, /aria-label="Quick actions"/);
-  assert.match(dashboard, /Create Story/);
-  assert.match(dashboard, /Manage Destinations/);
-  assert.match(dashboard, /Review Inquiries/);
-  assert.match(dashboard, /Manage Team/);
-  assert.match(dashboard, /View Live Website/);
+  assert.match(dashboard, /aria-label="Primary actions"/);
+  assert.match(dashboard, /Create a story/);
+  assert.match(dashboard, /Manage destinations/);
+  assert.match(dashboard, /Review inquiries/);
+  assert.match(dashboard, /Manage team/);
+  assert.match(dashboard, /View live website/);
   assert.match(dashboard, /Needs attention/);
-  assert.match(dashboard, /Website overview/);
-  assert.match(dashboard, /Recent activity/);
+  assert.match(dashboard, />Overview</);
+  assert.match(dashboard, /Recent work/);
   assert.match(dashboard, /\.slice\(0, 8\)/);
   assert.match(dashboard, /canManagePeople/);
 });
@@ -204,9 +204,9 @@ test('admin people management connects profiles and access while preserving thei
     source('../pages/admin/AdminCreatives.jsx'),
     source('../pages/admin/SiteSettings.jsx'),
   ]);
-  assert.match(layout, /\['Creative Collective', \[/);
+  assert.match(layout, /\['Creative work', \[/);
   assert.match(layout, /\['Team', \[/);
-  assert.match(layout, /Creatives[\s\S]*Members & Invitations/);
+  assert.match(layout, /Creatives[\s\S]*Members and invitations/);
   assert.match(peopleNav, /aria-label="People management"/);
   assert.match(team, /profile_image_url/);
   assert.match(team, /member\.avatar_url \|\| creatives\.find/);

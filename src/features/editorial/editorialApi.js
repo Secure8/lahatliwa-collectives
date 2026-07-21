@@ -4,7 +4,7 @@ import { emptyEditorialDocument, validateEditorialDocument } from './editorialDo
 export const CONTENT_TYPES = Object.freeze([
   { key: 'journal', label: 'Journal', plural: 'Journal', path: '/journal' },
   { key: 'event', label: 'Event', plural: 'Events', path: '/events' },
-  { key: 'place', label: 'Place', plural: 'Places', path: '/places' },
+  { key: 'place', label: 'Destination', plural: 'Destinations', path: '/places' },
   { key: 'activity', label: 'Activity', plural: 'Activities', path: '/activities' },
   { key: 'local_product', label: 'Local product', plural: 'Local products', path: '/local-products' },
 ]);
@@ -37,8 +37,12 @@ export function editorialDraftError(error, phase = 'load') {
 export function editorialActionError(error, action = 'complete that action') {
   const source = error || {};
   const raw = `${source.code || ''} ${source.message || ''} ${source.details || ''}`.toLowerCase();
+  if (['EDITORIAL_ACCESS_DENIED', 'EDITORIAL_ARCHIVE_REQUIRED', 'EDITORIAL_HOMEPAGE_REFERENCE', 'EDITORIAL_RELATED_RECORDS'].includes(source.code) && source.message) return source;
   if (source.code === 'EDITORIAL_REVISION_CONFLICT' || raw.includes('editorial_revision_conflict')) return Object.assign(new Error('This story was updated elsewhere. Reload before continuing.'), { code: 'EDITORIAL_REVISION_CONFLICT', cause: source });
-  if (source.status === 403 || source.code === '42501' || /editorial_not_authorized|target_not_authorized|not authorized|do not have permission|permission denied|forbidden|row-level security/.test(raw)) return Object.assign(new Error('You do not have permission to edit this story.'), { code: 'EDITORIAL_ACCESS_DENIED', cause: source });
+  if (/editorial_archive_required/.test(raw)) return Object.assign(new Error('Archive this story before deleting it permanently.'), { code: 'EDITORIAL_ARCHIVE_REQUIRED', cause: source });
+  if (/editorial_homepage_reference/.test(raw)) return Object.assign(new Error('Remove this story from the homepage slideshow before deleting it.'), { code: 'EDITORIAL_HOMEPAGE_REFERENCE', cause: source });
+  if (/editorial_related_records/.test(raw) || /foreign key constraint/.test(raw)) return Object.assign(new Error('This story could not be deleted because related records still exist.'), { code: 'EDITORIAL_RELATED_RECORDS', cause: source });
+  if (source.status === 403 || source.code === '42501' || /editorial_not_authorized|target_not_authorized|not authorized|do not have permission|permission denied|forbidden|row-level security/.test(raw)) return Object.assign(new Error(String(action).includes('delete') ? 'You do not have permission to delete this story.' : 'You do not have permission to edit this story.'), { code: 'EDITORIAL_ACCESS_DENIED', cause: source });
   if (/r2_media_disabled|r2_upload_unavailable|website media uploads are temporarily unavailable/.test(raw)) return Object.assign(new Error('Managed image uploads are temporarily unavailable. Existing media was not changed.'), { code: 'EDITORIAL_MEDIA_UNAVAILABLE', cause: source });
   if (/derivative_invalid|invalid_upload/.test(raw)) return Object.assign(new Error('This image could not be prepared. Use a JPEG, PNG, or WebP image and try again.'), { code: 'EDITORIAL_MEDIA_INVALID', cause: source });
   if (/r2_upload_failed|media_upload_failed|could not be stored/.test(raw)) return Object.assign(new Error('The image could not be stored. Existing media was not changed.'), { code: 'EDITORIAL_MEDIA_UPLOAD_FAILED', cause: source });

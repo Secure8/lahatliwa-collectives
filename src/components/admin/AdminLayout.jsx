@@ -1,4 +1,4 @@
-import { CircleUserRound, Ellipsis, ExternalLink, FileText, FolderKanban, GalleryHorizontalEnd, HardDrive, House, Images, Inbox, LayoutDashboard, LogOut, MessagesSquare, Settings, User, UserCog, Users, Workflow, X } from 'lucide-react';
+import { Activity, CircleUserRound, Ellipsis, ExternalLink, FileText, FolderKanban, GalleryHorizontalEnd, HardDrive, House, Inbox, LayoutDashboard, LogOut, MessagesSquare, Settings, UserCog, Users, Workflow, X } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -16,43 +16,36 @@ import { canAccessEditorial } from '../../features/editorial/editorialCapabiliti
 import AdminCommandPalette from './AdminCommandPalette';
 
 const links = [
-  ['Overview', [
+  ['Home', [
     ['Dashboard', '/admin/dashboard', LayoutDashboard, () => true],
-    ['Live Website', '/', ExternalLink, () => true],
+    ['View website', '/', ExternalLink, () => true],
   ]],
   ['Explore Aklan', [
-    ['Content Library', '/admin/editorial/content', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Create Story', '/editorial/new', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
-    ['Homepage Slideshow', '/admin/editorial/homepage', GalleryHorizontalEnd, ({ role }) => role === 'super_admin'],
+    ['Stories', '/admin/editorial/content', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Create story', '/editorial/new', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
     ['Destinations', '/admin/editorial/destinations', GalleryHorizontalEnd, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Categories', '/admin/editorial/categories', Workflow, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Municipalities', '/admin/editorial/municipalities', Workflow, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Homepage slideshow', '/admin/editorial/homepage', GalleryHorizontalEnd, ({ role }) => role === 'super_admin'],
   ]],
-  ['Creative Collective', [
-    ['My Profile', '/admin/my-profile', User, ({ role }) => ['super_admin', 'admin', 'editor', 'creative'].includes(role)],
+  ['Creative work', [
     ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
-    ['Services & Branches', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
-    ['Directory', '/admin/directory', Users, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
+    ['Services', '/admin/service-branches', Workflow, ({ role }) => isPrivilegedRole(role)],
   ]],
-  ['Communication', [
+  ['Messages', [
     ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
-    ['Assignments', '/admin/inquiries?view=assigned', MessagesSquare, ({ role }) => ['super_admin', 'admin', 'editor', 'creative'].includes(role)],
-    ['Delivery Status', '/admin/inquiries?delivery=failed', MessagesSquare, ({ role }) => ['super_admin', 'admin'].includes(role)],
   ]],
   ['Team', [
-    ['Members & Invitations', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
+    ['Members and invitations', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Website', [
-    ['Homepage Content', '/admin/content', FileText, ({ role }) => isPrivilegedRole(role)],
-    ['Feature Flags', '/admin/editorial/settings', Settings, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Media', '/admin/media/icons', Images, ({ role }) => isPrivilegedRole(role) || ['editor', 'creative'].includes(role)],
-    ['Media & Storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
-  ]],
-  ['Administration', [
-    ['Audit', '/admin/editorial/audit', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Homepage', '/admin/content/home', FileText, ({ role }) => isPrivilegedRole(role)],
+    ['Media and storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
     ['Settings', '/admin/settings', Settings, ({ role }) => canManageSettings(role)],
-    ['Open Studio', '/editorial', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
+  ]],
+  ['Advanced', [
+    ['Feature flags', '/admin/editorial/settings', Settings, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['Audit history', '/admin/editorial/audit', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
+    ['System status', '/admin/system-status', Activity, ({ role }) => ['super_admin', 'admin'].includes(role)],
   ]],
 ];
 

@@ -21,9 +21,9 @@ test('visible action labels stay concise across public and admin screens', async
     'View details', 'Accept inquiry', 'Start progress', 'Mark completed', 'Close inquiry',
     'I am available', 'Available to take this', 'Clear response', 'Decline assignment',
     'Pass to creative', 'Request to take this inquiry', 'Assign creative', 'Save private note',
-    'Archive inquiry', 'Delete permanently', 'Change preferred creative', 'Change selection',
+    'Archive inquiry', 'Change preferred creative', 'Change selection',
     'Send an inquiry', 'Send inquiry', 'View project details', 'Back to Page Content',
-    'Open Public Page', 'Save Draft', 'Submit for review', 'Start bounded batch',
+    'Open Public Page', 'Submit for review', 'Start bounded batch',
     'Run reconciliation', 'Retry loading directory', 'Retry loading team', 'Retry dashboard data',
   ];
   for (const label of oldLabels) {
@@ -34,5 +34,7 @@ test('visible action labels stay concise across public and admin screens', async
   assert.match(source, />View\s*</);
   assert.match(source, />Complete\s*</);
   assert.match(source, />Refresh\s*</);
+  assert.match(source, />Delete permanently\s*</);
+  assert.match(source, />Save draft\s*</);
   assert.doesNotMatch(source, />\s*(?:Resume|Pause|Migrate one|Reconcile|Scan)\s*</i);
 });

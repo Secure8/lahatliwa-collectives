@@ -46,6 +46,7 @@ test('homepage implementation is tourism-led, bounded, accessible, and has no pr
   const home = read('src/pages/Home.jsx');
   const hero = read('src/components/ExploreAklanHero.jsx');
   const feed = read('src/components/DestinationsFeed.jsx');
+  const index = read('src/pages/tourism/TourismIndex.jsx');
   const api = read('src/features/editorial/editorialApi.js');
   assert.match(home, /data-explore-aklan-homepage/);
   assert.doesNotMatch(home, /ProjectGrid|fetchPublicProjectSummaries|Selected Projects/);
@@ -60,6 +61,9 @@ test('homepage implementation is tourism-led, bounded, accessible, and has no pr
   assert.match(hero, /TourismStoryFallback/);
   assert.match(feed, /Load more/);
   assert.match(feed, /TourismStoryFallback/);
+  assert.match(index, /TourismStoryFallback/);
+  assert.match(index, /All \{plural\}/);
+  assert.doesNotMatch(index, /municipalitys|categorys|No image/);
   assert.match(api, /\.eq\('content_type', 'place'\)/);
   assert.match(api, /\.range\(from, from \+ pageSize\)/);
 });

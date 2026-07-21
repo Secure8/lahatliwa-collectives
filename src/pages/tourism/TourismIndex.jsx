@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
+import TourismStoryFallback from '../../components/TourismStoryFallback.jsx';
 import { PublicEditorialGate } from '../../features/editorial/EditorialGate.jsx';
 import { CONTENT_TYPES, contentTypeMeta, listEditorialTaxonomy, listPublishedEditorial } from '../../features/editorial/editorialApi.js';
 
@@ -36,7 +37,7 @@ function TourismIndexContent({ type }) {
       <section className="page-shell pb-10 pt-16 sm:pt-20">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--site-accent-text)]">Aklan Tourism</p>
         <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-[var(--site-primary-text)] sm:text-6xl">{meta.plural}</h1>
-        <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--site-secondary-text)]">Locally edited guides, stories, events, places, activities, and products. Published entries are reviewed before they appear here.</p>
+        <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--site-secondary-text)]">Locally edited guides, stories, events, destinations, activities, and products. Published entries are reviewed before they appear here.</p>
         <nav className="mt-8 flex flex-wrap gap-x-5 gap-y-3" aria-label="Tourism sections">
           <Link to="/explore" className="fine-link text-sm text-[var(--site-accent-text)]">Explore</Link>
           {CONTENT_TYPES.map((item) => <Link key={item.key} to={item.path} className="fine-link text-sm text-zinc-300">{item.plural}</Link>)}
@@ -65,7 +66,8 @@ function TourismIndexContent({ type }) {
 }
 
 function FilterSelect({ label, value, options, onChange }) {
-  return <label><span className="sr-only">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-lg border border-white/[0.12] bg-zinc-900 px-3 text-sm text-zinc-200 outline-none focus:border-[var(--site-accent-border)] focus:ring-2 focus:ring-[var(--focus-ring)]"><option value="">All {label.toLowerCase()}s</option>{options.map((item) => <option key={item.id} value={item.slug}>{item.name}</option>)}</select></label>;
+  const plural = { Municipality: 'municipalities', Category: 'categories', Tag: 'tags' }[label] || `${label.toLowerCase()}s`;
+  return <label><span className="sr-only">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-lg border border-white/[0.12] bg-zinc-900 px-3 text-sm text-zinc-200 outline-none focus:border-[var(--site-accent-border)] focus:ring-2 focus:ring-[var(--focus-ring)]"><option value="">All {plural}</option>{options.map((item) => <option key={item.id} value={item.slug}>{item.name}</option>)}</select></label>;
 }
 
 function DateFilter({ label, value, onChange }) {
@@ -74,5 +76,5 @@ function DateFilter({ label, value, onChange }) {
 
 function TourismCard({ post }) {
   const meta = contentTypeMeta(post.content_type);
-  return <article className="group"><Link to={`${meta.path}/${post.slug}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">{post.cover_image_url ? <img src={post.cover_image_url} alt={post.cover_image_alt || ''} loading="lazy" decoding="async" className="aspect-[4/3] w-full rounded-xl object-cover transition duration-500 group-hover:scale-[1.01]" /> : <div className="grid aspect-[4/3] place-items-center rounded-xl border border-white/[0.1] bg-zinc-900 text-sm text-zinc-600">No image</div>}<div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-[var(--site-accent-text)]"><span>{meta.label}</span>{post.editorial_municipalities?.name && <><span aria-hidden="true">·</span><span className="inline-flex items-center gap-1"><MapPin size={12} />{post.editorial_municipalities.name}</span></>}</div><h2 className="mt-2 text-xl font-semibold leading-7 text-[var(--site-primary-text)]">{post.title}</h2><p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--site-secondary-text)]">{post.summary}</p><span className="mt-4 inline-flex items-center gap-2 text-sm text-zinc-300">Read <ArrowRight size={15} /></span></Link></article>;
+  return <article className="group"><Link to={`${meta.path}/${post.slug}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">{post.cover_image_url ? <img src={post.cover_image_url} alt={post.cover_image_alt || ''} loading="lazy" decoding="async" className="aspect-[4/3] w-full rounded-xl object-cover transition duration-500 group-hover:scale-[1.01]" /> : <TourismStoryFallback className="aspect-[4/3] w-full rounded-xl border border-white/[0.1]" />}<div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-[var(--site-accent-text)]"><span>{meta.label}</span>{post.editorial_municipalities?.name && <><span aria-hidden="true">·</span><span className="inline-flex items-center gap-1"><MapPin size={12} />{post.editorial_municipalities.name}</span></>}</div><h2 className="mt-2 text-xl font-semibold leading-7 text-[var(--site-primary-text)]">{post.title}</h2><p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--site-secondary-text)]">{post.summary}</p><span className="mt-4 inline-flex items-center gap-2 text-sm text-zinc-300">Read <ArrowRight size={15} /></span></Link></article>;
 }

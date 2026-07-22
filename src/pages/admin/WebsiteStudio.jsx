@@ -13,6 +13,18 @@ import {
 
 const pageRoutes = { 'page.home': '/', 'page.explore': '/explore', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.services': '/services', 'page.about': '/about', 'page.inquiries': '/contact' };
 const advancedFieldPattern = /(url|alt|seo|search|social|facebook|instagram|linkedin|youtube|tiktok|github|order|status|visibility|availability|featured|show|enabled|icon|image)/i;
+const pageGroupOrder = ['Studio tools', 'All public pages', 'Homepage', 'Explore Aklan page', 'Creatives page', 'Projects page', 'Services page', 'About page', 'Inquiry page'];
+const pageGroupDescriptions = {
+  'Studio tools': 'Overview, media, and published history.',
+  'All public pages': 'Shared identity, navigation, footer, search, and theme settings.',
+  Homepage: 'Sections that appear only on the public homepage.',
+  'Explore Aklan page': 'Introduction shown on the Explore Aklan landing page.',
+  'Creatives page': 'Hero and directory content for public creative profiles.',
+  'Projects page': 'Introduction shown above the public project directory.',
+  'Services page': 'Services introduction, branch cards, service listings, and inquiry choices.',
+  'About page': 'Content shown on the public About page.',
+  'Inquiry page': 'Headings and guidance shown before the inquiry form.',
+};
 
 function labelFromKey(key = '') { return key.replace(/^page\.|^global\.|^branch\.|^service\./, '').replaceAll('.', ' · ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function fieldsFromData(data = {}) { return Object.entries(data).filter(([, value]) => ['string','number','boolean'].includes(typeof value)).map(([key, value]) => [key, labelFromKey(key), typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : key.toLowerCase().includes('url') ? 'url' : String(value).length > 100 ? 'textarea' : 'text']); }
@@ -23,7 +35,30 @@ function friendlyError(error) {
   if (/NO_DRAFT/i.test(message)) return 'Save a draft before publishing.';
   return message;
 }
-function groupNavigation(items) { return Object.groupBy ? Object.groupBy(items, (item) => item.group) : items.reduce((groups, item) => ({ ...groups, [item.group]: [...(groups[item.group] || []), item] }), {}); }
+function studioPlacement(key, entryType = '') {
+  if (key === 'overview') return ['Studio tools', 'Workspace overview'];
+  if (key === 'media') return ['Studio tools', 'Website media library'];
+  if (key === 'revisions') return ['Studio tools', 'Published version history'];
+  if (key === 'global.brand') return ['All public pages', 'Header, footer, identity, and contact'];
+  if (key === 'global.navigation') return ['All public pages', 'Desktop and mobile header navigation'];
+  if (key === 'global.footer') return ['All public pages', 'Footer content'];
+  if (key === 'page.search') return ['All public pages', 'Search metadata, sharing image, and social links'];
+  if (key === 'global.appearance') return ['All public pages', 'Light and dark theme colors'];
+  if (key === 'page.home') return ['Homepage', 'Featured creatives and inquiry sections'];
+  if (key === 'page.explore') return ['Explore Aklan page', 'Page introduction'];
+  if (key === 'page.creatives') return ['Creatives page', 'Hero and creative directory introduction'];
+  if (key === 'page.projects') return ['Projects page', 'Project directory introduction'];
+  if (key === 'page.services') return ['Services page', 'Page heading and introduction'];
+  if (entryType === 'branch') return ['Services page', 'Branch card and branch details'];
+  if (entryType === 'service') return ['Services page', 'Service listing and inquiry option'];
+  if (key === 'page.about') return ['About page', 'About page content'];
+  if (key === 'page.inquiries') return ['Inquiry page', 'Inquiry introduction and public guidance'];
+  return ['All public pages', 'Shared website content'];
+}
+function groupNavigation(items) {
+  const groups = items.reduce((result, item) => ({ ...result, [item.group]: [...(result[item.group] || []), item] }), {});
+  return Object.entries(groups).sort(([first], [second]) => pageGroupOrder.indexOf(first) - pageGroupOrder.indexOf(second));
+}
 function fieldIsAdvanced([key, , type]) { return type === 'status' || type === 'number' || advancedFieldPattern.test(key); }
 
 export default function WebsiteStudio() {
@@ -58,10 +93,10 @@ export default function WebsiteStudio() {
   }, [selected?.entry_key, selected?.updated_at]);
 
   const navigation = useMemo(() => {
-    const fixed = WEBSITE_STUDIO_SECTIONS.map((item) => ({ ...item, name: item.label }));
-    const connected = entries.filter((entry) => entry.entry_type === 'branch' || entry.entry_type === 'service').map((entry) => ({ key: entry.entry_key, group: entry.entry_type === 'branch' ? 'Services · Branches' : 'Services · Catalog', name: (entry.draft_data || entry.published_data)?.name || labelFromKey(entry.entry_key) }));
+    const fixed = WEBSITE_STUDIO_SECTIONS.map((item) => { const [group, part] = studioPlacement(item.key); return { ...item, group, part, name: item.label }; });
+    const connected = entries.filter((entry) => entry.entry_type === 'branch' || entry.entry_type === 'service').map((entry) => { const [group, part] = studioPlacement(entry.entry_key, entry.entry_type); return { key: entry.entry_key, group, part, name: (entry.draft_data || entry.published_data)?.name || labelFromKey(entry.entry_key) }; });
     const query = search.trim().toLowerCase();
-    return [...fixed, ...connected].filter((item) => !query || `${item.name} ${item.group}`.toLowerCase().includes(query));
+    return [...fixed, ...connected].filter((item) => !query || `${item.name} ${item.group} ${item.part}`.toLowerCase().includes(query));
   }, [entries, search]);
 
   const config = WEBSITE_STUDIO_SECTIONS.find((item) => item.key === sectionKey);
@@ -115,7 +150,7 @@ function SectionChooser({ navigation, sectionKey, entries, search, setSearch, on
     <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-2 text-sm font-semibold text-white"><span><span className="mr-2 text-zinc-500">Editing</span>{active?.name || 'Overview'}</span><span className="inline-flex items-center gap-2 text-xs font-normal text-zinc-500">Choose section<ChevronDown size={17} className="transition-transform group-open:rotate-180"/></span></summary>
     <div className="mt-3 border-t border-white/[0.08] pt-4">
       <label className="relative block max-w-md"><Search size={15} className="absolute left-3 top-3 text-zinc-500"/><span className="sr-only">Search Website Studio</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a section" className="h-10 w-full rounded-lg border border-white/[0.1] bg-black/20 pl-9 pr-3 text-sm text-white outline-none focus:border-amber-200/50"/></label>
-      <nav className="mt-5 max-h-[34rem] overflow-y-auto pr-1" aria-label="Website Studio sections">{Object.entries(groupNavigation(navigation)).map(([group, items]) => <section key={group} className="mb-6"><h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">{group}</h2><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{items.map((item) => { const row = entries.find((entry) => entry.entry_key === item.key); return <button key={item.key} type="button" onClick={() => onSelect(item.key)} className={`flex min-h-16 items-center justify-between rounded-lg border px-3 text-left text-sm ${sectionKey === item.key ? 'border-amber-200/30 bg-amber-200/10 text-amber-100' : 'border-white/[0.07] bg-white/[0.02] text-zinc-300 hover:border-white/[0.14] hover:bg-white/[0.04]'}`}><span className="truncate">{item.name}</span><span className={`ml-3 shrink-0 text-[10px] ${row?.draft_data ? 'text-amber-200' : 'text-zinc-600'}`}>{row?.draft_data ? 'Draft' : item.key === 'overview' || item.key === 'media' || item.key === 'revisions' ? '' : 'Live'}</span></button>; })}</div></section>)}</nav>
+      <nav className="mt-5 space-y-3" aria-label="Website Studio sections">{groupNavigation(navigation).map(([group, items]) => { const containsActive = items.some((item) => item.key === sectionKey); const openByDefault = Boolean(search) || containsActive || (sectionKey === 'overview' && ['Studio tools', 'All public pages', 'Homepage'].includes(group)); return <details key={group} className="group/category rounded-xl border border-white/[0.07] bg-black/10 p-3" open={openByDefault}><summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-1"><span><span className="block text-sm font-semibold text-white">{group}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{pageGroupDescriptions[group]}</span></span><span className="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-600">{items.length}<ChevronDown size={16} className="transition-transform group-open/category:rotate-180"/></span></summary><div className="mt-3 grid gap-3 border-t border-white/[0.07] pt-3 md:grid-cols-2">{items.map((item) => { const row = entries.find((entry) => entry.entry_key === item.key); const isTool = ['overview','media','revisions'].includes(item.key); return <button key={item.key} type="button" onClick={() => onSelect(item.key)} className={`flex min-h-20 items-center justify-between gap-4 rounded-lg border px-4 py-3 text-left ${sectionKey === item.key ? 'border-amber-200/30 bg-amber-200/10' : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04]'}`}><span className="min-w-0"><span className={`block truncate text-sm font-semibold ${sectionKey === item.key ? 'text-amber-100' : 'text-zinc-200'}`}>{item.name}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{item.part}</span></span><span className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] ${row?.draft_data ? 'text-amber-200' : 'text-zinc-600'}`}>{row?.draft_data ? 'Draft' : isTool ? '' : 'Live'}</span></button>; })}</div></details>; })}</nav>
     </div>
   </details>;
 }

@@ -88,6 +88,9 @@ test('Website Studio exposes a beginner single-column editor without a simulated
   for (const text of ['Save draft','Published','Publish','Discard','Open live website','Open this page','Revisions','Unpublished changes','Advanced settings','Back to Admin']) assert.match(studio, new RegExp(text, 'i'));
   assert.match(studio, /function SectionChooser/);
   assert.match(studio, /Choose any editable box above/);
+  for (const pageGroup of ['All public pages', 'Homepage', 'Explore Aklan page', 'Creatives page', 'Projects page', 'Services page', 'About page', 'Inquiry page']) assert.match(studio, new RegExp(pageGroup));
+  for (const pagePart of ['Header, footer, identity, and contact', 'Featured creatives and inquiry sections', 'Branch card and branch details', 'Service listing and inquiry option']) assert.match(studio, new RegExp(pagePart));
+  assert.match(studio, /md:grid-cols-2/);
   assert.doesNotMatch(studio, /function StudioNavigation|function MobileSectionMenu|xl:grid-cols-\[16rem_minmax\(0,1fr\)\]/);
   assert.doesNotMatch(studio, /StudioPreview|Draft preview|deviceWidths|desktop preview|tablet preview|mobile preview/);
   assert.match(studio, /\['super_admin','owner','admin'\]/);

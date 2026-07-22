@@ -83,11 +83,12 @@ test('appearance validation enforces usable contrast', () => {
   assert.doesNotThrow(() => validateWebsiteEntry({ primaryTextColor: '#f5f5f4', secondaryTextColor: '#d4d4d8' }, [['primaryTextColor','Primary','color'],['secondaryTextColor','Secondary','color']]));
 });
 
-test('Website Studio exposes a beginner two-part editor without a simulated preview', () => {
+test('Website Studio exposes a beginner single-column editor without a simulated preview', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
   for (const text of ['Save draft','Published','Publish','Discard','Open live website','Open this page','Revisions','Unpublished changes','Advanced settings','Back to Admin']) assert.match(studio, new RegExp(text, 'i'));
-  assert.match(studio, /xl:grid-cols-\[16rem_minmax\(0,1fr\)\]/);
-  assert.match(studio, /Website Studio mobile sections/);
+  assert.match(studio, /function SectionChooser/);
+  assert.match(studio, /Choose any editable box above/);
+  assert.doesNotMatch(studio, /function StudioNavigation|function MobileSectionMenu|xl:grid-cols-\[16rem_minmax\(0,1fr\)\]/);
   assert.doesNotMatch(studio, /StudioPreview|Draft preview|deviceWidths|desktop preview|tablet preview|mobile preview/);
   assert.match(studio, /\['super_admin','owner','admin'\]/);
   assert.match(studio, /role === 'super_admin'/);

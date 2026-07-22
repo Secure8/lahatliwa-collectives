@@ -106,7 +106,7 @@ function EditorialStudioShell() {
         <div className="flex items-center gap-2">
           <Link to="/admin/editorial" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/[0.1] px-3 text-xs font-semibold text-white sm:text-sm"><ArrowLeft size={15} /><span>Back to Admin</span></Link>
           <AppearanceMenuAction iconOnly className="grid h-10 w-10 place-items-center rounded-full text-zinc-400 hover:bg-white/[0.06] hover:text-white" />
-          {!editorMode && <Link to="/editorial/new" className="inline-flex h-10 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950 shadow-[0_0_28px_rgba(251,146,60,0.16)]"><Plus size={16} />New story</Link>}
+          {!editorMode && <Link to="/editorial/new" className="hidden h-10 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950 shadow-[0_0_28px_rgba(251,146,60,0.16)] sm:inline-flex"><Plus size={16} />New story</Link>}
           {!editorMode && <button type="button" onClick={() => setMenuOpen((value) => !value)} className="grid h-11 w-11 place-items-center rounded-full hover:bg-white/[0.06] lg:hidden" aria-label="Open studio menu">{menuOpen ? <X /> : <Menu />}</button>}
           <button type="button" onClick={logout} className="hidden h-10 items-center gap-2 rounded-full px-3 text-sm text-zinc-400 hover:bg-white/[0.05] hover:text-white sm:inline-flex"><LogOut size={16} />Logout</button>
         </div>

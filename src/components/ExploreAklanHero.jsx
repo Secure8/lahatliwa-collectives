@@ -94,7 +94,7 @@ export default function ExploreAklanHero({ slides: sourceSlides = [], loading = 
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-200">{active.eyebrow || 'Explore Aklan'}</p>
           <p className="mt-3 text-base font-medium text-white/80">{tourismSlideMeta(active.slot_type)?.label}</p>
-          <h1 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.035em] text-white sm:text-6xl lg:text-7xl">{active.editorial_posts.title}</h1>
+          <h1 className="mt-4 max-w-4xl text-3xl font-semibold leading-[1.02] tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">{active.editorial_posts.title}</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-200 sm:text-lg sm:leading-8">{active.description || active.editorial_posts.summary}</p>
           <Link to={editorialPublicPath(active.editorial_posts)} className="pointer-events-auto mt-7 inline-flex min-h-12 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
             {tourismSlideMeta(active.slot_type)?.action} <ArrowRight size={17} aria-hidden="true" />

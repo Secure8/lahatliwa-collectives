@@ -402,8 +402,8 @@ export default function AdminTeam() {
       <div className="w-full max-w-6xl">
       <AdminPageHeader
         eyebrow="People"
-        title="Team Access"
-        description="Manage sign-in access, roles, and permissions. Public profile content remains in the adjacent Creative Profiles view."
+        title="Team Members"
+        description="Manage internal accounts, invitations, roles, and access. A Creative Profile is separate and controls what visitors see publicly."
         action={isSuperAdmin && <AdminButton onClick={openAddMember} variant="primary"><Plus size={17} /> Add Member</AdminButton>}
       />
       <AdminPeopleNav />
@@ -504,6 +504,8 @@ export default function AdminTeam() {
                   <div className="grid min-w-0 gap-3 border-t border-white/[0.1] pt-3 xl:w-full xl:self-stretch xl:border-l xl:border-t-0 xl:py-1 xl:pl-5">
                     <AdminActionGroup className="admin-record-actions w-full min-w-0 gap-2 xl:justify-start">
                       {canManageMember && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Edit size={14} /> Edit</AdminActionButton>}
+                      {canManageMember && !member.creative_member_id && creatives.length > 0 && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => editMember(member)}><Plus size={14} /> Link profile</AdminActionButton>}
+                      {canManageMember && !member.creative_member_id && creatives.length === 0 && <AdminActionButton to="/admin/creatives/new"><Plus size={14} /> Create profile</AdminActionButton>}
                       {isSuperAdmin && member.status === 'invited' && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => resendInvitation(member)}><Mail size={14} /> {updatingMemberId === member.id ? 'Sending...' : 'Resend invitation'}</AdminActionButton>}
                       {isSuperAdmin && member.status === 'active' && member.user_id && <AdminActionButton disabled={updatingMemberId === member.id} onClick={() => sendPasswordReset(member)}><Mail size={14} /> {updatingMemberId === member.id ? 'Sending...' : 'Send password reset'}</AdminActionButton>}
                       {creatives.some((creative) => creative.id === member.creative_member_id && creative.slug) && <AdminActionButton to={`/admin/creatives?preview=${member.creative_member_id}`}><Eye size={14} /> Preview</AdminActionButton>}

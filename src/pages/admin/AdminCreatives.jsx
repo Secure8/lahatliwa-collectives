@@ -14,6 +14,7 @@ export default function AdminCreatives() {
   const { role } = useAdminAccess();
   const navigate = useNavigate();
   const [creatives, setCreatives] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -33,10 +34,12 @@ export default function AdminCreatives() {
   }, [creatives, search, visibility]);
 
   useEffect(() => {
-    supabase.from('creative_members').select('*').order('display_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false })
-      .then(({ data, error: loadError }) => {
-        if (loadError) setError(loadError.message);
-        else setCreatives(data || []);
+    Promise.all([
+      supabase.from('creative_members').select('*').order('display_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false }),
+      supabase.from('team_members').select('id, display_name, status, creative_member_id'),
+    ]).then(([{ data, error: loadError }, { data: memberRows, error: memberError }]) => {
+        if (loadError || memberError) setError((loadError || memberError).message);
+        else { setCreatives(data || []); setTeamMembers(memberRows || []); }
         setLoading(false);
       });
   }, []);
@@ -80,7 +83,7 @@ export default function AdminCreatives() {
 
   return (
     <AdminLayout>
-      <AdminPageHeader eyebrow="People" title="Creative Profiles" description="Manage the public-facing identity, portfolio visibility, and profile media for each creative." action={<AdminButton variant="primary" to="/admin/creatives/new"><Plus size={17} /> Add Creative</AdminButton>} />
+      <AdminPageHeader eyebrow="People" title="Creative Profiles" description="Manage public biographies, portfolios, and profile media. Sign-in access and roles stay in Team Members." action={<AdminButton variant="primary" to="/admin/creatives/new"><Plus size={17} /> Add Creative</AdminButton>} />
       <AdminPeopleNav />
       {error && <AdminNotice className="mb-5">{error}</AdminNotice>}
       {notice && <AdminNotice tone="success" className="mb-5">{notice}</AdminNotice>}
@@ -94,7 +97,7 @@ export default function AdminCreatives() {
             <article key={creative.id} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-4 border-b border-white/[0.06] px-1 py-5 last:border-b-0 sm:px-2 lg:grid-cols-[3.5rem_minmax(0,1.15fr)_minmax(10rem,0.8fr)_minmax(9rem,0.55fr)_auto] lg:gap-x-6">
               {creative.profile_image_url ? <img src={creative.profile_image_url} alt="" loading="lazy" width="56" height="56" className="h-14 w-14 rounded-full object-cover" /> : <div className="grid h-14 w-14 place-items-center rounded-full bg-white/[0.055] text-lg font-semibold text-zinc-500">{creative.name?.slice(0, 1) || 'L'}</div>}
               <div className="min-w-0"><h3 className="truncate font-semibold text-white">{creative.name}</h3><p className="mt-1 truncate text-xs text-zinc-600">/{creative.slug}</p></div>
-              <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2 lg:col-start-auto"><p className="text-[11px] uppercase tracking-[0.16em] text-zinc-600">Role / title</p><p className="mt-1 line-clamp-2 text-sm text-zinc-300">{creative.role}</p></div>
+              <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2 lg:col-start-auto"><p className="text-[11px] uppercase tracking-[0.16em] text-zinc-600">Role / title</p><p className="mt-1 line-clamp-2 text-sm text-zinc-300">{creative.role}</p>{teamMembers.find((member) => member.creative_member_id === creative.id) ? <p className="mt-2 text-xs text-zinc-500">Linked Team Member: {teamMembers.find((member) => member.creative_member_id === creative.id).display_name || 'Unnamed member'} · {teamMembers.find((member) => member.creative_member_id === creative.id).status}</p> : <p className="mt-2 text-xs text-zinc-600">No linked Team Member</p>}</div>
               <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:col-start-2 lg:col-start-auto">{creative.is_featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}<AdminStatusBadge status={creative.is_published ? 'published' : 'draft'}>{creative.is_published ? 'Published' : 'Draft'}</AdminStatusBadge></div>
               <div className="col-span-2 border-t border-white/[0.05] pt-3 sm:col-span-1 sm:col-start-2 lg:col-start-auto lg:border-0 lg:pt-0"><AdminActionGroup className="admin-record-actions lg:justify-end">
                 <AdminActionButton variant="primary" onClick={() => navigate(`/admin/creatives/${creative.id}/edit`)}><Edit size={14} /> Edit</AdminActionButton>

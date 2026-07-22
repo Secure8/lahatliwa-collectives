@@ -24,13 +24,13 @@ const links = [
     ['Website Studio', '/admin/website', Workflow, ({ role }) => ['super_admin', 'admin'].includes(role)],
     ['Editorial Studio', '/editorial', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
-    ['Creatives', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
+    ['Creative Profiles', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
   ]],
   ['Messages', [
     ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
   ]],
   ['Team', [
-    ['Members', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
+    ['Team Members', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
   ]],
   ['Advanced', [
     ['Media and storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
@@ -42,8 +42,8 @@ const links = [
 
 const SIDEBAR_SCROLL_KEY = 'lahat-liwa-admin-sidebar-scroll';
 const compactMobilePageLabels = {
-  'Creative Profiles': 'Creatives',
-  'Team Access': 'Team',
+  'Creative Profiles': 'Profiles',
+  'Team Members': 'Team',
 };
 
 export default function AdminLayout({ children }) {

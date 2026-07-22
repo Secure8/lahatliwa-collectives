@@ -5,13 +5,13 @@ import clsx from 'clsx';
 const peopleViews = [
   {
     to: '/admin/creatives',
-    label: 'Creative profiles',
+    label: 'Creative Profiles',
     description: 'Public identity and portfolio visibility',
     icon: Users,
   },
   {
     to: '/admin/team',
-    label: 'Team access',
+    label: 'Team Members',
     description: 'Sign-in access, roles, and permissions',
     icon: UserCog,
   },

@@ -206,12 +206,14 @@ test('admin people management connects profiles and access while preserving thei
   ]);
   assert.match(layout, /\['Content', \[/);
   assert.match(layout, /\['Team', \[/);
-  assert.match(layout, /Website Studio[\s\S]*Editorial Studio[\s\S]*Projects[\s\S]*Creatives/);
+  assert.match(layout, /Website Studio[\s\S]*Editorial Studio[\s\S]*Projects[\s\S]*Creative Profiles/);
+  assert.match(layout, /Team Members/);
   assert.match(peopleNav, /aria-label="People management"/);
   assert.match(team, /profile_image_url/);
   assert.match(team, /member\.avatar_url \|\| creatives\.find/);
   assert.match(team, /<AdminPeopleNav \/>/);
   assert.match(creatives, /<AdminPeopleNav \/>/);
+  assert.match(creatives, /Linked Team Member/);
   assert.match(settings, /w-full max-w-6xl/);
   assert.doesNotMatch(settings, /title="Hero Appearance"/);
   assert.doesNotMatch(settings, /title="Image Display and Positioning"/);

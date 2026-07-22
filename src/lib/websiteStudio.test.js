@@ -83,17 +83,38 @@ test('appearance validation enforces usable contrast', () => {
   assert.doesNotThrow(() => validateWebsiteEntry({ primaryTextColor: '#f5f5f4', secondaryTextColor: '#d4d4d8' }, [['primaryTextColor','Primary','color'],['secondaryTextColor','Secondary','color']]));
 });
 
-test('Website Studio exposes beginner preview, draft, publish, discard, revisions, and role controls', () => {
+test('Website Studio exposes a beginner two-part editor without a simulated preview', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
-  for (const text of ['Save draft','Draft preview','Published','Publish','Discard','View live website','Revisions','Unpublished changes']) assert.match(studio, new RegExp(text, 'i'));
-  assert.match(studio, /deviceWidths = \{ desktop: '100%', tablet: '768px', mobile: '390px' \}/);
-  assert.match(studio, /aria-label=\{`\$\{key\} preview`\}/);
+  for (const text of ['Save draft','Published','Publish','Discard','Open live website','Open this page','Revisions','Unpublished changes','Advanced settings','Back to Admin']) assert.match(studio, new RegExp(text, 'i'));
+  assert.match(studio, /xl:grid-cols-\[16rem_minmax\(0,1fr\)\]/);
+  assert.match(studio, /Website Studio mobile sections/);
+  assert.doesNotMatch(studio, /StudioPreview|Draft preview|deviceWidths|desktop preview|tablet preview|mobile preview/);
   assert.match(studio, /\['super_admin','owner','admin'\]/);
   assert.match(studio, /role === 'super_admin'/);
   assert.match(studio, /UnsavedChangesGuard/);
   assert.match(studio, /setNotice\(''\); setError\(''\); setParams/);
   assert.doesNotMatch(studio, /setDirty\(false\); setNotice\(''\); setError\(''\)/);
   assert.doesNotMatch(studio, /window\.confirm|dangerouslySetInnerHTML|contentEditable/);
+});
+
+test('people admin distinguishes team accounts from public creative profiles', () => {
+  const layout = read('src/components/admin/AdminLayout.jsx');
+  const team = read('src/pages/admin/AdminTeam.jsx');
+  const creatives = read('src/pages/admin/AdminCreatives.jsx');
+  assert.match(layout, /\['Team Members'/);
+  assert.match(layout, /\['Creative Profiles'/);
+  assert.match(team, /Link profile/);
+  assert.match(team, /Create profile/);
+  assert.match(creatives, /Linked Team Member/);
+  assert.doesNotMatch(creatives, /member\.email/);
+});
+
+test('Editorial Studio has a clear protected exit to admin', () => {
+  const editorial = read('src/pages/editorial/EditorialStudio.jsx');
+  assert.match(editorial, /Back to Admin/);
+  assert.match(editorial, /to="\/admin\/editorial"/);
+  assert.match(editorial, /UnsavedChangesGuard dirty=\{dirty && !status\.working\}/);
+  assert.doesNotMatch(editorial, />Admin controls</);
 });
 
 test('legacy editors redirect into one Website Studio and admin navigation is grouped', () => {

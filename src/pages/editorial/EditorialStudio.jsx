@@ -31,6 +31,7 @@ import { commitManagedMediaReplacement, uploadManagedWebsiteImage } from '../../
 import { useEditorialFlags } from '../../features/editorial/editorialFlags.js';
 import LoadingState from '../../components/LoadingState.jsx';
 import { useAdminConfirmation } from '../../components/admin/AdminDialog.jsx';
+import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard.jsx';
 
 const studioLinks = [
   ['Library', '/editorial', BookOpen],
@@ -103,6 +104,7 @@ function EditorialStudioShell() {
           <p className="truncate text-sm font-semibold">Editorial Studio</p>
         </Link>
         <div className="flex items-center gap-2">
+          <Link to="/admin/editorial" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/[0.1] px-3 text-xs font-semibold text-white sm:text-sm"><ArrowLeft size={15} /><span>Back to Admin</span></Link>
           <AppearanceMenuAction iconOnly className="grid h-10 w-10 place-items-center rounded-full text-zinc-400 hover:bg-white/[0.06] hover:text-white" />
           {!editorMode && <Link to="/editorial/new" className="inline-flex h-10 items-center gap-2 rounded-full bg-orange-400 px-4 text-sm font-semibold text-zinc-950 shadow-[0_0_28px_rgba(251,146,60,0.16)]"><Plus size={16} />New story</Link>}
           {!editorMode && <button type="button" onClick={() => setMenuOpen((value) => !value)} className="grid h-11 w-11 place-items-center rounded-full hover:bg-white/[0.06] lg:hidden" aria-label="Open studio menu">{menuOpen ? <X /> : <Menu />}</button>}
@@ -113,7 +115,7 @@ function EditorialStudioShell() {
     {editorMode ? <main className="min-w-0">{content}</main> : <div className="mx-auto grid max-w-[110rem] lg:grid-cols-[14rem_minmax(0,1fr)]">
       <aside className={clsx('border-b border-white/[0.08] bg-[var(--theme-primary-surface)] px-3 py-3 lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:border-b-0 lg:border-r lg:py-5', menuOpen ? 'block' : 'hidden')}>
         <nav className="grid gap-1">{studioLinks.filter(([, , , need]) => !need || capabilities.canReview).map(([label, href, Icon]) => <NavLink key={href} to={href} end={href === '/editorial'} onClick={() => setMenuOpen(false)} className={({ isActive }) => clsx('flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm transition', isActive ? 'bg-orange-400/12 text-orange-100' : 'text-zinc-400 hover:bg-white/[0.04] hover:text-white')}><Icon size={17} />{label}</NavLink>)}</nav>
-        <div className="mt-6 border-t border-white/[0.08] px-3 pt-4"><p className="truncate text-xs text-zinc-400">{user?.email}</p><p className="mt-1 text-[0.62rem] uppercase tracking-[0.15em] text-zinc-600">{role}</p><Link to="/admin/editorial" className="mt-4 inline-flex items-center gap-2 text-xs text-orange-200"><ArrowLeft size={14} />Admin controls</Link></div>
+        <div className="mt-6 border-t border-white/[0.08] px-3 pt-4"><p className="truncate text-xs text-zinc-400">{user?.email}</p><p className="mt-1 text-[0.62rem] uppercase tracking-[0.15em] text-zinc-600">{role}</p></div>
       </aside>
       <main className="min-w-0 px-4 py-7 sm:px-6 lg:px-8 lg:py-10">{content}</main>
     </div>}
@@ -392,6 +394,7 @@ function StoryEditor({ id }) {
   const editorColumns = clsx(!leftCollapsed && !rightCollapsed && 'xl:grid-cols-[17rem_minmax(0,1fr)_19rem]', leftCollapsed && !rightCollapsed && 'xl:grid-cols-[3.5rem_minmax(0,1fr)_19rem]', !leftCollapsed && rightCollapsed && 'xl:grid-cols-[17rem_minmax(0,1fr)_3.5rem]', leftCollapsed && rightCollapsed && 'xl:grid-cols-[3.5rem_minmax(0,1fr)_3.5rem]');
 
   return <section className="editorial-studio-page pb-24 md:pb-0">
+    <UnsavedChangesGuard dirty={dirty && !status.working} />
     <EditorToolbar post={post} saveState={status.save} canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} device={device} setDevice={setDevice} onUndo={() => { setEditor((current) => undoHistory(current)); setDirty(true); }} onRedo={() => { setEditor((current) => redoHistory(current)); setDirty(true); }} onSave={save} onPreview={preview} onPublish={publishNow} canPublish={canControl && capabilities.canPublish && publishSteps.length > 0} working={status.working} />
     {!draftEditable && <StudioNotice tone="success" className="mx-4 mt-4 sm:mx-6">{post.status === 'archived' ? 'This story is archived. Restore it to continue editing.' : 'You can view this story, but only its owner can edit it.'}</StudioNotice>}
     {status.error && <StudioNotice className="mx-4 mt-4 sm:mx-6">{status.error}</StudioNotice>}

@@ -93,6 +93,9 @@ test('Website Studio exposes a beginner single-column editor without a simulated
   assert.match(studio, /md:grid-cols-2/);
   assert.match(studio, /group\/category border-b/);
   assert.doesNotMatch(studio, /group\/category rounded-xl|group rounded-xl bg-white|shadow-2xl backdrop-blur-xl/);
+  assert.match(studio, /data-search-shell className="flex h-10/);
+  assert.match(studio, /<Search size=\{15\} className="shrink-0[^\n]+<input type="search"/);
+  assert.doesNotMatch(studio, /Search size=\{15\} className="absolute left-3 top-3/);
   assert.doesNotMatch(studio, /function StudioNavigation|function MobileSectionMenu|xl:grid-cols-\[16rem_minmax\(0,1fr\)\]/);
   assert.doesNotMatch(studio, /StudioPreview|Draft preview|deviceWidths|desktop preview|tablet preview|mobile preview/);
   assert.match(studio, /\['super_admin','owner','admin'\]/);

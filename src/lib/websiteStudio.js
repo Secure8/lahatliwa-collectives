@@ -26,7 +26,7 @@ export const WEBSITE_STUDIO_SECTIONS = [
 ];
 
 export const BRANCH_FIELDS = [
-  ['name','Public name','text'],['shortDescription','Short description','textarea'],['longDescription','Full description','textarea'],['status','Status','status'],['iconUrl','Icon URL','url'],['publicUrl','Public URL','route'],['displayOrder','Display order','number'],['seoTitle','Search title','text'],['seoDescription','Search description','textarea'],
+  ['name','Public name','text'],['shortDescription','Short description','textarea'],['longDescription','Full description','textarea'],['status','Status','status'],['iconUrl','Icon URL','url'],['displayOrder','Display order','number'],['seoTitle','Search title','text'],['seoDescription','Search description','textarea'],
 ];
 
 export const SERVICE_FIELDS = [
@@ -46,6 +46,12 @@ export function safeWebsiteValue(value, type = 'text') {
   if (type === 'email' && text && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) throw new Error('Enter a valid email address.');
   if (type === 'color' && text && !/^#[0-9a-f]{6}$/i.test(text)) throw new Error('Use a six-digit color value.');
   return text.slice(0, type === 'textarea' ? 4000 : 500);
+}
+
+export function liveWebsiteFieldValue(value, type = 'text') {
+  if (type === 'boolean') return value === true;
+  if (type === 'number') return Number.isFinite(Number(value)) ? Number(value) : 0;
+  return String(value ?? '').slice(0, type === 'textarea' ? 4000 : 500);
 }
 
 export function validateWebsiteEntry(data, fields = []) {

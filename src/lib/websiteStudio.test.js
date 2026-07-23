@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { branchesFromWebsiteContent, contrastRatio, resolveWebsiteOverride, safeWebsiteValue, servicesFromWebsiteContent, validateWebsiteEntry, websiteBundleToContent, websiteEntryState, websiteImpact } from './websiteStudio.js';
+import { branchesFromWebsiteContent, contrastRatio, liveWebsiteFieldValue, resolveWebsiteOverride, safeWebsiteValue, servicesFromWebsiteContent, validateWebsiteEntry, websiteBundleToContent, websiteEntryState, websiteImpact } from './websiteStudio.js';
 
 const root = new URL('../../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
@@ -75,6 +75,24 @@ test('draft state, impact summaries, and approved routes are deterministic', () 
   assert.equal(safeWebsiteValue('/services/digital', 'route'), '/services/digital');
   assert.throws(() => safeWebsiteValue('javascript:alert(1)', 'url'));
   assert.throws(() => safeWebsiteValue('<script>alert(1)</script>'));
+});
+
+test('text fields keep trailing spaces while typing but trim on save', () => {
+  const studio = read('src/pages/admin/WebsiteStudio.jsx');
+  assert.match(studio, /liveWebsiteFieldValue/);
+  assert.match(studio, /function keepEditorKeysLocal\(event\) \{ event\.stopPropagation\(\); \}/);
+  assert.match(studio, /onKeyDown=\{keepEditorKeysLocal\}/);
+  assert.equal(liveWebsiteFieldValue('Studio ', 'text'), 'Studio ');
+  assert.equal(safeWebsiteValue(' Studio ', 'text'), 'Studio');
+});
+
+test('Website Studio does not expose a nonfunctional branch URL editor and explains the draft-to-publish path', () => {
+  const studio = read('src/pages/admin/WebsiteStudio.jsx');
+  const api = read('src/lib/websiteStudio.js');
+  assert.doesNotMatch(api.match(/export const BRANCH_FIELDS = \[[\s\S]*?\];/)?.[0] || '', /\['publicUrl'/);
+  assert.match(studio, /The service address stays fixed so existing links and inquiry selections keep working/);
+  assert.match(studio, /Save stores this section privately\. Publish applies the saved content everywhere listed above\./);
+  assert.match(studio, /Draft saved\. Publish it to update every connected public page\./);
 });
 
 test('appearance validation enforces usable contrast', () => {

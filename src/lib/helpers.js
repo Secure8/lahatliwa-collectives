@@ -1,8 +1,13 @@
 export const categories = [
-  'Liwa Digital',
-  'Liwa Studio',
-  'Liwa Tech',
-  'Liwa Social',
+  'Website',
+  'Application',
+  'Photography',
+  'Videography',
+  'Social Media',
+  'Campaign',
+  'Editorial',
+  'Community Project',
+  'Other',
 ];
 
 export function slugify(value) {

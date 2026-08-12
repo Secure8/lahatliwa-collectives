@@ -6,7 +6,7 @@ export const WEBSITE_CACHE_KEYS = ['hevv-public-content-cache-v3', 'hevv-public-
 export const WEBSITE_STUDIO_SECTIONS = [
   { group: 'Website', label: 'Overview', key: 'overview' },
   { group: 'Shared content', label: 'Brand', key: 'global.brand', fields: [
-    ['brandName', 'Brand name', 'text'], ['branchName', 'Website branch', 'text'], ['tagline', 'Tagline', 'textarea'], ['logoUrl', 'Main logo URL', 'url'], ['logoAlt', 'Logo description', 'text'], ['contactEmail', 'Contact email', 'email'], ['heroImageUrl', 'Creative hero portrait URL', 'url'], ['heroImageAlt', 'Creative hero portrait description', 'text'],
+    ['brandName', 'Brand name', 'text'], ['tagline', 'Tagline', 'textarea'], ['logoUrl', 'Main logo URL', 'url'], ['logoAlt', 'Logo description', 'text'], ['contactEmail', 'Contact email', 'email'], ['heroImageUrl', 'Creative hero portrait URL', 'url'], ['heroImageAlt', 'Creative hero portrait description', 'text'],
   ] },
   { group: 'Shared content', label: 'Navigation', key: 'global.navigation', fields: [
     ['homeLabel', 'Home label', 'text'], ['aboutLabel', 'About label', 'text'], ['projectsLabel', 'Projects label', 'text'], ['servicesLabel', 'Services label', 'text'], ['creativesLabel', 'Creatives label', 'text'], ['contactLabel', 'Contact label', 'text'], ['showAbout', 'Show About', 'boolean'], ['showProjects', 'Show Projects', 'boolean'], ['showServices', 'Show Services', 'boolean'], ['showCreatives', 'Show Creatives', 'boolean'], ['showContact', 'Show Contact', 'boolean'],
@@ -18,15 +18,11 @@ export const WEBSITE_STUDIO_SECTIONS = [
   { group: 'Pages', label: 'Services', key: 'page.services', preview: '/services', fields: [['title','Heading','text'],['intro','Introduction','textarea']] },
   { group: 'Pages', label: 'About', key: 'page.about', preview: '/about' },
   { group: 'Pages', label: 'Inquiries', key: 'page.inquiries', preview: '/contact', fields: [['heading','Contact heading','text'],['description','Contact description','textarea'],['ctaText','Email action','text'],['landingEyebrow','Inquiry eyebrow','text'],['landingHeading','Inquiry heading','text'],['landingDescription','Inquiry description','textarea'],['disclaimer','Public clarification','textarea']] },
-  { group: 'Shared content', label: 'Footer', key: 'global.footer', fields: [['contextLabel','Branch context','text'],['footerText','Footer description','textarea'],['privacyLabel','Privacy link label','text']] },
+  { group: 'Shared content', label: 'Footer', key: 'global.footer', fields: [['footerText','Footer description','textarea'],['privacyLabel','Privacy link label','text']] },
   { group: 'Shared content', label: 'Search and social sharing', key: 'page.search', fields: [['defaultTitle','Default search title','text'],['defaultDescription','Default search description','textarea'],['openGraphImageUrl','Social sharing image URL','url'],['facebookUrl','Facebook URL','url'],['instagramUrl','Instagram URL','url'],['linkedInUrl','LinkedIn URL','url'],['youTubeUrl','YouTube URL','url'],['tikTokUrl','TikTok URL','url'],['githubUrl','GitHub URL','url']] },
   { group: 'Appearance', label: 'Colors and appearance', key: 'global.appearance', fields: [['primaryTextColor','Primary text','color'],['secondaryTextColor','Secondary text','color'],['mutedTextColor','Muted text','color'],['accentColor','Accent','color'],['dividerLineColor','Borders and dividers','color']] },
   { group: 'Assets and history', label: 'Media', key: 'media' },
   { group: 'Assets and history', label: 'Revisions', key: 'revisions' },
-];
-
-export const BRANCH_FIELDS = [
-  ['name','Public name','text'],['shortDescription','Short description','textarea'],['longDescription','Full description','textarea'],['status','Status','status'],['iconUrl','Icon URL','url'],['displayOrder','Display order','number'],['seoTitle','Search title','text'],['seoDescription','Search description','textarea'],
 ];
 
 export const SERVICE_FIELDS = [
@@ -41,7 +37,7 @@ export function safeWebsiteValue(value, type = 'text') {
   if (type === 'number') return Number.isFinite(Number(value)) ? Number(value) : 0;
   const text = String(value ?? '').trim();
   if (unsafePattern.test(text)) throw new Error('Scripts and unsafe HTML are not allowed.');
-  if (type === 'route' && text && !APPROVED_ROUTES.includes(text) && !/^\/services\/(studio|tech|digital|social)$/.test(text)) throw new Error('Choose an approved public route.');
+  if (type === 'route' && text && !APPROVED_ROUTES.includes(text)) throw new Error('Choose an approved public route.');
   if (type === 'url' && text && !/^(https:\/\/|\/)[^\s]+$/i.test(text)) throw new Error('Use an HTTPS URL or a public site path.');
   if (type === 'email' && text && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) throw new Error('Enter a valid email address.');
   if (type === 'color' && text && !/^#[0-9a-f]{6}$/i.test(text)) throw new Error('Use a six-digit color value.');
@@ -81,8 +77,7 @@ export function websiteImpact(entryKey) {
   if (entryKey === 'global.brand') return ['Header', 'Footer', 'browser metadata', 'Creatives hero', 'About', 'inquiries', 'login'];
   if (entryKey === 'global.navigation') return ['Public header', 'mobile navigation'];
   if (entryKey === 'global.appearance') return ['All public pages', 'light mode', 'dark mode'];
-  if (entryKey?.startsWith('branch.')) return ['Services page', 'inquiry choices', 'branch details', 'admin filters'];
-  if (entryKey?.startsWith('service.')) return ['Services page', 'inquiry choices', 'contextual inquiry links', 'branch details'];
+  if (entryKey?.startsWith('service.')) return ['Services page', 'inquiry choices', 'contextual inquiry links'];
   return [WEBSITE_STUDIO_SECTIONS.find((item) => item.key === entryKey)?.label || 'Public website'];
 }
 

@@ -5,9 +5,8 @@ import LoadingState from '../components/LoadingState';
 import ProjectGrid from '../components/ProjectGrid';
 import SearchBar from '../components/SearchBar';
 import { usePublicContent } from '../lib/contentApi';
-import { normalizeBranchQuery, PROJECT_BRANCHES, projectsForBranch } from '../lib/projectBranches';
 import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
-import { scrollPreservingNavigationState, shouldPushFilter } from '../lib/navigationHistory';
+import { scrollPreservingNavigationState } from '../lib/navigationHistory';
 
 export default function Projects() {
   const [projects, setProjects] = useState(() => readCachedPublicProjectSummaries() || []);
@@ -17,7 +16,6 @@ export default function Projects() {
   const { content } = usePublicContent([]);
   const page = content.websitePages?.projects || {};
   const featuredOnly = searchParams.get('featured') === '1';
-  const selectedBranch = normalizeBranchQuery(searchParams.get('branch'));
   const search = searchParams.get('search') || '';
 
   useEffect(() => {
@@ -36,25 +34,13 @@ export default function Projects() {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    if (!searchParams.get('branch') || selectedBranch) return;
-    const next = new URLSearchParams(searchParams); next.delete('branch'); setSearchParams(next, { replace: true, state: scrollPreservingNavigationState('project-results', window.scrollY) });
-  }, [searchParams, selectedBranch, setSearchParams]);
-
   const visible = useMemo(() => {
     const term = search.toLowerCase();
-    return projectsForBranch(projects, selectedBranch).filter((project) => {
+    return projects.filter((project) => {
       const matchesSearch = !term || project.title.toLowerCase().includes(term) || (project.description || '').toLowerCase().includes(term);
       return matchesSearch && (!featuredOnly || project.featured);
     });
-  }, [featuredOnly, projects, search, selectedBranch]);
-
-  function selectBranch(branch) {
-    if (!shouldPushFilter(selectedBranch, branch)) return;
-    const next = new URLSearchParams(searchParams);
-    if (branch) next.set('branch', branch); else next.delete('branch');
-    setSearchParams(next, { state: scrollPreservingNavigationState('project-results', window.scrollY) });
-  }
+  }, [featuredOnly, projects, search]);
 
   function updateSearch(value) {
     const next = new URLSearchParams(searchParams);
@@ -83,20 +69,16 @@ export default function Projects() {
         </div>
       </header>
 
-      <section id="project-results" className="scroll-mt-20 border-b border-white/[0.09] py-6 sm:py-7" aria-label="Project search and filters">
-        <div className="grid gap-5 lg:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.8fr)] lg:items-end">
+      <section id="project-results" className="scroll-mt-20 border-b border-white/[0.09] py-6 sm:py-7" aria-label="Project search">
+        <div className="max-w-xl">
           <SearchBar value={search} onChange={updateSearch} />
-          <div className="public-filter-scroll flex min-w-0 gap-2 overflow-x-auto pb-1 lg:justify-end" aria-label="Filter projects by branch">
-            <button type="button" aria-pressed={!selectedBranch} onClick={() => selectBranch(null)} className={`interactive-tab min-h-11 shrink-0 px-3 text-xs uppercase tracking-[0.13em] ${!selectedBranch ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}>All projects</button>
-            {PROJECT_BRANCHES.map((branch) => <button key={branch.key} type="button" aria-pressed={selectedBranch === branch.key} onClick={() => selectBranch(branch.key)} className={`interactive-tab min-h-11 shrink-0 px-3 text-xs uppercase tracking-[0.13em] ${selectedBranch === branch.key ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}>{branch.label}</button>)}
-          </div>
         </div>
       </section>
 
       <section className="pt-10 sm:pt-12" aria-live="polite">
         {loading && <LoadingState label="Loading projects" />}
         {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}
-        {!loading && !error && (visible.length ? <ProjectGrid projects={visible} /> : <EmptyState title={selectedBranch ? 'Projects for this branch are being prepared.' : 'No projects found'} message={selectedBranch ? 'Explore another branch or view all current work.' : 'Try another search term.'} />)}
+        {!loading && !error && (visible.length ? <ProjectGrid projects={visible} /> : <EmptyState title="No projects found" message="Try another search term." />)}
       </section>
     </div>
   );

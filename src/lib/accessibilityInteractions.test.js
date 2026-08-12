@@ -160,17 +160,6 @@ test('admin search fields render one boundary with a single restrained focus sta
   assert.match(styles, /\[data-search-shell\] > input\[type="search"\][\s\S]*?border:\s*0 !important[\s\S]*?box-shadow:\s*none !important/);
 });
 
-test('service branch admin previews reuse real uploaded public media without generated icons', async () => {
-  const adminBranches = await source('../pages/admin/AdminServiceBranches.jsx');
-  assert.match(adminBranches, /usePublicContent\(\['services'\]\)/);
-  assert.match(adminBranches, /<BranchIconPreview branch=\{branch\} groups=\{content\.servicesPage\?\.groups\}/);
-  assert.match(adminBranches, /groups\.find\(\(group\) => branchKeyFromRecord\(group\) === branchKey\)/);
-  assert.match(adminBranches, /branch\.icon_url \|\| branch\.image_url \|\| publicGroup\?\.customIconUrl \|\| publicGroup\?\.iconUrl \|\| publicGroup\?\.serviceLogoUrl/);
-  assert.doesNotMatch(adminBranches, /branch\.name\?\.slice\(0,1\)\|\|'L'/);
-  assert.doesNotMatch(adminBranches, /serviceBranchIcon|<Icon size=/);
-  assert.match(adminBranches, />No icon</);
-});
-
 test('dashboard prioritizes summary, urgent work, and a small primary action set', async () => {
   const dashboard = await source('../pages/admin/Dashboard.jsx');
   assert.match(dashboard, /aria-label="Primary actions"/);

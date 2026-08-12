@@ -14,7 +14,6 @@ const publicRouteLoaders = {
   '/projects': loadProjects,
   '/projects/:slug': loadProjectDetails,
   '/services': loadServices,
-  '/services/:branch': loadServices,
   '/contact': loadContact,
   '/creatives': loadCreatives,
   '/creatives/:slug': loadCreativeDetails,

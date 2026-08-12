@@ -141,7 +141,6 @@ export default function App() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:slug" element={<ProjectDetails />} />
         <Route path="/services" element={<Services />} />
-        <Route path="/services/:branch" element={<Services />} />
         <Route path="/creatives" element={<Creatives />} />
         <Route path="/creatives/:slug" element={<CreativeDetails />} />
         <Route path="/start-a-project" element={<StartProject />} />
@@ -178,9 +177,6 @@ export default function App() {
         <Route path="/admin/creatives/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><CreativeEditor /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/creatives/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><CreativeEditor /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/website" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><WebsiteStudio /></AdminRouteGuard></AdminSuspense>} />
-        <Route path="/admin/service-branches" element={<Navigate to="/admin/website?section=page.services" replace />} />
-        <Route path="/admin/service-branches/new" element={<Navigate to="/admin/website?section=page.services" replace />} />
-        <Route path="/admin/service-branches/:id/edit" element={<Navigate to="/admin/website?section=page.services" replace />} />
         <Route path="/admin/inquiries" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative', 'viewer']}><AdminInquiries /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/team" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminTeam /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/settings" element={<Navigate to="/admin/website?section=global.appearance" replace />} />

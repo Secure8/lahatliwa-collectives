@@ -120,7 +120,7 @@ export default function IconsMedia() {
   function remove(asset) {
     requestConfirmation({
       title: `Delete “${asset.name}”?`,
-      description: 'This URL may be used in Page Content, service branches, or public pages. Deleting it may break those references.',
+      description: 'This URL may be used in Page Content, services, or public pages. Deleting it may break those references.',
       confirmLabel: 'Delete asset',
       destructive: true,
       onConfirm: () => performRemove(asset),

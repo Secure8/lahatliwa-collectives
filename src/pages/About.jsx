@@ -22,7 +22,7 @@ export default function About() {
           <h2 className="mt-4 text-2xl font-medium">Clear paths for both audiences</h2>
         </div>
         <div className="grid gap-8 border-l border-white/[0.09] pl-5 sm:grid-cols-2 sm:pl-7">
-          <div><h3 className="text-lg font-medium">For clients</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore four service branches, review published work, and send a guided inquiry with the context needed for a practical first review.</p></div>
+          <div><h3 className="text-lg font-medium">For clients</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore available services, review published work, and send a guided inquiry with the context needed for a practical first review.</p></div>
           <div><h3 className="text-lg font-medium">For creatives</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Selected creatives can publish profiles, portfolio work, and credited contributions so their roles remain visible and easier to discover.</p></div>
         </div>
       </section>

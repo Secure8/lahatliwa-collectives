@@ -136,7 +136,7 @@ test('shared interaction treatments expose persistent focus, active, and disclos
   assert.match(adminLayout, /aria-controls="admin-mobile-navigation"/);
   assert.match(inquiries, /ChevronDown/);
   assert.match(inquiries, /group-open:rotate-180/);
-  assert.match(services, /aria-label=\{`Choose \$\{service\.name\} for \$\{branch\.label\}`\}/);
+  assert.match(services, /aria-label=\{`Ask about \$\{service\.name\}`\}/);
 });
 
 test('editorial labels use meaningful language instead of decorative ordinal counters', () => {
@@ -156,7 +156,7 @@ test('editorial labels use meaningful language instead of decorative ordinal cou
 
   assert.doesNotMatch(sources, /\b0[1-9]\s*\/|padStart\(2,\s*['"]0['"]\)|404\s*\//);
   assert.doesNotMatch(sources, /projectCount|Published profiles|\$\{skills\.length\} capabilities/);
-  assert.match(sources, /Service category/);
+  assert.match(sources, /Available services/);
   assert.match(sources, /Untitled service group/);
   assert.match(sources, /Profile focus/);
 });

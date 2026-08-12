@@ -6,7 +6,7 @@ import LoadingState from '../../components/LoadingState.jsx';
 import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard.jsx';
 import { useAdminAccess } from '../../lib/adminAccess.jsx';
 import {
-  BRANCH_FIELDS, discardWebsiteDraft, fetchWebsiteStudioEntries, fetchWebsiteStudioRevisions,
+  discardWebsiteDraft, fetchWebsiteStudioEntries, fetchWebsiteStudioRevisions,
   publishWebsiteEntry, restoreWebsiteRevision, liveWebsiteFieldValue, saveWebsiteDraft, SERVICE_FIELDS,
   validateWebsiteEntry, WEBSITE_STUDIO_SECTIONS, websiteEntryState, websiteImpact,
 } from '../../lib/websiteStudio.js';
@@ -21,12 +21,12 @@ const pageGroupDescriptions = {
   'Explore Aklan page': 'Introduction shown on the Explore Aklan landing page.',
   'Creatives page': 'Hero and directory content for public creative profiles.',
   'Projects page': 'Introduction shown above the public project directory.',
-  'Services page': 'Services introduction, branch cards, service listings, and inquiry choices.',
+  'Services page': 'Services introduction, service listings, and inquiry choices.',
   'About page': 'Content shown on the public About page.',
   'Inquiry page': 'Headings and guidance shown before the inquiry form.',
 };
 
-function labelFromKey(key = '') { return key.replace(/^page\.|^global\.|^branch\.|^service\./, '').replaceAll('.', ' · ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
+function labelFromKey(key = '') { return key.replace(/^page\.|^global\.|^service\./, '').replaceAll('.', ' · ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function fieldsFromData(data = {}) { return Object.entries(data).filter(([, value]) => ['string','number','boolean'].includes(typeof value)).map(([key, value]) => [key, labelFromKey(key), typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : key.toLowerCase().includes('url') ? 'url' : String(value).length > 100 ? 'textarea' : 'text']); }
 function friendlyError(error) {
   const message = error?.message || 'The action could not be completed.';
@@ -49,7 +49,6 @@ function studioPlacement(key, entryType = '') {
   if (key === 'page.creatives') return ['Creatives page', 'Hero and creative directory introduction'];
   if (key === 'page.projects') return ['Projects page', 'Project directory introduction'];
   if (key === 'page.services') return ['Services page', 'Page heading and introduction'];
-  if (entryType === 'branch') return ['Services page', 'Branch card and branch details'];
   if (entryType === 'service') return ['Services page', 'Service listing and inquiry option'];
   if (key === 'page.about') return ['About page', 'About page content'];
   if (key === 'page.inquiries') return ['Inquiry page', 'Inquiry introduction and public guidance'];
@@ -74,7 +73,7 @@ export default function WebsiteStudio() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const sectionKey = params.get('section') || 'overview';
-  const selected = entries.find((entry) => entry.entry_key === sectionKey) || null;
+  const selected = entries.find((entry) => entry.entry_key === sectionKey && entry.entry_type !== 'branch') || null;
 
   async function load() {
     setLoading(true); setError('');
@@ -94,13 +93,13 @@ export default function WebsiteStudio() {
 
   const navigation = useMemo(() => {
     const fixed = WEBSITE_STUDIO_SECTIONS.map((item) => { const [group, part] = studioPlacement(item.key); return { ...item, group, part, name: item.label }; });
-    const connected = entries.filter((entry) => entry.entry_type === 'branch' || entry.entry_type === 'service').map((entry) => { const [group, part] = studioPlacement(entry.entry_key, entry.entry_type); return { key: entry.entry_key, group, part, name: (entry.draft_data || entry.published_data)?.name || labelFromKey(entry.entry_key) }; });
+    const connected = entries.filter((entry) => entry.entry_type === 'service').map((entry) => { const [group, part] = studioPlacement(entry.entry_key, entry.entry_type); return { key: entry.entry_key, group, part, name: (entry.draft_data || entry.published_data)?.name || labelFromKey(entry.entry_key) }; });
     const query = search.trim().toLowerCase();
     return [...fixed, ...connected].filter((item) => !query || `${item.name} ${item.group} ${item.part}`.toLowerCase().includes(query));
   }, [entries, search]);
 
   const config = WEBSITE_STUDIO_SECTIONS.find((item) => item.key === sectionKey);
-  const fields = selected?.entry_type === 'branch' ? BRANCH_FIELDS : selected?.entry_type === 'service' ? SERVICE_FIELDS : (config?.fields?.length ? config.fields : fieldsFromData(form));
+  const fields = selected?.entry_type === 'service' ? SERVICE_FIELDS : (config?.fields?.length ? config.fields : fieldsFromData(form));
   const state = selected ? websiteEntryState(selected) : '';
   const canRestore = role === 'super_admin' || role === 'owner';
 
@@ -175,13 +174,13 @@ function StudioContent(props) {
   return <div className="mx-auto max-w-4xl">
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.08] pb-5"><div><p className="text-xs uppercase tracking-[0.16em] text-zinc-500">{selected.entry_type}</p><h2 className="mt-1 text-2xl font-semibold text-white">{form.name || config?.label || labelFromKey(selected.entry_key)}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Changes here appear in {websiteImpact(selected.entry_key).join(', ')}.</p></div><span className={`text-xs font-semibold ${state === 'Published' && !dirty ? 'text-emerald-200' : 'text-amber-200'}`}>{statusLabel}</span></div>
     {sectionKey === 'global.appearance' && <AppearanceGuide/>}
-    <section className="mt-6"><h3 className="text-base font-semibold text-white">Main content</h3><p className="mt-1 text-sm text-zinc-500">These are the details most visitors will notice.</p>{selected.entry_type === 'branch' && <p className="mt-3 text-xs leading-5 text-zinc-500">The service address stays fixed so existing links and inquiry selections keep working. Update the public name and content here instead.</p>}<div className="mt-5 grid gap-5 sm:grid-cols-2">{commonFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} onChange={(value) => updateField(key,value,type)}/>)}</div></section>
+    <section className="mt-6"><h3 className="text-base font-semibold text-white">Main content</h3><p className="mt-1 text-sm text-zinc-500">These are the details most visitors will notice.</p><div className="mt-5 grid gap-5 sm:grid-cols-2">{commonFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} onChange={(value) => updateField(key,value,type)}/>)}</div></section>
     {advancedFields.length > 0 && <details className="group mt-8 border-t border-white/[0.08] pt-5"><summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-200">Advanced settings<ChevronDown size={17} className="transition-transform group-open:rotate-180"/></summary><p className="mt-1 text-sm text-zinc-500">Visibility, links, search details, media references, and display order.</p><div className="mt-5 grid gap-5 sm:grid-cols-2">{advancedFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} onChange={(value) => updateField(key,value,type)}/>)}</div></details>}
     <div className="sticky bottom-0 mt-10 flex flex-wrap gap-2 border-t border-white/[0.1] bg-zinc-950 py-3"><p className="basis-full text-xs leading-5 text-zinc-500">Save stores this section privately. Publish applies the saved content everywhere listed above.</p><button type="button" onClick={save} disabled={!dirty || Boolean(working)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-amber-200 px-4 text-sm font-semibold text-zinc-950 disabled:opacity-40"><Save size={15}/>{working === 'save' ? 'Saving' : 'Save draft'}</button><button type="button" onClick={publish} disabled={dirty || !selected.draft_data || Boolean(working)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-emerald-300/35 px-4 text-sm font-semibold text-emerald-100 disabled:opacity-40"><Send size={15}/>{working === 'publish' ? 'Publishing' : 'Publish'}</button><button type="button" onClick={discard} disabled={!selected.draft_data || Boolean(working)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/[0.1] px-4 text-sm text-zinc-300 disabled:opacity-40"><Undo2 size={15}/>Discard</button>{pageRoutes[selected.entry_key] && <Link to={pageRoutes[selected.entry_key]} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/[0.1] px-4 text-sm text-zinc-200"><ExternalLink size={15}/>Open this page</Link>}</div>
   </div>;
 }
 
-function Overview() { return <div className="py-4"><p className="text-xs uppercase tracking-[0.18em] text-amber-200">Overview</p><h2 className="mt-2 text-2xl font-semibold text-white">One connected source for the public website</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Choose any editable box above. Shared brand, branch, and service records update every supported public reference, while page wording stays with its page.</p></div>; }
+function Overview() { return <div className="py-4"><p className="text-xs uppercase tracking-[0.18em] text-amber-200">Overview</p><h2 className="mt-2 text-2xl font-semibold text-white">One connected source for the public website</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Choose any editable box above. Shared brand and service records update every supported public reference, while page wording stays with its page.</p></div>; }
 function AppearanceGuide() { return <div className="mt-6 border-l-2 border-amber-200/40 pl-4"><h3 className="text-sm font-semibold text-white">Global theme colors</h3><p className="mt-1 text-sm leading-6 text-zinc-400">These brand colors support both light and dark mode across public pages, including Explore Aklan, buttons, links, body text, and dividers. Publish carefully because this changes the whole website.</p></div>; }
 function keepEditorKeysLocal(event) { event.stopPropagation(); }
 function StudioField({ fieldKey, label, type, value, onChange }) {

@@ -72,7 +72,7 @@ test('draft state, impact summaries, and approved routes are deterministic', () 
   assert.equal(websiteEntryState({ published_data: {}, draft_data: null }), 'Published');
   assert.equal(websiteEntryState({ published_data: {}, draft_data: { title: 'Draft' } }), 'Unpublished changes');
   assert.ok(websiteImpact('service.digital.website').some((area) => /inquiry choices/i.test(area)));
-  assert.equal(safeWebsiteValue('/services/digital', 'route'), '/services/digital');
+  assert.throws(() => safeWebsiteValue('/services/digital', 'route'));
   assert.throws(() => safeWebsiteValue('javascript:alert(1)', 'url'));
   assert.throws(() => safeWebsiteValue('<script>alert(1)</script>'));
 });
@@ -86,11 +86,11 @@ test('text fields keep trailing spaces while typing but trim on save', () => {
   assert.equal(safeWebsiteValue(' Studio ', 'text'), 'Studio');
 });
 
-test('Website Studio does not expose a nonfunctional branch URL editor and explains the draft-to-publish path', () => {
+test('Website Studio excludes branch records and explains the draft-to-publish path', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
   const api = read('src/lib/websiteStudio.js');
-  assert.doesNotMatch(api.match(/export const BRANCH_FIELDS = \[[\s\S]*?\];/)?.[0] || '', /\['publicUrl'/);
-  assert.match(studio, /The service address stays fixed so existing links and inquiry selections keep working/);
+  assert.doesNotMatch(api, /export const BRANCH_FIELDS/);
+  assert.match(studio, /entry\.entry_type !== 'branch'/);
   assert.match(studio, /Save stores this section privately\. Publish applies the saved content everywhere listed above\./);
   assert.match(studio, /Draft saved\. Publish it to update every connected public page\./);
 });
@@ -107,7 +107,7 @@ test('Website Studio exposes a beginner single-column editor without a simulated
   assert.match(studio, /function SectionChooser/);
   assert.match(studio, /Choose any editable box above/);
   for (const pageGroup of ['All public pages', 'Homepage', 'Explore Aklan page', 'Creatives page', 'Projects page', 'Services page', 'About page', 'Inquiry page']) assert.match(studio, new RegExp(pageGroup));
-  for (const pagePart of ['Header, footer, identity, and contact', 'Featured creatives and inquiry sections', 'Branch card and branch details', 'Service listing and inquiry option']) assert.match(studio, new RegExp(pagePart));
+  for (const pagePart of ['Header, footer, identity, and contact', 'Featured creatives and inquiry sections', 'Service listing and inquiry option']) assert.match(studio, new RegExp(pagePart));
   assert.match(studio, /md:grid-cols-2/);
   assert.match(studio, /group\/category border-b/);
   assert.doesNotMatch(studio, /group\/category rounded-xl|group rounded-xl bg-white|shadow-2xl backdrop-blur-xl/);
@@ -149,7 +149,7 @@ test('legacy editors redirect into one Website Studio and admin navigation is gr
   const layout = read('src/components/admin/AdminLayout.jsx');
   assert.match(app, /path="\/admin\/website"/);
   assert.match(app, /LegacyWebsiteEditorRedirect/);
-  assert.match(app, /\/admin\/website\?section=page\.services/);
+  assert.doesNotMatch(app, /\/admin\/service-branches/);
   assert.doesNotMatch(app, /<AdminServiceBranches|<ServiceBranchEditor|<ContentEditor|<SiteSettings/);
   assert.match(layout, /\['Content'/);
   assert.match(layout, /Website Studio/);
@@ -167,16 +167,16 @@ test('public content always revalidates and published actions clear every legacy
   assert.match(api, /if \(!row\?\.entry_key \|\| row\.draft_data\)/);
 });
 
-test('Services and inquiries read the same canonical records instead of hardcoded display names', () => {
+test('Services and inquiries read one flat canonical service list', () => {
   const services = read('src/pages/Services.jsx');
   const inquiry = read('src/pages/StartProject.jsx');
-  assert.match(services, /branchesFromWebsiteContent/);
-  assert.match(services, /servicesFromWebsiteContent/);
-  assert.match(services, /branch\.name \|\| branch\.label/);
-  assert.match(inquiry, /branchesFromWebsiteContent/);
-  assert.match(inquiry, /typeof configured\[0\] === 'object'/);
+  assert.match(services, /content\.websiteServices/);
+  assert.match(services, /allServiceCategories/);
+  assert.doesNotMatch(services, /Choose a Liwa branch|Service branches/);
+  assert.match(inquiry, /content\.websiteServices/);
+  assert.match(inquiry, /allServiceCategories/);
   assert.match(inquiry, /window\.setTimeout\(finishWithFallback, 6000\)/);
-  assert.match(inquiry, /You can still continue with a general branch request/);
+  assert.match(inquiry, /continue without choosing a specific creative/);
 });
 
 test('page-specific Website Studio copy reaches homepage, Explore, inquiries, metadata, and social links', () => {

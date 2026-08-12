@@ -11,7 +11,7 @@ export const defaultSiteContent = {
   heroImageUrl: '',
   heroImageAlt: 'Lahat Liwa Collectives hero portrait',
   showHeroPortrait: false,
-  footerText: 'An independently operated platform for practical services, published work, credited contributions, and growing creative visibility across four Liwa branches.',
+  footerText: 'An independently operated platform for practical services, published work, credited contributions, and growing creative visibility.',
   primaryTextColor: '#f5f5f4',
   secondaryTextColor: '#d4d4d8',
   mutedTextColor: '#a1a1aa',
@@ -46,7 +46,7 @@ export const defaultSiteContent = {
   ],
   tools: ['React', 'Supabase', 'Vite', 'Tailwind CSS', 'Canva', 'Adobe tools', 'CapCut', 'Figma'],
   servicesIntro:
-    'Choose the branch closest to your need, then share the outcome, context, and timeline that matter to you.',
+    'Choose the service closest to your need, then share the outcome, context, and timeline that matter to you.',
   services: [
     {
       name: 'Liwa Social',

@@ -123,11 +123,10 @@ test('admin keeps stable role-aware navigation, a responsive dashboard, and a on
 });
 
 test('long admin forms share mobile sections and sticky actions above the safe-area edge', async () => {
-  const [ui, projectForm, creativeEditor, branchEditor, settings, contentEditor, profile, styles] = await Promise.all([
+  const [ui, projectForm, creativeEditor, settings, contentEditor, profile, styles] = await Promise.all([
     readFile(new URL('../components/admin/AdminUI.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/ProjectForm.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/admin/CreativeEditor.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/admin/ServiceBranchEditor.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/admin/SiteSettings.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/admin/ContentEditor.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/admin/MyProfile.jsx', import.meta.url), 'utf8'),
@@ -136,7 +135,7 @@ test('long admin forms share mobile sections and sticky actions above the safe-a
   assert.match(ui, /export function ResponsiveFormSection/);
   assert.match(ui, /export function StickyMobileActions/);
   assert.match(ui, /data-sticky-mobile-actions/);
-  for (const source of [projectForm, creativeEditor, branchEditor, settings, contentEditor, profile]) {
+  for (const source of [projectForm, creativeEditor, settings, contentEditor, profile]) {
     assert.match(source, /StickyMobileActions/);
     assert.match(source, /ResponsiveFormSection/);
   }

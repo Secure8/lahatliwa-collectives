@@ -115,7 +115,7 @@ test('every branch owns exact service-selection heading and supporting descripti
     digital: ['Choose the digital service you need.', 'For websites, applications, systems, prototypes, maintenance, and development guidance.'],
     social: ['Choose the marketing support you need.', 'For social media management, content planning, campaigns, branding, and audience growth.'],
     tech: ['What would you like to ask about?', 'Independent tourism information and visitor routing for Aklan.'],
-    general: ['Choose the type of support you need.', 'For requests that may involve one or more Liwa branches, consultation, or general assistance.'],
+    general: ['Choose the type of support you need.', 'Choose the closest match, or use a general inquiry when you are unsure.'],
   };
 
   for (const [branch, [heading, description]] of Object.entries(expected)) {
@@ -131,8 +131,8 @@ test('every branch owns exact service-selection heading and supporting descripti
   ]);
   assert.match(form, /legend=\{copy\.serviceSelectionHeading\}/);
   assert.match(form, /copy\.serviceSelectionDescription/);
-  assert.match(services, /copy\.serviceSelectionHeading/);
-  assert.match(services, /copy\.serviceSelectionDescription/);
+  assert.match(services, /Available services/);
+  assert.match(services, /content\.websiteServices/);
   assert.match(confirmation, /copy\.serviceSelectionHeading/);
   assert.match(confirmation, /copy\.serviceSelectionDescription/);
   assert.doesNotMatch(`${form}\n${services}\n${confirmation}`, /Choose a broad category for your request|For building your online presence/i);
@@ -175,7 +175,7 @@ test('branch descriptions are specific, stable, and replace known template copy 
   assert.match(branchMeta('tech').description, /Tourism information, destination storytelling/);
   assert.match(branchMeta('digital').description, /developer or digital specialist/);
   assert.match(branchMeta('social').description, /social media or marketing specialist/);
-  assert.match(branchMeta('general').description, /appropriate Liwa branch/);
+  assert.match(branchMeta('general').description, /right next step/);
   assert.equal(publicBranchDescription('social', 'Start a guided Liwa Social request and describe the exact outcome.'), branchMeta('social').description);
   assert.equal(publicBranchDescription('studio', 'Custom audio and mixed-media support for community productions.'), 'Custom audio and mixed-media support for community productions.');
 });
@@ -193,7 +193,8 @@ test('router and CTA sources use the shared inquiry system', async () => {
     readFile(new URL('../components/CreativeProfileView.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/Services.jsx', import.meta.url), 'utf8'),
   ]);
-  for (const route of ['/services/:branch', '/inquiry', '/inquiry/confirmation/:reference']) assert.match(app, new RegExp(route.replace(/[/:]/g, '\\$&')));
+  for (const route of ['/services', '/inquiry', '/inquiry/confirmation/:reference']) assert.match(app, new RegExp(route.replace(/[/:]/g, '\\$&')));
+  assert.doesNotMatch(app, /\/services\/:branch/);
   assert.match(hero, /inquiryUrl\(\{ creative: creative\.slug \}\)/);
   assert.match(profile, /inquiryUrl\(\{ creative: creative\.slug \}\)/);
   assert.doesNotMatch(`${hero}\n${profile}\n${services}`, /href="#"/);
@@ -204,11 +205,11 @@ test('guided form keeps mobile controls bounded and includes the tourism indepen
   assert.match(source, /not an official tourism office, emergency service, travel agency/);
   assert.match(source, /overflow-x-auto/);
   assert.doesNotMatch(source, /min-w-screen|w-screen/);
-  assert.match(source, /const copy = inquiryCopy\(draft\.branch\)/);
+  assert.match(source, /const copy = inquiryCopy\(inquiryPath === 'tourism' \? 'tech' : 'general'\)/);
   assert.match(source, /<DetailsStep[^>]+copy=\{copy\}/);
   assert.match(source, /<ContactStep[^>]+copy=\{copy\}/);
-  assert.match(source, /function selectBranch[\s\S]*changeInquiryBranchSelection\(current, branch\)/);
-  assert.match(source, /function selectBranch[\s\S]*setErrors\(\{\}\)/);
+  assert.doesNotMatch(source, /function selectBranch/);
+  assert.match(source, /function selectService[\s\S]*service\.legacyBranch/);
   assert.match(source, /request: buildInquirySubmissionRequest\(draft\)/);
 });
 
@@ -217,7 +218,7 @@ test('services preselection skips safely and exposes an accessible change-select
     readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/Services.jsx', import.meta.url), 'utf8'),
   ]);
-  assert.match(services, /state=\{inquiryNavigationState\(\{ branch: branch\.key, service: service\.key \}\)\}/);
+  assert.match(services, /inquirySelection: \{ path: 'service', service: service\.key/);
   assert.match(form, /const navigationSelection = location\.state\?\.inquirySelection/);
   assert.match(form, /entry\.status === 'specialist'[\s\S]*moveToStep\(entry\.step\)/);
   assert.match(form, /function changeSelection\(\)[\s\S]*delete nextState\.inquirySelection[\s\S]*moveToStep\(INQUIRY_SELECTION_STEP\)[\s\S]*replace: true/);
@@ -238,7 +239,7 @@ test('inquiry copy requires a prominent detailed request and avoids instant-book
   ]);
   assert.match(form, /label=\{copy\.detailsLabel\}/);
   assert.match(form, /\{copy\.matchingCopy\}/);
-  assert.match(confirmation, /inquiryCopy\(branchKey\)/);
+  assert.match(confirmation, /inquiryCopy\('general'\)/);
   assert.match(email, /Service category.*inquiry\.project_type/s);
   assert.match(email, /Request details.*inquiry\.details/s);
   assert.doesNotMatch(`${form}\n${services}\n${confirmation}`, /Book now|Confirm booking|Order service|Purchase service|Book a Creative/i);

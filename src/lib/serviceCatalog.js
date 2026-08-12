@@ -109,3 +109,17 @@ export function resolveServiceCategory(branch, value, configuredServices = []) {
   const key = canonicalServiceKey(branch, value);
   return serviceCategoriesForBranch(branch, configuredServices).find((item) => item.key === key) || null;
 }
+
+// Branches remain an implementation detail while older inquiry records and the
+// current database schema are migrated. Public and admin interfaces consume this
+// flat catalog and never ask people to choose a branch.
+export function allServiceCategories() {
+  return Object.entries(SERVICE_CATALOG).flatMap(([legacyBranch, services]) =>
+    services.map((service) => ({ ...service, legacyBranch })),
+  );
+}
+
+export function serviceByKey(value = '') {
+  const key = normalizeKey(value);
+  return allServiceCategories().find((service) => service.key === key) || null;
+}

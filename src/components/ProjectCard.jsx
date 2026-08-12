@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { getGalleryItemMediaUrl, getGalleryItemThumbnailUrl, normalizeProjectGallery } from '../lib/galleryItems';
 import { excerpt } from '../lib/helpers';
 import { getPublicImageUrl } from '../lib/storage';
-import { branchForKey, projectBranchKey } from '../lib/projectBranches';
 import { projectCreditSummary } from '../lib/fairProjectExposure';
 import { publicLocationState } from '../lib/navigationHistory';
 import { useState } from 'react';
@@ -17,7 +16,6 @@ export default function ProjectCard({ project, index = 0 }) {
   const galleryPreview = normalizeProjectGallery(project).find((item) => item.type === 'image' || getGalleryItemThumbnailUrl(item));
   const image = publicImageVariant(getPublicImageUrl(project.cover_image), 'display')
     || (galleryPreview?.type === 'image' ? getGalleryItemMediaUrl(galleryPreview) : getGalleryItemThumbnailUrl(galleryPreview));
-  const branch = branchForKey(projectBranchKey(project.category));
   const creditSummary = projectCreditSummary(project);
 
   return (
@@ -38,10 +36,7 @@ export default function ProjectCard({ project, index = 0 }) {
 
         <div className="project-card-body relative grid flex-1 border-b border-white/[0.09] pb-6 pt-4 after:absolute after:bottom-[-1px] after:left-0 after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.8)] after:transition-all after:duration-500 group-hover:after:w-24 motion-reduce:after:transition-none sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6">
           <div className="min-w-0">
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-orange-300">
-              <span>{branch?.label || project.category}</span>
-              {project.featured && <span className="text-zinc-500">Selected</span>}
-            </p>
+            {project.featured && <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Selected</p>}
             <h2 className="mt-2 [overflow-wrap:anywhere] text-xl font-medium leading-snug text-white">{project.title}</h2>
             {project.description && <p className="mt-3 line-clamp-2 max-w-2xl text-sm leading-6 text-zinc-500">{excerpt(project.description, 150)}</p>}
             {creditSummary && (

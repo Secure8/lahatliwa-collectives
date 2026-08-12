@@ -12,7 +12,7 @@ import { canAcceptInquiry, canCompleteInquiry, canDeleteInquiry, inquiryMatchesV
 import { supabase } from '../../lib/supabaseClient';
 
 const inquiryColumns = 'id, public_reference, name, email_or_contact, client_email, client_phone, organization, branch, service_key, project_type, budget_range, deadline, preferred_contact, preferred_schedule, service_mode, general_location, preferred_creative_id, assigned_creative_id, current_assignee_id, summary, details, message, request_metadata, source_path, status, workflow_status, archived_at, notification_status, notification_attempts, notification_state, notification_error, completed_at, completed_by, completion_note, closed_at, created_at, updated_at';
-const branchLabels = { studio: 'Liwa Studio', tech: 'Liwa Explore', digital: 'Liwa Digital', social: 'Liwa Social', general: 'General' };
+const branchLabels = { studio: 'Service request', tech: 'Information request', digital: 'Service request', social: 'Service request', general: 'General inquiry' };
 const lineControl = 'dark-select min-w-0 w-full rounded-md border border-white/[0.14] bg-zinc-950 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] hover:border-white/[0.22] focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/15';
 
 async function functionErrorMessage(error, fallback) {
@@ -43,7 +43,6 @@ export default function AdminInquiries() {
   const superAdmin = isSuperAdmin(role);
   const [data, setData] = useState({ inquiries: [], team: [], responses: [], assignments: [], requests: [], receipts: [], history: [], deliveries: [], privateNotes: [] });
   const [view, setView] = useState('all');
-  const [branchFilter, setBranchFilter] = useState('all');
   const [search, setSearch] = useState(() => params.get('reference') || '');
   const [showArchived, setShowArchived] = useState(false);
   const [selectedId, setSelectedId] = useState('');
@@ -111,10 +110,9 @@ export default function AdminInquiries() {
     const query = search.trim().toLowerCase();
     return data.inquiries
       .filter((item) => showArchived ? Boolean(item.archived_at) : !item.archived_at)
-      .filter((item) => branchFilter === 'all' || item.branch === branchFilter)
       .filter((item) => inquiryMatchesView(item, view, memberId))
       .filter((item) => !query || [item.public_reference, item.name, item.client_email, item.email_or_contact, item.project_type, item.summary, creativeOwnerMap[item.preferred_creative_id]?.display_name, teamMap[item.current_assignee_id]?.display_name].some((value) => String(value || '').toLowerCase().includes(query)));
-  }, [branchFilter, creativeOwnerMap, data.inquiries, memberId, search, showArchived, teamMap, view]);
+  }, [creativeOwnerMap, data.inquiries, memberId, search, showArchived, teamMap, view]);
 
   async function performAction(action, payload = {}, options = {}) {
     if (!selected || working) return false;
@@ -197,7 +195,7 @@ export default function AdminInquiries() {
     {feedbackScope === 'page' && error && <AdminNotice className="mb-5">{error}</AdminNotice>}{feedbackScope === 'page' && message && <AdminNotice tone="success" className="mb-5">{message}</AdminNotice>}
     <AdminSurface data-inquiry-filter-panel className="mb-2 grid min-w-0 gap-4 p-4">
       <nav className="grid min-w-0 grid-cols-3 gap-2 xl:grid-cols-9" aria-label="Inquiry views">{WORKFLOW_VIEWS.map(([key, label]) => <button key={key} type="button" aria-pressed={view === key} onClick={() => setView(key)} className={`h-12 w-full rounded-md border px-2 text-xs font-semibold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50 ${view === key ? 'border-amber-200/55 bg-amber-300/12 text-amber-100' : 'border-white/[0.09] bg-zinc-950/55 text-zinc-400 hover:border-white/[0.18] hover:text-white'}`}>{label}</button>)}</nav>
-      <section className="grid min-w-0 gap-3 border-t border-white/[0.08] pt-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_8rem] lg:items-end"><label className="grid min-w-0 gap-1.5 text-sm text-zinc-300"><span>Search</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, client, service, or assignee" className={lineControl} /></label><label className="grid min-w-0 gap-1.5 text-sm text-zinc-300"><span>Branch</span><select value={branchFilter} onChange={(event) => setBranchFilter(event.target.value)} className={lineControl}><option value="all">All branches</option>{Object.entries(branchLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button type="button" aria-pressed={showArchived} onClick={() => setShowArchived((current) => !current)} className={`min-h-10 w-full rounded-md border px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50 ${showArchived ? 'border-amber-200/55 bg-amber-300/12 text-amber-100' : 'border-white/[0.14] bg-zinc-950 text-zinc-400 hover:border-white/[0.24] hover:text-white'}`}>Archived</button></section>
+      <section className="grid min-w-0 gap-3 border-t border-white/[0.08] pt-4 sm:grid-cols-[minmax(0,1fr)_8rem] sm:items-end"><label className="grid min-w-0 gap-1.5 text-sm text-zinc-300"><span>Search</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, client, service, or assignee" className={lineControl} /></label><button type="button" aria-pressed={showArchived} onClick={() => setShowArchived((current) => !current)} className={`min-h-10 w-full rounded-md border px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50 ${showArchived ? 'border-amber-200/55 bg-amber-300/12 text-amber-100' : 'border-white/[0.14] bg-zinc-950 text-zinc-400 hover:border-white/[0.24] hover:text-white'}`}>Archived</button></section>
     </AdminSurface>
 
     {loading ? <InquirySkeleton /> : loadError ? <div className="border-b border-red-300/15 py-8"><p className="text-sm text-red-200">{loadError}</p><button type="button" onClick={() => loadWorkspace()} className="mt-3 border-b border-red-200/30 pb-1 text-sm text-red-100">Retry</button></div> : visible.length ? <div className="divide-y divide-white/[0.07]">{visible.map((inquiry) => {

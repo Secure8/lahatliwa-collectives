@@ -2,12 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { AdminButton, AdminNotice, AdminPageHeader, ResponsiveFormSection, StickyMobileActions } from '../../components/admin/AdminUI';
-import ServiceTaxonomyPreview from '../../components/admin/ServiceTaxonomyPreview';
 import LoadingState from '../../components/LoadingState';
 import { defaultPageContent } from '../../data/siteContent';
 import { fetchPageContent, updatePageContent, uploadSiteAsset } from '../../lib/contentApi';
 import { uploadStatusText } from '../../lib/imageCompression';
-import { branchKeyFromRecord } from '../../lib/serviceRequest';
 import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
 import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 
@@ -576,11 +574,7 @@ function PageFields({ pageKey, content, patch, patchServiceGroup, uploadHomeBack
                 <Field label="Lucide icon name" value={group.iconName || ''} onChange={(value) => patchServiceGroup(index, { iconName: value })} hint="Used when no custom icon image is set." />
               </div>
               <Textarea label="Description" value={group.description || ''} onChange={(value) => patchServiceGroup(index, { description: value })} error={fieldErrors[`groupDescription-${index}`]} hint="Describe flexible support without implying a guaranteed package, schedule, location, or acceptance." rows={4} />
-              {branchKeyFromRecord(group) ? (
-                <ServiceTaxonomyPreview branchKey={branchKeyFromRecord(group)} />
-              ) : (
-                <Textarea label="Service categories, comma-separated" value={listText(group.items)} onChange={(value) => patchServiceGroup(index, { items: parseListText(value) })} hint="Choose one of the four standard Liwa branch names to use the shared six-category taxonomy." rows={4} />
-              )}
+              <Textarea label="Service options, comma-separated" value={listText(group.items)} onChange={(value) => patchServiceGroup(index, { items: parseListText(value) })} hint="List the services visitors can choose from." rows={4} />
               <div className="grid gap-6 md:grid-cols-2">
                 <Field label="Service logo URL" value={group.serviceLogoUrl || ''} onChange={(value) => patchServiceGroup(index, { serviceLogoUrl: value })} error={fieldErrors[`groupServiceLogoUrl-${index}`]} hint="Optional logo shown beside the icon." />
                 <Field label="Custom icon URL" value={group.customIconUrl || group.iconUrl || ''} onChange={(value) => patchServiceGroup(index, { customIconUrl: value, iconUrl: '' })} error={fieldErrors[`groupCustomIconUrl-${index}`]} hint="Optional replacement for the Lucide icon." />

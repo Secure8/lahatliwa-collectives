@@ -2,7 +2,7 @@
 
 Modern public website and admin CMS for Lahat Liwa Collectives, built with React, Vite, Tailwind CSS, React Router, Supabase Auth, Supabase Database, and Supabase Storage.
 
-The site has public pages for projects, creatives, service branches, and inquiries, plus a protected multi-user admin dashboard for team CMS workflows.
+The site has public pages for projects, creatives, services, and inquiries, plus a protected multi-user admin dashboard for team CMS workflows.
 
 ## Tech Stack
 

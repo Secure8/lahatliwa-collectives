@@ -145,6 +145,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       ? {
           ...emptyProject,
           ...initialProject,
+          category: categories.includes(initialProject.category) ? initialProject.category : 'Other',
           tools: Array.isArray(initialProject.tools) ? initialProject.tools.join(', ') : initialProject.tools || '',
           gallery_images: initialProject.gallery_images || [],
           gallery_items: Array.isArray(initialProject.gallery_items)

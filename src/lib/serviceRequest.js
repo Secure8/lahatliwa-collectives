@@ -8,7 +8,7 @@ export const SERVICE_BRANCHES = [
   { key: 'social', label: 'Liwa Social', action: 'Start a Marketing Request', description: 'Tell us about the brand, page, audience, content plan, or campaign that needs support so a social media or marketing specialist can review your goals.' },
 ];
 
-export const GENERAL_BRANCH = { key: 'general', label: 'General', action: 'Describe What You Need', description: 'Describe your request, question, or collaboration idea. Include the result you are aiming for, your preferred timeline, and enough context for us to direct it to the appropriate Liwa branch.' };
+export const GENERAL_BRANCH = { key: 'general', label: 'General', action: 'Describe What You Need', description: 'Describe your request, question, or collaboration idea. Include the result you are aiming for, your preferred timeline, and enough context for us to identify the right next step.' };
 export const INQUIRY_STEPS = ['Service Category', 'Preferred Creative', 'Request Details', 'Schedule and Contact', 'Review'];
 export const INQUIRY_SELECTION_STEP = 0;
 export const INQUIRY_SPECIALIST_STEP = 1;
@@ -190,14 +190,14 @@ export const BRANCH_INQUIRY_COPY = {
   general: {
     pageEyebrow: 'Liwa service inquiry',
     pageTitle: 'Tell us what you need, one step at a time.',
-    pageDescription: 'Choose the closest Liwa branch and service. If you are unsure, select General and give us enough context to direct the request.',
+    pageDescription: 'Choose the closest service. If you are unsure, select a general inquiry and give us enough context to review the request.',
     serviceSelectionHeading: 'Choose the type of support you need.',
-    serviceSelectionDescription: 'For requests that may involve one or more Liwa branches, consultation, or general assistance.',
+    serviceSelectionDescription: 'Choose the closest match, or use a general inquiry when you are unsure.',
     serviceHelper: 'Choose the closest fit. You can explain the exact goal, situation, and support you need in the next step.',
     submitLabel: 'Send request',
     steps: ['Service category', 'Preferred published creative', 'Tell us what you need', 'Schedule and contact', 'Review request'],
     summaryLabel: 'Request summary',
-    summaryHelper: 'Give us a short overview so we can direct your request to the appropriate Liwa branch.',
+    summaryHelper: 'Give us a short overview so we can identify the right next step.',
     summaryPlaceholder: 'A short overview of the help or result you need',
     summaryError: 'Please add a short request summary.',
     detailsLabel: 'Describe your request',
@@ -209,7 +209,7 @@ export const BRANCH_INQUIRY_COPY = {
     recipientLegend: 'Who should receive this request?',
     recipientHelper: 'Express a preference for a published creative, or continue without choosing a specific person. A preference does not guarantee availability or assignment.',
     teamOption: 'General Liwa request',
-    teamOptionDetail: 'Let the platform review the request and direct it to the appropriate branch without choosing a specific published creative.',
+    teamOptionDetail: 'Let the platform review the request without choosing a specific published creative.',
     recipientError: 'Please choose a published creative or continue with a general Liwa request.',
     scheduleLabel: 'Preferred date or timeline',
     schedulePlaceholder: 'Preferred date, range, or timing',
@@ -221,7 +221,7 @@ export const BRANCH_INQUIRY_COPY = {
     reviewLabel: 'Request details',
     matchingCopy: 'The platform will review your goal, current situation, expected result, schedule, location, and available support. A selected creative is a preference, not a guaranteed assignment.',
     confirmationTitle: 'Your inquiry has been received.',
-    confirmationDescription: 'Keep your reference number nearby. The request will be reviewed and directed to the appropriate Liwa branch before availability, timing, or pricing is confirmed.',
+    confirmationDescription: 'Keep your reference number nearby. The request will be reviewed before availability, timing, or pricing is confirmed.',
     directoryLabel: 'Explore published creative profiles',
   },
 };
@@ -400,7 +400,6 @@ export function validateInquiryStep(step, draft, availableServices = [], eligibl
   const errors = {};
   const copy = inquiryCopy(draft.branch);
   if (step === 0) {
-    if (!branchMeta(draft.branch)) errors.branch = 'Please choose a service branch before continuing.';
     if (!availableServices.some((service) => service.key === draft.serviceKey)) errors.serviceKey = 'Please choose a service before sending your inquiry.';
   }
   if (step === 1 && draft.creativeSlug && !eligibleCreatives.some((creative) => creative.slug === draft.creativeSlug)) errors.creativeSlug = copy.recipientError;

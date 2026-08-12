@@ -15,7 +15,6 @@ import { applyPublicMetadata } from '../lib/publicMetadata';
 import { getSingleProjectExternalLink, projectExternalLinkLabel, projectExternalLinkText } from '../lib/projectExternalLinks';
 import BrandWordmark from '../components/BrandWordmark';
 import { inquiryUrl } from '../lib/serviceRequest';
-import { projectBranchKey } from '../lib/projectBranches';
 
 function isMissingCreditRolesColumn(error) {
   const message = `${error?.message || ''} ${error?.details || ''}`;
@@ -101,10 +100,7 @@ export default function ProjectDetails() {
           <ProjectCover cover={cover} title={project.title} externalLink={coverExternalLink} />
         )}
         <div className="min-w-0 lg:py-4">
-          <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
-            <span>{project.category}</span>
-            {project.featured && <span className="text-[var(--site-accent-text)]">Selected</span>}
-          </div>
+          {project.featured && <p className="text-xs uppercase tracking-[0.18em] text-[var(--site-accent-text)]">Selected</p>}
           <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: 'var(--site-primary-text)' }}>{project.title}</h1>
           <p className="mt-5 text-lg leading-8" style={{ color: 'var(--site-secondary-text)' }}>{project.description}</p>
           <div className="mt-6 grid gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}>
@@ -124,7 +120,7 @@ export default function ProjectDetails() {
             <Action href={project.social_post_url} icon={Share2} label="Open Post" />
             <Action href={project.live_url} icon={ArrowUpRight} label="Open Full Project" />
             <Action href={project.github_url} icon={Github} label="GitHub" />
-            <Link to={inquiryUrl({ branch: projectBranchKey(project.category), context: { type: 'project', id: project.id, slug: project.slug, title: project.title, branch: projectBranchKey(project.category), sourceAction: 'project-detail-inquiry' } })} className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--site-accent)] px-4 text-sm font-semibold text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">Ask about this project <ArrowRight size={16} /></Link>
+            <Link to={inquiryUrl({ context: { type: 'project', id: project.id, slug: project.slug, title: project.title, sourceAction: 'project-detail-inquiry' } })} className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--site-accent)] px-4 text-sm font-semibold text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">Ask about this project <ArrowRight size={16} /></Link>
           </div>
         </div>
       </div>

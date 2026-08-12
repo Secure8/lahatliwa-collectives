@@ -24,13 +24,13 @@ export default function Navbar() {
     [navigation.currentWorkLabel || 'Current Work', '/work', true],
     [navigation.projectsLabel || 'Portfolio', '/projects', navigation.showProjects !== false],
     [navigation.creativesLabel || 'Creatives', '/creatives', navigation.showCreatives !== false],
+    [navigation.servicesLabel || 'Work with us', '/services', true],
     [navigation.contactLabel || 'Contact', '/contact', navigation.showContact !== false],
   ].filter(([, , visible]) => visible).map(([label, href]) => [label, href]);
-  const visibleSecondaryLinks = [[navigation.aboutLabel || 'About', '/about'], [navigation.servicesLabel || 'Work with us', '/services'], [navigation.contactLabel || 'Contact', '/contact'], [navigation.privacyLabel || 'Privacy Policy', '/privacy']].filter(([, href]) => visibleLinks.some(([, primaryHref]) => primaryHref === href) || ['/privacy','/services'].includes(href));
+  const visibleSecondaryLinks = [[navigation.aboutLabel || 'About', '/about'], [navigation.contactLabel || 'Contact', '/contact'], [navigation.privacyLabel || 'Privacy Policy', '/privacy']];
   const mobileMode = publicAppBarMode(location.pathname);
   const secondaryDestination = visibleSecondaryLinks.find(([, href]) => location.pathname === href || location.pathname.startsWith(`${href}/`));
   const secondaryRouteIsActive = Boolean(secondaryDestination);
-  const secondaryPageLabel = secondaryDestination?.[0] || 'More';
   const closeMenu = useCallback(() => setOpen(false), []);
   const mobileAppBar = useMobileAppBar({ locked: open || headerFocused, routeKey: `${location.pathname}${location.search}` });
   const isPrimaryHeaderVisible = mobileAppBar.primaryVisible;
@@ -119,7 +119,6 @@ export default function Navbar() {
               tabIndex={open ? -1 : undefined}
             >
               <span className="grid h-6 place-items-center"><Ellipsis className="mobile-nav-icon" size={22} aria-hidden="true" /></span>
-              <span className="mobile-nav-current-label" aria-hidden="true">{secondaryPageLabel}</span>
             </button>
           </div>
         </nav>

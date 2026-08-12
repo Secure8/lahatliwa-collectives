@@ -1,4 +1,4 @@
-import { GalleryHorizontalEnd, House, MessageSquarePlus, Radio, UsersRound } from 'lucide-react';
+import { FolderKanban, Handshake, House, Images, UsersRound } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { PUBLIC_PRIMARY_DESTINATIONS, publicDestinationIsActive } from '../lib/mobileAppShell';
@@ -7,10 +7,10 @@ import { preloadPublicRoute } from '../lib/publicRoutePreload';
 
 const icons = {
   '/': House,
-  '/work': Radio,
-  '/projects': GalleryHorizontalEnd,
+  '/work': FolderKanban,
+  '/projects': Images,
   '/creatives': UsersRound,
-  '/inquiry': MessageSquarePlus,
+  '/services': Handshake,
 };
 
 export default function MobileTopNavigation() {
@@ -19,10 +19,10 @@ export default function MobileTopNavigation() {
   const navigation = content.websiteNavigation || {};
   const labelsByPath = {
     '/': navigation.homeLabel || 'Home',
-    '/work': 'Work',
-    '/projects': navigation.projectsLabel || 'Projects',
+    '/work': navigation.currentWorkLabel || 'Current Work',
+    '/projects': navigation.projectsLabel || 'Portfolio',
     '/creatives': navigation.creativesLabel || 'Creatives',
-    '/inquiry': 'Inquiry',
+    '/services': navigation.servicesLabel || 'Work with us',
   };
 
   return (
@@ -42,14 +42,13 @@ export default function MobileTopNavigation() {
               onPointerEnter={() => preloadPublicRoute(href)}
               onFocus={() => preloadPublicRoute(href)}
               className={clsx(
-                'mobile-nav-item relative flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
+                'mobile-nav-item relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
                 active ? 'text-[var(--site-accent-text)]' : 'text-zinc-500 hover:text-zinc-200',
               )}
             >
-              <span className="grid h-7 w-12 place-items-center transition">
-                <Icon className="mobile-nav-icon" size={21} strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
+              <span className={clsx('grid h-10 w-12 place-items-center rounded-xl transition', active && 'bg-[var(--site-accent-surface)]')}>
+                <Icon className="mobile-nav-icon" size={22} strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
               </span>
-              <span className="mobile-nav-current-label" aria-hidden="true">{label}</span>
             </NavLink>
           );
         })}

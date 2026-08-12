@@ -488,7 +488,6 @@ summary::-webkit-details-marker {
 }
 
 .mobile-nav-item[aria-current="page"] .mobile-nav-icon {
-  fill: currentColor;
   filter: drop-shadow(0 0 7px rgb(251 146 60 / 0.28));
 }
 

@@ -127,12 +127,14 @@ test('Website Studio exposes a beginner single-column editor without a simulated
 
 test('Website Studio presents the requested sections and keeps shared values synchronized', () => {
   const footer = read('src/components/Footer.jsx');
+  const navbar = read('src/components/Navbar.jsx');
   assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Home', 'About', 'Current Work', 'Portfolio', 'Creatives', 'Contact', 'Privacy Policy', 'Colors']);
   assert.ok(!WEBSITE_STUDIO_SECTIONS.some(({ label }) => ['Footer', 'Search', 'Social links'].includes(label)));
   assert.match(footer, /content\.displayName/);
   assert.match(footer, /content\.tagline/);
   assert.match(footer, /content\.socialLinks/);
   assert.doesNotMatch(footer, /BrandLogo|content\.logoUrl/);
+  assert.match(navbar, /navigation\.servicesLabel \|\| 'Work with us', '\/services', true/);
   assert.doesNotMatch(footer, /footerText|footerContextLabel/);
   const content = websiteBundleToContent({
     'global.brand': { brandName: 'New Shared Brand', tagline: 'One shared tagline' },

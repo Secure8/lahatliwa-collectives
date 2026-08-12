@@ -94,12 +94,12 @@ test('route changes restore both public mobile navigation sections', async () =>
 });
 
 test('public top navigation is limited to five primary destinations with detail-route awareness', () => {
-  assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS.map(([label]) => label), ['Home', 'Work', 'Portfolio', 'Creatives', 'Inquiry']);
+  assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS.map(([label]) => label), ['Home', 'Current Work', 'Portfolio', 'Creatives', 'Work with us']);
   assert.equal(PUBLIC_PRIMARY_DESTINATIONS.length, 5);
   assert.equal(publicDestinationIsActive('/work', '/work'), true);
   assert.equal(publicDestinationIsActive('/projects/sample', '/projects'), true);
   assert.equal(publicDestinationIsActive('/creatives/sample', '/creatives'), true);
-  assert.equal(publicDestinationIsActive('/inquiry/confirmation/ABC', '/inquiry'), true);
+  assert.equal(publicDestinationIsActive('/services', '/services'), true);
   assert.equal(publicDestinationIsActive('/about', '/'), false);
 });
 
@@ -139,9 +139,10 @@ test('public and admin drawers provide modal keyboard behavior while mobile them
   assert.match(admin, /mobile-nav-current-label[\s\S]*?\{label\}/);
   assert.match(admin, /moreIsActive \? morePageLabel : 'More'/);
   assert.match(navbar, /secondaryRouteIsActive[\s\S]*?aria-current=\{secondaryRouteIsActive \? 'page'/);
-  assert.match(navbar, /mobile-nav-current-label[\s\S]*?secondaryPageLabel/);
+  assert.doesNotMatch(navbar, /mobile-nav-current-label[\s\S]*?secondaryPageLabel/);
   assert.match(styles, /\.mobile-nav-item\[aria-current="page"\][\s\S]*?color: var\(--site-accent-text\) !important;/);
-  assert.match(styles, /\.mobile-nav-item\[aria-current="page"\] \.mobile-nav-icon[\s\S]*?fill: currentColor;/);
+  assert.match(styles, /\.mobile-nav-item\[aria-current="page"\] \.mobile-nav-icon[\s\S]*?drop-shadow/);
+  assert.doesNotMatch(styles, /\.mobile-nav-item\[aria-current="page"\] \.mobile-nav-icon[\s\S]*?fill: currentColor;/);
   assert.match(styles, /\.mobile-nav-item\[aria-current="page"\] \.mobile-nav-current-label[\s\S]*?opacity: 1;/);
   assert.doesNotMatch(admin, /data-admin-mobile-bottom-navigation/);
   assert.match(drawer, /event\.key === 'Escape'/);

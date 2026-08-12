@@ -30,9 +30,9 @@ export default function ProjectCard({ project, index = 0 }) {
         >
           <div className="relative overflow-hidden rounded-[10px] bg-zinc-900 after:pointer-events-none after:absolute after:inset-0 after:rounded-[10px] after:border after:border-transparent after:transition after:duration-500 group-hover:after:border-orange-300/25">
             {image && !imageFailed ? (
-              <img className="aspect-[4/3] w-full object-cover opacity-95 transition duration-500 group-hover:scale-[1.025] group-hover:opacity-100 motion-reduce:transition-none" src={image} alt={project.title} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" fetchpriority={index === 0 ? 'high' : 'low'} sizes="(max-width: 639px) calc(100vw - 24px), (max-width: 1023px) 50vw, 33vw" width="800" height="600" onError={() => setImageFailed(true)} />
+              <img className="aspect-square w-full object-cover opacity-95 transition duration-500 group-hover:scale-[1.025] group-hover:opacity-100 motion-reduce:transition-none" src={image} alt={project.title} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" fetchpriority={index === 0 ? 'high' : 'low'} sizes="(max-width: 639px) calc(100vw - 24px), (max-width: 1023px) 50vw, 33vw" width="800" height="800" onError={() => setImageFailed(true)} />
             ) : (
-              <span className="grid aspect-[4/3] place-items-center bg-[radial-gradient(circle_at_75%_20%,rgba(251,146,60,0.2),transparent_32%),linear-gradient(145deg,#27272a,#09090b)] px-6 text-center text-sm text-zinc-400 transition group-hover:text-orange-200">Project image coming soon</span>
+              <span className="grid aspect-square place-items-center bg-[radial-gradient(circle_at_75%_20%,rgba(251,146,60,0.2),transparent_32%),linear-gradient(145deg,#27272a,#09090b)] px-6 text-center text-sm text-zinc-400 transition group-hover:text-orange-200">Project image coming soon</span>
             )}
           </div>
 

@@ -16,11 +16,12 @@ test('the approved tagline remains exact in the public defaults', () => {
 
 test('public positioning serves clients and published creatives without agency claims', () => {
   const home = source('pages/Home.jsx');
+  const homeHero = source('components/ActiveWorkHero.jsx');
   const about = source('pages/About.jsx');
   const creatives = source('pages/Creatives.jsx');
   const footer = source('components/Footer.jsx');
 
-  assert.match(home, /Creative work, shared from first progress to finished portfolio/i);
+  assert.match(homeHero, /Creative work, shared from first progress to finished portfolio/i);
   assert.match(home, /Featured creatives/i);
   assert.match(about, /Lahat Liwa is rooted in Aklan/i);
   assert.match(about, /does not automatically mean employment/i);
@@ -28,7 +29,7 @@ test('public positioning serves clients and published creatives without agency c
   assert.match(creatives, /people credited in the work/i);
   assert.match(footer, /content\.tagline/);
 
-  const publicCopy = [home, about, creatives, footer, source('pages/Services.jsx'), source('pages/Projects.jsx')].join('\n');
+  const publicCopy = [home, homeHero, about, creatives, footer, source('pages/Services.jsx'), source('pages/Projects.jsx')].join('\n');
   assert.doesNotMatch(publicCopy, /full[- ]service agency|staffed departments|industry[- ]leading|guaranteed jobs|all creatives are (?:employees|staff)/i);
 });
 

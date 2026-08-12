@@ -167,7 +167,7 @@ export default function ProjectDetails() {
 
 function ProjectCover({ cover, title, externalLink }) {
   const frameClass = 'overflow-hidden rounded-[10px] border border-white/10 bg-zinc-900 shadow-[0_18px_58px_-32px_rgba(251,146,60,0.35)]';
-  const image = <img className={`aspect-[4/3] w-full object-cover ${externalLink ? 'transition duration-500 group-hover:scale-[1.015] group-hover:opacity-95 motion-reduce:transition-none' : ''}`} src={cover} alt={title} decoding="async" fetchpriority="high" width="1200" height="900" />;
+  const image = <img className={`aspect-square w-full object-cover ${externalLink ? 'transition duration-500 group-hover:scale-[1.015] group-hover:opacity-95 motion-reduce:transition-none' : ''}`} src={cover} alt={title} decoding="async" fetchpriority="high" width="1200" height="1200" />;
 
   if (!externalLink) return <div className={frameClass}>{image}</div>;
 

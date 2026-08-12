@@ -30,12 +30,30 @@ test('homepage and Current Work use active projects instead of the tourism porta
   const app = read('src/App.jsx');
   assert.match(home, /data-current-work-homepage/);
   assert.match(home, /fetchPublicProjectSummaries\(\{ workStatus: 'active' \}\)/);
-  assert.match(home, /activeProjects\.slice\(0, 3\)/);
+  assert.match(home, /<ActiveWorkHero projects=\{activeProjects\}/);
+  assert.match(home, /activeProjects\.map/);
+  assert.doesNotMatch(home, /activeProjects\.slice|\.limit\([^)]*active/i);
+  const hero = read('src/components/ActiveWorkHero.jsx');
+  assert.match(hero, /projects\.length/);
+  assert.match(hero, /Previous active project/);
+  assert.match(hero, /Next active project/);
+  assert.match(hero, /prefers-reduced-motion/);
+  assert.match(hero, /aria-live="polite"/);
   assert.match(work, /normalizeProjectUpdates/);
   assert.match(work, /Event coverage/);
   assert.match(app, /path="\/work" element=\{<CurrentWork \/>\}/);
   assert.match(app, /Navigate to="\/work"/);
   assert.doesNotMatch(home, /ExploreAklanHero|DestinationsFeed|homepageTourismEnabled/);
+});
+
+test('project covers are square while uploaded gallery images retain their natural ratio', () => {
+  const card = read('src/components/ProjectCard.jsx');
+  const work = read('src/pages/CurrentWork.jsx');
+  const details = read('src/pages/ProjectDetails.jsx');
+  assert.match(card, /aspect-square/);
+  assert.match(work, /aspect-square/);
+  assert.match(details, /ProjectCover[\s\S]*aspect-square/);
+  assert.match(details, /item\.type === 'image'[\s\S]*className="h-auto w-full/);
 });
 
 test('database migration adds a bounded active-to-completed lifecycle', () => {

@@ -559,6 +559,20 @@ summary::-webkit-details-marker {
   box-shadow: 0 12px 34px -28px var(--theme-shadow);
 }
 
+@keyframes active-work-hero-reveal {
+  from { opacity: 0.18; transform: scale(1.015); }
+  to { opacity: 0.52; transform: scale(1); }
+}
+
+.active-work-hero-image {
+  animation: active-work-hero-reveal 650ms ease-out both;
+  opacity: 0.52;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-work-hero-image { animation: none; }
+}
+
 .public-panel {
   border-top: 1px solid color-mix(in srgb, var(--site-divider) 32%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--site-divider) 32%, transparent);

@@ -92,7 +92,7 @@ test('project cards stretch equally on desktop without fixed mobile heights', as
   assert.match(grid, /grid items-stretch/);
   assert.match(card, /flex h-full[\s\S]*?flex-col/);
   assert.match(card, /project-card-body[\s\S]*?flex-1/);
-  assert.match(card, /aspect-\[4\/3\]/);
+  assert.match(card, /aspect-square/);
   assert.doesNotMatch(card, /h-\[\d+px\]/);
   assert.match(projects, /<ProjectGrid projects=\{visible\}/);
 });

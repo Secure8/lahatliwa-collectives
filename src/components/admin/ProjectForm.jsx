@@ -878,7 +878,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           {form.cover_image && (
             <div>
               <p className="mb-2 text-xs text-zinc-500">Cover image</p>
-              <img src={getPublicImageUrl(form.cover_image)} alt="" className="h-28 max-w-full object-cover" />
+              <img src={getPublicImageUrl(form.cover_image)} alt="" className="aspect-square h-28 w-28 object-cover" />
             </div>
           )}
           {form.gallery_images?.length > 0 && (

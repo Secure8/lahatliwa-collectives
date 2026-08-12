@@ -1,6 +1,7 @@
-import { ArrowRight, CalendarDays } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import ActiveWorkHero from '../components/ActiveWorkHero.jsx';
 import CreativeCard from '../components/CreativeCard.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import LoadingState from '../components/LoadingState.jsx';
@@ -34,36 +35,24 @@ export default function Home() {
     return () => { active = false; };
   }, []);
 
-  const featured = activeProjects[0] || null;
-  const update = featured ? latestProjectUpdate(featured) : null;
-  const cover = featured ? publicImageVariant(getPublicImageUrl(featured.cover_image), 'expanded') : '';
   const structuredData = { '@context': 'https://schema.org', '@type': 'WebSite', name: content.displayName, url: 'https://www.lahatliwa.studio/', description: 'Follow current client work, content production, event coverage, and completed projects from Lahat Liwa Collectives.', publisher: { '@type': 'Organization', name: content.displayName } };
 
   return <div data-current-work-homepage className="bg-[var(--theme-page-surface)]">
     <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-    <section className="theme-inverse relative min-h-[74svh] overflow-hidden bg-zinc-950 text-white">
-      {cover && <img src={cover} alt="" className="absolute inset-0 h-full w-full object-cover opacity-45" fetchpriority="high" />}
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/25" />
-      <div className="page-shell relative z-10 flex min-h-[74svh] items-end py-16 sm:py-20">
-        <div className="max-w-4xl"><p className="public-eyebrow">Aklan-based creative work platform</p><h1 className="mt-5 text-4xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl">Creative work, shared from first progress to finished portfolio.</h1><p className="mt-6 max-w-2xl text-base leading-7 text-zinc-200 sm:text-lg">Lahat Liwa documents active client work, content, event coverage, and digital projects—then preserves completed work with clear contributor credit.</p>
-          {featured && <div className="mt-8 max-w-2xl border-l-2 border-[var(--site-accent)] pl-5"><p className="public-eyebrow">Currently working on</p><p className="mt-2 text-xl font-semibold">{featured.title}</p>{update && <p className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-300"><CalendarDays size={15} />{update.title}</p>}</div>}
-          <div className="mt-9 flex flex-wrap gap-3"><Link to="/work" className="public-button public-button--primary">Follow current work <ArrowRight size={17} /></Link><Link to="/projects" className="public-button public-button--secondary border-white/20 text-white hover:border-[var(--site-accent)]">View completed work</Link></div>
-        </div>
-      </div>
-    </section>
+    <ActiveWorkHero projects={activeProjects} loading={loading} />
 
     <section className="page-shell py-16 sm:py-20" aria-labelledby="active-work-heading"><div className="mb-9 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-accent-text)]">Active projects</p><h2 id="active-work-heading" className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[var(--site-primary-text)]">Latest from the work.</h2></div><Link to="/work" className="fine-link inline-flex min-h-11 items-center gap-2 text-sm text-[var(--site-primary-text)]">View all updates <ArrowRight size={16} /></Link></div>
-      {loading ? <LoadingState label="Loading current work" /> : activeProjects.length ? <div className="grid gap-5 lg:grid-cols-3">{activeProjects.slice(0, 3).map((project) => {
+      {loading ? <LoadingState label="Loading current work" /> : activeProjects.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{activeProjects.map((project) => {
         const latest = latestProjectUpdate(project);
         const cardCover = publicImageVariant(getPublicImageUrl(project.cover_image), 'display');
         return <article key={project.id} className="group min-w-0">
-          <Link to={`/projects/${project.slug}`} aria-label={`Open ${project.title}`} className="relative isolate flex min-h-[24rem] h-full overflow-hidden rounded-xl border border-white/15 bg-zinc-900 p-6 text-white shadow-[0_24px_70px_-40px_rgba(0,0,0,0.85)] transition duration-500 hover:-translate-y-1 hover:border-[var(--site-accent-border)] hover:shadow-[0_30px_80px_-38px_rgba(251,146,60,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--theme-page-surface)] motion-reduce:transform-none motion-reduce:transition-none">
+          <Link to={`/projects/${project.slug}`} aria-label={`Open ${project.title}`} className="relative isolate flex aspect-square overflow-hidden rounded-xl border border-white/15 bg-zinc-900 p-5 text-white shadow-[0_24px_70px_-40px_rgba(0,0,0,0.85)] transition duration-500 hover:-translate-y-1 hover:border-[var(--site-accent-border)] hover:shadow-[0_30px_80px_-38px_rgba(251,146,60,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--theme-page-surface)] motion-reduce:transform-none motion-reduce:transition-none sm:p-6">
             {cardCover ? <img src={cardCover} alt="" loading="lazy" decoding="async" className="absolute inset-0 -z-20 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035] motion-reduce:transition-none" /> : <div aria-hidden="true" className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_78%_18%,rgba(251,146,60,0.3),transparent_34%),linear-gradient(145deg,#27272a_0%,#18181b_52%,#09090b_100%)]" />}
             <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/70 to-black/15 transition duration-500 group-hover:via-black/60" />
             <div className="flex min-w-0 flex-1 flex-col justify-end">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-200">{project.category}</p>
-              <h3 className="mt-3 text-2xl font-semibold leading-tight text-white">{project.title}</h3>
-              <p className="mt-3 line-clamp-3 text-sm leading-6 text-zinc-200">{latest?.body || project.description}</p>
+              <h3 className="mt-3 line-clamp-3 text-2xl font-semibold leading-tight text-white">{project.title}</h3>
+              <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-200 sm:line-clamp-3">{latest?.body || project.description}</p>
               {latest?.date && <p className="mt-4 text-xs text-zinc-400">Updated {latest.date}</p>}
               <span className="mt-5 inline-flex min-h-11 w-fit items-center gap-2 border-b border-white/30 text-sm font-medium text-white transition group-hover:border-orange-300 group-hover:text-orange-200">Open project <ArrowRight size={15} /></span>
             </div>

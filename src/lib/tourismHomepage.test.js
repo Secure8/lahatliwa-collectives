@@ -37,6 +37,11 @@ test('homepage and Current Work use active projects instead of the tourism porta
   assert.match(hero, /projects\.length/);
   assert.match(hero, /Previous active project/);
   assert.match(hero, /Next active project/);
+  assert.match(hero, /AUTOPLAY_MS = 6000/);
+  assert.match(hero, /Pause automatic sliding/);
+  assert.match(hero, /Resume automatic sliding/);
+  assert.match(hero, /grid-cols-3[\s\S]*gap-3 sm:gap-4/);
+  assert.doesNotMatch(hero, /onMouseEnter|hoverPaused|focusPaused/);
   assert.match(hero, /prefers-reduced-motion/);
   assert.match(hero, /aria-live="polite"/);
   assert.match(work, /normalizeProjectUpdates/);

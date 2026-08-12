@@ -1,18 +1,17 @@
-import { ArrowLeft, ArrowRight, CalendarDays } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Pause, Play } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { latestProjectUpdate } from '../lib/projectProgress';
 import { publicImageVariant } from '../lib/publicImages';
 import { getPublicImageUrl } from '../lib/storage';
 
-const AUTOPLAY_MS = 7000;
+const AUTOPLAY_MS = 6000;
 
 const step = (index, length, direction) => length ? (index + direction + length) % length : 0;
 
 export default function ActiveWorkHero({ projects = [], loading = false, page = {}, brandName = 'Lahat Liwa Collectives' }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [hoverPaused, setHoverPaused] = useState(false);
-  const [focusPaused, setFocusPaused] = useState(false);
+  const [autoplayPaused, setAutoplayPaused] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const touchStart = useRef(null);
@@ -36,10 +35,10 @@ export default function ActiveWorkHero({ projects = [], loading = false, page = 
   }, []);
 
   useEffect(() => {
-    if (hoverPaused || focusPaused || !pageVisible || reducedMotion || projects.length < 2) return undefined;
+    if (autoplayPaused || !pageVisible || reducedMotion || projects.length < 2) return undefined;
     const timer = window.setTimeout(() => setActiveIndex((current) => step(current, projects.length, 1)), AUTOPLAY_MS);
     return () => window.clearTimeout(timer);
-  }, [activeIndex, focusPaused, hoverPaused, pageVisible, projects.length, reducedMotion]);
+  }, [activeIndex, autoplayPaused, pageVisible, projects.length, reducedMotion]);
 
   useEffect(() => {
     if (projects.length < 2) return;
@@ -77,10 +76,6 @@ export default function ActiveWorkHero({ projects = [], loading = false, page = 
     aria-label="Current active projects"
     tabIndex={projects.length > 1 ? 0 : undefined}
     onKeyDown={handleKeyDown}
-    onMouseEnter={() => setHoverPaused(true)}
-    onMouseLeave={() => setHoverPaused(false)}
-    onFocusCapture={() => setFocusPaused(true)}
-    onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocusPaused(false); }}
     onPointerDown={(event) => { if (event.pointerType === 'touch') touchStart.current = event.clientX; }}
     onPointerUp={(event) => { if (event.pointerType === 'touch') finishSwipe(event.clientX); }}
     onPointerCancel={() => { touchStart.current = null; }}
@@ -109,8 +104,9 @@ export default function ActiveWorkHero({ projects = [], loading = false, page = 
     {projects.length > 1 && <div className="absolute inset-x-0 bottom-4 z-20 sm:bottom-5">
       <div className="page-shell flex items-center justify-between gap-4">
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/70"><span className="text-orange-200">{activeIndex + 1}</span> / {projects.length} active projects</p>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 items-center gap-3 sm:gap-4">
           <button type="button" onClick={() => move(-1)} aria-label="Previous active project" className="grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-sm transition hover:border-orange-200/70 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><ArrowLeft size={18} /></button>
+          <button type="button" onClick={() => setAutoplayPaused((paused) => !paused)} disabled={reducedMotion} aria-label={reducedMotion ? 'Automatic sliding disabled by reduced motion preference' : autoplayPaused ? 'Resume automatic sliding' : 'Pause automatic sliding'} aria-pressed={autoplayPaused || reducedMotion} title={reducedMotion ? 'Automatic sliding disabled' : autoplayPaused ? 'Play' : 'Pause'} className="grid h-10 w-10 place-items-center justify-self-center rounded-full border border-white/15 bg-black/25 text-white/80 backdrop-blur-sm transition hover:border-orange-200/60 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-45">{autoplayPaused || reducedMotion ? <Play size={16} aria-hidden="true" /> : <Pause size={16} aria-hidden="true" />}</button>
           <button type="button" onClick={() => move(1)} aria-label="Next active project" className="grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-sm transition hover:border-orange-200/70 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><ArrowRight size={18} /></button>
         </div>
       </div>

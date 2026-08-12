@@ -175,7 +175,11 @@ Deno.serve(async (request) => {
       const { error } = await actor.admin.from('projects').insert({ id, title: cleanText(body.title, 'Untitled project'), slug: `draft-${id}`,
         category: cleanText(body.category, 'Liwa Studio', 80), description: cleanText(body.description, '', 2000), status: 'draft', review_status: 'draft',
         created_by: actor.user.id, owner_user_id: actor.user.id, updated_by: actor.user.id, media_creation_state: 'incomplete', media_draft_expires_at: expiresAt });
-      if (error) return fail('DRAFT_CREATION_FAILED', 'The project draft could not be prepared for media.', 500, cors);
+      if (error) {
+        console.error('Project media draft insert failed', { code: error.code, message: error.message, details: error.details, hint: error.hint });
+        await actor.admin.from('storage_audit_events').insert({ actor_user_id: actor.user.id, action: 'public_media_draft_created', target_type: entityType, target_id: id, outcome: 'failed', details: { errorCode: error.code || 'UNKNOWN' } });
+        return fail('DRAFT_CREATION_FAILED', 'The project draft could not be prepared for media.', 500, cors);
+      }
     } else if (entityType === 'creative') {
       if (!['super_admin','admin'].includes(actor.role)) return fail('TARGET_NOT_AUTHORIZED', 'Only an administrator can create a creative profile draft.', 403, cors);
       const { error } = await actor.admin.from('creative_members').insert({ id, name: cleanText(body.name, 'Untitled creative'), slug: `draft-${id}`,

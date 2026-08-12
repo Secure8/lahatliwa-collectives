@@ -36,6 +36,16 @@ test('project and creative creation use server drafts before every new-record me
   assert.match(edge, /media_creation_state: 'incomplete'/);
 });
 
+test('server project media drafts pass the ownership guard without weakening browser inserts', () => {
+  const migration = source('supabase/migrations/20260813170000_allow_server_project_media_drafts.sql');
+  assert.match(migration, /auth\.role\(\) = 'service_role'/);
+  assert.match(migration, /new\.media_creation_state is distinct from 'incomplete'/);
+  assert.match(migration, /new\.slug is distinct from 'draft-' \|\| new\.id::text/);
+  assert.match(migration, /not private\.can_create_project\(new\.owner_user_id\)/);
+  assert.match(migration, /auth\.uid\(\) is null or not private\.can_create_project\(auth\.uid\(\)\)/);
+  assert.match(migration, /revoke all on function private\.guard_project_ownership\(\) from public, anon, authenticated/i);
+});
+
 test('ordinary public uploads remain R2-only with no silent Supabase fallback', () => {
   for (const path of ['src/lib/storage.js', 'src/lib/contentApi.js', 'src/lib/profileExternalStorage.js']) {
     const implementation = source(path);

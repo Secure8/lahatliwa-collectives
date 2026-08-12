@@ -93,7 +93,7 @@ export default function ActiveWorkHero({ projects = [], loading = false, page = 
         {active ? <div className="mt-8 max-w-2xl border-l-2 border-[var(--site-accent)] pl-5">
           <p className="public-eyebrow">Currently working on</p>
           <h2 className="mt-2 text-xl font-semibold sm:text-2xl">{active.title}</h2>
-          {update && <p className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-300"><CalendarDays size={15} />{update.title}</p>}
+          {update && <p className="mt-2 flex w-fit items-center gap-2 text-sm text-zinc-300"><CalendarDays size={15} />{update.title}</p>}
           <Link to={`/projects/${active.slug}`} className="mt-4 inline-flex min-h-11 items-center gap-2 border-b border-white/25 text-sm font-medium text-white transition hover:border-orange-300 hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Open this project <ArrowRight size={16} /></Link>
         </div> : loading ? <p className="mt-8 text-sm text-zinc-400">Loading current work…</p> : null}
 

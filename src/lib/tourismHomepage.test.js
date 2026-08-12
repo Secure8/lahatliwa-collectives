@@ -41,6 +41,7 @@ test('homepage and Current Work use active projects instead of the tourism porta
   assert.match(hero, /Pause automatic sliding/);
   assert.match(hero, /Resume automatic sliding/);
   assert.match(hero, /grid-cols-3[\s\S]*gap-3 sm:gap-4/);
+  assert.match(hero, /className="mt-2 flex w-fit items-center gap-2[^"]*"[\s\S]*className="mt-4 inline-flex/);
   assert.doesNotMatch(hero, /onMouseEnter|hoverPaused|focusPaused/);
   assert.match(hero, /prefers-reduced-motion/);
   assert.match(hero, /aria-live="polite"/);

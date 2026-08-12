@@ -117,7 +117,7 @@ test('admin keeps stable role-aware navigation, a responsive dashboard, and a on
   assert.match(admin, /Studio OS[\s\S]*?currentPageTitle/);
   assert.match(admin, /AppearanceMenuAction[\s\S]*?iconOnly/);
   assert.match(dashboard, /aria-label="Primary actions"/);
-  assert.match(dashboard, /sm:grid-cols-2 xl:grid-cols-5/);
+  assert.match(dashboard, /sm:grid-cols-2 lg:grid-cols-3/);
   assert.match(dashboard, />Overview</);
   assert.match(styles, /\.admin-record-actions[\s\S]*?grid-template-columns/);
 });

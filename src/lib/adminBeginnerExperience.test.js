@@ -7,11 +7,13 @@ const read = (path) => readFileSync(new URL(path, root), 'utf8');
 
 test('dashboard is beginner-first and keeps attention conditional', () => {
   const dashboard = read('src/pages/admin/Dashboard.jsx');
-  assert.match(dashboard, /Manage Explore Aklan, creative work, inquiries, and your team from one place\./);
-  for (const action of ['Website Studio', 'Create a story', 'Review inquiries', 'Manage team', 'View live website']) assert.match(dashboard, new RegExp(action));
+  assert.match(dashboard, /Choose what you want to work on\. Everything else can wait\./);
+  assert.match(dashboard, /What would you like to do\?/);
+  for (const action of ['Edit website', 'Create a story', 'Review inquiries', 'Manage team', 'View live website']) assert.match(dashboard, new RegExp(action));
   assert.match(dashboard, /state\.attention\.length > 0/);
   assert.match(dashboard, /Recent work/);
   assert.match(dashboard, /xl:grid-cols-4/);
+  assert.match(dashboard, /sm:grid-cols-2 lg:grid-cols-3/);
   assert.doesNotMatch(dashboard, /Slideshow status|Nothing needs attention right now/);
 });
 

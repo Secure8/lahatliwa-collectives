@@ -65,7 +65,7 @@ export default function Dashboard() {
 
   const displayName = adminUser?.display_name || adminUser?.name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'there';
   const actions = useMemo(() => [
-    ...(['super_admin', 'admin'].includes(role) ? [{ to: '/admin/website', icon: PanelsTopLeft, label: 'Website Studio', description: 'Edit the public website.', primary: true }] : []),
+    ...(['super_admin', 'admin'].includes(role) ? [{ to: '/admin/website', icon: PanelsTopLeft, label: 'Edit website', description: 'Open Website Studio to change pages, services, and site settings.', primary: true }] : []),
     ...(canUseEditorial ? [{ to: '/editorial/new', icon: Plus, label: 'Create a story', description: 'Start a tourism or community story.', primary: !['super_admin', 'admin'].includes(role) }] : []),
     ...(canViewInquiries ? [{ to: '/admin/inquiries', icon: Inbox, label: 'Review inquiries', description: 'Read questions and continue follow-up.' }] : []),
     ...(canManagePeople ? [{ to: '/admin/team', icon: Users, label: 'Manage team', description: 'Invite members and update access.' }] : []),
@@ -79,10 +79,10 @@ export default function Dashboard() {
   ];
 
   return <AdminLayout>
-    <AdminPageHeader eyebrow={`${roleLabel(role)} workspace`} title={`Welcome, ${displayName}`} description="Manage Explore Aklan, creative work, inquiries, and your team from one place." />
+    <AdminPageHeader eyebrow={`${roleLabel(role)} workspace`} title={`Welcome, ${displayName}`} description="Choose what you want to work on. Everything else can wait." />
     {state.error && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{state.error}</span><button type="button" onClick={() => setReloadKey((value) => value + 1)} className={`text-sm underline decoration-white/30 underline-offset-4 ${focusLink}`}>Retry</button></div></AdminNotice>}
 
-    <section aria-labelledby="quick-actions-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Start here</p><h2 id="quick-actions-heading" className="mt-1 text-xl font-semibold">Primary actions</h2></div><nav className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Primary actions">{actions.map((action) => <QuickAction key={action.label} {...action} />)}</nav></section>
+    <section aria-labelledby="quick-actions-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Start here</p><h2 id="quick-actions-heading" className="mt-1 text-xl font-semibold">What would you like to do?</h2></div><nav className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Primary actions">{actions.map((action) => <QuickAction key={action.label} {...action} />)}</nav></section>
 
     <section className="mt-8" aria-labelledby="overview-heading"><div className="mb-4"><h2 id="overview-heading" className="text-xl font-semibold">Overview</h2></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(([key, label]) => <AdminSurface key={key} className="min-h-28"><p className="text-sm text-zinc-400">{label}</p><p className="mt-5 text-3xl font-semibold text-white">{state.loading ? '…' : state.totals[key] ?? '—'}</p></AdminSurface>)}</div></section>
 
@@ -95,5 +95,5 @@ export default function Dashboard() {
 }
 
 function QuickAction({ to, icon: Icon, label, description, primary = false, external = false }) {
-  return <Link to={to} target={external ? '_blank' : undefined} rel={external ? 'noreferrer noopener' : undefined} className={`group flex min-h-36 flex-col rounded-lg border p-4 transition ${focusLink} ${primary ? 'border-amber-200/60 bg-amber-300 text-zinc-950 hover:bg-amber-200' : 'border-white/[0.1] bg-zinc-900 text-zinc-200 hover:border-amber-200/30 hover:bg-zinc-800'}`}><Icon size={19} /><span className="mt-5 flex items-center justify-between gap-3 text-sm font-semibold">{label}<ArrowRight size={15} className="opacity-55 transition group-hover:translate-x-0.5" /></span><span className={`mt-2 text-xs leading-5 ${primary ? 'text-zinc-800' : 'text-zinc-500'}`}>{description}</span></Link>;
+  return <Link to={to} target={external ? '_blank' : undefined} rel={external ? 'noreferrer noopener' : undefined} className={`group flex min-h-32 flex-col rounded-xl border p-5 transition ${focusLink} ${primary ? 'border-amber-200/60 bg-amber-300 text-zinc-950 hover:bg-amber-200 sm:col-span-2 lg:col-span-1' : 'border-white/[0.1] bg-zinc-900 text-zinc-200 hover:border-amber-200/30 hover:bg-zinc-800'}`}><Icon size={20} /><span className="mt-4 flex items-center justify-between gap-3 text-base font-semibold">{label}<ArrowRight size={16} className="opacity-55 transition group-hover:translate-x-0.5" /></span><span className={`mt-2 text-sm leading-5 ${primary ? 'text-zinc-800' : 'text-zinc-500'}`}>{description}</span></Link>;
 }

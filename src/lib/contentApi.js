@@ -3,7 +3,7 @@ import { defaultPageContent, defaultSiteContent } from '../data/siteContent.js';
 import { supabase } from './supabaseClient.js';
 import { validateUploadFile } from './uploadLimits.js';
 import { collectReferencedStoragePaths, normalizeStoragePath } from './projectMediaCleanup.js';
-import { cachedContentMatchesScope, publicContentScope } from './publicContentScope.js';
+import { cachedContentMatchesScope, publicContentCacheKey, publicContentCacheKeyMatchesScope, PUBLIC_CONTENT_CACHE_PREFIX, publicContentScope } from './publicContentScope.js';
 import { safeExternalUrl } from './externalUrls.js';
 import { requestManagedMediaDeletion, uploadManagedWebsiteImage } from './r2Media.js';
 import { fetchPublicWebsiteStudio, websiteBundleToContent } from './websiteStudio.js';
@@ -12,8 +12,7 @@ const SETTINGS_TABLE = 'site_settings';
 const CONTENT_TABLE = 'page_content';
 const MEDIA_TABLE = 'media_assets';
 const BUCKET = 'project-media';
-const PUBLIC_CONTENT_CACHE_KEY = 'hevv-public-content-cache-v3';
-const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache', 'hevv-public-content-cache-v2'];
+const LEGACY_PUBLIC_CONTENT_CACHE_KEYS = ['hevv-public-content-cache', 'hevv-public-content-cache-v2', 'hevv-public-content-cache-v3'];
 const PUBLIC_CONTENT_UPDATED_EVENT = 'hevv-public-content-updated';
 const ALL_PAGE_KEYS = ['home', 'about', 'services', 'contact'];
 const PublicContentContext = createContext(null);
@@ -359,9 +358,22 @@ function readCachedPublicContent(pageKeys = ALL_PAGE_KEYS) {
   const memoryEntry = memoryPublicContentByScope.get(scope);
   if (memoryEntry) return memoryEntry.content;
   try {
-    const raw = window.localStorage.getItem(PUBLIC_CONTENT_CACHE_KEY);
+    const cacheKey = publicContentCacheKey(pageKeys);
+    const raw = window.localStorage.getItem(cacheKey);
     const cached = raw ? JSON.parse(raw) : null;
-    if (!cachedContentMatchesScope(cached, pageKeys)) return null;
+    if (!cachedContentMatchesScope(cached, pageKeys)) {
+      const legacy = LEGACY_PUBLIC_CONTENT_CACHE_KEYS
+        .map((key) => window.localStorage.getItem(key))
+        .filter(Boolean)
+        .map((value) => {
+          try { return JSON.parse(value); } catch { return null; }
+        })
+        .find((entry) => cachedContentMatchesScope(entry, pageKeys));
+      if (!legacy) return null;
+      memoryPublicContentByScope.set(scope, { content: legacy.content, updatedAt: legacy.updatedAt || 0 });
+      window.localStorage.setItem(cacheKey, JSON.stringify(legacy));
+      return legacy.content;
+    }
     memoryPublicContentByScope.set(scope, { content: cached.content, updatedAt: cached.updatedAt || 0 });
     return cached.content;
   } catch {
@@ -375,7 +387,7 @@ function writeCachedPublicContent(content, pageKeys = ALL_PAGE_KEYS) {
   memoryPublicContentByScope.set(scope, { content, updatedAt });
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(PUBLIC_CONTENT_CACHE_KEY, JSON.stringify({ scope, content, updatedAt }));
+    window.localStorage.setItem(publicContentCacheKey(pageKeys), JSON.stringify({ scope, content, updatedAt }));
   } catch {
   }
 }
@@ -405,7 +417,7 @@ export function syncPublicContentCache(settings = {}) {
   if (latestEntry) {
     const [scope, entry] = latestEntry;
     try {
-      window.localStorage.setItem(PUBLIC_CONTENT_CACHE_KEY, JSON.stringify({ scope, content: entry.content, updatedAt: entry.updatedAt }));
+      window.localStorage.setItem(`${PUBLIC_CONTENT_CACHE_PREFIX}${encodeURIComponent(scope)}`, JSON.stringify({ scope, content: entry.content, updatedAt: entry.updatedAt }));
     } catch {
     }
   }
@@ -418,8 +430,11 @@ function clearCachedPublicContent() {
   publicContentRequests.clear();
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.removeItem(PUBLIC_CONTENT_CACHE_KEY);
     LEGACY_PUBLIC_CONTENT_CACHE_KEYS.forEach((key) => window.localStorage.removeItem(key));
+    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(PUBLIC_CONTENT_CACHE_PREFIX)) window.localStorage.removeItem(key);
+    }
   } catch {
   }
 }
@@ -471,12 +486,12 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
 
   useEffect(() => {
     let active = true;
-    async function loadContent() {
+    async function loadContent({ preserveContent = false } = {}) {
       const scopedCache = readCachedPublicContent(pageKeys);
       if (scopedCache) {
         setContent(scopedCache);
         setResolved(true);
-      } else {
+      } else if (!preserveContent) {
         setLoading(true);
         setResolved(false);
       }
@@ -497,19 +512,23 @@ export function PublicContentProvider({ children, pageKeys = ALL_PAGE_KEYS }) {
     loadContent();
 
     const handleCacheChange = (event) => {
+      if (event?.detail?.reload) {
+        loadContent({ preserveContent: true });
+        return;
+      }
       const nextContent = readCurrentCachedContent(pageKeys);
       if (nextContent) {
         setContent(nextContent);
         setResolved(true);
         setLoading(false);
         setError('');
-      } else if (event?.detail?.reload || event?.type === 'storage') {
+      } else if (event?.type === 'storage') {
         loadContent();
       }
     };
 
     const handleStorageChange = (event) => {
-      if (event.key && event.key !== PUBLIC_CONTENT_CACHE_KEY) return;
+      if (!publicContentCacheKeyMatchesScope(event.key, pageKeys)) return;
       memoryPublicContentByScope.delete(scope);
       handleCacheChange(event);
     };
@@ -543,8 +562,8 @@ export function usePublicContent(pageKeys = []) {
 
   useEffect(() => {
     let active = true;
-    async function loadContent() {
-      setLoading(true);
+    async function loadContent({ preserveContent = false } = {}) {
+      if (!preserveContent) setLoading(true);
       try {
         const [settings, pageEntries, websiteBundle] = await Promise.all([
           fetchSiteSettings(),
@@ -560,17 +579,21 @@ export function usePublicContent(pageKeys = []) {
     loadContent();
 
     const handleCacheChange = (event) => {
+      if (event?.detail?.reload) {
+        loadContent({ preserveContent: true });
+        return;
+      }
       const nextContent = readCurrentCachedContent(keys);
       if (nextContent) {
         setContent(nextContent);
         setLoading(false);
-      } else if (event?.detail?.reload || event?.type === 'storage') {
+      } else if (event?.type === 'storage') {
         loadContent();
       }
     };
 
     const handleStorageChange = (event) => {
-      if (event.key && event.key !== PUBLIC_CONTENT_CACHE_KEY) return;
+      if (!publicContentCacheKeyMatchesScope(event.key, keys)) return;
       memoryPublicContentByScope.delete(publicContentScope(keys));
       handleCacheChange(event);
     };

@@ -13,17 +13,12 @@ import {
 
 const pageRoutes = { 'page.home': '/', 'page.explore': '/explore', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.services': '/services', 'page.about': '/about', 'page.inquiries': '/contact' };
 const advancedFieldPattern = /(url|alt|seo|search|social|facebook|instagram|linkedin|youtube|tiktok|github|order|status|visibility|availability|featured|show|enabled|icon|image)/i;
-const pageGroupOrder = ['Studio tools', 'All public pages', 'Homepage', 'Explore Aklan page', 'Creatives page', 'Projects page', 'Services page', 'About page', 'Inquiry page'];
+const pageGroupOrder = ['Pages', 'Site settings', 'Services', 'Tools'];
 const pageGroupDescriptions = {
-  'Studio tools': 'Overview, media, and published history.',
-  'All public pages': 'Shared identity, navigation, footer, search, and theme settings.',
-  Homepage: 'Sections that appear only on the public homepage.',
-  'Explore Aklan page': 'Introduction shown on the Explore Aklan landing page.',
-  'Creatives page': 'Hero and directory content for public creative profiles.',
-  'Projects page': 'Introduction shown above the public project directory.',
-  'Services page': 'Services introduction, service listings, and inquiry choices.',
-  'About page': 'Content shown on the public About page.',
-  'Inquiry page': 'Headings and guidance shown before the inquiry form.',
+  Pages: 'Change the words visitors see on each public page.',
+  'Site settings': 'Update your brand, navigation, footer, colors, and sharing details.',
+  Services: 'Edit individual services shown on the Services page and inquiry form.',
+  Tools: 'Manage website images and review published changes.',
 };
 
 function labelFromKey(key = '') { return key.replace(/^page\.|^global\.|^service\./, '').replaceAll('.', ' · ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
@@ -36,23 +31,23 @@ function friendlyError(error) {
   return message;
 }
 function studioPlacement(key, entryType = '') {
-  if (key === 'overview') return ['Studio tools', 'Workspace overview'];
-  if (key === 'media') return ['Studio tools', 'Website media library'];
-  if (key === 'revisions') return ['Studio tools', 'Published version history'];
-  if (key === 'global.brand') return ['All public pages', 'Header, footer, identity, and contact'];
-  if (key === 'global.navigation') return ['All public pages', 'Desktop and mobile header navigation'];
-  if (key === 'global.footer') return ['All public pages', 'Footer content'];
-  if (key === 'page.search') return ['All public pages', 'Search metadata, sharing image, and social links'];
-  if (key === 'global.appearance') return ['All public pages', 'Light and dark theme colors'];
-  if (key === 'page.home') return ['Homepage', 'Featured creatives and inquiry sections'];
-  if (key === 'page.explore') return ['Explore Aklan page', 'Page introduction'];
-  if (key === 'page.creatives') return ['Creatives page', 'Hero and creative directory introduction'];
-  if (key === 'page.projects') return ['Projects page', 'Project directory introduction'];
-  if (key === 'page.services') return ['Services page', 'Page heading and introduction'];
-  if (entryType === 'service') return ['Services page', 'Service listing and inquiry option'];
-  if (key === 'page.about') return ['About page', 'About page content'];
-  if (key === 'page.inquiries') return ['Inquiry page', 'Inquiry introduction and public guidance'];
-  return ['All public pages', 'Shared website content'];
+  if (key === 'overview') return ['Tools', 'Website editing home'];
+  if (key === 'media') return ['Tools', 'Upload and reuse website images'];
+  if (key === 'revisions') return ['Tools', 'Review or restore published changes'];
+  if (key === 'global.brand') return ['Site settings', 'Website name, logo, contact, and identity'];
+  if (key === 'global.navigation') return ['Site settings', 'Links shown in the website menu'];
+  if (key === 'global.footer') return ['Site settings', 'Information shown at the bottom of every page'];
+  if (key === 'page.search') return ['Site settings', 'Search, sharing image, and social links'];
+  if (key === 'global.appearance') return ['Site settings', 'Website colors in light and dark mode'];
+  if (key === 'page.home') return ['Pages', 'Homepage'];
+  if (key === 'page.explore') return ['Pages', 'Explore Aklan'];
+  if (key === 'page.creatives') return ['Pages', 'Creatives'];
+  if (key === 'page.projects') return ['Pages', 'Projects'];
+  if (key === 'page.services') return ['Pages', 'Services introduction'];
+  if (entryType === 'service') return ['Services', 'Service listing and inquiry choice'];
+  if (key === 'page.about') return ['Pages', 'About'];
+  if (key === 'page.inquiries') return ['Pages', 'Inquiry introduction'];
+  return ['Site settings', 'Shared website content'];
 }
 function groupNavigation(items) {
   const groups = items.reduce((result, item) => ({ ...result, [item.group]: [...(result[item.group] || []), item] }), {});
@@ -136,35 +131,33 @@ export default function WebsiteStudio() {
 
   return <AdminLayout>
     <UnsavedChangesGuard dirty={dirty && !working} />
-    <header className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.08] pb-5">
-      <div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200">Website Studio</p><h1 className="mt-2 text-3xl font-semibold text-white">Public website</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">Choose a section, update its content, then save and publish when it is ready.</p></div>
-      <div className="flex flex-wrap gap-2"><Link to="/admin/dashboard" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.12] px-4 text-sm font-semibold text-white"><ArrowLeft size={16}/>Back to Admin</Link><Link to="/" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-amber-200 px-4 text-sm font-semibold text-zinc-950"><ExternalLink size={16}/>Open live website</Link></div>
+    <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200">Website Studio</p><h1 className="mt-2 text-3xl font-semibold text-white">Edit your website</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Choose what you want to change. You will only see the fields needed for that section.</p></div>
+      <div className="flex flex-wrap gap-2"><Link to="/admin/dashboard" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.12] px-4 text-sm font-semibold text-white"><ArrowLeft size={16}/>Admin home</Link><Link to="/" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-amber-200 px-4 text-sm font-semibold text-zinc-950"><ExternalLink size={16}/>View live website</Link></div>
     </header>
     {error && <div role="alert" className="mb-4 border border-red-300/25 bg-red-300/[0.06] px-4 py-3 text-sm text-red-100">{error}</div>}
     {notice && <div role="status" className="mb-4 border border-emerald-300/25 bg-emerald-300/[0.06] px-4 py-3 text-sm text-emerald-100">{notice}</div>}
     <main className="min-w-0">
-      <SectionChooser navigation={navigation} sectionKey={sectionKey} entries={entries} search={search} setSearch={setSearch} onSelect={selectSection} />
-      <div className="mt-6 border-t border-white/[0.08] pt-6">
+      {sectionKey === 'overview' ? <SectionChooser navigation={navigation} entries={entries} search={search} setSearch={setSearch} onSelect={selectSection} /> : <>
+        <button type="button" onClick={() => selectSection('overview')} className="mb-6 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-zinc-300 transition hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><ArrowLeft size={16}/>All website sections</button>
         <StudioContent sectionKey={sectionKey} selected={selected} entries={entries} revisions={revisions} form={form} fields={fields} config={config} state={state} dirty={dirty} working={working} selectSection={selectSection} updateField={updateField} save={save} publish={publish} discard={() => run('discard', () => discardWebsiteDraft(selected.entry_key))} canRestore={canRestore} onRestore={restoreRevision} />
-      </div>
+      </>}
     </main>
   </AdminLayout>;
 }
 
-function SectionChooser({ navigation, sectionKey, entries, search, setSearch, onSelect }) {
-  const active = navigation.find((item) => item.key === sectionKey);
-  return <details className="group" open={sectionKey === 'overview'}>
-    <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 border-b border-white/[0.08] pb-3 text-sm font-semibold text-white"><span><span className="mr-2 text-zinc-500">Editing</span>{active?.name || 'Overview'}</span><span className="inline-flex items-center gap-2 text-xs font-normal text-zinc-500">Choose section<ChevronDown size={17} className="transition-transform group-open:rotate-180"/></span></summary>
-    <div className="pt-5">
-      <label data-search-shell className="flex h-10 max-w-md items-center gap-2 rounded-md border border-white/[0.1] bg-black/20 px-3"><Search size={15} className="shrink-0 text-zinc-500" aria-hidden="true"/><span className="sr-only">Search Website Studio</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a section" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600"/></label>
-      <nav className="mt-5 border-t border-white/[0.08]" aria-label="Website Studio sections">{groupNavigation(navigation).map(([group, items]) => { const containsActive = items.some((item) => item.key === sectionKey); const openByDefault = Boolean(search) || containsActive || (sectionKey === 'overview' && ['Studio tools', 'All public pages', 'Homepage'].includes(group)); return <details key={group} className="group/category border-b border-white/[0.08] py-3" open={openByDefault}><summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4"><span><span className="block text-sm font-semibold text-white">{group}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{pageGroupDescriptions[group]}</span></span><span className="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-600">{items.length}<ChevronDown size={16} className="transition-transform group-open/category:rotate-180"/></span></summary><div className="mt-3 grid gap-x-8 md:grid-cols-2">{items.map((item) => { const row = entries.find((entry) => entry.entry_key === item.key); const isTool = ['overview','media','revisions'].includes(item.key); return <button key={item.key} type="button" onClick={() => onSelect(item.key)} className={`flex min-h-20 items-center justify-between gap-4 border-t px-1 py-3 text-left transition ${sectionKey === item.key ? 'border-amber-200/35 pl-4 shadow-[inset_3px_0_0_rgba(253,230,138,0.5)]' : 'border-white/[0.07] hover:border-white/[0.16]'}`}><span className="min-w-0"><span className={`block truncate text-sm font-semibold ${sectionKey === item.key ? 'text-amber-100' : 'text-zinc-200'}`}>{item.name}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{item.part}</span></span><span className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] ${row?.draft_data ? 'text-amber-200' : 'text-zinc-600'}`}>{row?.draft_data ? 'Draft' : isTool ? '' : 'Live'}</span></button>; })}</div></details>; })}</nav>
-    </div>
-  </details>;
+function SectionChooser({ navigation, entries, search, setSearch, onSelect }) {
+  const groups = groupNavigation(navigation.filter((item) => item.key !== 'overview'));
+  const renderItems = (items) => <div className="mt-4 grid gap-2 sm:grid-cols-2">{items.map((item) => { const row = entries.find((entry) => entry.entry_key === item.key); const isTool = ['media','revisions'].includes(item.key); return <button key={item.key} type="button" onClick={() => onSelect(item.key)} className="group flex min-h-20 items-center justify-between gap-4 rounded-lg border border-white/[0.09] bg-white/[0.02] px-4 py-3 text-left transition hover:border-amber-200/30 hover:bg-amber-200/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-zinc-100 group-hover:text-amber-100">{item.name}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{item.part}</span></span><span className="flex shrink-0 items-center gap-2"><span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${row?.draft_data ? 'text-amber-200' : 'text-zinc-600'}`}>{row?.draft_data ? 'Draft' : isTool ? '' : 'Live'}</span><ChevronRight size={16} className="text-zinc-600 group-hover:text-amber-200"/></span></button>; })}</div>;
+  return <section aria-labelledby="website-sections-heading">
+    <div className="max-w-2xl"><h2 id="website-sections-heading" className="text-2xl font-semibold text-white">What would you like to change?</h2><p className="mt-2 text-sm leading-6 text-zinc-400">Most updates start under Pages. Site settings affect several pages at once.</p></div>
+    <label data-search-shell className="mt-5 flex h-11 max-w-md items-center gap-2 rounded-lg border border-white/[0.1] bg-black/20 px-3"><Search size={15} className="shrink-0 text-zinc-500" aria-hidden="true"/><span className="sr-only">Search website sections</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search pages, settings, or services" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600"/></label>
+    <nav className="mt-8 grid gap-8" aria-label="Website Studio sections">{groups.map(([group, items]) => group === 'Services' && !search ? <details key={group} className="group rounded-xl border border-white/[0.09] bg-white/[0.015] p-4 sm:p-5"><summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4"><span><span className="block text-lg font-semibold text-white">{group}</span><span className="mt-1 block text-sm leading-6 text-zinc-500">{pageGroupDescriptions[group]}</span></span><span className="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-500">{items.length} services<ChevronDown size={17} className="transition-transform group-open:rotate-180"/></span></summary>{renderItems(items)}</details> : <section key={group} className="rounded-xl border border-white/[0.09] bg-white/[0.015] p-4 sm:p-5"><div><h3 className="text-lg font-semibold text-white">{group}</h3><p className="mt-1 text-sm leading-6 text-zinc-500">{pageGroupDescriptions[group]}</p></div>{renderItems(items)}</section>)}</nav>
+  </section>;
 }
 
 function StudioContent(props) {
   const { sectionKey, selected, entries, revisions, form, fields, config, state, dirty, working, selectSection, updateField, save, publish, discard, canRestore, onRestore } = props;
-  if (sectionKey === 'overview') return <Overview/>;
   if (sectionKey === 'media') return <div className="grid min-h-[30rem] place-items-center text-center"><div><Image size={32} className="mx-auto text-amber-200"/><h2 className="mt-4 text-xl font-semibold text-white">Website media</h2><p className="mt-2 max-w-md text-sm leading-6 text-zinc-400">Open the managed media library to upload and choose approved public assets. Private originals stay protected.</p><Link to="/admin/media/icons" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-amber-200 px-4 text-sm font-semibold text-zinc-950">Open media library<ChevronRight size={16}/></Link></div></div>;
   if (sectionKey === 'revisions') return <RevisionList revisions={revisions} canRestore={canRestore} onRestore={onRestore} working={working}/>;
   if (!selected) return <div className="grid min-h-[30rem] place-items-center text-sm text-zinc-500">Choose a Website Studio section.</div>;
@@ -180,7 +173,6 @@ function StudioContent(props) {
   </div>;
 }
 
-function Overview() { return <div className="py-4"><p className="text-xs uppercase tracking-[0.18em] text-amber-200">Overview</p><h2 className="mt-2 text-2xl font-semibold text-white">One connected source for the public website</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Choose any editable box above. Shared brand and service records update every supported public reference, while page wording stays with its page.</p></div>; }
 function AppearanceGuide() { return <div className="mt-6 border-l-2 border-amber-200/40 pl-4"><h3 className="text-sm font-semibold text-white">Global theme colors</h3><p className="mt-1 text-sm leading-6 text-zinc-400">These brand colors support both light and dark mode across public pages, including Explore Aklan, buttons, links, body text, and dividers. Publish carefully because this changes the whole website.</p></div>; }
 function keepEditorKeysLocal(event) { event.stopPropagation(); }
 function StudioField({ fieldKey, label, type, value, onChange }) {

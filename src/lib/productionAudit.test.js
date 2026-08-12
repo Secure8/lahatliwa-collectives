@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
-import { cachedContentMatchesScope, publicContentScope } from './publicContentScope.js';
+import { cachedContentMatchesScope, publicContentCacheKey, publicContentCacheKeyMatchesScope, publicContentScope } from './publicContentScope.js';
 import { safeExternalUrl, safeInternalPath } from './externalUrls.js';
 import { socialLinkMeta } from './socialLinks.js';
 
@@ -14,6 +14,9 @@ test('public CMS cache identity is exact, stable, and page-specific', () => {
   assert.notEqual(publicContentScope(['about']), publicContentScope(['contact']));
   assert.equal(cachedContentMatchesScope({ scope: 'about', content: { about: {} } }, ['about']), true);
   assert.equal(cachedContentMatchesScope({ scope: 'about', content: { about: {} } }, ['contact']), false);
+  assert.notEqual(publicContentCacheKey(['services']), publicContentCacheKey([]));
+  assert.equal(publicContentCacheKeyMatchesScope(publicContentCacheKey(['services']), ['services']), true);
+  assert.equal(publicContentCacheKeyMatchesScope(publicContentCacheKey([]), ['services']), false);
 });
 
 test('public shell renders immediately while content refresh stays non-blocking', () => {

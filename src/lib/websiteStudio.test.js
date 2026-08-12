@@ -103,15 +103,16 @@ test('appearance validation enforces usable contrast', () => {
 
 test('Website Studio exposes a beginner single-column editor without a simulated preview', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
-  for (const text of ['Save draft','Published','Publish','Discard','Open live website','Open this page','Revisions','Unpublished changes','Advanced settings','Back to Admin']) assert.match(studio, new RegExp(text, 'i'));
+  for (const text of ['Save draft','Published','Publish','Discard','View live website','Open this page','Revisions','Unpublished changes','Advanced settings','Admin home']) assert.match(studio, new RegExp(text, 'i'));
   assert.match(studio, /function SectionChooser/);
-  assert.match(studio, /Choose any editable box above/);
-  for (const pageGroup of ['All public pages', 'Homepage', 'Explore Aklan page', 'Creatives page', 'Projects page', 'Services page', 'About page', 'Inquiry page']) assert.match(studio, new RegExp(pageGroup));
-  for (const pagePart of ['Header, footer, identity, and contact', 'Featured creatives and inquiry sections', 'Service listing and inquiry option']) assert.match(studio, new RegExp(pagePart));
-  assert.match(studio, /md:grid-cols-2/);
-  assert.match(studio, /group\/category border-b/);
-  assert.doesNotMatch(studio, /group\/category rounded-xl|group rounded-xl bg-white|shadow-2xl backdrop-blur-xl/);
-  assert.match(studio, /data-search-shell className="flex h-10/);
+  assert.match(studio, /What would you like to change\?/);
+  assert.match(studio, /All website sections/);
+  for (const pageGroup of ['Pages', 'Site settings', 'Services', 'Tools']) assert.match(studio, new RegExp(pageGroup));
+  for (const pagePart of ['Website name, logo, contact, and identity', 'Homepage', 'Service listing and inquiry choice']) assert.match(studio, new RegExp(pagePart));
+  assert.match(studio, /sm:grid-cols-2/);
+  assert.match(studio, /24 services|\{items\.length\} services/);
+  assert.doesNotMatch(studio, /group\/category|shadow-2xl backdrop-blur-xl/);
+  assert.match(studio, /data-search-shell className="mt-5 flex h-11/);
   assert.match(studio, /<Search size=\{15\} className="shrink-0[^\n]+<input type="search"/);
   assert.doesNotMatch(studio, /Search size=\{15\} className="absolute left-3 top-3/);
   assert.doesNotMatch(studio, /function StudioNavigation|function MobileSectionMenu|xl:grid-cols-\[16rem_minmax\(0,1fr\)\]/);

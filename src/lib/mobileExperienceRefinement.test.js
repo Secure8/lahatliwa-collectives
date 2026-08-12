@@ -16,12 +16,12 @@ test('public and admin mobile navigation identify the current page without clutt
   assert.match(component, /aria-current=\{active \? 'page'/);
   assert.match(component, /mobile-nav-current-label/);
   assert.match(component, /House/);
-  assert.match(component, /PanelsTopLeft/);
+  assert.match(component, /Radio/);
   assert.match(component, /GalleryHorizontalEnd/);
   assert.match(component, /UsersRound/);
   assert.match(component, /MessageSquarePlus/);
   assert.match(component, /usePublicContent/);
-  assert.match(component, /navigation\.servicesLabel \|\| 'Services'/);
+  assert.match(component, /'\/work': 'Work'/);
   assert.match(component, /navigation\.projectsLabel \|\| 'Projects'/);
   assert.match(component, /navigation\.creativesLabel \|\| 'Creatives'/);
   assert.doesNotMatch(component, /h-9 w-12 place-items-center rounded-xl/);
@@ -51,40 +51,36 @@ test('public and admin mobile navigation identify the current page without clutt
   assert.doesNotMatch(styles, /\.public-footer[\s\S]*?padding-bottom: calc\(4\.5rem \+ env\(safe-area-inset-bottom\)\)/);
 });
 
-test('mobile Home keeps the tourism order, bounded content, and shared footer', async () => {
+test('mobile Home prioritizes current work, bounded content, and the shared footer', async () => {
   const [home, app, styles] = await Promise.all([
     readFile(new URL('../pages/Home.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
   ]);
-  assert.match(home, /<ExploreAklanHero/);
-  assert.match(home, /<DestinationsFeed/);
+  assert.match(home, /data-current-work-homepage/);
+  assert.match(home, /fetchPublicProjectSummaries\(\{ workStatus: 'active' \}\)/);
+  assert.match(home, /to="\/work"/);
   assert.match(home, /home-creatives-grid/);
   assert.match(home, /home-featured-creatives/);
-  assert.doesNotMatch(home, /ProjectGrid|home-project-grid|home-featured-projects/);
+  assert.doesNotMatch(home, /ExploreAklanHero|DestinationsFeed/);
   assert.match(styles, /overflow-x: clip/);
   assert.match(app, /<Footer \/>/);
   assert.doesNotMatch(app, /hidden lg:block' : ''/);
 });
 
-test('inquiry step changes target the workflow shell and never force the document to page top', async () => {
+test('open inquiry stays one page and never forces the document to page top', async () => {
   const [form, hook, progressive] = await Promise.all([
     readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
     readFile(new URL('./useStepScroll.js', import.meta.url), 'utf8'),
     readFile(new URL('./useProgressiveNavigation.js', import.meta.url), 'utf8'),
   ]);
-  assert.match(form, /ref=\{inquiryContainerRef\}/);
-  assert.match(form, /useStepScroll\(\{ containerRef: inquiryContainerRef, request: stepScrollRequest \}\)/);
   assert.doesNotMatch(form, /window\.scrollTo\(\{ top: 0/);
   assert.match(hook, /scheduleProgressiveNavigation/);
   assert.match(progressive, /prefers-reduced-motion: reduce/);
-  assert.match(progressive, /targetIsComfortablyVisible/);
-  assert.match(progressive, /window\.addEventListener\('wheel', interrupt/);
   assert.match(form, /data-inquiry-field/);
-  assert.match(form, /focus\(\{ preventScroll: true \}\)/);
-  assert.match(form, /role="progressbar"/);
-  assert.match(form, /aria-valuetext=\{`Step \$\{current \+ 1\} of \$\{steps\.length\}: \$\{steps\[current\]\}`\}/);
-  assert.match(form, /sm:hidden/);
+  assert.match(form, /aria-label="Open inquiry form"/);
+  assert.match(form, /document\.querySelector/);
+  assert.doesNotMatch(form, /role="progressbar"|data-flow-step/);
 });
 
 test('project cards stretch equally on desktop without fixed mobile heights', async () => {

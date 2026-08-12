@@ -20,8 +20,8 @@ test('public positioning serves clients and published creatives without agency c
   const creatives = source('pages/Creatives.jsx');
   const footer = source('components/Footer.jsx');
 
-  assert.match(home, /Independent community stories/i);
-  assert.match(home, /Featured Creatives/i);
+  assert.match(home, /See what we are building, covering, and publishing now/i);
+  assert.match(home, /Featured creatives/i);
   assert.match(about, /independently operated/i);
   assert.match(about, /does not automatically mean being employed/i);
   assert.match(about, /Built from Aklan/i);
@@ -51,10 +51,9 @@ test('public project and profile copy emphasizes publication and contributor cre
   const details = source('pages/ProjectDetails.jsx');
   const profile = source('components/CreativeProfileView.jsx');
 
-  assert.match(projects, /Published work and credited contributions/);
+  assert.match(projects, /permanent project portfolio/);
   assert.match(details, /Published through <BrandWordmark name=\{content\.displayName\}/);
   assert.match(details, /Credited contributors/);
-  assert.match(profile, /does not guarantee availability or assignment/);
   assert.match(profile, />Inquire <ArrowRight/);
 });
 
@@ -75,8 +74,9 @@ test('contact and confirmation copy explain the correct next step', () => {
   const contact = source('pages/Contact.jsx');
   const confirmation = source('pages/InquiryConfirmation.jsx');
 
-  assert.match(contact, /For service support, the guided inquiry/);
-  assert.match(contact, /profile or credit questions/i);
-  assert.match(confirmation, /inquiry may be redirected/i);
-  assert.match(confirmation, /does not confirm a booking, agreement/i);
+  assert.match(contact, /Send one open message/);
+  assert.match(contact, /do not need to choose a service first/);
+  assert.match(contact, /profile or credit question/i);
+  assert.match(confirmation, /identify the right next step/i);
+  assert.match(confirmation, /does not confirm availability, scope, schedule, pricing, booking/i);
 });

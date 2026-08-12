@@ -10,7 +10,7 @@ import { PublicContentProvider, usePublicContent } from './lib/contentApi';
 import PublicScrollRestoration from './components/PublicScrollRestoration';
 import PublicErrorBoundary from './components/PublicErrorBoundary';
 import { publicRouteBoundaryKey } from './lib/navigationHistory';
-import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadInquiryConfirmation, loadPrivacy, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
+import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadCurrentWork, loadInquiryConfirmation, loadPrivacy, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
 import NotFound from './pages/NotFound';
 import { applyPublicMetadata } from './lib/publicMetadata';
 import ThemeToggle from './components/ThemeToggle';
@@ -30,6 +30,7 @@ const CreativeDetails = lazy(loadCreativeDetails);
 const StartProject = lazy(loadStartProject);
 const InquiryConfirmation = lazy(loadInquiryConfirmation);
 const Privacy = lazy(loadPrivacy);
+const CurrentWork = lazy(loadCurrentWork);
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
@@ -40,10 +41,6 @@ const AdminInquiries = lazy(() => import('./pages/admin/AdminInquiries'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
 const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
-const TourismIndex = lazy(() => import('./pages/tourism/TourismIndex'));
-const TourismDetail = lazy(() => import('./pages/tourism/TourismDetail'));
-const EditorialStudio = lazy(() => import('./pages/editorial/EditorialStudio'));
-const AdminEditorial = lazy(() => import('./pages/admin/AdminEditorial'));
 const WebsiteStudio = lazy(() => import('./pages/admin/WebsiteStudio'));
 
 function LegacyWebsiteEditorRedirect() {
@@ -53,10 +50,11 @@ function LegacyWebsiteEditorRedirect() {
 }
 
 const routeMetadata = {
-  '/': ['Explore Aklan | Destinations, Events and Local Stories', 'Discover destinations, events, activities, local products, and community stories across Aklan through Lahat Liwa Collectives.'],
+  '/': ['Current Work | Lahat Liwa Collectives', 'Follow active client projects, content releases, event coverage, and completed work from Lahat Liwa Collectives.'],
+  '/work': ['Current Work | Lahat Liwa Collectives', 'Follow public progress from active client projects, social content, events, and ongoing productions.'],
   '/about': ['About | Lahat Liwa Collectives', 'Learn how this independently operated platform supports client inquiries, published creative profiles, and clear contributor credit.'],
   '/projects': ['Projects | Lahat Liwa Collectives', 'Explore complete project records, visible outputs, and credited contributions across visual, digital, social, and community work.'],
-  '/services': ['Services | Lahat Liwa Collectives', 'Explore focused support across Liwa Studio, Liwa Digital, Liwa Social, and Liwa Explore.'],
+  '/services': ['How We Can Help | Lahat Liwa Collectives', 'Describe your goal, problem, collaboration, or opportunity without choosing from a fixed service list.'],
   '/creatives': ['Creatives | Lahat Liwa Collectives', 'Discover published creative profiles, skills, portfolio work, and credited project contributions.'],
   '/start-a-project': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
@@ -112,7 +110,7 @@ function PublicSiteFrame() {
 function PublicLayout() {
   const location = useLocation();
   const { pathname } = location;
-  const contentArea = pathname === '/' ? 'home' : pathname === '/creatives' ? 'creatives' : pathname === '/about' ? 'about' : pathname.startsWith('/services') ? 'services' : pathname === '/contact' ? 'contact' : 'shared';
+  const contentArea = pathname === '/' ? 'home' : pathname === '/work' ? 'explore' : pathname === '/creatives' ? 'creatives' : pathname === '/about' ? 'about' : pathname.startsWith('/services') ? 'services' : pathname === '/contact' ? 'contact' : 'shared';
   const pageKeys = useMemo(() => contentArea === 'home' ? ['home', 'services'] : contentArea === 'creatives' ? ['home'] : contentArea === 'shared' ? [] : [contentArea], [contentArea]);
   return (
     <PublicContentProvider pageKeys={pageKeys}>
@@ -137,6 +135,7 @@ export default function App() {
         <Route path="/about" element={<About />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:slug" element={<ProjectDetails />} />
+        <Route path="/work" element={<CurrentWork />} />
         <Route path="/services" element={<Services />} />
         <Route path="/creatives" element={<Creatives />} />
         <Route path="/creatives/:slug" element={<CreativeDetails />} />
@@ -145,17 +144,7 @@ export default function App() {
         <Route path="/inquiry/confirmation/:reference" element={<InquiryConfirmation />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<Privacy />} />
-        <Route path="/explore" element={<TourismIndex />} />
-        <Route path="/journal" element={<TourismIndex type="journal" />} />
-        <Route path="/journal/:slug" element={<TourismDetail type="journal" />} />
-        <Route path="/events" element={<TourismIndex type="event" />} />
-        <Route path="/events/:slug" element={<TourismDetail type="event" />} />
-        <Route path="/places" element={<TourismIndex type="place" />} />
-        <Route path="/places/:slug" element={<TourismDetail type="place" />} />
-        <Route path="/activities" element={<TourismIndex type="activity" />} />
-        <Route path="/activities/:slug" element={<TourismDetail type="activity" />} />
-        <Route path="/local-products" element={<TourismIndex type="local_product" />} />
-        <Route path="/local-products/:slug" element={<TourismDetail type="local_product" />} />
+        {['/explore','/journal','/journal/:slug','/events','/events/:slug','/places','/places/:slug','/activities','/activities/:slug','/local-products','/local-products/:slug'].map((path) => <Route key={path} path={path} element={<Navigate to="/work" replace />} />)}
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/set-password" element={<AdminSuspense><SetPassword /></AdminSuspense>} />
@@ -163,7 +152,6 @@ export default function App() {
       <Route path="/admin/login" element={<AdminSuspense><Login /></AdminSuspense>} />
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/editorial/*" element={<AdminSuspense><EditorialStudio /></AdminSuspense>} />
         <Route path="/admin/dashboard" element={<AdminSuspense><Dashboard /></AdminSuspense>} />
         <Route path="/admin/my-profile" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative']}><MyProfile /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/directory" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative', 'viewer']}><CreativeDirectory /></AdminRouteGuard></AdminSuspense>} />
@@ -179,7 +167,6 @@ export default function App() {
         <Route path="/admin/settings" element={<Navigate to="/admin/website?section=global.appearance" replace />} />
         <Route path="/admin/content" element={<Navigate to="/admin/website" replace />} />
         <Route path="/admin/content/:pageKey" element={<LegacyWebsiteEditorRedirect />} />
-        <Route path="/admin/editorial/*" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminEditorial /></AdminRouteGuard></AdminSuspense>} />
       </Route>
     </Routes><ThemeToggle /></>
   );

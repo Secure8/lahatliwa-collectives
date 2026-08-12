@@ -30,7 +30,7 @@ test('public routes render inside one main landmark and expose a skip link', asy
   assert.match(app, /<main id="public-main-content" tabIndex=\{-1\}/);
   assert.doesNotMatch(projects, /<main\b/);
   assert.doesNotMatch(inquiry, /<main\b/);
-  assert.match(inquiry, /aria-labelledby="inquiry-step-heading"/);
+  assert.match(inquiry, /aria-label="Open inquiry form"/);
 });
 
 test('shared admin dialog carries accessible modal behavior', async () => {
@@ -163,7 +163,8 @@ test('dashboard prioritizes summary, urgent work, and a small primary action set
   const dashboard = await source('../pages/admin/Dashboard.jsx');
   assert.match(dashboard, /aria-label="Primary actions"/);
   assert.match(dashboard, /Website Studio/);
-  assert.match(dashboard, /Create a story/);
+  assert.match(dashboard, /Start a project/);
+  assert.match(dashboard, /Update current work/);
   assert.match(dashboard, /Review inquiries/);
   assert.match(dashboard, /Manage team/);
   assert.match(dashboard, /View live website/);
@@ -194,7 +195,8 @@ test('admin people management connects profiles and access while preserving thei
   ]);
   assert.match(layout, /\['Content', \[/);
   assert.match(layout, /\['Team', \[/);
-  assert.match(layout, /Website Studio[\s\S]*Editorial Studio[\s\S]*Projects[\s\S]*Creative Profiles/);
+  assert.match(layout, /Website Studio[\s\S]*Projects[\s\S]*Creative Profiles/);
+  assert.doesNotMatch(layout, /Editorial Studio/);
   assert.match(layout, /Team Members/);
   assert.match(peopleNav, /aria-label="People management"/);
   assert.match(team, /profile_image_url/);

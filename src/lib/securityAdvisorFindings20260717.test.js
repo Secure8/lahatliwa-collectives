@@ -31,7 +31,7 @@ test('own-usage function derives identity only from auth.uid and is backend-only
   assert.match(sql, /grant execute on function public\.get_my_public_media_usage\(\) to service_role/);
 });
 
-test('public creative endpoint exposes only published eligible display fields', async () => {
+test('legacy public creative endpoint stays narrow but the open inquiry no longer calls it', async () => {
   const [edge, ui, config] = await Promise.all([
     source('supabase/functions/inquiry-public-options/index.ts'),
     source('src/pages/StartProject.jsx'),
@@ -42,7 +42,8 @@ test('public creative endpoint exposes only published eligible display fields', 
   assert.match(edge, /eq\('status', 'active'\)/);
   assert.match(edge, /not\('user_id', 'is', null\)/);
   assert.doesNotMatch(edge, /provider_account|credential|notification_email|\.select\([^)]*email/);
-  assert.match(ui, /functions\.invoke\('inquiry-public-options'/);
+  assert.doesNotMatch(ui, /functions\.invoke\('inquiry-public-options'/);
+  assert.match(ui, /functions\.invoke\('submit-service-request'/);
   assert.match(config, /\[functions\.inquiry-public-options\]\s+verify_jwt = false/);
 });
 

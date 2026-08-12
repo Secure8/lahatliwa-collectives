@@ -12,7 +12,7 @@ export const WEBSITE_STUDIO_SECTIONS = [
     ['homeLabel', 'Home label', 'text'], ['aboutLabel', 'About label', 'text'], ['projectsLabel', 'Projects label', 'text'], ['servicesLabel', 'Services label', 'text'], ['creativesLabel', 'Creatives label', 'text'], ['contactLabel', 'Contact label', 'text'], ['showAbout', 'Show About', 'boolean'], ['showProjects', 'Show Projects', 'boolean'], ['showServices', 'Show Services', 'boolean'], ['showCreatives', 'Show Creatives', 'boolean'], ['showContact', 'Show Contact', 'boolean'],
   ] },
   { group: 'Pages', label: 'Homepage', key: 'page.home', preview: '/', fields: [['featuredEyebrow','Featured creatives eyebrow','text'],['featuredTitle','Featured creatives heading','text'],['featuredDescription','Featured creatives description','textarea'],['featuredCtaLabel','Featured creatives action','text'],['inquiryEyebrow','Inquiry eyebrow','text'],['inquiryTitle','Inquiry heading','text'],['inquiryDescription','Inquiry description','textarea'],['inquiryCtaLabel','Inquiry action','text'],['inquiryCtaUrl','Inquiry action route','route']] },
-  { group: 'Pages', label: 'Explore Aklan', key: 'page.explore', preview: '/explore', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
+  { group: 'Pages', label: 'Current Work', key: 'page.explore', preview: '/work', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
   { group: 'Pages', label: 'Creatives', key: 'page.creatives', preview: '/creatives', fields: [['heroEyebrow','Hero eyebrow','text'],['heroTitle','Hero title','text'],['heroDescription','Hero description','textarea'],['primaryCta','Primary action','text'],['primaryCtaUrl','Primary action route','route'],['secondaryCta','Secondary action','text'],['secondaryCtaUrl','Secondary action route','route'],['directoryEyebrow','Directory eyebrow','text'],['directoryTitle','Directory heading','text'],['directoryDescription','Directory description','textarea']] },
   { group: 'Pages', label: 'Projects', key: 'page.projects', preview: '/projects', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
   { group: 'Pages', label: 'Services', key: 'page.services', preview: '/services', fields: [['title','Heading','text'],['intro','Introduction','textarea']] },
@@ -27,7 +27,7 @@ export const SERVICE_FIELDS = [
   ['name','Service name','text'],['shortDescription','Short description','textarea'],['fullDescription','Full description','textarea'],['status','Status','status'],['displayOrder','Display order','number'],['publicVisibility','Show publicly','boolean'],['inquiryAvailability','Available in inquiries','boolean'],['iconUrl','Icon URL','url'],['featured','Featured','boolean'],['seoTitle','Search title','text'],['seoDescription','Search description','textarea'],
 ];
 
-const APPROVED_ROUTES = ['/', '/about', '/projects', '/services', '/creatives', '/contact', '/explore', '/journal', '/events', '/places', '/activities', '/local-products', '/inquiry'];
+const APPROVED_ROUTES = ['/', '/about', '/work', '/projects', '/services', '/creatives', '/contact', '/inquiry'];
 const unsafePattern = /<script|javascript\s*:|data\s*:\s*text\/html|on(?:error|load)\s*=/i;
 
 export function safeWebsiteValue(value, type = 'text') {

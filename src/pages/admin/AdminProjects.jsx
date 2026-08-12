@@ -60,6 +60,8 @@ export default function AdminProjects() {
       (filter === 'all'
       || (filter === 'owned' && (project.owner_user_id === user?.id || project.created_by === user?.id))
       || (filter === 'published' && project.status === 'published')
+      || (filter === 'active' && project.work_status === 'active')
+      || (filter === 'completed' && project.work_status !== 'active')
       || (filter === 'draft' && project.status === 'draft')
       || (filter === 'archived' && project.review_status === 'archived'))
       && (!query || [project.title, project.category, project.slug].some((value) => String(value || '').toLowerCase().includes(query)))
@@ -182,7 +184,7 @@ export default function AdminProjects() {
       <AdminPageHeader
         eyebrow="Project manager"
         title="Projects"
-        description={canManageAll ? 'Manage published project records, drafts, featured placement, and contributor credits.' : 'Browse available project records, then manage the work you own or have been assigned.'}
+        description={canManageAll ? 'Publish active work, add progress updates, and move completed projects into the permanent portfolio.' : 'Open a project to add progress or update its public stage.'}
         action={canCreate && <AdminButton to="/admin/projects/new" variant="primary">
           <Plus size={18} /> New project
         </AdminButton>}
@@ -239,7 +241,7 @@ export default function AdminProjects() {
                 <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-zinc-600">Project list</p><h2 className="mt-1 text-lg font-semibold text-white">All projects</h2></div><span className="text-xs tabular-nums text-zinc-500">{filteredProjects.length} shown</span></div>
                 <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(16rem,1fr)_auto] xl:items-center">
                   <label data-search-shell className="flex h-10 items-center gap-2 rounded-md border border-white/[0.12] bg-zinc-950 px-3"><Search size={15} className="text-zinc-600" /><span className="sr-only">Search projects</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title, category, or slug" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600" /></label>
-                  <div className="flex gap-1 overflow-x-auto" aria-label="Filter admin projects">{[['all','All'],['published','Published'],['draft','Drafts'],['archived','Archived'],['owned','Mine']].map(([key,label])=><button key={key} type="button" aria-pressed={filter===key} onClick={()=>setFilter(key)} className={`interactive-tab h-10 shrink-0 px-3 text-xs ${filter===key?'text-white':'text-zinc-500 hover:text-white'}`}>{label}</button>)}</div>
+                  <div className="flex gap-1 overflow-x-auto" aria-label="Filter admin projects">{[['all','All'],['active','Current work'],['completed','Portfolio'],['draft','Drafts'],['archived','Archived'],['owned','Mine']].map(([key,label])=><button key={key} type="button" aria-pressed={filter===key} onClick={()=>setFilter(key)} className={`interactive-tab h-10 shrink-0 px-3 text-xs ${filter===key?'text-white':'text-zinc-500 hover:text-white'}`}>{label}</button>)}</div>
                 </div>
               </div>
               <div data-project-card-grid className="grid gap-3 p-4 sm:gap-4 sm:p-5">{filteredProjects.map((project) => <AdminProjectCard key={project.id} project={project} onDelete={deleteProject} separated />)}</div>

@@ -94,8 +94,9 @@ test('route changes restore both public mobile navigation sections', async () =>
 });
 
 test('public top navigation is limited to five primary destinations with detail-route awareness', () => {
-  assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS.map(([label]) => label), ['Home', 'Services', 'Projects', 'Creatives', 'Inquiry']);
+  assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS.map(([label]) => label), ['Home', 'Current Work', 'Projects', 'Creatives', 'Inquiry']);
   assert.equal(PUBLIC_PRIMARY_DESTINATIONS.length, 5);
+  assert.equal(publicDestinationIsActive('/work', '/work'), true);
   assert.equal(publicDestinationIsActive('/projects/sample', '/projects'), true);
   assert.equal(publicDestinationIsActive('/creatives/sample', '/creatives'), true);
   assert.equal(publicDestinationIsActive('/inquiry/confirmation/ABC', '/inquiry'), true);

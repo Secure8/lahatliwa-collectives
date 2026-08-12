@@ -56,6 +56,7 @@ export default function AdminProjectCard({
             <h3 className="font-semibold text-white">{project.title}</h3>
             {orderLabel && <AdminStatusBadge status="featured">{orderLabel}</AdminStatusBadge>}
             <AdminStatusBadge status={project.status} />
+            <AdminStatusBadge status={project.work_status === 'active' ? 'active' : 'completed'}>{project.work_status === 'active' ? 'Current work' : 'Portfolio'}</AdminStatusBadge>
             {project.review_status && <AdminStatusBadge status={project.review_status}>{project.review_status.replace('_', ' ')}</AdminStatusBadge>}
             {project.featured && <AdminStatusBadge status="featured">Featured</AdminStatusBadge>}
           </div>

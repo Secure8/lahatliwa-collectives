@@ -21,12 +21,12 @@ export default function Navbar() {
   const visibleLinks = [
     [navigation.homeLabel || 'Home', '/', true],
     [navigation.aboutLabel || 'About', '/about', navigation.showAbout !== false],
-    [navigation.projectsLabel || 'Projects', '/projects', navigation.showProjects !== false],
-    [navigation.servicesLabel || 'Services', '/services', navigation.showServices !== false],
+    ['Current Work', '/work', true],
+    [navigation.projectsLabel || 'Portfolio', '/projects', navigation.showProjects !== false],
     [navigation.creativesLabel || 'Creatives', '/creatives', navigation.showCreatives !== false],
     [navigation.contactLabel || 'Contact', '/contact', navigation.showContact !== false],
   ].filter(([, , visible]) => visible).map(([label, href]) => [label, href]);
-  const visibleSecondaryLinks = [[navigation.aboutLabel || 'About', '/about'], [navigation.contactLabel || 'Contact', '/contact'], ['Privacy', '/privacy']].filter(([, href]) => visibleLinks.some(([, primaryHref]) => primaryHref === href) || href === '/privacy');
+  const visibleSecondaryLinks = [[navigation.aboutLabel || 'About', '/about'], ['How we can help', '/services'], [navigation.contactLabel || 'Contact', '/contact'], ['Privacy', '/privacy']].filter(([, href]) => visibleLinks.some(([, primaryHref]) => primaryHref === href) || ['/privacy','/services'].includes(href));
   const mobileMode = publicAppBarMode(location.pathname);
   const secondaryDestination = visibleSecondaryLinks.find(([, href]) => location.pathname === href || location.pathname.startsWith(`${href}/`));
   const secondaryRouteIsActive = Boolean(secondaryDestination);

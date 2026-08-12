@@ -44,6 +44,7 @@ import { AdminCheckbox, ResponsiveFormSection, StickyMobileActions } from './Adm
 import ImageUploader from './ImageUploader';
 import { ActionFeedback, FieldError } from '../FieldFeedback';
 import UnsavedChangesGuard from './UnsavedChangesGuard';
+import { normalizeProjectUpdates, PROJECT_UPDATE_TYPES, projectWorkStatus } from '../../lib/projectProgress';
 
 const emptyProject = {
   title: '',
@@ -60,6 +61,8 @@ const emptyProject = {
   github_url: '',
   project_date: '',
   status: 'draft',
+  work_status: 'active',
+  progress_updates: [],
   featured: false,
   review_status: 'draft',
   review_notes: '',
@@ -151,6 +154,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
           gallery_items: Array.isArray(initialProject.gallery_items)
             ? initialProject.gallery_items.map(normalizeGalleryItem)
             : [],
+          work_status: projectWorkStatus(initialProject.work_status),
+          progress_updates: Array.isArray(initialProject.progress_updates) ? initialProject.progress_updates : [],
         }
       : emptyProject;
 
@@ -368,6 +373,18 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       return current.filter((item) => item.id !== id);
     });
     setDirty(true);
+  }
+
+  function addProgressUpdate() {
+    update('progress_updates', [{ id: crypto.randomUUID(), type: 'progress', date: new Date().toISOString().slice(0, 10), title: '', body: '', linkUrl: '', linkLabel: '' }, ...(form.progress_updates || [])]);
+  }
+
+  function updateProgressEntry(id, patch) {
+    update('progress_updates', (form.progress_updates || []).map((entry) => entry.id === id ? { ...entry, ...patch } : entry));
+  }
+
+  function removeProgressEntry(id) {
+    update('progress_updates', (form.progress_updates || []).filter((entry) => entry.id !== id));
   }
 
   function removeGalleryFile(path) {
@@ -670,6 +687,8 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         github_url: form.github_url || null,
         project_date: form.project_date || null,
         status: nextStatus,
+        work_status: projectWorkStatus(form.work_status),
+        progress_updates: normalizeProjectUpdates(form.progress_updates),
         featured: form.featured,
         review_status: nextReviewStatus,
         submitted_at: submitAction === 'submit' ? now : form.submitted_at || null,
@@ -827,6 +846,15 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       </label>
 
       <Field label="Tools used, separated by commas" value={form.tools} onChange={(value) => update('tools', value)} />
+      </FormSection>
+
+      <FormSection eyebrow="Public work portal" title="Project progress" description="Keep active work public, add clear dated updates, then mark it completed when it should move into the permanent portfolio.">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <label className="grid gap-2 text-sm text-zinc-300">Public stage<select className="min-h-11 border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none focus:border-amber-200/60" value={form.work_status || 'active'} onChange={(event) => update('work_status', event.target.value)}><option value="active">Active — show in Current Work</option><option value="completed">Completed — keep in Portfolio</option></select></label>
+          <button type="button" onClick={addProgressUpdate} className="inline-flex min-h-11 items-center justify-center gap-2 bg-white/[0.06] px-4 text-sm text-white hover:bg-white/[0.1]"><Plus size={16} /> Add public update</button>
+        </div>
+        <p className="text-sm leading-6 text-zinc-500">Examples: a new Facebook post for Kapleya Cafe, a completed content calendar, photos from a festival you covered, or a major production milestone.</p>
+        {(form.progress_updates || []).length ? <div className="grid gap-4">{form.progress_updates.map((entry, index) => <article key={entry.id || index} className="grid gap-4 border border-white/[0.09] bg-black/15 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs uppercase tracking-[0.16em] text-amber-200">Update {form.progress_updates.length - index}</p><button type="button" onClick={() => removeProgressEntry(entry.id)} className="inline-flex min-h-10 items-center gap-2 px-3 text-sm text-red-200 hover:bg-red-300/[0.06]"><Trash2 size={14} /> Remove</button></div><div className="grid gap-4 sm:grid-cols-2"><label className="grid gap-2 text-sm text-zinc-300">Update type<select value={entry.type || 'progress'} onChange={(event) => updateProgressEntry(entry.id, { type: event.target.value })} className="min-h-11 border-0 border-b border-white/[0.12] bg-transparent text-white outline-none">{PROJECT_UPDATE_TYPES.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><Field label="Date" type="date" value={entry.date || ''} onChange={(value) => updateProgressEntry(entry.id, { date: value })} /><Field label="Update title" value={entry.title || ''} onChange={(value) => updateProgressEntry(entry.id, { title: value })} /><Field label="Optional public link" value={entry.linkUrl || ''} onChange={(value) => updateProgressEntry(entry.id, { linkUrl: value })} /><label className="grid gap-2 text-sm text-zinc-300 sm:col-span-2">What happened?<textarea className="min-h-28 resize-y border-0 border-b border-white/[0.12] bg-transparent py-2.5 leading-6 text-white outline-none focus:border-amber-200/60" value={entry.body || ''} onChange={(event) => updateProgressEntry(entry.id, { body: event.target.value })} placeholder="Explain the progress in plain language for the public." /></label><Field label="Link label (optional)" value={entry.linkLabel || ''} onChange={(value) => updateProgressEntry(entry.id, { linkLabel: value })} /></div></article>)}</div> : <p className="border-y border-white/[0.08] py-5 text-sm text-zinc-500">No public progress updates yet.</p>}
       </FormSection>
 
       <FormSection eyebrow="Cover and gallery" title="Media uploads" description="Upload the project cover, gallery images, PDFs, and review pending files before saving.">

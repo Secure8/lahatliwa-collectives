@@ -4,13 +4,14 @@ import { readFileSync } from 'node:fs';
 
 const source = (path) => readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
 
-test('all requested public, studio, and admin routes are lazy and additive', () => {
+test('legacy tourism routes retire into Current Work and editorial admin routes are hidden', () => {
   const app = source('src/App.jsx');
-  for (const route of ['/explore', '/journal', '/events', '/places', '/activities', '/local-products', '/editorial/*', '/admin/editorial/*']) {
+  for (const route of ['/explore', '/journal', '/events', '/places', '/activities', '/local-products']) {
     assert.match(app, new RegExp(route.replace(/[/*]/g, (value) => `\\${value}`)));
   }
-  assert.match(app, /lazy\(\(\) => import\('\.\/pages\/tourism\/TourismIndex'\)\)/);
-  assert.match(app, /lazy\(\(\) => import\('\.\/pages\/editorial\/EditorialStudio'\)\)/);
+  assert.match(app, /path="\/work" element=\{<CurrentWork \/>\}/);
+  assert.match(app, /Navigate to="\/work"/);
+  assert.doesNotMatch(app, /path="\/editorial|path="\/admin\/editorial/);
 });
 
 test('migration defaults every release flag off and validates structured documents', () => {
@@ -41,14 +42,13 @@ test('published revisions and metadata stay stable while a new draft is edited',
   assert.doesNotMatch(api, /from\('editorial_posts'\)\.update/);
 });
 
-test('tourism homepage is separately flagged and uses bounded dedicated queries', () => {
+test('public homepage now uses bounded active project queries', () => {
   const home = source('src/pages/Home.jsx');
-  const api = source('src/features/editorial/editorialApi.js');
-  assert.match(home, /homepageTourismEnabled/);
-  assert.match(home, /listExploreHomepageSlides/);
-  assert.match(home, /<DestinationsFeed/);
-  assert.match(api, /listPublishedDestinations/);
-  assert.match(api, /\.range\(from, from \+ pageSize\)/);
+  const projects = source('src/lib/publicProjectData.js');
+  assert.match(home, /fetchPublicProjectSummaries\(\{ workStatus: 'active' \}\)/);
+  assert.match(home, /activeProjects\.slice\(0, 3\)/);
+  assert.doesNotMatch(home, /homepageTourismEnabled|DestinationsFeed/);
+  assert.match(projects, /\.eq\('work_status', workStatus\)/);
 });
 
 test('writer permissions remain separate from review and publishing', () => {

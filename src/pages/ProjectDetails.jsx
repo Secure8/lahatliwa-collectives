@@ -15,6 +15,7 @@ import { applyPublicMetadata } from '../lib/publicMetadata';
 import { getSingleProjectExternalLink, projectExternalLinkLabel, projectExternalLinkText } from '../lib/projectExternalLinks';
 import BrandWordmark from '../components/BrandWordmark';
 import { inquiryUrl } from '../lib/serviceRequest';
+import { normalizeProjectUpdates, projectWorkStatus } from '../lib/projectProgress';
 
 function isMissingCreditRolesColumn(error) {
   const message = `${error?.message || ''} ${error?.details || ''}`;
@@ -38,7 +39,7 @@ export default function ProjectDetails() {
       setError('');
       setProject(null);
       setContributors([]);
-      const { data, error: projectError } = await supabase.from('projects').select('id, title, slug, category, description, cover_image, gallery_images, gallery_items, featured, project_date, tools, video_url, social_post_url, live_url, github_url').eq('slug', slug).eq('status', 'published').single();
+      const { data, error: projectError } = await supabase.from('projects').select('id, title, slug, category, description, cover_image, gallery_images, gallery_items, featured, project_date, tools, video_url, social_post_url, live_url, github_url, work_status, progress_updates').eq('slug', slug).eq('status', 'published').single();
       if (!active) return;
       if (projectError) setError('Project not found or not published yet.');
       else {
@@ -90,7 +91,9 @@ export default function ProjectDetails() {
   const gallery = normalizeProjectGallery(project);
   const coverExternalLink = getSingleProjectExternalLink(project);
   const primaryContributor = contributors.find((creative) => creative.isPrimary) || contributors[0];
-  const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/projects'); if (action.delta) navigate(action.delta); else navigate(action.to); };
+  const workStatus = projectWorkStatus(project.work_status);
+  const updates = normalizeProjectUpdates(project.progress_updates);
+  const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, workStatus === 'active' ? '/work' : '/projects'); if (action.delta) navigate(action.delta); else navigate(action.to); };
 
   return (
     <article className="page-shell py-20">
@@ -100,7 +103,7 @@ export default function ProjectDetails() {
           <ProjectCover cover={cover} title={project.title} externalLink={coverExternalLink} />
         )}
         <div className="min-w-0 lg:py-4">
-          {project.featured && <p className="text-xs uppercase tracking-[0.18em] text-[var(--site-accent-text)]">Selected</p>}
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--site-accent-text)]">{workStatus === 'active' ? 'Work in progress' : project.featured ? 'Selected completed work' : 'Completed project'}</p>
           <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: 'var(--site-primary-text)' }}>{project.title}</h1>
           <p className="mt-5 text-lg leading-8" style={{ color: 'var(--site-secondary-text)' }}>{project.description}</p>
           <div className="mt-6 grid gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}>
@@ -145,6 +148,8 @@ export default function ProjectDetails() {
           </div>
         </section>
       )}
+
+      {updates.length > 0 && <section className="major-border-top mt-16 pt-10" aria-labelledby="project-progress-heading"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.18em] text-orange-300">Project journal</p><h2 id="project-progress-heading" className="mt-3 text-3xl font-semibold text-white">Progress and updates</h2></div><span className="text-sm text-zinc-500">{updates.length} public {updates.length === 1 ? 'update' : 'updates'}</span></div><ol className="mt-8 grid gap-4">{updates.map((update) => <li key={update.id} className="grid gap-3 border-l border-orange-300/35 bg-white/[0.018] px-5 py-5 sm:grid-cols-[9rem_1fr]"><div><p className="text-xs uppercase tracking-[0.15em] text-orange-200">{update.type.replace('_', ' ')}</p>{update.date && <p className="mt-2 text-sm text-zinc-500">{formatDate(update.date)}</p>}</div><div><h3 className="text-lg font-medium text-white">{update.title}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-zinc-400">{update.body}</p>{update.linkUrl && <a href={update.linkUrl} target="_blank" rel="noopener noreferrer" className="fine-link mt-3 inline-flex min-h-11 items-center gap-2 text-sm text-zinc-200">{update.linkLabel || 'View update'} <ExternalLink size={14} /></a>}</div></li>)}</ol></section>}
 
       {gallery.length > 0 && (
         <section className="major-border-top mt-16 pt-10">

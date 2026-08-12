@@ -109,7 +109,7 @@ test('every inquiry branch exposes distinct labels, examples, roles, and follow-
   assert.doesNotMatch(`${inquiryCopy('tech').pageDescription} ${inquiryCopy('tech').matchingCopy}`, /creative project|match.*creative/i);
 });
 
-test('every branch owns exact service-selection heading and supporting description copy', async () => {
+test('legacy branch copy remains compatible while the public UI no longer requires it', async () => {
   const expected = {
     studio: ['Choose the visual service you need.', 'For shoots, event coverage, editing, highlights, and other visual work.'],
     digital: ['Choose the digital service you need.', 'For websites, applications, systems, prototypes, maintenance, and development guidance.'],
@@ -124,18 +124,13 @@ test('every branch owns exact service-selection heading and supporting descripti
     assert.equal(copy.serviceSelectionDescription, description);
   }
 
-  const [form, services, confirmation] = await Promise.all([
+  const [form, services] = await Promise.all([
     readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/Services.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/InquiryConfirmation.jsx', import.meta.url), 'utf8'),
   ]);
-  assert.match(form, /legend=\{copy\.serviceSelectionHeading\}/);
-  assert.match(form, /copy\.serviceSelectionDescription/);
-  assert.match(services, /Available services/);
-  assert.match(services, /content\.websiteServices/);
-  assert.match(confirmation, /copy\.serviceSelectionHeading/);
-  assert.match(confirmation, /copy\.serviceSelectionDescription/);
-  assert.doesNotMatch(`${form}\n${services}\n${confirmation}`, /Choose a broad category for your request|For building your online presence/i);
+  assert.match(form, /serviceKey: 'general-inquiry'/);
+  assert.match(services, /not a predefined category/);
+  assert.doesNotMatch(`${form}\n${services}`, /serviceSelectionHeading|serviceSelectionDescription|Available services/);
   assert.doesNotMatch(`${inquiryCopy('studio').serviceSelectionDescription} ${inquiryCopy('tech').serviceSelectionDescription}`, /online presence|creative project/i);
 });
 
@@ -195,39 +190,30 @@ test('router and CTA sources use the shared inquiry system', async () => {
   ]);
   for (const route of ['/services', '/inquiry', '/inquiry/confirmation/:reference']) assert.match(app, new RegExp(route.replace(/[/:]/g, '\\$&')));
   assert.doesNotMatch(app, /\/services\/:branch/);
-  assert.match(hero, /inquiryUrl\(\{ creative: creative\.slug \}\)/);
-  assert.match(profile, /inquiryUrl\(\{ creative: creative\.slug \}\)/);
+  assert.match(hero, /to="\/inquiry"/);
+  assert.match(profile, /to="\/inquiry"/);
   assert.doesNotMatch(`${hero}\n${profile}\n${services}`, /href="#"/);
 });
 
-test('guided form keeps mobile controls bounded and includes the tourism independence notice', async () => {
+test('open inquiry keeps mobile controls bounded and sends the general canonical request', async () => {
   const source = await readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8');
-  assert.match(source, /not an official tourism office, emergency service, travel agency/);
-  assert.match(source, /overflow-x-auto/);
   assert.doesNotMatch(source, /min-w-screen|w-screen/);
-  assert.match(source, /const copy = inquiryCopy\(inquiryPath === 'tourism' \? 'tech' : 'general'\)/);
-  assert.match(source, /<DetailsStep[^>]+copy=\{copy\}/);
-  assert.match(source, /<ContactStep[^>]+copy=\{copy\}/);
-  assert.doesNotMatch(source, /function selectBranch/);
-  assert.match(source, /function selectService[\s\S]*service\.legacyBranch/);
-  assert.match(source, /request: buildInquirySubmissionRequest\(draft\)/);
+  assert.match(source, /aria-label="Open inquiry form"/);
+  assert.match(source, /branch: 'general', serviceKey: 'general-inquiry'/);
+  assert.match(source, /details.*at least 20 characters/);
+  assert.doesNotMatch(source, /function selectBranch|function selectService|function selectRecipient/);
 });
 
-test('services preselection skips safely and exposes an accessible change-selection path', async () => {
+test('open inquiry accepts optional project context without service preselection', async () => {
   const [form, services] = await Promise.all([
     readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/Services.jsx', import.meta.url), 'utf8'),
   ]);
-  assert.match(services, /inquirySelection: \{ path: 'service', service: service\.key/);
-  assert.match(form, /const navigationSelection = location\.state\?\.inquirySelection/);
-  assert.match(form, /entry\.status === 'specialist'[\s\S]*moveToStep\(entry\.step\)/);
-  assert.match(form, /function changeSelection\(\)[\s\S]*delete nextState\.inquirySelection[\s\S]*moveToStep\(INQUIRY_SELECTION_STEP\)[\s\S]*replace: true/);
-  assert.match(form, /function changeSpecialist\(\)[\s\S]*delete nextState\.inquirySelection\.creative[\s\S]*moveToStep\(INQUIRY_SPECIALIST_STEP\)[\s\S]*replace: true/);
-  assert.match(form, /<SelectionSummary[\s\S]*?onChange=\{inquiryPath === 'service' \? changeSelection : changeInquiryPath\}/);
-  assert.match(form, /onChangeSpecialist=\{inquiryPath === 'service' && step > INQUIRY_SPECIALIST_STEP \? changeSpecialist : null\}/);
-  assert.match(form, /Preferred creative:/);
-  assert.match(form, /aria-live="polite" aria-atomic="true"/);
-  assert.match(form, /ref=\{stepHeadingRef\} tabIndex="-1"/);
+  assert.match(form, /inquiryContextFromSearchParams/);
+  assert.match(form, /linked\?\.type === 'project'/);
+  assert.match(form, /Related project/);
+  assert.match(services, /to="\/inquiry"/);
+  assert.doesNotMatch(`${form}\n${services}`, /changeSelection|changeSpecialist|Preferred creative:/);
 });
 
 test('inquiry copy requires a prominent detailed request and avoids instant-booking promises', async () => {
@@ -237,9 +223,9 @@ test('inquiry copy requires a prominent detailed request and avoids instant-book
     readFile(new URL('../pages/InquiryConfirmation.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../../supabase/functions/submit-service-request/index.ts', import.meta.url), 'utf8'),
   ]);
-  assert.match(form, /label=\{copy\.detailsLabel\}/);
-  assert.match(form, /\{copy\.matchingCopy\}/);
-  assert.match(confirmation, /inquiryCopy\('general'\)/);
+  assert.match(form, /label="Your message"/);
+  assert.match(form, /What happens next/);
+  assert.match(confirmation, /Message received/);
   assert.match(email, /Service category.*inquiry\.project_type/s);
   assert.match(email, /Request details.*inquiry\.details/s);
   assert.doesNotMatch(`${form}\n${services}\n${confirmation}`, /Book now|Confirm booking|Order service|Purchase service|Book a Creative/i);

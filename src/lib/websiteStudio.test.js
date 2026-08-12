@@ -86,11 +86,11 @@ test('text fields keep trailing spaces while typing but trim on save', () => {
   assert.equal(safeWebsiteValue(' Studio ', 'text'), 'Studio');
 });
 
-test('Website Studio excludes branch records and explains the draft-to-publish path', () => {
+test('Website Studio excludes branch and fixed-service records and explains the draft-to-publish path', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
   const api = read('src/lib/websiteStudio.js');
   assert.doesNotMatch(api, /export const BRANCH_FIELDS/);
-  assert.match(studio, /entry\.entry_type !== 'branch'/);
+  assert.match(studio, /!\['branch', 'service'\]\.includes\(entry\.entry_type\)/);
   assert.match(studio, /Save stores this section privately\. Publish applies the saved content everywhere listed above\./);
   assert.match(studio, /Draft saved\. Publish it to update every connected public page\./);
 });
@@ -107,10 +107,10 @@ test('Website Studio exposes a beginner single-column editor without a simulated
   assert.match(studio, /function SectionChooser/);
   assert.match(studio, /What would you like to change\?/);
   assert.match(studio, /All website sections/);
-  for (const pageGroup of ['Pages', 'Site settings', 'Services']) assert.match(studio, new RegExp(pageGroup));
-  for (const pagePart of ['Website name, logo, contact, and identity', 'Homepage', 'Service listing and inquiry choice']) assert.match(studio, new RegExp(pagePart));
+  for (const pageGroup of ['Pages', 'Site settings']) assert.match(studio, new RegExp(pageGroup));
+  for (const pagePart of ['Website name, logo, contact, and identity', 'Homepage', 'Current Work']) assert.match(studio, new RegExp(pagePart));
   assert.match(studio, /sm:grid-cols-2/);
-  assert.match(studio, /24 services|\{items\.length\} services/);
+  assert.doesNotMatch(studio, /\{items\.length\} services|Service listing and inquiry choice/);
   assert.doesNotMatch(studio, /group\/category|shadow-2xl backdrop-blur-xl/);
   assert.match(studio, /data-search-shell className="mt-5 flex h-11/);
   assert.match(studio, /<Search size=\{15\} className="shrink-0[^\n]+<input type="search"/);
@@ -170,21 +170,19 @@ test('public content always revalidates and published actions clear every legacy
   assert.match(api, /if \(!row\?\.entry_key \|\| row\.draft_data\)/);
 });
 
-test('Services and inquiries read one flat canonical service list', () => {
+test('Services and inquiries use open messages instead of a fixed canonical service list', () => {
   const services = read('src/pages/Services.jsx');
   const inquiry = read('src/pages/StartProject.jsx');
-  assert.match(services, /content\.websiteServices/);
-  assert.match(services, /allServiceCategories/);
-  assert.doesNotMatch(services, /Choose a Liwa branch|Service branches/);
-  assert.match(inquiry, /content\.websiteServices/);
-  assert.match(inquiry, /allServiceCategories/);
-  assert.match(inquiry, /window\.setTimeout\(finishWithFallback, 6000\)/);
-  assert.match(inquiry, /continue without choosing a specific creative/);
+  assert.match(services, /not a predefined category/);
+  assert.doesNotMatch(services, /content\.websiteServices|allServiceCategories/);
+  assert.match(inquiry, /branch: 'general', serviceKey: 'general-inquiry'/);
+  assert.match(inquiry, /aria-label="Open inquiry form"/);
+  assert.doesNotMatch(inquiry, /content\.websiteServices|allServiceCategories|selectService|selectRecipient/);
 });
 
-test('page-specific Website Studio copy reaches homepage, Explore, inquiries, metadata, and social links', () => {
+test('page-specific Website Studio copy reaches homepage, Current Work, inquiries, metadata, and social links', () => {
   const home = read('src/pages/Home.jsx');
-  const explore = read('src/pages/tourism/TourismIndex.jsx');
+  const explore = read('src/pages/CurrentWork.jsx');
   const inquiry = read('src/pages/StartProject.jsx');
   const app = read('src/App.jsx');
   assert.match(home, /websitePages\?\.home/);

@@ -7,17 +7,16 @@ import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard.jsx'
 import { useAdminAccess } from '../../lib/adminAccess.jsx';
 import {
   discardWebsiteDraft, fetchWebsiteStudioEntries,
-  publishWebsiteEntry, liveWebsiteFieldValue, saveWebsiteDraft, SERVICE_FIELDS,
+  publishWebsiteEntry, liveWebsiteFieldValue, saveWebsiteDraft,
   validateWebsiteEntry, WEBSITE_STUDIO_SECTIONS, websiteEntryState, websiteImpact,
 } from '../../lib/websiteStudio.js';
 
-const pageRoutes = { 'page.home': '/', 'page.explore': '/explore', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.services': '/services', 'page.about': '/about', 'page.inquiries': '/contact' };
+const pageRoutes = { 'page.home': '/', 'page.explore': '/work', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.services': '/services', 'page.about': '/about', 'page.inquiries': '/contact' };
 const advancedFieldPattern = /(url|alt|seo|search|social|facebook|instagram|linkedin|youtube|tiktok|github|order|status|visibility|availability|featured|show|enabled|icon|image)/i;
-const pageGroupOrder = ['Pages', 'Site settings', 'Services'];
+const pageGroupOrder = ['Pages', 'Site settings'];
 const pageGroupDescriptions = {
   Pages: 'Change the words visitors see on each public page.',
   'Site settings': 'Update your brand, navigation, footer, colors, and sharing details.',
-  Services: 'Edit individual services shown on the Services page and inquiry form.',
 };
 
 function labelFromKey(key = '') { return key.replace(/^page\.|^global\.|^service\./, '').replaceAll('.', ' · ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
@@ -37,11 +36,10 @@ function studioPlacement(key, entryType = '') {
   if (key === 'page.search') return ['Site settings', 'Search, sharing image, and social links'];
   if (key === 'global.appearance') return ['Site settings', 'Website colors in light and dark mode'];
   if (key === 'page.home') return ['Pages', 'Homepage'];
-  if (key === 'page.explore') return ['Pages', 'Explore Aklan'];
+  if (key === 'page.explore') return ['Pages', 'Current Work'];
   if (key === 'page.creatives') return ['Pages', 'Creatives'];
   if (key === 'page.projects') return ['Pages', 'Projects'];
   if (key === 'page.services') return ['Pages', 'Services introduction'];
-  if (entryType === 'service') return ['Services', 'Service listing and inquiry choice'];
   if (key === 'page.about') return ['Pages', 'About'];
   if (key === 'page.inquiries') return ['Pages', 'Inquiry introduction'];
   return ['Site settings', 'Shared website content'];
@@ -64,7 +62,7 @@ export default function WebsiteStudio() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const sectionKey = params.get('section') || 'overview';
-  const selected = entries.find((entry) => entry.entry_key === sectionKey && entry.entry_type !== 'branch') || null;
+  const selected = entries.find((entry) => entry.entry_key === sectionKey && !['branch', 'service'].includes(entry.entry_type)) || null;
 
   async function load() {
     setLoading(true); setError('');
@@ -83,13 +81,12 @@ export default function WebsiteStudio() {
 
   const navigation = useMemo(() => {
     const fixed = WEBSITE_STUDIO_SECTIONS.map((item) => { const [group, part] = studioPlacement(item.key); return { ...item, group, part, name: item.label }; });
-    const connected = entries.filter((entry) => entry.entry_type === 'service').map((entry) => { const [group, part] = studioPlacement(entry.entry_key, entry.entry_type); return { key: entry.entry_key, group, part, name: (entry.draft_data || entry.published_data)?.name || labelFromKey(entry.entry_key) }; });
     const query = search.trim().toLowerCase();
-    return [...fixed, ...connected].filter((item) => !query || `${item.name} ${item.group} ${item.part}`.toLowerCase().includes(query));
+    return fixed.filter((item) => !query || `${item.name} ${item.group} ${item.part}`.toLowerCase().includes(query));
   }, [entries, search]);
 
   const config = WEBSITE_STUDIO_SECTIONS.find((item) => item.key === sectionKey);
-  const fields = selected?.entry_type === 'service' ? SERVICE_FIELDS : (config?.fields?.length ? config.fields : fieldsFromData(form));
+  const fields = config?.fields?.length ? config.fields : fieldsFromData(form);
   const state = selected ? websiteEntryState(selected) : '';
 
   function selectSection(key) { if (dirty) { setError('Save or discard the current changes before opening another section.'); return; } setNotice(''); setError(''); setParams(key === 'overview' ? {} : { section: key }); }
@@ -137,8 +134,8 @@ function SectionChooser({ navigation, entries, search, setSearch, onSelect }) {
   const renderItems = (items) => <div className="mt-4 grid gap-2 sm:grid-cols-2">{items.map((item) => { const row = entries.find((entry) => entry.entry_key === item.key); return <button key={item.key} type="button" onClick={() => onSelect(item.key)} className="group flex min-h-20 items-center justify-between gap-4 rounded-lg border border-white/[0.09] bg-white/[0.02] px-4 py-3 text-left transition hover:border-amber-200/30 hover:bg-amber-200/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-zinc-100 group-hover:text-amber-100">{item.name}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{item.part}</span></span><span className="flex shrink-0 items-center gap-2"><span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${row?.draft_data ? 'text-amber-200' : 'text-zinc-600'}`}>{row?.draft_data ? 'Draft' : 'Live'}</span><ChevronRight size={16} className="text-zinc-600 group-hover:text-amber-200"/></span></button>; })}</div>;
   return <section aria-labelledby="website-sections-heading">
     <div className="max-w-2xl"><h2 id="website-sections-heading" className="text-2xl font-semibold text-white">What would you like to change?</h2><p className="mt-2 text-sm leading-6 text-zinc-400">Most updates start under Pages. Site settings affect several pages at once.</p></div>
-    <label data-search-shell className="mt-5 flex h-11 max-w-md items-center gap-2 rounded-lg border border-white/[0.1] bg-black/20 px-3"><Search size={15} className="shrink-0 text-zinc-500" aria-hidden="true"/><span className="sr-only">Search website sections</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search pages, settings, or services" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600"/></label>
-    <nav className="mt-8 grid gap-8" aria-label="Website Studio sections">{groups.map(([group, items]) => group === 'Services' && !search ? <details key={group} className="group rounded-xl border border-white/[0.09] bg-white/[0.015] p-4 sm:p-5"><summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4"><span><span className="block text-lg font-semibold text-white">{group}</span><span className="mt-1 block text-sm leading-6 text-zinc-500">{pageGroupDescriptions[group]}</span></span><span className="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-500">{items.length} services<ChevronDown size={17} className="transition-transform group-open:rotate-180"/></span></summary>{renderItems(items)}</details> : <section key={group} className="rounded-xl border border-white/[0.09] bg-white/[0.015] p-4 sm:p-5"><div><h3 className="text-lg font-semibold text-white">{group}</h3><p className="mt-1 text-sm leading-6 text-zinc-500">{pageGroupDescriptions[group]}</p></div>{renderItems(items)}</section>)}</nav>
+    <label data-search-shell className="mt-5 flex h-11 max-w-md items-center gap-2 rounded-lg border border-white/[0.1] bg-black/20 px-3"><Search size={15} className="shrink-0 text-zinc-500" aria-hidden="true"/><span className="sr-only">Search website sections</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search pages or settings" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600"/></label>
+    <nav className="mt-8 grid gap-8" aria-label="Website Studio sections">{groups.map(([group, items]) => <section key={group} className="rounded-xl border border-white/[0.09] bg-white/[0.015] p-4 sm:p-5"><div><h3 className="text-lg font-semibold text-white">{group}</h3><p className="mt-1 text-sm leading-6 text-zinc-500">{pageGroupDescriptions[group]}</p></div>{renderItems(items)}</section>)}</nav>
   </section>;
 }
 
@@ -157,7 +154,7 @@ function StudioContent(props) {
   </div>;
 }
 
-function AppearanceGuide() { return <div className="mt-6 border-l-2 border-amber-200/40 pl-4"><h3 className="text-sm font-semibold text-white">Global theme colors</h3><p className="mt-1 text-sm leading-6 text-zinc-400">These brand colors support both light and dark mode across public pages, including Explore Aklan, buttons, links, body text, and dividers. Publish carefully because this changes the whole website.</p></div>; }
+function AppearanceGuide() { return <div className="mt-6 border-l-2 border-amber-200/40 pl-4"><h3 className="text-sm font-semibold text-white">Global theme colors</h3><p className="mt-1 text-sm leading-6 text-zinc-400">These brand colors support both light and dark mode across public pages, including Current Work, buttons, links, body text, and dividers. Publish carefully because this changes the whole website.</p></div>; }
 function keepEditorKeysLocal(event) { event.stopPropagation(); }
 function StudioField({ fieldKey, label, type, value, onChange }) {
   if (type === 'boolean') return <label className="flex min-h-11 items-center justify-between gap-3 border-b border-white/[0.08] py-2 text-sm text-zinc-300"><span>{label}</span><input type="checkbox" checked={value === true} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-amber-300"/></label>;

@@ -1,4 +1,4 @@
-import { CircleUserRound, Ellipsis, ExternalLink, FileText, FolderKanban, GalleryHorizontalEnd, House, Inbox, LayoutDashboard, LogOut, MessagesSquare, UserCog, Users, Workflow, X } from 'lucide-react';
+import { CircleUserRound, Ellipsis, ExternalLink, FolderKanban, GalleryHorizontalEnd, House, Inbox, LayoutDashboard, LogOut, MessagesSquare, UserCog, Users, Workflow, X } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -11,7 +11,6 @@ import AppearanceMenuAction from '../AppearanceMenuAction';
 import { adminPageTitle } from '../../lib/mobileAppShell';
 import useModalDrawer from '../../lib/useModalDrawer';
 import useMobileAppBar from '../../lib/useMobileAppBar';
-import { canAccessEditorial } from '../../features/editorial/editorialCapabilities';
 import AdminCommandPalette from './AdminCommandPalette';
 
 const links = [
@@ -21,7 +20,6 @@ const links = [
   ]],
   ['Content', [
     ['Website Studio', '/admin/website', Workflow, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Editorial Studio', '/editorial', FileText, ({ role, editorialRoles }) => canAccessEditorial(editorialRoles?.length ? editorialRoles : role)],
     ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
     ['Creative Profiles', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
   ]],
@@ -61,9 +59,7 @@ export default function AdminLayout({ children }) {
     ['Inquiries', '/admin/inquiries', MessagesSquare],
     profileDestination,
   ];
-  const mobilePrimaryLinks = access.role === 'writer'
-    ? [['Home', '/admin/dashboard', House], ['Studio', '/editorial', FileText]]
-    : defaultMobilePrimaryLinks;
+  const mobilePrimaryLinks = defaultMobilePrimaryLinks;
   const primaryRouteIsActive = (href) => location.pathname === href || (href !== '/admin/dashboard' && location.pathname.startsWith(`${href}/`));
   const moreIsActive = !mobilePrimaryLinks.some(([, href]) => primaryRouteIsActive(href));
   const morePageLabel = compactMobilePageLabels[currentPageTitle] || currentPageTitle;

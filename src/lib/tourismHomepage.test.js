@@ -1,94 +1,60 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { carouselStep, mergeUniqueDestinations, normalizeHomepageSlides, swipeDirection, TOURISM_SLIDE_AUTOPLAY_MS, TOURISM_SLIDE_SLOTS } from './tourismHomepage.js';
+import { latestProjectUpdate, normalizeProjectUpdates, projectWorkStatus } from './projectProgress.js';
 
 const root = new URL('../../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
 
-function slide(type, overrides = {}) {
-  return { slot_type: type, enabled: true, sort_order: TOURISM_SLIDE_SLOTS.findIndex((item) => item.key === type), editorial_posts: { id: `${type}-id`, content_type: type, title: type, slug: `${type}-story`, status: 'published', published_revision_id: 'revision', published_at: '2026-07-20T00:00:00Z', archived_at: null, cover_image_url: 'https://cdn.example/image.webp' }, ...overrides };
-}
-
-test('homepage defines exactly one slot for all five Editorial types', () => {
-  assert.deepEqual(TOURISM_SLIDE_SLOTS.map((item) => item.key), ['journal', 'event', 'place', 'activity', 'local_product']);
-  assert.equal(new Set(TOURISM_SLIDE_SLOTS.map((item) => item.key)).size, 5);
+test('project updates are bounded, cleaned, ordered, and limited to safe links', () => {
+  const updates = normalizeProjectUpdates([
+    { id: 'older', type: 'event', date: '2026-08-01', title: ' Festival coverage ', body: ' Photos and interviews published. ', linkUrl: 'https://example.com/post' },
+    { id: 'newer', type: 'content', date: '2026-08-12', title: 'Cafe post', body: 'A new campaign post went live.', linkUrl: 'javascript:alert(1)' },
+    { id: 'empty', type: 'progress', date: '2026-08-13', title: '', body: '' },
+  ]);
+  assert.deepEqual(updates.map(({ id }) => id), ['newer', 'older']);
+  assert.equal(updates[0].linkUrl, '');
+  assert.equal(updates[1].linkUrl, 'https://example.com/post');
+  assert.equal(latestProjectUpdate({ progress_updates: updates }).id, 'newer');
 });
 
-test('slide normalization orders valid selections and supports image-less stories', () => {
-  const rows = [slide('place', { sort_order: 3 }), slide('journal', { sort_order: 0 }), slide('event', { editorial_posts: { ...slide('event').editorial_posts, status: 'archived', archived_at: '2026-07-21' } }), slide('activity', { editorial_posts: { ...slide('activity').editorial_posts, cover_image_url: '' } }), slide('local_product', { enabled: false })];
-  assert.deepEqual(normalizeHomepageSlides(rows).map((item) => item.slot_type), ['journal', 'place', 'activity']);
+test('project lifecycle fails closed to the completed portfolio', () => {
+  assert.equal(projectWorkStatus('active'), 'active');
+  assert.equal(projectWorkStatus('completed'), 'completed');
+  assert.equal(projectWorkStatus('unexpected'), 'completed');
 });
 
-test('deleted, unpublished, mismatched, and duplicate selections are rejected', () => {
-  const good = slide('place');
-  const duplicate = slide('place', { sort_order: 2 });
-  const mismatched = slide('event', { editorial_posts: { ...slide('event').editorial_posts, content_type: 'journal' } });
-  const deleted = slide('activity', { editorial_posts: null });
-  const unpublished = slide('journal', { editorial_posts: { ...slide('journal').editorial_posts, published_revision_id: null } });
-  assert.deepEqual(normalizeHomepageSlides([good, duplicate, mismatched, deleted, unpublished]), [good]);
-});
-
-test('carousel helpers support wraparound, swipe thresholds, and calm timing', () => {
-  assert.equal(TOURISM_SLIDE_AUTOPLAY_MS, 6500);
-  assert.equal(carouselStep(4, 5, 1), 0);
-  assert.equal(carouselStep(0, 5, -1), 4);
-  assert.equal(swipeDirection(200, 110), 1);
-  assert.equal(swipeDirection(100, 170), -1);
-  assert.equal(swipeDirection(100, 120), 0);
-});
-
-test('destination pagination merge does not duplicate rows', () => {
-  assert.deepEqual(mergeUniqueDestinations([{ id: 'a' }, { id: 'b' }], [{ id: 'b' }, { id: 'c' }]).map((item) => item.id), ['a', 'b', 'c']);
-});
-
-test('homepage implementation is tourism-led, bounded, accessible, and has no project previews', () => {
+test('homepage and Current Work use active projects instead of the tourism portal', () => {
   const home = read('src/pages/Home.jsx');
-  const hero = read('src/components/ExploreAklanHero.jsx');
-  const feed = read('src/components/DestinationsFeed.jsx');
-  const index = read('src/pages/tourism/TourismIndex.jsx');
-  const api = read('src/features/editorial/editorialApi.js');
-  assert.match(home, /data-explore-aklan-homepage/);
-  assert.doesNotMatch(home, /ProjectGrid|fetchPublicProjectSummaries|Selected Projects/);
-  assert.match(home, /Featured Creatives/);
-  assert.match(hero, /visibilitychange/);
-  assert.match(hero, /prefers-reduced-motion/);
-  assert.match(hero, /onMouseEnter/);
-  assert.match(hero, /onFocusCapture/);
-  assert.match(hero, /:focus-visible/);
-  assert.match(hero, /setTimeout/);
-  assert.match(hero, /event\?\.detail > 0/);
-  assert.match(hero, /data-carousel-slide/);
-  assert.match(hero, /translate3d\(-100%,0,0\)/);
-  assert.match(hero, /translate3d\(100%,0,0\)/);
-  assert.match(hero, /grid-cols-\[2\.75rem_minmax\(0,1fr\)_2\.75rem\]/);
-  assert.match(hero, /onPointerDown/);
-  assert.match(hero, /ArrowLeft/);
-  assert.match(hero, /aria-roledescription="carousel"/);
-  assert.match(hero, /TourismStoryFallback/);
-  assert.match(feed, /Load more/);
-  assert.match(feed, /TourismStoryFallback/);
-  assert.match(index, /TourismStoryFallback/);
-  assert.match(index, /All \{plural\}/);
-  assert.doesNotMatch(index, /municipalitys|categorys|No image/);
-  assert.match(api, /\.eq\('content_type', 'place'\)/);
-  assert.match(api, /\.range\(from, from \+ pageSize\)/);
+  const work = read('src/pages/CurrentWork.jsx');
+  const app = read('src/App.jsx');
+  assert.match(home, /data-current-work-homepage/);
+  assert.match(home, /fetchPublicProjectSummaries\(\{ workStatus: 'active' \}\)/);
+  assert.match(home, /activeProjects\.slice\(0, 3\)/);
+  assert.match(work, /normalizeProjectUpdates/);
+  assert.match(work, /Event coverage/);
+  assert.match(app, /path="\/work" element=\{<CurrentWork \/>\}/);
+  assert.match(app, /Navigate to="\/work"/);
+  assert.doesNotMatch(home, /ExploreAklanHero|DestinationsFeed|homepageTourismEnabled/);
 });
 
-test('image-less fallback is visual-only and does not claim to depict a destination', () => {
-  const fallback = read('src/components/TourismStoryFallback.jsx');
-  assert.match(fallback, /data-tourism-story-fallback/);
-  assert.match(fallback, /aria-hidden="true"/);
-  assert.doesNotMatch(fallback, /<img|destination photograph|photo of/i);
+test('database migration adds a bounded active-to-completed lifecycle', () => {
+  const sql = read('supabase/migrations/20260813090000_public_work_portal.sql');
+  assert.match(sql, /work_status text not null default 'completed'/);
+  assert.match(sql, /work_status in \('active','completed'\)/);
+  assert.match(sql, /jsonb_array_length\(progress_updates\) <= 100/);
+  assert.match(sql, /octet_length\(progress_updates::text\) <= 200000/);
+  assert.match(sql, /where status = 'published'/);
 });
 
-test('slideshow migration is additive, typed, audited, feature-flagged, and Super Admin protected', () => {
-  const sql = read('supabase/migrations/20260722090000_explore_aklan_homepage.sql');
-  assert.match(sql, /create table if not exists public\.editorial_homepage_slides/);
-  assert.match(sql, /slot_type in \('journal','event','place','activity','local_product'\)/);
-  assert.match(sql, /on delete set null/);
-  assert.match(sql, /homepage_slide_updated/);
-  assert.match(sql, /public_portal_enabled and homepage_tourism_enabled/);
-  assert.match(sql, /private\.editorial_role\(auth\.uid\(\)\) = 'super_admin'/);
-  assert.doesNotMatch(sql, /grant (insert|update|delete)[^;]+ to anon/i);
+test('admin project editor owns public stage and progress updates', () => {
+  const form = read('src/components/admin/ProjectForm.jsx');
+  const projects = read('src/pages/admin/AdminProjects.jsx');
+  const progress = read('src/lib/projectProgress.js');
+  assert.match(form, /work_status/);
+  assert.match(form, /progress_updates/);
+  assert.match(form, /Add public update/);
+  assert.match(progress, /Event coverage/);
+  assert.match(projects, /Current work/);
+  assert.match(projects, /Portfolio/);
 });

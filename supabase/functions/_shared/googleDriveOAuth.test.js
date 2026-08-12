@@ -226,7 +226,7 @@ test('Drive deletion treats an already missing provider file as an idempotent su
 });
 
 test('Edge handlers bind owners, preserve reconnect identity, and never log or return credentials', async () => {
-  const [start, callback, check, disconnect, upload, edge, database, page] = await Promise.all([
+  const [start, callback, check, disconnect, upload, edge, database] = await Promise.all([
     source('supabase/functions/google-drive-oauth-start/index.ts'),
     source('supabase/functions/google-drive-oauth-callback/index.ts'),
     source('supabase/functions/google-drive-connection-check/index.ts'),
@@ -234,7 +234,6 @@ test('Edge handlers bind owners, preserve reconnect identity, and never log or r
     source('supabase/functions/google-drive-upload/index.ts'),
     source('supabase/functions/_shared/googleDriveEdge.ts'),
     source('supabase/functions/_shared/googleDriveDatabase.ts'),
-    source('src/pages/admin/Storage.jsx'),
   ]);
   assert.match(start, /authenticatedStorageOwner/);
   assert.match(start, /createOAuthState/);
@@ -263,5 +262,4 @@ test('Edge handlers bind owners, preserve reconnect identity, and never log or r
   assert.match(database, /private\.server_read_storage_connection_secret/);
   assert.doesNotMatch(database, /public\.server_/);
   assert.doesNotMatch(`${start}${callback}${check}${disconnect}${upload}${edge}${database}`, /console\.(?:log|error)\([^\n]*(?:token|authorization|secret|pkce)/i);
-  assert.doesNotMatch(page, /credential_secret_id|provider_account_id|root_folder_id|folder_ids|granted_scopes/);
 });

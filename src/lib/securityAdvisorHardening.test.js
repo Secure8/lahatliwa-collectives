@@ -41,7 +41,8 @@ test('inquiry callers use narrow Edge endpoints instead of directly exposed defi
     source('src/pages/admin/AdminInquiries.jsx'),
   ]);
 
-  assert.match(startProject, /functions\.invoke\('inquiry-public-options'/);
+  assert.match(startProject, /functions\.invoke\('submit-service-request'/);
+  assert.doesNotMatch(startProject, /functions\.invoke\('inquiry-public-options'/);
   assert.doesNotMatch(startProject, /rpc\('list_eligible_inquiry_creatives'/);
   assert.match(adminInquiries, /functions\.invoke\('inquiry-workflow'/);
   assert.doesNotMatch(adminInquiries, /rpc\('(?:list_inquiry_team_members|perform_team_inquiry_action)'/);

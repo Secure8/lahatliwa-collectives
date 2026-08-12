@@ -1,5 +1,6 @@
 export const loadAbout = () => import('../pages/About');
 export const loadProjects = () => import('../pages/Projects');
+export const loadCurrentWork = () => import('../pages/CurrentWork');
 export const loadProjectDetails = () => import('../pages/ProjectDetails');
 export const loadServices = () => import('../pages/Services');
 export const loadContact = () => import('../pages/Contact');
@@ -12,6 +13,7 @@ export const loadPrivacy = () => import('../pages/Privacy');
 const publicRouteLoaders = {
   '/about': loadAbout,
   '/projects': loadProjects,
+  '/work': loadCurrentWork,
   '/projects/:slug': loadProjectDetails,
   '/services': loadServices,
   '/contact': loadContact,

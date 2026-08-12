@@ -1,4 +1,4 @@
-import { GalleryHorizontalEnd, House, MessageSquarePlus, PanelsTopLeft, UsersRound } from 'lucide-react';
+import { GalleryHorizontalEnd, House, MessageSquarePlus, Radio, UsersRound } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { PUBLIC_PRIMARY_DESTINATIONS, publicDestinationIsActive } from '../lib/mobileAppShell';
@@ -7,7 +7,7 @@ import { preloadPublicRoute } from '../lib/publicRoutePreload';
 
 const icons = {
   '/': House,
-  '/services': PanelsTopLeft,
+  '/work': Radio,
   '/projects': GalleryHorizontalEnd,
   '/creatives': UsersRound,
   '/inquiry': MessageSquarePlus,
@@ -19,7 +19,7 @@ export default function MobileTopNavigation() {
   const navigation = content.websiteNavigation || {};
   const labelsByPath = {
     '/': navigation.homeLabel || 'Home',
-    '/services': navigation.servicesLabel || 'Services',
+    '/work': 'Work',
     '/projects': navigation.projectsLabel || 'Projects',
     '/creatives': navigation.creativesLabel || 'Creatives',
     '/inquiry': 'Inquiry',

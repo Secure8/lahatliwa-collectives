@@ -1,7 +1,6 @@
 import { Facebook, Github, Globe, Instagram, Linkedin, Mail, Music2, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePublicContent } from '../lib/contentApi';
-import BrandLogo from './BrandLogo';
 import BrandWordmark from './BrandWordmark';
 
 const socialIconMap = {
@@ -21,10 +20,7 @@ export default function Footer() {
     <footer className="public-footer mt-28 border-t border-[var(--site-accent-border)]">
       <div className="page-shell grid gap-10 py-12 md:grid-cols-[1.4fr_1fr] md:py-14">
         <div>
-          <div className="flex items-center gap-3">
-            {content.logoUrl && <BrandLogo src={content.logoUrl} alt={content.logoAlt} />}
-            <BrandWordmark name={content.displayName} variant="footer" to="/" className="inline-flex min-h-11 items-center" />
-          </div>
+          <BrandWordmark name={content.displayName} variant="footer" to="/" className="inline-flex min-h-11 items-center" />
           <p className="mt-3 text-sm font-medium text-[var(--site-brand-accent)]">{content.tagline}</p>
         </div>
         <div className="flex flex-wrap items-start gap-3 md:justify-end">

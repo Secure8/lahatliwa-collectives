@@ -131,8 +131,8 @@ test('Website Studio presents the requested sections and keeps shared values syn
   assert.ok(!WEBSITE_STUDIO_SECTIONS.some(({ label }) => ['Footer', 'Search', 'Social links'].includes(label)));
   assert.match(footer, /content\.displayName/);
   assert.match(footer, /content\.tagline/);
-  assert.match(footer, /content\.logoUrl/);
   assert.match(footer, /content\.socialLinks/);
+  assert.doesNotMatch(footer, /BrandLogo|content\.logoUrl/);
   assert.doesNotMatch(footer, /footerText|footerContextLabel/);
   const content = websiteBundleToContent({
     'global.brand': { brandName: 'New Shared Brand', tagline: 'One shared tagline' },

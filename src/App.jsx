@@ -34,19 +34,16 @@ const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
 const EditProject = lazy(() => import('./pages/admin/EditProject'));
-const IconsMedia = lazy(() => import('./pages/admin/IconsMedia'));
 const AdminCreatives = lazy(() => import('./pages/admin/AdminCreatives'));
 const CreativeEditor = lazy(() => import('./pages/admin/CreativeEditor'));
 const AdminInquiries = lazy(() => import('./pages/admin/AdminInquiries'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
 const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
-const Storage = lazy(() => import('./pages/admin/Storage'));
 const TourismIndex = lazy(() => import('./pages/tourism/TourismIndex'));
 const TourismDetail = lazy(() => import('./pages/tourism/TourismDetail'));
 const EditorialStudio = lazy(() => import('./pages/editorial/EditorialStudio'));
 const AdminEditorial = lazy(() => import('./pages/admin/AdminEditorial'));
-const AdminSystemStatus = lazy(() => import('./pages/admin/AdminSystemStatus'));
 const WebsiteStudio = lazy(() => import('./pages/admin/WebsiteStudio'));
 
 function LegacyWebsiteEditorRedirect() {
@@ -64,7 +61,7 @@ const routeMetadata = {
   '/start-a-project': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/contact': ['Contact | Lahat Liwa Collectives', 'Start a service inquiry, collaboration conversation, profile or credit question, opportunity, or general platform conversation.'],
-  '/privacy': ['Privacy Policy | Lahat Liwa Collectives', 'Learn how Lahat Liwa Collectives collects, uses, stores, and protects information, including data used by the Google Drive integration.'],
+  '/privacy': ['Privacy Policy | Lahat Liwa Collectives', 'Learn how Lahat Liwa Collectives collects, uses, stores, and protects information.'],
 };
 
 function SiteDocumentMetadata() {
@@ -182,10 +179,7 @@ export default function App() {
         <Route path="/admin/settings" element={<Navigate to="/admin/website?section=global.appearance" replace />} />
         <Route path="/admin/content" element={<Navigate to="/admin/website" replace />} />
         <Route path="/admin/content/:pageKey" element={<LegacyWebsiteEditorRedirect />} />
-        <Route path="/admin/media/icons" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin', 'editor', 'creative']}><IconsMedia /></AdminRouteGuard></AdminSuspense>} />
-        <Route path="/admin/storage" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'creative']}><Storage /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/editorial/*" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminEditorial /></AdminRouteGuard></AdminSuspense>} />
-        <Route path="/admin/system-status" element={<AdminSuspense><AdminRouteGuard allow={['super_admin', 'admin']}><AdminSystemStatus /></AdminRouteGuard></AdminSuspense>} />
       </Route>
     </Routes><ThemeToggle /></>
   );

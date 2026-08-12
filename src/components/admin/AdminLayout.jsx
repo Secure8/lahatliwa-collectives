@@ -1,4 +1,4 @@
-import { Activity, CircleUserRound, Ellipsis, ExternalLink, FileText, FolderKanban, GalleryHorizontalEnd, HardDrive, House, Inbox, LayoutDashboard, LogOut, MessagesSquare, Settings, UserCog, Users, Workflow, X } from 'lucide-react';
+import { CircleUserRound, Ellipsis, ExternalLink, FileText, FolderKanban, GalleryHorizontalEnd, House, Inbox, LayoutDashboard, LogOut, MessagesSquare, UserCog, Users, Workflow, X } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -11,7 +11,6 @@ import AppearanceMenuAction from '../AppearanceMenuAction';
 import { adminPageTitle } from '../../lib/mobileAppShell';
 import useModalDrawer from '../../lib/useModalDrawer';
 import useMobileAppBar from '../../lib/useMobileAppBar';
-import { canSeeStorageNavigation } from '../../lib/storageAdmin';
 import { canAccessEditorial } from '../../features/editorial/editorialCapabilities';
 import AdminCommandPalette from './AdminCommandPalette';
 
@@ -31,12 +30,6 @@ const links = [
   ]],
   ['Team', [
     ['Team Members', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
-  ]],
-  ['Advanced', [
-    ['Media and storage', '/admin/storage', HardDrive, canSeeStorageNavigation],
-    ['Feature flags', '/admin/editorial/settings', Settings, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Audit history', '/admin/editorial/audit', FileText, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['System status', '/admin/system-status', Activity, ({ role }) => ['super_admin', 'admin'].includes(role)],
   ]],
 ];
 

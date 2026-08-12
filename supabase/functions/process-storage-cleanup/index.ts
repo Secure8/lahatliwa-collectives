@@ -10,7 +10,7 @@ const MAX_DB_ROWS_PER_SOURCE = 10000;
 const DB_PAGE_SIZE = 1000;
 const MAX_BUCKET_OBJECTS = 10000;
 const STORAGE_PAGE_SIZE = 100;
-const REFERENCE_SOURCES = ['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users', 'editorial_posts', 'editorial_revisions', 'editorial_autosaves', 'editorial_municipalities', 'editorial_settings'];
+const REFERENCE_SOURCES = ['projects', 'creative_members', 'site_settings', 'page_content', 'website_studio_entries', 'website_studio_revisions', 'service_branches', 'media_assets', 'admin_users', 'editorial_posts', 'editorial_revisions', 'editorial_autosaves', 'editorial_municipalities', 'editorial_settings'];
 const safeError = (error: any) => ({ message: error?.message || 'Unknown error', code: error?.code || 'WORKER_ERROR', details: error?.details || undefined });
 const responseError = (stage: string, error: any, status = 500) => {
   console.error(prefix, JSON.stringify({ event: 'failed', stage, error: safeError(error) }));
@@ -177,6 +177,8 @@ async function r2MediaStillReferenced(admin: any, media: any) {
   }
   const results = await Promise.all([
     admin.from('site_settings').select('*'), admin.from('page_content').select('content'),
+    admin.from('website_studio_entries').select('published_data,draft_data'),
+    admin.from('website_studio_revisions').select('before_data,after_data'),
     admin.from('service_branches').select('icon_url,image_url'), admin.from('media_assets').select('url,storage_path'),
   ]);
   if (results.some((result: any) => result.error)) throw Object.assign(new Error('R2 reference verification failed.'), { code: 'REFERENCE_CHECK_FAILED' });

@@ -147,15 +147,14 @@ test('All projects and featured ordering use separated project card holders', as
 });
 
 test('admin search fields render one boundary with a single restrained focus state', async () => {
-  const [projects, creatives, directory, media, palette, styles] = await Promise.all([
+  const [projects, creatives, directory, palette, styles] = await Promise.all([
     source('../pages/admin/AdminProjects.jsx'),
     source('../pages/admin/AdminCreatives.jsx'),
     source('../pages/admin/CreativeDirectory.jsx'),
-    source('../pages/admin/IconsMedia.jsx'),
     source('../components/admin/AdminCommandPalette.jsx'),
     source('../index.css'),
   ]);
-  for (const screen of [projects, creatives, directory, media, palette]) assert.match(screen, /data-search-shell/);
+  for (const screen of [projects, creatives, directory, palette]) assert.match(screen, /data-search-shell/);
   assert.match(styles, /input\[type="search"\]:focus[\s\S]*?box-shadow:\s*none/);
   assert.match(styles, /\[data-search-shell\] > input\[type="search"\][\s\S]*?border:\s*0 !important[\s\S]*?box-shadow:\s*none !important/);
 });

@@ -103,11 +103,11 @@ test('appearance validation enforces usable contrast', () => {
 
 test('Website Studio exposes a beginner single-column editor without a simulated preview', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
-  for (const text of ['Save draft','Published','Publish','Discard','View live website','Open this page','Revisions','Unpublished changes','Advanced settings','Admin home']) assert.match(studio, new RegExp(text, 'i'));
+  for (const text of ['Save draft','Published','Publish','Discard','View live website','Open this page','Unpublished changes','Advanced settings','Admin home']) assert.match(studio, new RegExp(text, 'i'));
   assert.match(studio, /function SectionChooser/);
   assert.match(studio, /What would you like to change\?/);
   assert.match(studio, /All website sections/);
-  for (const pageGroup of ['Pages', 'Site settings', 'Services', 'Tools']) assert.match(studio, new RegExp(pageGroup));
+  for (const pageGroup of ['Pages', 'Site settings', 'Services']) assert.match(studio, new RegExp(pageGroup));
   for (const pagePart of ['Website name, logo, contact, and identity', 'Homepage', 'Service listing and inquiry choice']) assert.match(studio, new RegExp(pagePart));
   assert.match(studio, /sm:grid-cols-2/);
   assert.match(studio, /24 services|\{items\.length\} services/);
@@ -118,7 +118,7 @@ test('Website Studio exposes a beginner single-column editor without a simulated
   assert.doesNotMatch(studio, /function StudioNavigation|function MobileSectionMenu|xl:grid-cols-\[16rem_minmax\(0,1fr\)\]/);
   assert.doesNotMatch(studio, /StudioPreview|Draft preview|deviceWidths|desktop preview|tablet preview|mobile preview/);
   assert.match(studio, /\['super_admin','owner','admin'\]/);
-  assert.match(studio, /role === 'super_admin'/);
+  assert.doesNotMatch(studio, /Published history|Website media|admin\/media\/icons|fetchWebsiteStudioRevisions|restoreWebsiteRevision/);
   assert.match(studio, /UnsavedChangesGuard/);
   assert.match(studio, /setNotice\(''\); setError\(''\); setParams/);
   assert.doesNotMatch(studio, /setDirty\(false\); setNotice\(''\); setError\(''\)/);

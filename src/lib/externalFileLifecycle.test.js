@@ -9,7 +9,6 @@ import {
   safeExternalFileResponse,
   validateExternalUploadRequest,
 } from './externalFileLifecycle.js';
-import { runProfileMediaUpload } from './profileExternalStorage.js';
 
 const PROJECT_ID = 'cc2a1a90-f9bc-43ac-b675-6b63b46fecc8';
 const PROFILE_ID = '86e2a5df-e209-4e8a-a796-4fd2b3cde819';
@@ -67,49 +66,6 @@ test('replacement activates only after a required preview exists', () => {
   assert.equal(replacementCanActivate({ replaces_media_object_id: PROFILE_ID, preview_required: true, preview_path: null }), false);
   assert.equal(replacementCanActivate({ replaces_media_object_id: PROFILE_ID, preview_required: true, preview_path: 'projects/gallery/new.webp' }), true);
   assert.equal(replacementCanActivate({ replaces_media_object_id: PROFILE_ID, preview_required: false }), true);
-});
-
-test('profile originals and public previews remain separate with a safe Supabase-only fallback', async () => {
-  const raw = { name: 'portrait.png', type: 'image/png', size: 12 };
-  const calls = [];
-  const result = await runProfileMediaUpload(raw, {
-    driveAvailable: true, creativeMemberId: PROFILE_ID, kind: 'profile', userId: 'user', replacementMediaObjectId: PROJECT_ID,
-    dependencies: {
-      uploadOriginal: async (file, input) => { calls.push(['original', file, input]); return { id: PROFILE_ID }; },
-      uploadPreview: async (file) => { calls.push(['preview', file]); return { url: 'https://supabase.test/portrait.webp', path: 'creative-profiles/user/profile/portrait.webp' }; },
-      attachPreview: async (id, path) => { calls.push(['attach', id, path]); return { media: { id } }; },
-      cleanup: async () => { throw new Error('cleanup should not run'); },
-    },
-  });
-  assert.equal(calls[0][1], raw);
-  assert.equal(calls[1][1], raw);
-  assert.equal(calls[0][2].replacementMediaObjectId, PROJECT_ID);
-  assert.equal(result.externallyBackedUp, true);
-
-  let originalCalls = 0;
-  const fallback = await runProfileMediaUpload(raw, {
-    driveAvailable: false, creativeMemberId: PROFILE_ID, kind: 'cover', userId: 'user',
-    dependencies: {
-      uploadOriginal: async () => { originalCalls += 1; },
-      uploadPreview: async () => ({ url: 'https://supabase.test/cover.webp', path: 'creative-profiles/user/cover/cover.webp' }),
-    },
-  });
-  assert.equal(originalCalls, 0);
-  assert.equal(fallback.externallyBackedUp, false);
-});
-
-test('failed profile preview attachment cleans the newly uploaded private original', async () => {
-  const cleaned = [];
-  await assert.rejects(() => runProfileMediaUpload({ name: 'photo.png' }, {
-    driveAvailable: true, creativeMemberId: PROFILE_ID, kind: 'profile', userId: 'user',
-    dependencies: {
-      uploadOriginal: async () => ({ id: PROFILE_ID }),
-      uploadPreview: async () => ({ url: 'preview', path: 'creative-profiles/user/profile/photo.webp' }),
-      attachPreview: async () => { throw new Error('attach failed'); },
-      cleanup: async (id) => { cleaned.push(id); },
-    },
-  }), /attach failed/);
-  assert.deepEqual(cleaned, [PROFILE_ID]);
 });
 
 test('implementation routes large bodies directly to Google and keeps secrets server-side', async () => {

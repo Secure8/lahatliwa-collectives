@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronDown, ChevronRight, ExternalLink, History, Image, RotateCcw, Save, Search, Send, Undo2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, ExternalLink, Save, Search, Send, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
@@ -6,19 +6,18 @@ import LoadingState from '../../components/LoadingState.jsx';
 import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard.jsx';
 import { useAdminAccess } from '../../lib/adminAccess.jsx';
 import {
-  discardWebsiteDraft, fetchWebsiteStudioEntries, fetchWebsiteStudioRevisions,
-  publishWebsiteEntry, restoreWebsiteRevision, liveWebsiteFieldValue, saveWebsiteDraft, SERVICE_FIELDS,
+  discardWebsiteDraft, fetchWebsiteStudioEntries,
+  publishWebsiteEntry, liveWebsiteFieldValue, saveWebsiteDraft, SERVICE_FIELDS,
   validateWebsiteEntry, WEBSITE_STUDIO_SECTIONS, websiteEntryState, websiteImpact,
 } from '../../lib/websiteStudio.js';
 
 const pageRoutes = { 'page.home': '/', 'page.explore': '/explore', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.services': '/services', 'page.about': '/about', 'page.inquiries': '/contact' };
 const advancedFieldPattern = /(url|alt|seo|search|social|facebook|instagram|linkedin|youtube|tiktok|github|order|status|visibility|availability|featured|show|enabled|icon|image)/i;
-const pageGroupOrder = ['Pages', 'Site settings', 'Services', 'Tools'];
+const pageGroupOrder = ['Pages', 'Site settings', 'Services'];
 const pageGroupDescriptions = {
   Pages: 'Change the words visitors see on each public page.',
   'Site settings': 'Update your brand, navigation, footer, colors, and sharing details.',
   Services: 'Edit individual services shown on the Services page and inquiry form.',
-  Tools: 'Manage website images and review published changes.',
 };
 
 function labelFromKey(key = '') { return key.replace(/^page\.|^global\.|^service\./, '').replaceAll('.', ' · ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
@@ -31,9 +30,7 @@ function friendlyError(error) {
   return message;
 }
 function studioPlacement(key, entryType = '') {
-  if (key === 'overview') return ['Tools', 'Website editing home'];
-  if (key === 'media') return ['Tools', 'Upload and reuse website images'];
-  if (key === 'revisions') return ['Tools', 'Review or restore published changes'];
+  if (key === 'overview') return ['Pages', 'Website editing home'];
   if (key === 'global.brand') return ['Site settings', 'Website name, logo, contact, and identity'];
   if (key === 'global.navigation') return ['Site settings', 'Links shown in the website menu'];
   if (key === 'global.footer') return ['Site settings', 'Information shown at the bottom of every page'];
@@ -59,7 +56,6 @@ export default function WebsiteStudio() {
   const { role } = useAdminAccess();
   const [params, setParams] = useSearchParams();
   const [entries, setEntries] = useState([]);
-  const [revisions, setRevisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState({});
@@ -73,8 +69,7 @@ export default function WebsiteStudio() {
   async function load() {
     setLoading(true); setError('');
     try {
-      const [entryRows, revisionRows] = await Promise.all([fetchWebsiteStudioEntries(), fetchWebsiteStudioRevisions()]);
-      setEntries(entryRows); setRevisions(revisionRows);
+      setEntries(await fetchWebsiteStudioEntries());
     } catch (loadError) { setError(friendlyError(loadError)); }
     setLoading(false);
   }
@@ -96,7 +91,6 @@ export default function WebsiteStudio() {
   const config = WEBSITE_STUDIO_SECTIONS.find((item) => item.key === sectionKey);
   const fields = selected?.entry_type === 'service' ? SERVICE_FIELDS : (config?.fields?.length ? config.fields : fieldsFromData(form));
   const state = selected ? websiteEntryState(selected) : '';
-  const canRestore = role === 'super_admin' || role === 'owner';
 
   function selectSection(key) { if (dirty) { setError('Save or discard the current changes before opening another section.'); return; } setNotice(''); setError(''); setParams(key === 'overview' ? {} : { section: key }); }
   function updateField(key, value, type) {
@@ -112,20 +106,12 @@ export default function WebsiteStudio() {
   async function run(action, callback) {
     if (!selected || working) return;
     setWorking(action); setError(''); setNotice('');
-    try { const row = await callback(); replaceEntry(row); setNotice(action === 'save' ? 'Draft saved. Publish it to update every connected public page.' : action === 'publish' ? 'Published. Connected public pages are refreshing now.' : action === 'discard' ? 'Draft changes discarded.' : 'Published version restored.'); setRevisions(await fetchWebsiteStudioRevisions()); }
+    try { const row = await callback(); replaceEntry(row); setNotice(action === 'save' ? 'Draft saved. Publish it to update every connected public page.' : action === 'publish' ? 'Published. Connected public pages are refreshing now.' : 'Draft changes discarded.'); }
     catch (actionError) { setError(friendlyError(actionError)); }
     setWorking('');
   }
   async function save() { const validated = validateWebsiteEntry(form, fields); await run('save', () => saveWebsiteDraft(selected.entry_key, validated)); }
   async function publish() { if (dirty) { setError('Save the draft before publishing.'); return; } if (!selected?.draft_data) { setError('There are no unpublished changes to publish.'); return; } await run('publish', () => publishWebsiteEntry(selected.entry_key)); }
-  async function restoreRevision(revision) {
-    if (!canRestore || working) return;
-    setWorking('restore'); setError(''); setNotice('');
-    try { await restoreWebsiteRevision(revision.id); await load(); setNotice('Published version restored and public pages are refreshing now.'); }
-    catch (restoreError) { setError(friendlyError(restoreError)); }
-    setWorking('');
-  }
-
   if (!['super_admin','owner','admin'].includes(role)) return <Navigate to="/admin/dashboard" replace />;
   if (loading) return <AdminLayout><LoadingState label="Loading Website Studio" /></AdminLayout>;
 
@@ -140,7 +126,7 @@ export default function WebsiteStudio() {
     <main className="min-w-0">
       {sectionKey === 'overview' ? <SectionChooser navigation={navigation} entries={entries} search={search} setSearch={setSearch} onSelect={selectSection} /> : <>
         <button type="button" onClick={() => selectSection('overview')} className="mb-6 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-zinc-300 transition hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><ArrowLeft size={16}/>All website sections</button>
-        <StudioContent sectionKey={sectionKey} selected={selected} entries={entries} revisions={revisions} form={form} fields={fields} config={config} state={state} dirty={dirty} working={working} selectSection={selectSection} updateField={updateField} save={save} publish={publish} discard={() => run('discard', () => discardWebsiteDraft(selected.entry_key))} canRestore={canRestore} onRestore={restoreRevision} />
+        <StudioContent sectionKey={sectionKey} selected={selected} form={form} fields={fields} config={config} state={state} dirty={dirty} working={working} updateField={updateField} save={save} publish={publish} discard={() => run('discard', () => discardWebsiteDraft(selected.entry_key))} />
       </>}
     </main>
   </AdminLayout>;
@@ -148,7 +134,7 @@ export default function WebsiteStudio() {
 
 function SectionChooser({ navigation, entries, search, setSearch, onSelect }) {
   const groups = groupNavigation(navigation.filter((item) => item.key !== 'overview'));
-  const renderItems = (items) => <div className="mt-4 grid gap-2 sm:grid-cols-2">{items.map((item) => { const row = entries.find((entry) => entry.entry_key === item.key); const isTool = ['media','revisions'].includes(item.key); return <button key={item.key} type="button" onClick={() => onSelect(item.key)} className="group flex min-h-20 items-center justify-between gap-4 rounded-lg border border-white/[0.09] bg-white/[0.02] px-4 py-3 text-left transition hover:border-amber-200/30 hover:bg-amber-200/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-zinc-100 group-hover:text-amber-100">{item.name}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{item.part}</span></span><span className="flex shrink-0 items-center gap-2"><span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${row?.draft_data ? 'text-amber-200' : 'text-zinc-600'}`}>{row?.draft_data ? 'Draft' : isTool ? '' : 'Live'}</span><ChevronRight size={16} className="text-zinc-600 group-hover:text-amber-200"/></span></button>; })}</div>;
+  const renderItems = (items) => <div className="mt-4 grid gap-2 sm:grid-cols-2">{items.map((item) => { const row = entries.find((entry) => entry.entry_key === item.key); return <button key={item.key} type="button" onClick={() => onSelect(item.key)} className="group flex min-h-20 items-center justify-between gap-4 rounded-lg border border-white/[0.09] bg-white/[0.02] px-4 py-3 text-left transition hover:border-amber-200/30 hover:bg-amber-200/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-zinc-100 group-hover:text-amber-100">{item.name}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{item.part}</span></span><span className="flex shrink-0 items-center gap-2"><span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${row?.draft_data ? 'text-amber-200' : 'text-zinc-600'}`}>{row?.draft_data ? 'Draft' : 'Live'}</span><ChevronRight size={16} className="text-zinc-600 group-hover:text-amber-200"/></span></button>; })}</div>;
   return <section aria-labelledby="website-sections-heading">
     <div className="max-w-2xl"><h2 id="website-sections-heading" className="text-2xl font-semibold text-white">What would you like to change?</h2><p className="mt-2 text-sm leading-6 text-zinc-400">Most updates start under Pages. Site settings affect several pages at once.</p></div>
     <label data-search-shell className="mt-5 flex h-11 max-w-md items-center gap-2 rounded-lg border border-white/[0.1] bg-black/20 px-3"><Search size={15} className="shrink-0 text-zinc-500" aria-hidden="true"/><span className="sr-only">Search website sections</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search pages, settings, or services" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600"/></label>
@@ -157,9 +143,7 @@ function SectionChooser({ navigation, entries, search, setSearch, onSelect }) {
 }
 
 function StudioContent(props) {
-  const { sectionKey, selected, entries, revisions, form, fields, config, state, dirty, working, selectSection, updateField, save, publish, discard, canRestore, onRestore } = props;
-  if (sectionKey === 'media') return <div className="grid min-h-[30rem] place-items-center text-center"><div><Image size={32} className="mx-auto text-amber-200"/><h2 className="mt-4 text-xl font-semibold text-white">Website media</h2><p className="mt-2 max-w-md text-sm leading-6 text-zinc-400">Open the managed media library to upload and choose approved public assets. Private originals stay protected.</p><Link to="/admin/media/icons" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-amber-200 px-4 text-sm font-semibold text-zinc-950">Open media library<ChevronRight size={16}/></Link></div></div>;
-  if (sectionKey === 'revisions') return <RevisionList revisions={revisions} canRestore={canRestore} onRestore={onRestore} working={working}/>;
+  const { sectionKey, selected, form, fields, config, state, dirty, working, updateField, save, publish, discard } = props;
   if (!selected) return <div className="grid min-h-[30rem] place-items-center text-sm text-zinc-500">Choose a Website Studio section.</div>;
   const commonFields = fields.filter((field) => !fieldIsAdvanced(field));
   const advancedFields = fields.filter(fieldIsAdvanced);
@@ -182,4 +166,3 @@ function StudioField({ fieldKey, label, type, value, onChange }) {
   if (type === 'color') return <label className="grid gap-1.5 text-sm text-zinc-400"><span>{label}</span><span className="flex h-12 items-center gap-3 rounded-lg border border-white/[0.1] bg-black/20 px-2"><input aria-label={`${label} color picker`} type="color" value={value || '#ffffff'} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0"/><input aria-label={`${label} hex value`} type="text" value={value ?? ''} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent font-mono text-sm uppercase text-white outline-none"/></span></label>;
   return <label className="grid gap-1.5 text-sm text-zinc-400"><span>{label}</span><input type={type === 'number' ? 'number' : type === 'email' ? 'email' : 'text'} value={value ?? ''} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(type === 'number' ? event.target.valueAsNumber : event.target.value)} className="h-11 rounded-lg border border-white/[0.1] bg-black/20 px-3 text-white outline-none focus:border-amber-200/50"/></label>;
 }
-function RevisionList({ revisions, canRestore, onRestore, working }) { return <div><div className="flex items-center gap-3"><History size={20} className="text-amber-200"/><div><h2 className="text-xl font-semibold text-white">Published history</h2><p className="text-sm text-zinc-500">Restore an earlier published version without changing Editorial stories.</p></div></div><div className="mt-6 divide-y divide-white/[0.08]">{revisions.slice(0,50).map((revision) => <div key={revision.id} className="grid gap-2 py-4 sm:grid-cols-[1fr_auto]"><div><p className="text-sm font-medium text-white">{labelFromKey(revision.entry_key)} · {revision.action.replace('_',' ')}</p><p className="mt-1 text-xs text-zinc-500">{new Date(revision.created_at).toLocaleString()} · {(revision.changed_fields || []).join(', ') || 'No field differences'}</p><p className="mt-1 text-xs text-zinc-600">{(revision.affected_areas || []).join(' · ')}</p></div>{canRestore && revision.after_data && <button type="button" disabled={Boolean(working)} onClick={() => onRestore(revision)} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/[0.1] px-3 text-xs text-zinc-300 disabled:opacity-40"><RotateCcw size={14}/>Restore</button>}</div>)}</div></div>; }

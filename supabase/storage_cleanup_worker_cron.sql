@@ -1,5 +1,7 @@
 -- Apply only after an authorized worker invocation returns HTTP 200 and unauthorized returns 401/403.
 -- Create Vault secrets named storage_cleanup_worker_url and storage_cleanup_worker_secret first.
+-- The URL secret must be the complete Edge Function endpoint:
+-- https://PROJECT_REF.supabase.co/functions/v1/process-storage-cleanup
 create extension if not exists pg_cron; create extension if not exists pg_net;
 select cron.unschedule(jobid) from cron.job where jobname='process-storage-cleanup-every-5-minutes';
 select cron.schedule('process-storage-cleanup-every-5-minutes','*/5 * * * *', $$

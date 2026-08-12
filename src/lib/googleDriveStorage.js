@@ -52,7 +52,7 @@ export function verifyGoogleDriveConnection() {
 
 export async function startGoogleDriveConnection(connectionId = '') {
   const data = await invokeStorageFunction('google-drive-oauth-start', {
-    returnPath: '/admin/storage',
+    returnPath: '/admin/dashboard',
     ...(connectionId ? { connectionId, forceConsent: true } : {}),
   });
   const destination = new URL(data.authorizationUrl);

@@ -21,8 +21,6 @@ export const WEBSITE_STUDIO_SECTIONS = [
   { group: 'Shared content', label: 'Footer', key: 'global.footer', fields: [['footerText','Footer description','textarea'],['privacyLabel','Privacy link label','text']] },
   { group: 'Shared content', label: 'Search and social sharing', key: 'page.search', fields: [['defaultTitle','Default search title','text'],['defaultDescription','Default search description','textarea'],['openGraphImageUrl','Social sharing image URL','url'],['facebookUrl','Facebook URL','url'],['instagramUrl','Instagram URL','url'],['linkedInUrl','LinkedIn URL','url'],['youTubeUrl','YouTube URL','url'],['tikTokUrl','TikTok URL','url'],['githubUrl','GitHub URL','url']] },
   { group: 'Appearance', label: 'Colors and appearance', key: 'global.appearance', fields: [['primaryTextColor','Primary text','color'],['secondaryTextColor','Secondary text','color'],['mutedTextColor','Muted text','color'],['accentColor','Accent','color'],['dividerLineColor','Borders and dividers','color']] },
-  { group: 'Assets and history', label: 'Media', key: 'media' },
-  { group: 'Assets and history', label: 'Revisions', key: 'revisions' },
 ];
 
 export const SERVICE_FIELDS = [
@@ -92,14 +90,6 @@ export async function fetchWebsiteStudioEntries() {
   return data || [];
 }
 
-export async function fetchWebsiteStudioRevisions(entryKey = '') {
-  let query = supabase.from('website_studio_revisions').select('*').order('created_at', { ascending: false }).limit(100);
-  if (entryKey) query = query.eq('entry_key', entryKey);
-  const { data, error } = await query;
-  if (error) throw error;
-  return data || [];
-}
-
 export async function saveWebsiteDraft(entryKey, data) {
   const { data: row, error } = await supabase.rpc('save_website_studio_draft', { p_entry_key: entryKey, p_data: data });
   if (error) throw error;
@@ -118,13 +108,6 @@ export async function publishWebsiteEntry(entryKey) {
 export async function discardWebsiteDraft(entryKey) {
   const { data: row, error } = await supabase.rpc('discard_website_studio_draft', { p_entry_key: entryKey });
   if (error) throw error;
-  return row;
-}
-
-export async function restoreWebsiteRevision(revisionId) {
-  const { data: row, error } = await supabase.rpc('restore_website_studio_revision', { p_revision_id: revisionId });
-  if (error) throw error;
-  announceWebsitePublished();
   return row;
 }
 

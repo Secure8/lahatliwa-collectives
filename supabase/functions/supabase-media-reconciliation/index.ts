@@ -9,7 +9,7 @@ import {
 const PAGE_SIZE = 100;
 const MAX_OBJECTS = 1000;
 const MAX_FOLDERS = 500;
-const REFERENCE_TABLES = ['projects', 'creative_members', 'site_settings', 'page_content', 'service_branches', 'media_assets', 'admin_users'];
+const REFERENCE_TABLES = ['projects', 'creative_members', 'site_settings', 'page_content', 'website_studio_entries', 'website_studio_revisions', 'service_branches', 'media_assets', 'admin_users'];
 const safeError = (error: unknown) => {
   const value = error as { code?: string; message?: string } | null;
   return {

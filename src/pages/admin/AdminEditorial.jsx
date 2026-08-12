@@ -1,11 +1,10 @@
-import { BookOpen, Check, ExternalLink, FileText, Flag, LayoutTemplate, Plus, Save, Settings, Tags, Trash2, Users } from 'lucide-react';
+import { BookOpen, Check, ExternalLink, FileText, LayoutTemplate, Plus, Save, Tags, Trash2, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { AdminButton, AdminCheckbox, AdminEmptyState, AdminInput, AdminNotice, AdminPageHeader, AdminStatusBadge, AdminSurface } from '../../components/admin/AdminUI.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
 import { CONTENT_TYPES, listEditorialWorkspace, slugifyEditorial } from '../../features/editorial/editorialApi.js';
-import { DISABLED_EDITORIAL_FLAGS, normalizeEditorialFlags } from '../../features/editorial/editorialFlags.js';
 import { useAdminAccess } from '../../lib/adminAccess.jsx';
 import { supabase } from '../../lib/supabaseClient.js';
 import { editorialPublicPath, TOURISM_SLIDE_SLOTS } from '../../lib/tourismHomepage.js';
@@ -14,7 +13,6 @@ const sections = [
   ['Overview', '/admin/editorial', BookOpen], ['Stories', '/admin/editorial/content', FileText], ['Destinations', '/admin/editorial/destinations', LayoutTemplate], ['Review', '/admin/editorial/review', Check],
   ['Homepage slideshow', '/admin/editorial/homepage', LayoutTemplate], ['Categories', '/admin/editorial/categories', Tags], ['Tags', '/admin/editorial/tags', Tags],
   ['Municipalities', '/admin/editorial/municipalities', Tags], ['Contributors', '/admin/editorial/contributors', Users],
-  ['Feature flags', '/admin/editorial/settings', Settings], ['Audit history', '/admin/editorial/audit', Flag],
 ];
 
 export default function AdminEditorial() {
@@ -24,8 +22,6 @@ export default function AdminEditorial() {
 }
 
 function AdminEditorialSection({ section }) {
-  if (section === 'settings') return <EditorialSettings />;
-  if (section === 'audit') return <EditorialAudit />;
   if (['categories', 'tags', 'municipalities', 'contributors'].includes(section)) return <TaxonomyManager section={section} />;
   if (section === 'homepage') return <HomepageManager />;
   return <EditorialContent section={section} />;
@@ -40,14 +36,6 @@ function EditorialContent({ section }) {
   return <div className="grid gap-3">{state.posts.map((post) => <AdminSurface key={post.id} className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center"><div><div className="flex flex-wrap items-center gap-2"><span className="text-xs uppercase tracking-[0.16em] text-amber-200/70">{CONTENT_TYPES.find((item) => item.key === post.content_type)?.label}</span><AdminStatusBadge status={post.status} /></div><h2 className="mt-2 font-semibold">{post.title}</h2><p className="mt-1 line-clamp-2 text-sm text-zinc-400">{post.summary || 'No summary yet.'}</p></div><AdminButton to={`/editorial/content/${post.id}/edit`} variant="secondary">Edit</AdminButton></AdminSurface>)}</div>;
 }
 
-function EditorialSettings() {
-  const [state, setState] = useState({ loading: true, flags: DISABLED_EDITORIAL_FLAGS, error: '', message: '' });
-  useEffect(() => { let active = true; supabase.from('editorial_feature_flags').select('*').eq('singleton', true).maybeSingle().then(({ data, error }) => { if (!active) return; if (error || !data) setState({ loading: false, flags: DISABLED_EDITORIAL_FLAGS, error: 'Feature flags are unavailable right now.', message: '' }); else setState({ loading: false, flags: normalizeEditorialFlags(data), error: '', message: '' }); }); return () => { active = false; }; }, []);
-  async function save() { const flags = state.flags; const { error } = await supabase.from('editorial_feature_flags').update({ module_enabled: flags.moduleEnabled, public_portal_enabled: flags.publicPortalEnabled, homepage_tourism_enabled: flags.homepageTourismEnabled, editorial_studio_enabled: flags.editorialStudioEnabled, public_inquiries_enabled: flags.publicInquiriesEnabled, editorial_media_uploads_enabled: flags.editorialMediaUploadsEnabled, updated_at: new Date().toISOString() }).eq('singleton', true); setState((current) => ({ ...current, error: error ? 'Feature flags could not be saved.' : '', message: error ? '' : 'Feature flags saved.' })); }
-  function setFlag(key, value) { setState((current) => ({ ...current, flags: { ...current.flags, [key]: value, ...(key === 'moduleEnabled' && !value ? DISABLED_EDITORIAL_FLAGS : {}) } })); }
-  if (state.loading) return <LoadingState label="Loading release flags" />;
-  return <AdminSurface><h2 className="text-lg font-semibold">Feature flags</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Turn public features on only after their content, uploads, and account access have been checked.</p><div className="mt-6 grid gap-3 sm:grid-cols-2"><AdminCheckbox label="Explore Aklan" checked={state.flags.moduleEnabled} onChange={(value) => setFlag('moduleEnabled', value)} /><AdminCheckbox label="Public portal" checked={state.flags.publicPortalEnabled} onChange={(value) => setFlag('publicPortalEnabled', value)} /><AdminCheckbox label="Tourism on homepage" checked={state.flags.homepageTourismEnabled} onChange={(value) => setFlag('homepageTourismEnabled', value)} /><AdminCheckbox label="Editorial Studio" checked={state.flags.editorialStudioEnabled} onChange={(value) => setFlag('editorialStudioEnabled', value)} /><AdminCheckbox label="Public inquiries" checked={state.flags.publicInquiriesEnabled} onChange={(value) => setFlag('publicInquiriesEnabled', value)} /><AdminCheckbox label="Media uploads" checked={state.flags.editorialMediaUploadsEnabled} onChange={(value) => setFlag('editorialMediaUploadsEnabled', value)} /></div><div className="mt-5 flex items-center gap-4"><AdminButton onClick={save} variant="primary">Save feature flags</AdminButton>{state.error && <AdminNotice className="flex-1">{state.error}</AdminNotice>}{state.message && <AdminNotice tone="success" className="flex-1">{state.message}</AdminNotice>}</div></AdminSurface>;
-}
 
 const TABLES = { categories: 'editorial_categories', tags: 'editorial_tags', municipalities: 'editorial_municipalities', contributors: 'editorial_contributors' };
 function TaxonomyManager({ section }) {
@@ -115,11 +103,9 @@ function HomepageManager() {
     })}
   </div>;
 }
-
 function RangeField({ label, value, onChange }) {
   return <label className="grid gap-2 text-sm text-zinc-300"><span>{label}: {value}%</span><input type="range" min="0" max="100" step="1" value={value} onChange={(event) => onChange(Number(event.target.value))} className="h-11 w-full accent-amber-300" /></label>;
 }
-
 function LegacyHomepageManager() {
   const { user } = useAdminAccess();
   const [state, setState] = useState({ loading: true, rows: [], posts: [], heading: '', error: '', message: '' });
@@ -144,4 +130,3 @@ function LegacyHomepageManager() {
   return <div className="grid gap-5"><AdminSurface><h2 className="font-semibold">New section</h2><form onSubmit={addSection} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"><AdminInput label="Heading" value={state.heading} onChange={(heading) => setState((current) => ({ ...current, heading }))} required /><AdminButton type="submit" variant="primary">Add</AdminButton></form>{state.error && <AdminNotice className="mt-4">{state.error}</AdminNotice>}{state.message && <AdminNotice tone="success" className="mt-4">{state.message}</AdminNotice>}</AdminSurface>{state.rows.length ? state.rows.map((row) => { const items = [...(row.editorial_homepage_items || [])].sort((a, b) => a.sort_order - b.sort_order); const postName = new Map(state.posts.map((post) => [post.id, post.title])); return <AdminSurface key={row.id}><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold">{row.heading || row.section_key}</p><p className="mt-1 text-sm text-zinc-500">{items.length} published items</p></div><div className="flex items-center gap-2"><AdminStatusBadge status={row.is_visible ? 'active' : 'disabled'} /><AdminButton onClick={() => updateSection(row.id, { is_visible: !row.is_visible })} variant="secondary">{row.is_visible ? 'Hide' : 'Show'}</AdminButton></div></div><div className="mt-4 flex flex-col gap-2 sm:flex-row"><select defaultValue="" onChange={(event) => { addItem(row.id, event.target.value); event.target.value = ''; }} className="h-10 min-w-0 flex-1 rounded-md border border-white/[0.12] bg-zinc-950 px-3 text-sm"><option value="">Add published story</option>{state.posts.filter((post) => !items.some((item) => item.post_id === post.id)).map((post) => <option key={post.id} value={post.id}>{post.title}</option>)}</select></div><div className="mt-3 divide-y divide-white/[0.08]">{items.map((item, index) => <div key={item.id} className="flex items-center justify-between gap-3 py-2"><p className="min-w-0 truncate text-sm">{postName.get(item.post_id) || 'Published story'}</p><div className="flex gap-1"><button type="button" onClick={() => moveItem(items, index, -1)} disabled={index === 0} className="h-8 w-8 rounded border border-white/[0.1] text-xs disabled:opacity-30" aria-label="Move up">↑</button><button type="button" onClick={() => moveItem(items, index, 1)} disabled={index === items.length - 1} className="h-8 w-8 rounded border border-white/[0.1] text-xs disabled:opacity-30" aria-label="Move down">↓</button><button type="button" onClick={() => removeItem(item.id)} className="h-8 rounded border border-red-300/20 px-2 text-xs text-red-100">Remove</button></div></div>)}</div></AdminSurface>; }) : <AdminEmptyState title="No homepage sections" message="Create sections only after reviewed content is available. No demo tourism claims were added." />}</div>;
 }
 
-function EditorialAudit() { const [state, setState] = useState({ loading: true, rows: [], error: '' }); useEffect(() => { supabase.from('editorial_audit_events').select('id,action,from_status,to_status,details,created_at,post_id').order('created_at', { ascending: false }).limit(100).then(({ data, error }) => setState({ loading: false, rows: data || [], error: error ? 'Audit records could not be loaded.' : '' })); }, []); if (state.loading) return <LoadingState label="Loading audit" />; if (state.error) return <AdminNotice>{state.error}</AdminNotice>; return <AdminSurface><h2 className="font-semibold">Workflow audit</h2><div className="mt-4 divide-y divide-white/[0.08]">{state.rows.map((row) => <div key={row.id} className="grid gap-1 py-3 sm:grid-cols-[1fr_auto]"><div><p className="text-sm font-medium">{row.action.replaceAll('_', ' ')}</p><p className="mt-1 text-xs text-zinc-500">{row.from_status || '—'} → {row.to_status || '—'}</p></div><time className="text-xs text-zinc-500">{new Date(row.created_at).toLocaleString()}</time></div>)}{!state.rows.length && <p className="py-8 text-sm text-zinc-500">No events.</p>}</div></AdminSurface>; }

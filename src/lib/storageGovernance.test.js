@@ -65,6 +65,18 @@ test('Supabase monitoring compares the live ledger and inventory without deletin
   assert.doesNotMatch(reconciliation, /storage\.from\(BUCKET\)\.remove|deleteR2Object/);
 });
 
+test('storage reference scans protect Website Studio media and revision history', () => {
+  for (const path of [
+    'supabase/functions/process-storage-cleanup/index.ts',
+    'supabase/functions/supabase-media-reconciliation/index.ts',
+    'supabase/functions/r2-media/index.ts',
+  ]) {
+    const implementation = source(path);
+    assert.match(implementation, /website_studio_entries/);
+    assert.match(implementation, /website_studio_revisions/);
+  }
+});
+
 test('cleanup preserves retired migration sources while normal provider cleanup remains active', () => {
   const worker = source('supabase/functions/process-storage-cleanup/index.ts');
   assert.match(worker, /MIGRATION_CLEANUP_RETIRED/);
@@ -72,6 +84,13 @@ test('cleanup preserves retired migration sources while normal provider cleanup 
   assert.doesNotMatch(worker, /from\('storage_migrations'\)/);
   assert.match(worker, /admin\.storage\.from\(job\.bucket_name\)\.remove/);
   assert.match(worker, /deleteR2Object/);
+});
+
+test('cleanup scheduler stores the complete Edge Function endpoint', () => {
+  const bootstrap = source('supabase/storage_cleanup_cron_bootstrap.sql');
+  assert.match(bootstrap, /p_project_url \|\| '\/functions\/v1\/process-storage-cleanup'/);
+  assert.match(bootstrap, /vault\.create_secret\(v_worker_url/);
+  assert.match(bootstrap, /vault\.update_secret\(v_id,v_worker_url/);
 });
 
 test('governance exposes monitoring and policy only, with no migration execution actions', () => {

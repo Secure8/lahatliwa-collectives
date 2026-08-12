@@ -103,6 +103,8 @@ async function targetReferences(actor: any, row: any, url: string) {
   }
   const results = await Promise.all([
     actor.admin.from('site_settings').select('*'), actor.admin.from('page_content').select('content'),
+    actor.admin.from('website_studio_entries').select('published_data,draft_data'),
+    actor.admin.from('website_studio_revisions').select('before_data,after_data'),
     actor.admin.from('service_branches').select('icon_url,image_url'), actor.admin.from('media_assets').select('url,storage_path'),
   ]);
   if (results.some((result: any) => result.error)) throw Object.assign(new Error('Reference verification failed'), { code: 'REFERENCE_CHECK_FAILED' });

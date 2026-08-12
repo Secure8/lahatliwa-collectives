@@ -3,12 +3,13 @@ create extension if not exists pg_cron; create extension if not exists pg_net; c
 create or replace function private.configure_storage_cleanup_cron(p_project_url text, p_worker_secret text)
 returns table(job_name text, schedule text, active boolean, schedule_count integer)
 language plpgsql security definer set search_path=public,private,pg_temp as $$
-declare v_id uuid; v_jobid bigint;
+declare v_id uuid; v_jobid bigint; v_worker_url text;
 begin
   if auth.role() <> 'service_role' then raise exception 'Service role required.'; end if;
   if p_project_url !~ '^https://[a-z0-9]+\.supabase\.co$' or char_length(p_worker_secret) < 32 then raise exception 'Invalid cleanup configuration.'; end if;
+  v_worker_url := p_project_url || '/functions/v1/process-storage-cleanup';
   select id into v_id from vault.secrets where name='storage_cleanup_worker_url' limit 1;
-  if v_id is null then perform vault.create_secret(p_project_url,'storage_cleanup_worker_url','Cleanup worker URL'); else perform vault.update_secret(v_id,p_project_url,'storage_cleanup_worker_url','Cleanup worker URL'); end if;
+  if v_id is null then perform vault.create_secret(v_worker_url,'storage_cleanup_worker_url','Cleanup worker URL'); else perform vault.update_secret(v_id,v_worker_url,'storage_cleanup_worker_url','Cleanup worker URL'); end if;
   select id into v_id from vault.secrets where name='storage_cleanup_worker_secret' limit 1;
   if v_id is null then perform vault.create_secret(p_worker_secret,'storage_cleanup_worker_secret','Cleanup worker secret'); else perform vault.update_secret(v_id,p_worker_secret,'storage_cleanup_worker_secret','Cleanup worker secret'); end if;
   perform cron.unschedule(jobid) from cron.job where jobname='process-storage-cleanup-every-5-minutes';

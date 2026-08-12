@@ -87,7 +87,7 @@ export async function uploadGalleryImages(files, { onStatus, projectId = '' } = 
 
 export async function prepareGalleryImageForUpload(file, { onStatus } = {}) {
   validateGalleryFile(file);
-  if (file.type === 'application/pdf') throw new Error('Google Drive gallery originals are limited to images in this phase.');
+  if (file.type === 'application/pdf') throw new Error('Project galleries support image uploads only.');
   return optimizeImageForUpload(file, 'galleryImage', { label: 'Gallery image', onStatus });
 }
 

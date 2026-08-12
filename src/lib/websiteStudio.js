@@ -5,23 +5,21 @@ export const WEBSITE_CONTENT_EVENT = 'hevv-public-content-updated';
 export const WEBSITE_CACHE_KEYS = ['hevv-public-content-cache-v3', 'hevv-public-content-cache-v2', 'hevv-public-content-cache'];
 
 export const WEBSITE_STUDIO_SECTIONS = [
-  { group: 'Website', label: 'Overview', key: 'overview' },
-  { group: 'Shared content', label: 'Brand', key: 'global.brand', fields: [
-    ['brandName', 'Brand name', 'text'], ['tagline', 'Tagline', 'textarea'], ['logoUrl', 'Main logo URL', 'url'], ['logoAlt', 'Logo description', 'text'], ['contactEmail', 'Contact email', 'email'], ['heroImageUrl', 'Creative hero portrait URL', 'url'], ['heroImageAlt', 'Creative hero portrait description', 'text'],
+  { group: 'Website Studio', label: 'Overview', key: 'overview' },
+  { group: 'Shared across the website', label: 'Branding', key: 'global.brand', fields: [
+    ['brandName', 'Brand name', 'text'], ['tagline', 'Tagline', 'textarea'], ['logoUrl', 'Brand logo', 'image'], ['logoAlt', 'Logo description', 'text'],
   ] },
-  { group: 'Shared content', label: 'Navigation', key: 'global.navigation', fields: [
-    ['homeLabel', 'Home label', 'text'], ['aboutLabel', 'About label', 'text'], ['projectsLabel', 'Portfolio label', 'text'], ['servicesLabel', 'Work with us label', 'text'], ['creativesLabel', 'Creatives label', 'text'], ['contactLabel', 'Contact label', 'text'], ['showAbout', 'Show About', 'boolean'], ['showProjects', 'Show Portfolio', 'boolean'], ['showServices', 'Show Work with us', 'boolean'], ['showCreatives', 'Show Creatives', 'boolean'], ['showContact', 'Show Contact', 'boolean'],
+  { group: 'Shared across the website', label: 'Navbar', key: 'global.navigation', fields: [
+    ['homeLabel', 'Home', 'text'], ['aboutLabel', 'About', 'text'], ['currentWorkLabel', 'Current Work', 'text'], ['projectsLabel', 'Portfolio', 'text'], ['creativesLabel', 'Creatives', 'text'], ['contactLabel', 'Contact', 'text'], ['servicesLabel', 'Work with us', 'text'], ['privacyLabel', 'Privacy Policy', 'text'], ['showAbout', 'Show About', 'boolean'], ['showProjects', 'Show Portfolio', 'boolean'], ['showCreatives', 'Show Creatives', 'boolean'], ['showContact', 'Show Contact', 'boolean'],
   ] },
-  { group: 'Pages', label: 'Homepage', key: 'page.home', preview: '/', fields: [['featuredEyebrow','Featured creatives eyebrow','text'],['featuredTitle','Featured creatives heading','text'],['featuredDescription','Featured creatives description','textarea'],['featuredCtaLabel','Featured creatives action','text'],['inquiryEyebrow','Inquiry eyebrow','text'],['inquiryTitle','Inquiry heading','text'],['inquiryDescription','Inquiry description','textarea'],['inquiryCtaLabel','Inquiry action','text'],['inquiryCtaUrl','Inquiry action route','route']] },
-  { group: 'Pages', label: 'Current Work', key: 'page.explore', preview: '/work', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
-  { group: 'Pages', label: 'Creatives', key: 'page.creatives', preview: '/creatives', fields: [['heroEyebrow','Hero eyebrow','text'],['heroTitle','Hero title','text'],['heroDescription','Hero description','textarea'],['primaryCta','Primary action','text'],['primaryCtaUrl','Primary action route','route'],['secondaryCta','Secondary action','text'],['secondaryCtaUrl','Secondary action route','route'],['directoryEyebrow','Directory eyebrow','text'],['directoryTitle','Directory heading','text'],['directoryDescription','Directory description','textarea']] },
-  { group: 'Pages', label: 'Portfolio', key: 'page.projects', preview: '/projects', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
-  { group: 'Pages', label: 'Work with us', key: 'page.services', preview: '/services', fields: [['title','Heading','text'],['intro','Introduction','textarea']] },
-  { group: 'Pages', label: 'About', key: 'page.about', preview: '/about' },
-  { group: 'Pages', label: 'Inquiries', key: 'page.inquiries', preview: '/contact', fields: [['heading','Contact heading','text'],['description','Contact description','textarea'],['ctaText','Email action','text'],['landingEyebrow','Inquiry eyebrow','text'],['landingHeading','Inquiry heading','text'],['landingDescription','Inquiry description','textarea'],['disclaimer','Public clarification','textarea']] },
-  { group: 'Shared content', label: 'Footer', key: 'global.footer', fields: [['footerText','Footer description','textarea'],['privacyLabel','Privacy link label','text']] },
-  { group: 'Shared content', label: 'Search and social sharing', key: 'page.search', fields: [['defaultTitle','Default search title','text'],['defaultDescription','Default search description','textarea'],['openGraphImageUrl','Social sharing image URL','url'],['facebookUrl','Facebook URL','url'],['instagramUrl','Instagram URL','url'],['linkedInUrl','LinkedIn URL','url'],['youTubeUrl','YouTube URL','url'],['tikTokUrl','TikTok URL','url'],['githubUrl','GitHub URL','url']] },
-  { group: 'Appearance', label: 'Colors and appearance', key: 'global.appearance', fields: [['primaryTextColor','Primary text','color'],['secondaryTextColor','Secondary text','color'],['mutedTextColor','Muted text','color'],['accentColor','Accent','color'],['dividerLineColor','Borders and dividers','color']] },
+  { group: 'Public pages', label: 'Home', key: 'page.home', preview: '/', fields: [['heroEyebrow','Hero eyebrow','text'],['heroTitle','Hero heading','textarea'],['heroDescription','Hero description','textarea'],['featuredEyebrow','Creative section eyebrow','text'],['featuredTitle','Creative section heading','text'],['featuredDescription','Creative section description','textarea'],['inquiryEyebrow','Inquiry eyebrow','text'],['inquiryTitle','Inquiry heading','text'],['inquiryDescription','Inquiry description','textarea']] },
+  { group: 'Public pages', label: 'About', key: 'page.about', preview: '/about', fields: [['eyebrow','Page eyebrow','text'],['title','Page heading','textarea'],['intro','Introduction','textarea'],['purposeEyebrow','Purpose eyebrow','text'],['purposeTitle','Purpose heading','text'],['journey','Purpose description','textarea'],['findEyebrow','Content overview eyebrow','text'],['findTitle','Content overview heading','text'],['workTitle','Current work card title','text'],['workDescription','Current work card description','textarea'],['portfolioTitle','Portfolio card title','text'],['portfolioDescription','Portfolio card description','textarea'],['creativesTitle','Creative profiles card title','text'],['creativesDescription','Creative profiles card description','textarea'],['inquiriesTitle','Open inquiries card title','text'],['inquiriesDescription','Open inquiries card description','textarea'],['collaborationEyebrow','Collaboration eyebrow','text'],['collaborationTitle','Collaboration heading','text'],['collaborationDescription','Collaboration description','textarea'],['collaborationNote','Collaboration clarification','textarea'],['directionEyebrow','Direction eyebrow','text'],['directionTitle','Direction heading','textarea'],['directionDescription','Direction description','textarea']] },
+  { group: 'Public pages', label: 'Current Work', key: 'page.explore', preview: '/work', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
+  { group: 'Public pages', label: 'Portfolio', key: 'page.projects', preview: '/projects', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
+  { group: 'Public pages', label: 'Creatives', key: 'page.creatives', preview: '/creatives', fields: [['heroEyebrow','Hero eyebrow','text'],['heroTitle','Hero heading','text'],['heroDescription','Hero description','textarea'],['directoryEyebrow','Directory eyebrow','text'],['directoryTitle','Directory heading','text'],['directoryDescription','Directory description','textarea']] },
+  { group: 'Public pages', label: 'Contact', key: 'page.inquiries', preview: '/contact', fields: [['heading','Contact heading','text'],['description','Contact description','textarea'],['contactIntro','Contact introduction','textarea'],['ctaText','Email button label','text'],['contactEmail','Contact email','email'],['facebookUrl','Facebook URL','url'],['instagramUrl','Instagram URL','url'],['linkedInUrl','LinkedIn URL','url'],['youTubeUrl','YouTube URL','url'],['tikTokUrl','TikTok URL','url'],['githubUrl','GitHub URL','url'],['landingEyebrow','Inquiry eyebrow','text'],['landingHeading','Inquiry heading','text'],['landingDescription','Inquiry description','textarea'],['disclaimer','Inquiry clarification','textarea']] },
+  { group: 'Public pages', label: 'Privacy Policy', key: 'page.privacy', preview: '/privacy', fields: [['eyebrow','Page eyebrow','text'],['title','Page heading','text'],['description','Page description','textarea'],['effectiveDate','Effective date','text'],['overviewTitle','Overview heading','text'],['overviewBody','Overview','textarea'],['informationTitle','Information heading','text'],['informationBody','Information we collect','textarea'],['mediaTitle','Public media heading','text'],['mediaBody','Public website media','textarea'],['useTitle','Use heading','text'],['useBody','How information is used','textarea'],['sharingTitle','Sharing heading','text'],['sharingBody','Sharing and providers','textarea'],['retentionTitle','Retention heading','text'],['retentionBody','Retention and deletion','textarea'],['securityTitle','Security heading','text'],['securityBody','Security and choices','textarea'],['updatesTitle','Policy updates heading','text'],['updatesBody','Policy updates','textarea'],['contactTitle','Privacy contact heading','text'],['contactBody','Privacy contact description','textarea']] },
+  { group: 'Shared across the website', label: 'Colors', key: 'global.appearance', fields: [['primaryTextColor','Primary text','color'],['secondaryTextColor','Secondary text','color'],['mutedTextColor','Muted text','color'],['accentColor','Accent and buttons','color'],['dividerLineColor','Borders and dividers','color']] },
 ];
 
 export const SERVICE_FIELDS = [
@@ -73,9 +71,11 @@ export function resolveWebsiteOverride(sharedValue, overrideValue) {
 }
 
 export function websiteImpact(entryKey) {
-  if (entryKey === 'global.brand') return ['Header', 'Footer', 'browser metadata', 'Creatives hero', 'About', 'inquiries', 'login'];
+  if (entryKey === 'global.brand') return ['Navbar', 'Footer', 'page wording', 'browser metadata', 'login'];
   if (entryKey === 'global.navigation') return ['Public header', 'mobile navigation'];
   if (entryKey === 'global.appearance') return ['All public pages', 'light mode', 'dark mode'];
+  if (entryKey === 'page.inquiries') return ['Contact', 'inquiry page', 'Footer contact links'];
+  if (entryKey === 'page.privacy') return ['Privacy Policy'];
   if (entryKey?.startsWith('service.')) return ['Legacy compatibility data'];
   return [WEBSITE_STUDIO_SECTIONS.find((item) => item.key === entryKey)?.label || 'Public website'];
 }
@@ -129,17 +129,25 @@ export function websiteBundleToContent(bundle = {}) {
   const brand = alignedBundle['global.brand'] || {};
   const footer = alignedBundle['global.footer'] || {};
   const appearance = alignedBundle['global.appearance'] || {};
-  const pages = Object.fromEntries(Object.entries(alignedBundle).filter(([key]) => key.startsWith('page.')).map(([key, value]) => [key.slice(5), value]));
+  const resolveSharedText = (value) => {
+    if (typeof value === 'string') return value.replaceAll('{{brandName}}', brand.brandName || '').replaceAll('Lahat Liwa Collectives', brand.brandName || 'Lahat Liwa Collectives');
+    if (Array.isArray(value)) return value.map(resolveSharedText);
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveSharedText(item)]));
+    return value;
+  };
+  const pages = Object.fromEntries(Object.entries(alignedBundle).filter(([key]) => key.startsWith('page.')).map(([key, value]) => [key.slice(5), resolveSharedText(value)]));
   const branches = Object.entries(alignedBundle).filter(([key]) => key.startsWith('branch.')).map(([, value]) => value).filter((item) => item?.status !== 'inactive').sort((a,b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
   const services = Object.entries(alignedBundle).filter(([key]) => key.startsWith('service.')).map(([, value]) => value).filter((item) => item?.status !== 'inactive').sort((a,b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
   const search = pages.search || {};
-  const socialLinks = [['Facebook',search.facebookUrl],['Instagram',search.instagramUrl],['LinkedIn',search.linkedInUrl],['YouTube',search.youTubeUrl],['TikTok',search.tikTokUrl],['GitHub',search.githubUrl]].filter(([,href]) => href).map(([label,href]) => ({ label, href }));
+  const contact = pages.inquiries || {};
+  const socialLinks = [['Facebook',contact.facebookUrl || search.facebookUrl],['Instagram',contact.instagramUrl || search.instagramUrl],['LinkedIn',contact.linkedInUrl || search.linkedInUrl],['YouTube',contact.youTubeUrl || search.youTubeUrl],['TikTok',contact.tikTokUrl || search.tikTokUrl],['GitHub',contact.githubUrl || search.githubUrl]].filter(([,href]) => href).map(([label,href]) => ({ label, href }));
+  const navigation = alignedBundle['global.navigation'] || {};
   return {
-    displayName: brand.brandName || '', legalName: brand.brandName || '', branchName: brand.branchName || 'Liwa Digital', tagline: brand.tagline || '', logoUrl: brand.logoUrl || '', logoAlt: brand.logoAlt || '', heroImageUrl: brand.heroImageUrl || '', heroImageAlt: brand.heroImageAlt || '', email: brand.contactEmail || '',
-    footerText: footer.footerText || '', footerContextLabel: footer.contextLabel || '', privacyLabel: footer.privacyLabel || 'Privacy Policy',
+    displayName: brand.brandName || '', legalName: brand.brandName || '', branchName: brand.branchName || 'Liwa Digital', tagline: brand.tagline || '', logoUrl: brand.logoUrl || '', logoAlt: brand.logoAlt || '', heroImageUrl: brand.heroImageUrl || '', heroImageAlt: brand.heroImageAlt || '', email: contact.contactEmail || brand.contactEmail || '',
+    footerText: footer.footerText || '', footerContextLabel: footer.contextLabel || '', privacyLabel: navigation.privacyLabel || footer.privacyLabel || 'Privacy Policy',
     primaryTextColor: appearance.primaryTextColor || '', secondaryTextColor: appearance.secondaryTextColor || '', mutedTextColor: appearance.mutedTextColor || '', accentColor: appearance.accentColor || '', dividerLineColor: appearance.dividerLineColor || '',
     ...(socialLinks.length ? { socialLinks } : {}),
-    websiteNavigation: alignedBundle['global.navigation'] || {}, websitePages: pages, websiteBranches: branches, websiteServices: services, websiteBundle: alignedBundle,
+    websiteNavigation: navigation, websitePages: pages, websiteBranches: branches, websiteServices: services, websiteBundle: alignedBundle,
   };
 }
 

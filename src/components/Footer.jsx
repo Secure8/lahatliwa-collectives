@@ -1,6 +1,7 @@
 import { Facebook, Github, Globe, Instagram, Linkedin, Mail, Music2, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePublicContent } from '../lib/contentApi';
+import BrandLogo from './BrandLogo';
 import BrandWordmark from './BrandWordmark';
 
 const socialIconMap = {
@@ -20,10 +21,11 @@ export default function Footer() {
     <footer className="public-footer mt-28 border-t border-[var(--site-accent-border)]">
       <div className="page-shell grid gap-10 py-12 md:grid-cols-[1.4fr_1fr] md:py-14">
         <div>
-          <BrandWordmark name={content.displayName} variant="footer" to="/" className="inline-flex min-h-11 items-center" />
-          {content.footerContextLabel && <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">{content.footerContextLabel}</p>}
+          <div className="flex items-center gap-3">
+            {content.logoUrl && <BrandLogo src={content.logoUrl} alt={content.logoAlt} />}
+            <BrandWordmark name={content.displayName} variant="footer" to="/" className="inline-flex min-h-11 items-center" />
+          </div>
           <p className="mt-3 text-sm font-medium text-[var(--site-brand-accent)]">{content.tagline}</p>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--site-secondary-text)]">{content.footerText}</p>
         </div>
         <div className="flex flex-wrap items-start gap-3 md:justify-end">
           {content.email && <a className="site-hover-accent grid h-11 w-11 place-items-center rounded-lg border border-white/10 bg-black/20 text-zinc-300 transition hover:-translate-y-0.5 hover:border-orange-300/40 hover:shadow-[0_0_16px_rgba(251,146,60,0.24)]" href={`mailto:${content.email}`} aria-label="Email">

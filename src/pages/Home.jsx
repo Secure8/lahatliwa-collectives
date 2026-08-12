@@ -39,7 +39,7 @@ export default function Home() {
 
   return <div data-current-work-homepage className="bg-[var(--theme-page-surface)]">
     <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-    <ActiveWorkHero projects={activeProjects} loading={loading} />
+    <ActiveWorkHero projects={activeProjects} loading={loading} page={page} brandName={content.displayName} />
 
     <section className="page-shell py-16 sm:py-20" aria-labelledby="active-work-heading"><div className="mb-9 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-accent-text)]">Active projects</p><h2 id="active-work-heading" className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[var(--site-primary-text)]">Latest from the work.</h2></div><Link to="/work" className="fine-link inline-flex min-h-11 items-center gap-2 text-sm text-[var(--site-primary-text)]">View all updates <ArrowRight size={16} /></Link></div>
       {loading ? <LoadingState label="Loading current work" /> : activeProjects.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{activeProjects.map((project) => {

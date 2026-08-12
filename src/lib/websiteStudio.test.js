@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { branchesFromWebsiteContent, contrastRatio, liveWebsiteFieldValue, resolveWebsiteOverride, safeWebsiteValue, servicesFromWebsiteContent, validateWebsiteEntry, websiteBundleToContent, websiteEntryState, websiteImpact } from './websiteStudio.js';
+import { branchesFromWebsiteContent, contrastRatio, liveWebsiteFieldValue, resolveWebsiteOverride, safeWebsiteValue, servicesFromWebsiteContent, validateWebsiteEntry, WEBSITE_STUDIO_SECTIONS, websiteBundleToContent, websiteEntryState, websiteImpact } from './websiteStudio.js';
 
 const root = new URL('../../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
@@ -107,8 +107,8 @@ test('Website Studio exposes a beginner single-column editor without a simulated
   assert.match(studio, /function SectionChooser/);
   assert.match(studio, /What would you like to change\?/);
   assert.match(studio, /All website sections/);
-  for (const pageGroup of ['Pages', 'Site settings']) assert.match(studio, new RegExp(pageGroup));
-  for (const pagePart of ['Website name, logo, contact, and identity', 'Homepage', 'Current Work']) assert.match(studio, new RegExp(pagePart));
+  for (const pageGroup of ['Public pages', 'Shared across the website']) assert.match(studio, new RegExp(pageGroup));
+  for (const pagePart of ['Logo, brand name, and tagline', 'Homepage descriptions', 'Current Work']) assert.match(studio, new RegExp(pagePart));
   assert.match(studio, /sm:grid-cols-2/);
   assert.doesNotMatch(studio, /\{items\.length\} services|Service listing and inquiry choice/);
   assert.doesNotMatch(studio, /group\/category|shadow-2xl backdrop-blur-xl/);
@@ -123,6 +123,38 @@ test('Website Studio exposes a beginner single-column editor without a simulated
   assert.match(studio, /setNotice\(''\); setError\(''\); setParams/);
   assert.doesNotMatch(studio, /setDirty\(false\); setNotice\(''\); setError\(''\)/);
   assert.doesNotMatch(studio, /window\.confirm|dangerouslySetInnerHTML|contentEditable/);
+});
+
+test('Website Studio presents the requested sections and keeps shared values synchronized', () => {
+  const footer = read('src/components/Footer.jsx');
+  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Home', 'About', 'Current Work', 'Portfolio', 'Creatives', 'Contact', 'Privacy Policy', 'Colors']);
+  assert.ok(!WEBSITE_STUDIO_SECTIONS.some(({ label }) => ['Footer', 'Search', 'Social links'].includes(label)));
+  assert.match(footer, /content\.displayName/);
+  assert.match(footer, /content\.tagline/);
+  assert.match(footer, /content\.logoUrl/);
+  assert.match(footer, /content\.socialLinks/);
+  assert.doesNotMatch(footer, /footerText|footerContextLabel/);
+  const content = websiteBundleToContent({
+    'global.brand': { brandName: 'New Shared Brand', tagline: 'One shared tagline' },
+    'global.navigation': { privacyLabel: 'Data & Privacy' },
+    'page.home': { heroDescription: '{{brandName}} shares current work.' },
+    'page.about': { intro: 'Lahat Liwa Collectives documents its work.' },
+    'page.inquiries': { contactEmail: 'hello@example.com', facebookUrl: 'https://facebook.com/example' },
+  });
+  assert.equal(content.websitePages.home.heroDescription, 'New Shared Brand shares current work.');
+  assert.equal(content.websitePages.about.intro, 'New Shared Brand documents its work.');
+  assert.equal(content.email, 'hello@example.com');
+  assert.equal(content.privacyLabel, 'Data & Privacy');
+  assert.deepEqual(content.socialLinks, [{ label: 'Facebook', href: 'https://facebook.com/example' }]);
+});
+
+test('Website Studio sync migration preserves custom values and adds Privacy and shared Contact data', () => {
+  const migration = read('supabase/migrations/20260813150000_website_studio_editor_sync.sql');
+  assert.match(migration, /'page\.privacy', 'page'/);
+  assert.match(migration, /excluded\.published_data \|\| public\.website_studio_entries\.published_data/);
+  assert.match(migration, /Move contact details and social links into Contact/);
+  assert.doesNotMatch(migration, /\{\{brandName\}\}/);
+  assert.match(migration, /set search_path = pg_catalog/i);
 });
 
 test('people admin distinguishes team accounts from public creative profiles', () => {

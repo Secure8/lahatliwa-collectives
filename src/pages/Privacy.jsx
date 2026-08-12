@@ -1,107 +1,88 @@
 import PublicPageHeader, { AccentEyebrow } from '../components/PublicPageHeader';
 import { usePublicContent } from '../lib/contentApi';
 
-const policySections = [
+const defaultPolicySections = [
   {
+    titleKey: 'informationTitle', bodyKey: 'informationBody',
     title: 'Information we collect',
-    content: (
-      <>
-        <p>Depending on how you use the site, we may collect contact and inquiry details, administrator account information, project updates, creative profile content, and technical information needed to operate, secure, and troubleshoot the website.</p>
-        <p>For uploaded website media, we store the file and the limited metadata needed to publish, replace, and remove it safely.</p>
-      </>
-    ),
+    body: 'Depending on how you use the site, we may collect contact and inquiry details, administrator account information, project updates, creative profile content, and technical information needed to operate, secure, and troubleshoot the website.\n\nFor uploaded website media, we store the file and the limited metadata needed to publish, replace, and remove it safely.',
   },
   {
+    titleKey: 'mediaTitle', bodyKey: 'mediaBody',
     title: 'Public website media',
-    content: (
-      <>
-        <p>Images selected for publication may be resized and converted into website-ready copies. New website media is stored and delivered through Cloudflare R2.</p>
-        <p>Some older published files may remain at existing public URLs until they can be safely replaced. Public media is intended to be viewable without signing in, while private storage credentials are never included in public website records.</p>
-      </>
-    ),
+    body: 'Images selected for publication may be resized and converted into website-ready copies. New website media is stored and delivered through Cloudflare R2.\n\nSome older published files may remain at existing public URLs until they can be safely replaced. Public media is intended to be viewable without signing in, while private storage credentials are never included in public website records.',
   },
   {
+    titleKey: 'useTitle', bodyKey: 'useBody',
     title: 'How we use information',
-    content: (
-      <>
-        <p>We use collected information only to provide and maintain the site, authenticate authorized administrators, respond to inquiries, publish approved project updates and creative profiles, protect the service, and meet applicable legal obligations.</p>
-        <p>We do not sell personal information or use it for advertising, credit decisions, or to train general-purpose artificial intelligence or machine-learning models.</p>
-      </>
-    ),
+    body: 'We use collected information only to provide and maintain the site, authenticate authorized administrators, respond to inquiries, publish approved project updates and creative profiles, protect the service, and meet applicable legal obligations.\n\nWe do not sell personal information or use it for advertising, credit decisions, or to train general-purpose artificial intelligence or machine-learning models.',
   },
   {
+    titleKey: 'sharingTitle', bodyKey: 'sharingBody',
     title: 'Sharing and service providers',
-    content: (
-      <>
-        <p>We may share information with service providers that help us host, secure, and operate Lahat Liwa, including Cloudflare for public website media delivery and Supabase for authentication, database, and server functions. These providers process information under their own terms and privacy commitments.</p>
-        <p>We may also disclose information when required by law, to protect rights and safety, or as part of an organizational transaction with appropriate safeguards. We do not transfer personal information to data brokers, advertising platforms, or information resellers.</p>
-      </>
-    ),
+    body: 'We may share information with service providers that help us host, secure, and operate the website, including Cloudflare for public website media delivery and Supabase for authentication, database, and server functions. These providers process information under their own terms and privacy commitments.\n\nWe may also disclose information when required by law, to protect rights and safety, or as part of an organizational transaction with appropriate safeguards. We do not transfer personal information to data brokers, advertising platforms, or information resellers.',
   },
   {
+    titleKey: 'retentionTitle', bodyKey: 'retentionBody',
     title: 'Retention and deletion',
-    content: (
-      <>
-        <p>We retain information only for as long as it is needed for the purposes described above, to maintain project and contribution records, to resolve security or operational issues, or to meet legal obligations.</p>
-        <p>To request access to, correction of, or deletion of your personal information, contact us using the address below. We may need to verify your identity and may retain limited records where required for security, legal, or legitimate operational purposes.</p>
-      </>
-    ),
+    body: 'We retain information only for as long as it is needed for the purposes described above, to maintain project and contribution records, to resolve security or operational issues, or to meet legal obligations.\n\nTo request access to, correction of, or deletion of your personal information, contact us using the address below. We may need to verify your identity and may retain limited records where required for security, legal, or legitimate operational purposes.',
   },
   {
+    titleKey: 'securityTitle', bodyKey: 'securityBody',
     title: 'Security and your choices',
-    content: (
-      <>
-        <p>We use access controls, owner-bound records, private server operations, and protected credential storage to reduce unauthorized access. No method of online storage or transmission is completely secure, so we cannot guarantee absolute security.</p>
-      </>
-    ),
+    body: 'We use access controls, owner-bound records, private server operations, and protected credential storage to reduce unauthorized access. No method of online storage or transmission is completely secure, so we cannot guarantee absolute security.',
   },
   {
+    titleKey: 'updatesTitle', bodyKey: 'updatesBody',
     title: 'Updates to this policy',
-    content: (
-      <p>We may update this policy as the service or its data practices change. The revised version will be posted on this page with a new effective date, and we will provide appropriate notice where required.</p>
-    ),
+    body: 'We may update this policy as the service or its data practices change. The revised version will be posted on this page with a new effective date, and we will provide appropriate notice where required.',
   },
 ];
+
+function Paragraphs({ text }) {
+  return String(text || '').split(/\n\s*\n/).filter(Boolean).map((paragraph, index) => <p key={`${paragraph.slice(0, 24)}-${index}`}>{paragraph}</p>);
+}
 
 export default function Privacy() {
   const { content } = usePublicContent([]);
   const contactEmail = content.email || 'lahatliwa.collectives@gmail.com';
+  const page = content.websitePages?.privacy || {};
+  const overview = page.overviewBody || `${content.displayName} ("Lahat Liwa," "we," "us," or "our") operates lahatliwa.studio, an Aklan-based creative work platform. This policy explains our data practices for visitors, people who send inquiries, published contributors, and authorized administrators.\n\nBy using the site, you acknowledge the practices described here. If you do not agree, please do not provide personal information.`;
 
   return (
     <div className="page-shell py-20">
       <PublicPageHeader
-        eyebrow="Legal"
-        title="Privacy Policy"
-        description="How Lahat Liwa Collectives collects, uses, stores, and protects information."
+        eyebrow={page.eyebrow || 'Legal'}
+        title={page.title || 'Privacy Policy'}
+        description={page.description || `How ${content.displayName} collects, uses, stores, and protects information.`}
       />
 
       <div className="grid gap-10 py-12 md:grid-cols-[0.32fr_1fr] md:py-16">
         <aside>
           <AccentEyebrow>Effective date</AccentEyebrow>
-          <p className="mt-4 text-sm text-[var(--site-secondary-text)]">August 13, 2026</p>
+          <p className="mt-4 text-sm text-[var(--site-secondary-text)]">{page.effectiveDate || 'August 13, 2026'}</p>
         </aside>
         <div className="max-w-3xl space-y-12 border-l border-white/[0.09] pl-5 sm:pl-7">
           <section>
-            <h2 className="text-2xl font-medium text-[var(--site-primary-text)]">Overview</h2>
+            <h2 className="text-2xl font-medium text-[var(--site-primary-text)]">{page.overviewTitle || 'Overview'}</h2>
             <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--site-secondary-text)]">
-              <p>Lahat Liwa Collectives ("Lahat Liwa," "we," "us," or "our") operates lahatliwa.studio, an Aklan-based creative work platform. This policy explains our data practices for visitors, people who send inquiries, published contributors, and authorized administrators.</p>
-              <p>By using the site, you acknowledge the practices described here. If you do not agree, please do not provide personal information.</p>
+              <Paragraphs text={overview} />
             </div>
           </section>
 
-          {policySections.map((section) => (
+          {defaultPolicySections.map((section) => (
             <section key={section.title} className="major-border-top pt-10">
-              <h2 className="text-2xl font-medium text-[var(--site-primary-text)]">{section.title}</h2>
+              <h2 className="text-2xl font-medium text-[var(--site-primary-text)]">{page[section.titleKey] || section.title}</h2>
               <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--site-secondary-text)] [&_a]:text-[var(--site-accent-text)] [&_a]:underline [&_a]:underline-offset-4 [&_code]:rounded [&_code]:bg-white/[0.06] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[var(--site-primary-text)]">
-                {section.content}
+                <Paragraphs text={page[section.bodyKey] || section.body} />
               </div>
             </section>
           ))}
 
           <section className="major-border-top pt-10">
             <AccentEyebrow>Contact</AccentEyebrow>
-            <h2 className="mt-4 text-2xl font-medium text-[var(--site-primary-text)]">Privacy questions or requests</h2>
-            <p className="mt-4 text-sm leading-7 text-[var(--site-secondary-text)]">Email us at <a className="text-[var(--site-accent-text)] underline underline-offset-4" href={`mailto:${contactEmail}`}>{contactEmail}</a>.</p>
+            <h2 className="mt-4 text-2xl font-medium text-[var(--site-primary-text)]">{page.contactTitle || 'Privacy questions or requests'}</h2>
+            <p className="mt-4 text-sm leading-7 text-[var(--site-secondary-text)]">{page.contactBody || 'Email us with privacy questions, access requests, corrections, or deletion requests.'} <a className="text-[var(--site-accent-text)] underline underline-offset-4" href={`mailto:${contactEmail}`}>{contactEmail}</a>.</p>
           </section>
         </div>
       </div>

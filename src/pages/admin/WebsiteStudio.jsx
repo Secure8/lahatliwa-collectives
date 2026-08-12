@@ -10,13 +10,13 @@ import {
   publishWebsiteEntry, liveWebsiteFieldValue, saveWebsiteDraft,
   validateWebsiteEntry, WEBSITE_STUDIO_SECTIONS, websiteEntryState, websiteImpact,
 } from '../../lib/websiteStudio.js';
+import { uploadSiteAsset } from '../../lib/contentApi.js';
 
-const pageRoutes = { 'page.home': '/', 'page.explore': '/work', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.services': '/services', 'page.about': '/about', 'page.inquiries': '/contact' };
-const advancedFieldPattern = /(url|alt|seo|search|social|facebook|instagram|linkedin|youtube|tiktok|github|order|status|visibility|availability|featured|show|enabled|icon|image)/i;
-const pageGroupOrder = ['Pages', 'Site settings'];
+const pageRoutes = { 'page.home': '/', 'page.explore': '/work', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.about': '/about', 'page.inquiries': '/contact', 'page.privacy': '/privacy' };
+const pageGroupOrder = ['Shared across the website', 'Public pages'];
 const pageGroupDescriptions = {
-  Pages: 'Change the words visitors see on each public page.',
-  'Site settings': 'Update your brand, navigation, footer, colors, and sharing details.',
+  'Shared across the website': 'Edit a value once and every connected area updates together.',
+  'Public pages': 'Edit the words for one public page. Project and profile images remain connected to their own records.',
 };
 
 function labelFromKey(key = '') { return key.replace(/^page\.|^global\.|^service\./, '').replaceAll('.', ' · ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
@@ -29,26 +29,24 @@ function friendlyError(error) {
   return message;
 }
 function studioPlacement(key, entryType = '') {
-  if (key === 'overview') return ['Pages', 'Website editing home'];
-  if (key === 'global.brand') return ['Site settings', 'Website name, logo, contact, and identity'];
-  if (key === 'global.navigation') return ['Site settings', 'Links shown in the website menu'];
-  if (key === 'global.footer') return ['Site settings', 'Information shown at the bottom of every page'];
-  if (key === 'page.search') return ['Site settings', 'Search, sharing image, and social links'];
-  if (key === 'global.appearance') return ['Site settings', 'Website colors in light and dark mode'];
-  if (key === 'page.home') return ['Pages', 'Homepage'];
-  if (key === 'page.explore') return ['Pages', 'Current Work'];
-  if (key === 'page.creatives') return ['Pages', 'Creatives'];
-  if (key === 'page.projects') return ['Pages', 'Portfolio'];
-  if (key === 'page.services') return ['Pages', 'Work with us'];
-  if (key === 'page.about') return ['Pages', 'About'];
-  if (key === 'page.inquiries') return ['Pages', 'Inquiry introduction'];
-  return ['Site settings', 'Shared website content'];
+  if (key === 'overview') return ['Public pages', 'Website editing home'];
+  if (key === 'global.brand') return ['Shared across the website', 'Logo, brand name, and tagline used throughout the site'];
+  if (key === 'global.navigation') return ['Shared across the website', 'Labels and visibility for the top and mobile menus'];
+  if (key === 'global.appearance') return ['Shared across the website', 'Website-wide colors, buttons, text, and borders'];
+  if (key === 'page.home') return ['Public pages', 'Homepage descriptions; project and profile images stay automatic'];
+  if (key === 'page.explore') return ['Public pages', 'Current Work introduction'];
+  if (key === 'page.creatives') return ['Public pages', 'Creative directory descriptions'];
+  if (key === 'page.projects') return ['Public pages', 'Portfolio introduction'];
+  if (key === 'page.about') return ['Public pages', 'About page content and information cards'];
+  if (key === 'page.inquiries') return ['Public pages', 'Contact details, social links, and inquiry wording'];
+  if (key === 'page.privacy') return ['Public pages', 'Privacy Policy headings, sections, and effective date'];
+  return ['Public pages', 'Public website content'];
 }
 function groupNavigation(items) {
   const groups = items.reduce((result, item) => ({ ...result, [item.group]: [...(result[item.group] || []), item] }), {});
   return Object.entries(groups).sort(([first], [second]) => pageGroupOrder.indexOf(first) - pageGroupOrder.indexOf(second));
 }
-function fieldIsAdvanced([key, , type]) { return type === 'status' || type === 'number' || advancedFieldPattern.test(key); }
+function fieldIsAdvanced([key, , type]) { return type === 'boolean' || type === 'route' || /Alt$/.test(key); }
 
 export default function WebsiteStudio() {
   const { role } = useAdminAccess();
@@ -59,6 +57,7 @@ export default function WebsiteStudio() {
   const [form, setForm] = useState({});
   const [dirty, setDirty] = useState(false);
   const [working, setWorking] = useState('');
+  const [uploading, setUploading] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const sectionKey = params.get('section') || 'overview';
@@ -108,6 +107,16 @@ export default function WebsiteStudio() {
     setWorking('');
   }
   async function save() { const validated = validateWebsiteEntry(form, fields); await run('save', () => saveWebsiteDraft(selected.entry_key, validated)); }
+  async function uploadImage(fieldKey, file) {
+    if (!file || uploading) return;
+    setUploading(fieldKey); setError(''); setNotice('');
+    try {
+      const url = await uploadSiteAsset(file, 'brand', 'siteLogo');
+      updateField(fieldKey, url, 'image');
+      setNotice('Logo uploaded. Save the draft, then publish it to update the connected website areas.');
+    } catch (uploadError) { setError(friendlyError(uploadError)); }
+    setUploading('');
+  }
   async function publish() { if (dirty) { setError('Save the draft before publishing.'); return; } if (!selected?.draft_data) { setError('There are no unpublished changes to publish.'); return; } await run('publish', () => publishWebsiteEntry(selected.entry_key)); }
   if (!['super_admin','owner','admin'].includes(role)) return <Navigate to="/admin/dashboard" replace />;
   if (loading) return <AdminLayout><LoadingState label="Loading Website Studio" /></AdminLayout>;
@@ -123,7 +132,7 @@ export default function WebsiteStudio() {
     <main className="min-w-0">
       {sectionKey === 'overview' ? <SectionChooser navigation={navigation} entries={entries} search={search} setSearch={setSearch} onSelect={selectSection} /> : <>
         <button type="button" onClick={() => selectSection('overview')} className="mb-6 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-zinc-300 transition hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><ArrowLeft size={16}/>All website sections</button>
-        <StudioContent sectionKey={sectionKey} selected={selected} form={form} fields={fields} config={config} state={state} dirty={dirty} working={working} updateField={updateField} save={save} publish={publish} discard={() => run('discard', () => discardWebsiteDraft(selected.entry_key))} />
+        <StudioContent sectionKey={sectionKey} selected={selected} form={form} fields={fields} config={config} state={state} dirty={dirty} working={working} uploading={uploading} uploadImage={uploadImage} updateField={updateField} save={save} publish={publish} discard={() => run('discard', () => discardWebsiteDraft(selected.entry_key))} />
       </>}
     </main>
   </AdminLayout>;
@@ -133,14 +142,14 @@ function SectionChooser({ navigation, entries, search, setSearch, onSelect }) {
   const groups = groupNavigation(navigation.filter((item) => item.key !== 'overview'));
   const renderItems = (items) => <div className="mt-4 grid gap-2 sm:grid-cols-2">{items.map((item) => { const row = entries.find((entry) => entry.entry_key === item.key); return <button key={item.key} type="button" onClick={() => onSelect(item.key)} className="group flex min-h-20 items-center justify-between gap-4 rounded-lg border border-white/[0.09] bg-white/[0.02] px-4 py-3 text-left transition hover:border-amber-200/30 hover:bg-amber-200/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-zinc-100 group-hover:text-amber-100">{item.name}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{item.part}</span></span><span className="flex shrink-0 items-center gap-2"><span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${row?.draft_data ? 'text-amber-200' : 'text-zinc-600'}`}>{row?.draft_data ? 'Draft' : 'Live'}</span><ChevronRight size={16} className="text-zinc-600 group-hover:text-amber-200"/></span></button>; })}</div>;
   return <section aria-labelledby="website-sections-heading">
-    <div className="max-w-2xl"><h2 id="website-sections-heading" className="text-2xl font-semibold text-white">What would you like to change?</h2><p className="mt-2 text-sm leading-6 text-zinc-400">Choose Pages for visitor-facing words. Choose Site settings for the brand, menu, footer, colors, and sharing details.</p></div>
+    <div className="max-w-2xl"><h2 id="website-sections-heading" className="text-2xl font-semibold text-white">What would you like to change?</h2><p className="mt-2 text-sm leading-6 text-zinc-400">Choose Branding, Navbar, or Colors for synchronized website-wide changes. Choose a public page when only that page's wording needs to change.</p></div>
     <label data-search-shell className="mt-5 flex h-11 max-w-md items-center gap-2 rounded-lg border border-white/[0.1] bg-black/20 px-3"><Search size={15} className="shrink-0 text-zinc-500" aria-hidden="true"/><span className="sr-only">Search website sections</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search pages or settings" className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600"/></label>
     <nav className="mt-8 grid gap-8" aria-label="Website Studio sections">{groups.map(([group, items]) => <section key={group} className="rounded-xl border border-white/[0.09] bg-white/[0.015] p-4 sm:p-5"><div><h3 className="text-lg font-semibold text-white">{group}</h3><p className="mt-1 text-sm leading-6 text-zinc-500">{pageGroupDescriptions[group]}</p></div>{renderItems(items)}</section>)}</nav>
   </section>;
 }
 
 function StudioContent(props) {
-  const { sectionKey, selected, form, fields, config, state, dirty, working, updateField, save, publish, discard } = props;
+  const { sectionKey, selected, form, fields, config, state, dirty, working, uploading, uploadImage, updateField, save, publish, discard } = props;
   if (!selected) return <div className="grid min-h-[30rem] place-items-center text-sm text-zinc-500">Choose a Website Studio section.</div>;
   const commonFields = fields.filter((field) => !fieldIsAdvanced(field));
   const advancedFields = fields.filter(fieldIsAdvanced);
@@ -148,18 +157,22 @@ function StudioContent(props) {
   return <div className="mx-auto max-w-4xl">
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.08] pb-5"><div><p className="text-xs uppercase tracking-[0.16em] text-zinc-500">{selected.entry_type}</p><h2 className="mt-1 text-2xl font-semibold text-white">{form.name || config?.label || labelFromKey(selected.entry_key)}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Changes here appear in {websiteImpact(selected.entry_key).join(', ')}.</p></div><span className={`text-xs font-semibold ${state === 'Published' && !dirty ? 'text-emerald-200' : 'text-amber-200'}`}>{statusLabel}</span></div>
     {sectionKey === 'global.appearance' && <AppearanceGuide/>}
-    <section className="mt-6"><h3 className="text-base font-semibold text-white">Main content</h3><p className="mt-1 text-sm text-zinc-500">These are the details most visitors will notice.</p><div className="mt-5 grid gap-5 sm:grid-cols-2">{commonFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} onChange={(value) => updateField(key,value,type)}/>)}</div></section>
+    {sectionKey === 'page.home' && <div className="mt-6 border-l-2 border-sky-300/35 pl-4"><h3 className="text-sm font-semibold text-white">Images stay connected automatically</h3><p className="mt-1 text-sm leading-6 text-zinc-400">Homepage project covers come from Projects, and creative photos come from Creative Profiles. This section edits wording only, so images cannot fall out of sync.</p></div>}
+    {sectionKey === 'global.brand' && <div className="mt-6 border-l-2 border-amber-200/40 pl-4"><h3 className="text-sm font-semibold text-white">One shared identity</h3><p className="mt-1 text-sm leading-6 text-zinc-400">The brand name, logo, and tagline update the navbar, footer, and other connected public areas together.</p></div>}
+    {sectionKey === 'page.inquiries' && <div className="mt-6 border-l-2 border-emerald-300/35 pl-4"><h3 className="text-sm font-semibold text-white">Contact details are shared</h3><p className="mt-1 text-sm leading-6 text-zinc-400">Email and social links appear on Contact and automatically flow into the footer.</p></div>}
+    <section className="mt-6"><h3 className="text-base font-semibold text-white">Editable content</h3><p className="mt-1 text-sm text-zinc-500">Use plain, visitor-friendly wording. Every field below has one clear destination.</p><div className="mt-5 grid gap-5 sm:grid-cols-2">{commonFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} uploading={uploading === key} onUpload={(file) => uploadImage(key,file)} onChange={(value) => updateField(key,value,type)}/>)}</div></section>
     {advancedFields.length > 0 && <details className="group mt-8 border-t border-white/[0.08] pt-5"><summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-200">Advanced settings<ChevronDown size={17} className="transition-transform group-open:rotate-180"/></summary><p className="mt-1 text-sm text-zinc-500">Visibility, links, search details, media references, and display order.</p><div className="mt-5 grid gap-5 sm:grid-cols-2">{advancedFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} onChange={(value) => updateField(key,value,type)}/>)}</div></details>}
-    <div className="sticky bottom-0 mt-10 flex flex-wrap gap-2 border-t border-white/[0.1] bg-zinc-950 py-3"><p className="basis-full text-xs leading-5 text-zinc-500"><strong className="text-zinc-300">Step 1:</strong> Save a private draft. <strong className="text-zinc-300">Step 2:</strong> Publish it when you want visitors to see it.</p><button type="button" onClick={save} disabled={!dirty || Boolean(working)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-amber-200 px-4 text-sm font-semibold text-zinc-950 disabled:opacity-40"><Save size={15}/>{working === 'save' ? 'Saving' : '1. Save draft'}</button><button type="button" onClick={publish} disabled={dirty || !selected.draft_data || Boolean(working)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-emerald-300/35 px-4 text-sm font-semibold text-emerald-100 disabled:opacity-40"><Send size={15}/>{working === 'publish' ? 'Publishing' : '2. Publish live'}</button><button type="button" onClick={discard} disabled={!selected.draft_data || Boolean(working)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/[0.1] px-4 text-sm text-zinc-300 disabled:opacity-40"><Undo2 size={15}/>Discard draft</button>{pageRoutes[selected.entry_key] && <Link to={pageRoutes[selected.entry_key]} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/[0.1] px-4 text-sm text-zinc-200"><ExternalLink size={15}/>Preview page</Link>}</div>
+    <div className="sticky bottom-0 mt-10 flex flex-wrap gap-2 border-t border-white/[0.1] bg-zinc-950 py-3"><p className="basis-full text-xs leading-5 text-zinc-500"><strong className="text-zinc-300">Step 1:</strong> Save a private draft. <strong className="text-zinc-300">Step 2:</strong> Publish it when you want visitors to see it.</p><button type="button" onClick={save} disabled={!dirty || Boolean(working) || Boolean(uploading)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-amber-200 px-4 text-sm font-semibold text-zinc-950 disabled:opacity-40"><Save size={15}/>{working === 'save' ? 'Saving' : '1. Save draft'}</button><button type="button" onClick={publish} disabled={dirty || !selected.draft_data || Boolean(working) || Boolean(uploading)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-emerald-300/35 px-4 text-sm font-semibold text-emerald-100 disabled:opacity-40"><Send size={15}/>{working === 'publish' ? 'Publishing' : '2. Publish live'}</button><button type="button" onClick={discard} disabled={!selected.draft_data || Boolean(working) || Boolean(uploading)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/[0.1] px-4 text-sm text-zinc-300 disabled:opacity-40"><Undo2 size={15}/>Discard draft</button>{pageRoutes[selected.entry_key] && <Link to={pageRoutes[selected.entry_key]} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/[0.1] px-4 text-sm text-zinc-200"><ExternalLink size={15}/>Preview page</Link>}</div>
   </div>;
 }
 
 function AppearanceGuide() { return <div className="mt-6 border-l-2 border-amber-200/40 pl-4"><h3 className="text-sm font-semibold text-white">Global theme colors</h3><p className="mt-1 text-sm leading-6 text-zinc-400">These brand colors support both light and dark mode across public pages, including Current Work, buttons, links, body text, and dividers. Publish carefully because this changes the whole website.</p></div>; }
 function keepEditorKeysLocal(event) { event.stopPropagation(); }
-function StudioField({ fieldKey, label, type, value, onChange }) {
+function StudioField({ fieldKey, label, type, value, onChange, onUpload, uploading = false }) {
   if (type === 'boolean') return <label className="flex min-h-11 items-center justify-between gap-3 border-b border-white/[0.08] py-2 text-sm text-zinc-300"><span>{label}</span><input type="checkbox" checked={value === true} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-amber-300"/></label>;
   if (type === 'status') return <label className="grid gap-1.5 text-sm text-zinc-400"><span>{label}</span><select value={value || 'active'} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-lg border border-white/[0.1] bg-zinc-950 px-3 text-white"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>;
   if (type === 'textarea') return <label className="grid gap-1.5 text-sm text-zinc-400 sm:col-span-2"><span>{label}</span><textarea rows="4" value={value ?? ''} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(event.target.value)} className="rounded-lg border border-white/[0.1] bg-black/20 px-3 py-2.5 leading-6 text-white outline-none focus:border-amber-200/50"/></label>;
   if (type === 'color') return <label className="grid gap-1.5 text-sm text-zinc-400"><span>{label}</span><span className="flex h-12 items-center gap-3 rounded-lg border border-white/[0.1] bg-black/20 px-2"><input aria-label={`${label} color picker`} type="color" value={value || '#ffffff'} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0"/><input aria-label={`${label} hex value`} type="text" value={value ?? ''} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent font-mono text-sm uppercase text-white outline-none"/></span></label>;
+  if (type === 'image') return <div className="grid gap-2 text-sm text-zinc-400 sm:col-span-2"><span>{label}</span><div className="grid gap-4 rounded-xl border border-white/[0.1] bg-black/20 p-4 sm:grid-cols-[6rem_1fr] sm:items-center">{value ? <img src={value} alt="Current brand logo" className="aspect-square h-24 w-24 rounded-lg border border-white/10 bg-zinc-900 object-contain p-2"/> : <div className="grid aspect-square h-24 w-24 place-items-center rounded-lg border border-dashed border-white/15 text-xs text-zinc-600">No logo</div>}<div><label className="inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-amber-200 px-4 font-semibold text-zinc-950"><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="sr-only" disabled={uploading} onChange={(event) => { const file=event.target.files?.[0]; if (file) onUpload(file); event.target.value=''; }}/>{uploading ? 'Uploading…' : value ? 'Replace logo' : 'Upload logo'}</label><p className="mt-2 text-xs leading-5 text-zinc-500">PNG, JPG, WebP, or SVG. The published URL is managed automatically.</p></div></div></div>;
   return <label className="grid gap-1.5 text-sm text-zinc-400"><span>{label}</span><input type={type === 'number' ? 'number' : type === 'email' ? 'email' : 'text'} value={value ?? ''} onKeyDown={keepEditorKeysLocal} onChange={(event) => onChange(type === 'number' ? event.target.valueAsNumber : event.target.value)} className="h-11 rounded-lg border border-white/[0.1] bg-black/20 px-3 text-white outline-none focus:border-amber-200/50"/></label>;
 }

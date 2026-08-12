@@ -23,7 +23,7 @@ test('public positioning serves clients and published creatives without agency c
 
   assert.match(homeHero, /Creative work, shared from first progress to finished portfolio/i);
   assert.match(home, /Featured creatives/i);
-  assert.match(about, /Lahat Liwa is rooted in Aklan/i);
+  assert.match(about, /content\.displayName.*is rooted in Aklan/i);
   assert.match(about, /does not automatically mean employment/i);
   assert.match(about, /Built from Aklan/i);
   assert.match(creatives, /people credited in the work/i);

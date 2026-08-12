@@ -9,7 +9,7 @@ const AUTOPLAY_MS = 7000;
 
 const step = (index, length, direction) => length ? (index + direction + length) % length : 0;
 
-export default function ActiveWorkHero({ projects = [], loading = false }) {
+export default function ActiveWorkHero({ projects = [], loading = false, page = {}, brandName = 'Lahat Liwa Collectives' }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [hoverPaused, setHoverPaused] = useState(false);
   const [focusPaused, setFocusPaused] = useState(false);
@@ -91,9 +91,9 @@ export default function ActiveWorkHero({ projects = [], loading = false }) {
 
     <div className="page-shell relative flex min-h-[74svh] items-end pb-24 pt-28 sm:pb-28 lg:items-center">
       <div className="max-w-4xl">
-        <p className="public-eyebrow">Aklan-based creative work platform</p>
-        <h1 className="mt-5 text-4xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl">Creative work, shared from first progress to finished portfolio.</h1>
-        <p className="mt-6 max-w-2xl text-base leading-7 text-zinc-200 sm:text-lg">Lahat Liwa documents active client work, content, event coverage, and digital projects—then preserves completed work with clear contributor credit.</p>
+        <p className="public-eyebrow">{page.heroEyebrow || 'Aklan-based creative work platform'}</p>
+        <h1 className="mt-5 text-4xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl">{page.heroTitle || 'Creative work, shared from first progress to finished portfolio.'}</h1>
+        <p className="mt-6 max-w-2xl text-base leading-7 text-zinc-200 sm:text-lg">{page.heroDescription || `${brandName} documents active client work, content, event coverage, and digital projects—then preserves completed work with clear contributor credit.`}</p>
 
         {active ? <div className="mt-8 max-w-2xl border-l-2 border-[var(--site-accent)] pl-5">
           <p className="public-eyebrow">Currently working on</p>

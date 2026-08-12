@@ -36,7 +36,7 @@ export default function AdminCreatives() {
   useEffect(() => {
     Promise.all([
       supabase.from('creative_members').select('*').order('display_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false }),
-      supabase.from('team_members').select('id, display_name, status, creative_member_id'),
+      supabase.from('admin_users').select('id, display_name, status, creative_member_id'),
     ]).then(([{ data, error: loadError }, { data: memberRows, error: memberError }]) => {
         if (loadError || memberError) setError((loadError || memberError).message);
         else { setCreatives(data || []); setTeamMembers(memberRows || []); }

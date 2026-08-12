@@ -134,6 +134,8 @@ test('people admin distinguishes team accounts from public creative profiles', (
   assert.match(team, /Link profile/);
   assert.match(team, /Create profile/);
   assert.match(creatives, /Linked Team Member/);
+  assert.match(creatives, /supabase\.from\('admin_users'\)/);
+  assert.doesNotMatch(creatives, /supabase\.from\('team_members'\)/);
   assert.doesNotMatch(creatives, /member\.email/);
 });
 

@@ -7,8 +7,8 @@ export const MOBILE_APP_BAR_SHOW_TRANSITION_DURATION = 180;
 
 export const PUBLIC_PRIMARY_DESTINATIONS = [
   ['Home', '/'],
-  ['Current Work', '/work'],
-  ['Projects', '/projects'],
+  ['Work', '/work'],
+  ['Portfolio', '/projects'],
   ['Creatives', '/creatives'],
   ['Inquiry', '/inquiry'],
 ];

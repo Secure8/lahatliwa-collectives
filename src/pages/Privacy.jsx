@@ -6,7 +6,7 @@ const policySections = [
     title: 'Information we collect',
     content: (
       <>
-        <p>Depending on how you use the site, we may collect contact and inquiry details, Team account information, project and profile content, and technical information needed to operate, secure, and troubleshoot the service.</p>
+        <p>Depending on how you use the site, we may collect contact and inquiry details, administrator account information, project updates, creative profile content, and technical information needed to operate, secure, and troubleshoot the website.</p>
         <p>For uploaded website media, we store the file and the limited metadata needed to publish, replace, and remove it safely.</p>
       </>
     ),
@@ -16,7 +16,7 @@ const policySections = [
     content: (
       <>
         <p>Images selected for publication may be resized and converted into website-ready copies. New website media is stored and delivered through Cloudflare R2.</p>
-        <p>Some previously published images may continue to use their existing Supabase URLs while they are safely migrated. Public media URLs are intended to be accessible without signing in, and private storage credentials are never included in public website records.</p>
+        <p>Some older published files may remain at existing public URLs until they can be safely replaced. Public media is intended to be viewable without signing in, while private storage credentials are never included in public website records.</p>
       </>
     ),
   },
@@ -24,7 +24,7 @@ const policySections = [
     title: 'How we use information',
     content: (
       <>
-        <p>We use collected information only to provide and maintain the site, authenticate and support Team members, respond to inquiries, publish approved profiles and projects, protect the service, and meet applicable legal obligations.</p>
+        <p>We use collected information only to provide and maintain the site, authenticate authorized administrators, respond to inquiries, publish approved project updates and creative profiles, protect the service, and meet applicable legal obligations.</p>
         <p>We do not sell personal information or use it for advertising, credit decisions, or to train general-purpose artificial intelligence or machine-learning models.</p>
       </>
     ),
@@ -84,7 +84,7 @@ export default function Privacy() {
           <section>
             <h2 className="text-2xl font-medium text-[var(--site-primary-text)]">Overview</h2>
             <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--site-secondary-text)]">
-              <p>Lahat Liwa Collectives ("Lahat Liwa," "we," "us," or "our") operates lahatliwa.studio. This policy explains our data practices for public visitors, people who send inquiries, published creatives, and approved Team members.</p>
+              <p>Lahat Liwa Collectives ("Lahat Liwa," "we," "us," or "our") operates lahatliwa.studio, an Aklan-based creative work platform. This policy explains our data practices for visitors, people who send inquiries, published contributors, and authorized administrators.</p>
               <p>By using the site, you acknowledge the practices described here. If you do not agree, please do not provide personal information.</p>
             </div>
           </section>

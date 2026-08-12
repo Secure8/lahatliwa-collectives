@@ -78,7 +78,7 @@ export function AdminSoftPanel({ children, className = '' }) {
 
 export function AdminButton({ children, to, onClick, type = 'button', variant = 'secondary', className = '', disabled = false, ...props }) {
   const classes = clsx(
-    'admin-button inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold leading-none transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
+    'admin-button inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-4 text-sm font-semibold leading-none transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
     variant === 'primary'
       ? 'border-amber-200/70 bg-amber-300 text-zinc-950 shadow-sm shadow-amber-950/30 hover:bg-amber-200'
       : variant === 'danger'
@@ -103,7 +103,7 @@ export function AdminActionGroup({ children, className = '' }) {
 
 export function AdminActionButton({ children, to, onClick, type = 'button', variant = 'secondary', disabled = false, className = '', ...props }) {
   const classes = clsx(
-    'admin-action-button inline-flex h-9 min-w-0 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 text-xs font-semibold leading-none transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
+    'admin-action-button inline-flex h-10 min-w-0 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-xs font-semibold leading-none transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-45',
     variant === 'danger'
       ? 'border-red-300/30 bg-red-300/[0.1] text-red-100 hover:border-red-300/50 hover:bg-red-300/[0.16]'
       : variant === 'primary'

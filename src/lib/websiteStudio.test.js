@@ -71,7 +71,7 @@ test('explicit overrides are optional and reset to the shared value', () => {
 test('draft state, impact summaries, and approved routes are deterministic', () => {
   assert.equal(websiteEntryState({ published_data: {}, draft_data: null }), 'Published');
   assert.equal(websiteEntryState({ published_data: {}, draft_data: { title: 'Draft' } }), 'Unpublished changes');
-  assert.ok(websiteImpact('service.digital.website').some((area) => /inquiry choices/i.test(area)));
+  assert.ok(websiteImpact('service.digital.website').some((area) => /legacy compatibility/i.test(area)));
   assert.throws(() => safeWebsiteValue('/services/digital', 'route'));
   assert.throws(() => safeWebsiteValue('javascript:alert(1)', 'url'));
   assert.throws(() => safeWebsiteValue('<script>alert(1)</script>'));
@@ -91,7 +91,7 @@ test('Website Studio excludes branch and fixed-service records and explains the 
   const api = read('src/lib/websiteStudio.js');
   assert.doesNotMatch(api, /export const BRANCH_FIELDS/);
   assert.match(studio, /!\['branch', 'service'\]\.includes\(entry\.entry_type\)/);
-  assert.match(studio, /Save stores this section privately\. Publish applies the saved content everywhere listed above\./);
+  assert.match(studio, /Step 1:[\s\S]*Save a private draft[\s\S]*Step 2:[\s\S]*Publish it/);
   assert.match(studio, /Draft saved\. Publish it to update every connected public page\./);
 });
 
@@ -103,7 +103,7 @@ test('appearance validation enforces usable contrast', () => {
 
 test('Website Studio exposes a beginner single-column editor without a simulated preview', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
-  for (const text of ['Save draft','Published','Publish','Discard','View live website','Open this page','Unpublished changes','Advanced settings','Admin home']) assert.match(studio, new RegExp(text, 'i'));
+  for (const text of ['Save draft','Published','Publish live','Discard draft','View live website','Preview page','Unpublished changes','Advanced settings','Admin home']) assert.match(studio, new RegExp(text, 'i'));
   assert.match(studio, /function SectionChooser/);
   assert.match(studio, /What would you like to change\?/);
   assert.match(studio, /All website sections/);
@@ -213,11 +213,11 @@ test('migration keeps drafts private, limits writers, validates content, and aud
   assert.doesNotMatch(policyGrant, /grant execute[\s\S]* to anon/i);
 });
 
-test('original Creatives hero wording and identity remain protected', () => {
+test('brand alignment migration and Creatives hero use the current identity', () => {
   const hero = read('src/components/CollectiveHero.jsx');
-  const migration = read('supabase/migrations/20260722210000_connected_website_studio.sql');
-  assert.match(hero, /AKLAN CREATIVES/);
-  assert.match(hero, /Lahat Liwa Collectives/);
-  assert.match(migration, /Serve as a shared space where creatives can present their work, receive proper credit, and publish projects under one collective identity\./);
-  assert.doesNotMatch(`${hero}\n${migration}`, /Independent creative platform/);
+  const migration = read('supabase/migrations/20260813120000_brand_content_alignment.sql');
+  assert.match(hero, /CREATIVE CONTRIBUTORS/);
+  assert.match(hero, /People behind the work\./);
+  assert.match(migration, /Aklan-based creative work platform/);
+  assert.match(migration, /Follow the work while it is happening\./);
 });

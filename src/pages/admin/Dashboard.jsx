@@ -57,7 +57,7 @@ export default function Dashboard() {
 
   const displayName = adminUser?.display_name || adminUser?.name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'there';
   const actions = useMemo(() => [
-    ...(['super_admin', 'admin'].includes(role) ? [{ to: '/admin/website', icon: PanelsTopLeft, label: 'Edit website', description: 'Open Website Studio to change page copy and site settings.', primary: true }] : []),
+    ...(['super_admin', 'admin'].includes(role) ? [{ to: '/admin/website', icon: PanelsTopLeft, label: 'Edit website', description: 'Change the words, links, and colors visitors see.', primary: true }] : []),
     { to: '/admin/projects/new', icon: Plus, label: 'Start a project', description: 'Create active work, add public updates, and move it to the portfolio when complete.', primary: !['super_admin', 'admin'].includes(role) },
     { to: '/admin/projects', icon: FolderKanban, label: 'Update current work', description: 'Post progress or mark a project completed.' },
     ...(canViewInquiries ? [{ to: '/admin/inquiries', icon: Inbox, label: 'Review inquiries', description: 'Read questions and continue follow-up.' }] : []),
@@ -72,7 +72,7 @@ export default function Dashboard() {
   ];
 
   return <AdminLayout>
-    <AdminPageHeader eyebrow={`${roleLabel(role)} workspace`} title={`Welcome, ${displayName}`} description="Choose what you want to work on. Everything else can wait." />
+    <AdminPageHeader eyebrow={`${roleLabel(role)} workspace`} title={`Welcome, ${displayName}`} description="Choose a task below to update the website, publish work, or respond to people." />
     {state.error && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{state.error}</span><button type="button" onClick={() => setReloadKey((value) => value + 1)} className={`text-sm underline decoration-white/30 underline-offset-4 ${focusLink}`}>Retry</button></div></AdminNotice>}
 
     <section aria-labelledby="quick-actions-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Start here</p><h2 id="quick-actions-heading" className="mt-1 text-xl font-semibold">What would you like to do?</h2></div><nav className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Primary actions">{actions.map((action) => <QuickAction key={action.label} {...action} />)}</nav></section>

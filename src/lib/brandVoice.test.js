@@ -20,12 +20,12 @@ test('public positioning serves clients and published creatives without agency c
   const creatives = source('pages/Creatives.jsx');
   const footer = source('components/Footer.jsx');
 
-  assert.match(home, /See what we are building, covering, and publishing now/i);
+  assert.match(home, /Creative work, shared from first progress to finished portfolio/i);
   assert.match(home, /Featured creatives/i);
-  assert.match(about, /independently operated/i);
-  assert.match(about, /does not automatically mean being employed/i);
+  assert.match(about, /Lahat Liwa is rooted in Aklan/i);
+  assert.match(about, /does not automatically mean employment/i);
   assert.match(about, /Built from Aklan/i);
-  assert.match(creatives, /published creatives and credited work/i);
+  assert.match(creatives, /people credited in the work/i);
   assert.match(footer, /content\.tagline/);
 
   const publicCopy = [home, about, creatives, footer, source('pages/Services.jsx'), source('pages/Projects.jsx')].join('\n');

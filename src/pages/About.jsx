@@ -18,30 +18,32 @@ export default function About() {
 
       <section className="grid gap-8 py-12 md:grid-cols-[0.38fr_1fr] md:py-16">
         <div>
-          <AccentEyebrow color={content.about.accentColor || content.accentColor}>How it works</AccentEyebrow>
-          <h2 className="mt-4 text-2xl font-medium">Clear paths for both audiences</h2>
+          <AccentEyebrow color={content.about.accentColor || content.accentColor}>What you can find</AccentEyebrow>
+          <h2 className="mt-4 text-2xl font-medium">One connected record of the work</h2>
         </div>
-        <div className="grid gap-8 border-l border-white/[0.09] pl-5 sm:grid-cols-2 sm:pl-7">
-          <div><h3 className="text-lg font-medium">For clients</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore available services, review published work, and send a guided inquiry with the context needed for a practical first review.</p></div>
-          <div><h3 className="text-lg font-medium">For creatives</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Selected creatives can publish profiles, portfolio work, and credited contributions so their roles remain visible and easier to discover.</p></div>
+        <div className="grid gap-5 border-l border-[var(--site-divider)] pl-5 sm:grid-cols-2 sm:pl-7">
+          <div className="public-card p-5"><h3 className="text-lg font-medium">Current work</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Follow active client projects, content production, event coverage, and milestones while the work is developing.</p></div>
+          <div className="public-card p-5"><h3 className="text-lg font-medium">Completed portfolio</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Explore finished projects, their outcomes, and the contributors credited for their roles.</p></div>
+          <div className="public-card p-5"><h3 className="text-lg font-medium">Creative profiles</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Meet published creatives and collaborators through their skills, selected work, and contribution history.</p></div>
+          <div className="public-card p-5"><h3 className="text-lg font-medium">Open inquiries</h3><p className="mt-3 text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Describe a project, idea, collaboration, or opportunity in your own words without choosing from a fixed service menu.</p></div>
         </div>
       </section>
 
       <section className="grid gap-8 py-12 md:grid-cols-[0.38fr_1fr] md:py-16">
         <div>
-          <AccentEyebrow color={content.about.accentColor || content.accentColor}>Relationship</AccentEyebrow>
-          <h2 className="mt-4 text-2xl font-medium">Publication with clear credit</h2>
+          <AccentEyebrow color={content.about.accentColor || content.accentColor}>Collaboration</AccentEyebrow>
+          <h2 className="mt-4 text-2xl font-medium">Clear credit, honest relationships</h2>
         </div>
         <div className="max-w-4xl border-l border-white/[0.09] pl-5 sm:pl-7">
-          <p className="text-lg leading-8" style={{ color: 'var(--site-secondary-text)' }}>{content.displayName} is independently operated while providing selected creatives with space to publish profiles, projects, and credited contributions.</p>
-          <p className="mt-5 text-sm leading-7" style={{ color: 'var(--site-muted-text)' }}>Being published on the platform does not automatically mean being employed by or permanently affiliated with the brand. Availability and involvement can vary by inquiry and project.</p>
+          <p className="text-lg leading-8" style={{ color: 'var(--site-secondary-text)' }}>{content.displayName} publishes its own work and gives collaborators clear, visible credit for the projects they help create.</p>
+          <p className="mt-5 text-sm leading-7" style={{ color: 'var(--site-muted-text)' }}>A published profile or project credit records a contribution. It does not automatically mean employment, permanent membership, endorsement, or guaranteed availability for future work.</p>
         </div>
       </section>
 
       <section className="py-12 md:py-16">
         <AccentEyebrow color={content.about.accentColor || content.accentColor}>Direction</AccentEyebrow>
         <h2 className="mt-4 max-w-3xl text-3xl font-medium leading-tight">Built from Aklan, open to ideas, work, and connections beyond it.</h2>
-        <p className="mt-5 max-w-3xl text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>The platform will continue to grow through useful work, thoughtful collaboration, clearer creative records, and opportunities that make sense for the people involved.</p>
+        <p className="mt-5 max-w-3xl text-sm leading-7" style={{ color: 'var(--site-secondary-text)' }}>Lahat Liwa is rooted in Aklan and open to relevant work, events, collaborations, and connections beyond it. The focus remains the same: useful creative work, transparent progress, and clear credit.</p>
       </section>
     </div>
   );

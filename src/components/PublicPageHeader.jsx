@@ -16,7 +16,7 @@ export default function PublicPageHeader({ eyebrow, title, description, accentCo
           <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-5xl" style={{ color: 'var(--public-header-title, var(--site-primary-text))' }}>{title}</h1>
           {description && <p className="mt-5 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8" style={{ color: 'var(--public-header-body, var(--site-secondary-text))' }}>{description}</p>}
         </div>
-        {aside && <div className="border-l border-orange-300/55 pl-5">{aside}</div>}
+        {aside && <div className="border-l border-[var(--site-accent-border)] pl-5">{aside}</div>}
       </div>
     </header>
   );

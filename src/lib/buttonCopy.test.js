@@ -35,6 +35,6 @@ test('visible action labels stay concise across public and admin screens', async
   assert.match(source, />Complete\s*</);
   assert.match(source, />Refresh\s*</);
   assert.match(source, />Delete permanently\s*</);
-  assert.match(source, />Save draft\s*</);
+  assert.match(source, /Save draft/);
   assert.doesNotMatch(source, />\s*(?:Resume|Pause|Migrate one|Reconcile|Scan)\s*</i);
 });

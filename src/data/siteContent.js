@@ -11,7 +11,7 @@ export const defaultSiteContent = {
   heroImageUrl: '',
   heroImageAlt: 'Lahat Liwa Collectives hero portrait',
   showHeroPortrait: false,
-  footerText: 'An independently operated platform for practical services, published work, credited contributions, and growing creative visibility.',
+  footerText: 'An Aklan-based creative work platform for current project updates, completed work, contributor credit, and open inquiries.',
   primaryTextColor: '#f5f5f4',
   secondaryTextColor: '#d4d4d8',
   mutedTextColor: '#a1a1aa',
@@ -20,19 +20,19 @@ export const defaultSiteContent = {
   defaultBackgroundImageUrl: '',
   defaultBackgroundOverlayOpacity: 0.55,
   hero: {
-    eyebrow: 'AKLAN CREATIVES',
-    title: 'Lahat Liwa Collectives',
+    eyebrow: 'AKLAN-BASED CREATIVE WORK',
+    title: 'Work in public. Credit people clearly.',
     description:
-      'Serve as a shared space where creatives can present their work, receive proper credit, and publish projects under one collective identity.',
-    primaryCta: 'View Projects',
-    secondaryCta: 'Contact Us',
+      'Follow active projects as they develop, explore finished work, and meet the people credited for their contributions.',
+    primaryCta: 'View Current Work',
+    secondaryCta: 'Send an Inquiry',
   },
   about: {
-    title: 'One platform for practical support and visible creative work.',
+    title: 'Creative work made visible from first progress to finished project.',
     intro:
-      'Lahat Liwa is an independently operated platform that organizes practical services while giving selected creatives a place to publish profiles, projects, and credited contributions.',
+      'Lahat Liwa Collectives is an Aklan-based creative work platform. We share active projects, preserve completed work, credit contributors, and welcome open inquiries.',
     journey:
-      'It was built to make scattered work easier to discover, credit, and discuss—and to give clients a clearer path from an initial need to a reviewed inquiry.',
+      'It was built to make creative work easier to follow, understand, and credit—and to give people one clear place to start a project or conversation.',
   },
   skills: [
     'Photography',
@@ -46,7 +46,7 @@ export const defaultSiteContent = {
   ],
   tools: ['React', 'Supabase', 'Vite', 'Tailwind CSS', 'Canva', 'Adobe tools', 'CapCut', 'Figma'],
   servicesIntro:
-    'Choose the service closest to your need, then share the outcome, context, and timeline that matter to you.',
+    'Start with your goal, idea, problem, or opportunity. You do not need to choose from a fixed service list before sending a message.',
   services: [
     {
       name: 'Liwa Social',
@@ -79,8 +79,8 @@ export const defaultPageContent = {
     heroDescription: defaultSiteContent.hero.description,
     primaryCta: defaultSiteContent.hero.primaryCta,
     secondaryCta: defaultSiteContent.hero.secondaryCta,
-    featuredHeading: 'Selected published work',
-    servicesHeading: 'Four practical paths for different needs',
+    featuredHeading: 'People behind the work',
+    servicesHeading: 'Start with what you want to achieve',
     servicesIntro: defaultSiteContent.servicesIntro,
     heroTitleColor: '',
     heroDescriptionColor: '',
@@ -103,7 +103,7 @@ export const defaultPageContent = {
     accentColor: '',
   },
   services: {
-    title: 'Four practical paths for different kinds of support.',
+    title: 'Start with the outcome—not a service category.',
     intro: defaultSiteContent.servicesIntro,
     headingColor: '',
     bodyTextColor: '',
@@ -118,9 +118,9 @@ export const defaultPageContent = {
     })),
   },
   contact: {
-    heading: 'Start the right conversation.',
-    description: 'Use the guided inquiry for services and project requests. For collaboration ideas, profile or credit questions, relevant opportunities, or general platform concerns, use the available contact channels.',
-    ctaText: 'Email the platform',
+    heading: 'Start a conversation with Lahat Liwa.',
+    description: 'Send one open message about a project, collaboration, event, content request, digital need, profile or credit question, opportunity, or general concern.',
+    ctaText: 'Email Lahat Liwa',
     notes: 'A short, relevant message helps direct the conversation. Please do not include passwords or sensitive account details.',
     headingColor: '',
     bodyTextColor: '',

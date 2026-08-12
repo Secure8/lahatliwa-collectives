@@ -7,7 +7,7 @@ const read = (path) => readFileSync(new URL(path, root), 'utf8');
 
 test('dashboard is beginner-first and keeps attention conditional', () => {
   const dashboard = read('src/pages/admin/Dashboard.jsx');
-  assert.match(dashboard, /Choose what you want to work on\. Everything else can wait\./);
+  assert.match(dashboard, /Choose a task below to update the website, publish work, or respond to people\./);
   assert.match(dashboard, /What would you like to do\?/);
   for (const action of ['Edit website', 'Start a project', 'Update current work', 'Review inquiries', 'Manage team', 'View live website']) assert.match(dashboard, new RegExp(action));
   assert.match(dashboard, /state\.attention\.length > 0/);

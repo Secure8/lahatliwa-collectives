@@ -8,11 +8,11 @@ import BrandWordmark from './BrandWordmark.jsx';
 import { AccentEyebrow } from './PublicPageHeader.jsx';
 
 export const PRESERVED_COLLECTIVE_HERO = Object.freeze({
-  eyebrow: 'AKLAN CREATIVES',
-  title: 'Lahat Liwa Collectives',
-  description: 'Serve as a shared space where creatives can present their work, receive proper credit, and publish projects under one collective identity.',
-  primaryCta: 'View Projects',
-  secondaryCta: 'Contact Us',
+  eyebrow: 'CREATIVE CONTRIBUTORS',
+  title: 'People behind the work.',
+  description: 'Meet the creatives and collaborators credited across Lahat Liwa projects. Profiles show skills, selected work, and contributions without implying permanent employment or availability.',
+  primaryCta: 'View Current Work',
+  secondaryCta: 'Send an Inquiry',
 });
 
 export default function CollectiveHero({ content }) {
@@ -44,7 +44,7 @@ export default function CollectiveHero({ content }) {
         <AccentEyebrow color={content.home.accentTextColor || content.accentColor} preserveColor>{heroEyebrow}</AccentEyebrow>
         <h1 className="mt-5 text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-7xl" style={{ color: content.home.heroTitleColor || content.primaryTextColor }}>{brandTitle ? <BrandWordmark name={heroTitle} variant="hero" /> : heroTitle}</h1>
         <p className="mt-7 text-lg leading-8" style={{ color: content.home.heroDescriptionColor || content.secondaryTextColor }}>{heroDescription}</p>
-        <div className="mt-8 flex flex-wrap gap-3"><Link to={page.primaryCtaUrl || homeCtaPath(primaryLabel, '/inquiry')} className="inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-zinc-950 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" style={{ backgroundColor: content.accentColor }}>{primaryLabel} <ArrowRight size={18} /></Link><Link to={page.secondaryCtaUrl || homeCtaPath(secondaryLabel, '/projects')} className="fine-link px-1 py-3 text-sm font-semibold" style={{ color: content.primaryTextColor }}>{secondaryLabel}</Link></div>
+        <div className="mt-8 flex flex-wrap gap-3"><Link to={page.primaryCtaUrl || homeCtaPath(primaryLabel, '/work')} className="public-button public-button--primary" style={{ backgroundColor: content.accentColor }}>{primaryLabel} <ArrowRight size={18} /></Link><Link to={page.secondaryCtaUrl || homeCtaPath(secondaryLabel, '/inquiry')} className="public-button public-button--secondary border-white/20 text-white">{secondaryLabel}</Link></div>
         <p className="mt-8 max-w-xl text-sm leading-6" style={{ color: content.mutedTextColor }}>{content.tagline}</p>
       </div>
       {hasPortrait && <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-[10px] border border-white/10 bg-zinc-900/70 shadow-[0_24px_60px_rgba(0,0,0,0.2)] lg:ml-auto"><img src={content.heroImageUrl} alt={content.heroImageAlt} decoding="async" fetchPriority="high" sizes="384px" width="800" height="1000" className="aspect-[4/5] w-full object-cover" /></div>}

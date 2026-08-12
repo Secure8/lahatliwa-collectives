@@ -52,13 +52,13 @@ function LegacyWebsiteEditorRedirect() {
 const routeMetadata = {
   '/': ['Current Work | Lahat Liwa Collectives', 'Follow active client projects, content releases, event coverage, and completed work from Lahat Liwa Collectives.'],
   '/work': ['Current Work | Lahat Liwa Collectives', 'Follow public progress from active client projects, social content, events, and ongoing productions.'],
-  '/about': ['About | Lahat Liwa Collectives', 'Learn how this independently operated platform supports client inquiries, published creative profiles, and clear contributor credit.'],
-  '/projects': ['Projects | Lahat Liwa Collectives', 'Explore complete project records, visible outputs, and credited contributions across visual, digital, social, and community work.'],
-  '/services': ['How We Can Help | Lahat Liwa Collectives', 'Describe your goal, problem, collaboration, or opportunity without choosing from a fixed service list.'],
+  '/about': ['About | Lahat Liwa Collectives', 'Learn how Lahat Liwa shares current work, preserves completed projects, credits contributors, and welcomes open inquiries.'],
+  '/projects': ['Portfolio | Lahat Liwa Collectives', 'Explore completed projects, visible outcomes, and credited contributions across creative, digital, social, and community work.'],
+  '/services': ['Work With Us | Lahat Liwa Collectives', 'Describe your goal, idea, problem, collaboration, or opportunity without choosing from a fixed service list.'],
   '/creatives': ['Creatives | Lahat Liwa Collectives', 'Discover published creative profiles, skills, portfolio work, and credited project contributions.'],
   '/start-a-project': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
-  '/contact': ['Contact | Lahat Liwa Collectives', 'Start a service inquiry, collaboration conversation, profile or credit question, opportunity, or general platform conversation.'],
+  '/contact': ['Contact | Lahat Liwa Collectives', 'Start a project inquiry, collaboration conversation, profile or credit question, opportunity, or general conversation.'],
   '/privacy': ['Privacy Policy | Lahat Liwa Collectives', 'Learn how Lahat Liwa Collectives collects, uses, stores, and protects information.'],
 };
 

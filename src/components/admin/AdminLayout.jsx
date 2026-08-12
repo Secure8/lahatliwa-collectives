@@ -154,8 +154,8 @@ export default function AdminLayout({ children }) {
               </span>
             )}
             <div className="min-w-0">
-              <div className="lg:hidden"><p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-200/65">Studio OS</p><p className="mt-0.5 truncate text-sm font-semibold text-zinc-100">{currentPageTitle}</p></div>
-              <div className="hidden lg:block"><BrandWordmark name={content.displayName} variant="admin" /><p className="truncate text-xs text-zinc-500">Studio OS</p></div>
+              <div className="lg:hidden"><p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-200/65">Admin workspace</p><p className="mt-0.5 truncate text-sm font-semibold text-zinc-100">{currentPageTitle}</p></div>
+              <div className="hidden lg:block"><BrandWordmark name={content.displayName} variant="admin" /><p className="truncate text-xs text-zinc-500">Admin workspace</p></div>
             </div>
           </Link>
 

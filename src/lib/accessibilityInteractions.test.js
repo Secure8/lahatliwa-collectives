@@ -115,7 +115,7 @@ test('admin visual hierarchy distinguishes content, controls, status, and naviga
   assert.match(ui, /rounded-full[\s\S]*?bg-current/);
   assert.match(layout, /admin-sidebar-link/);
   assert.match(layout, /AdminCommandPalette/);
-  assert.match(layout, /Studio OS/);
+  assert.match(layout, /Admin workspace/);
   assert.match(styles, /\.admin-shell article/);
   assert.match(styles, /interactive-tab\[aria-pressed="true"\]/);
   assert.match(styles, /admin-sidebar-link\[aria-current="page"\]/);
@@ -162,7 +162,7 @@ test('admin search fields render one boundary with a single restrained focus sta
 test('dashboard prioritizes summary, urgent work, and a small primary action set', async () => {
   const dashboard = await source('../pages/admin/Dashboard.jsx');
   assert.match(dashboard, /aria-label="Primary actions"/);
-  assert.match(dashboard, /Website Studio/);
+  assert.match(dashboard, /Edit website/);
   assert.match(dashboard, /Start a project/);
   assert.match(dashboard, /Update current work/);
   assert.match(dashboard, /Review inquiries/);

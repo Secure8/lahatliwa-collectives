@@ -110,7 +110,7 @@ test('admin keeps stable role-aware navigation, a responsive dashboard, and a on
   assert.match(admin, /Open all admin sections/);
   assert.equal((admin.match(/onClick=\{\(\) => setMobileOpen\(true\)\}/g) || []).length, 1);
   assert.match(admin, /ref=\{triggerRef\}[\s\S]*?Open all admin sections/);
-  assert.match(admin, /Studio OS[\s\S]*?currentPageTitle/);
+  assert.match(admin, /Admin workspace[\s\S]*?currentPageTitle/);
   assert.match(admin, /AppearanceMenuAction[\s\S]*?iconOnly/);
   assert.match(dashboard, /aria-label="Primary actions"/);
   assert.match(dashboard, /sm:grid-cols-2 lg:grid-cols-3/);

@@ -17,13 +17,13 @@ export default function Footer() {
   const socialLinks = content.socialLinks || [];
 
   return (
-    <footer className="public-footer mt-28 border-t border-orange-300/45">
+    <footer className="public-footer mt-28 border-t border-[var(--site-accent-border)]">
       <div className="page-shell grid gap-10 py-12 md:grid-cols-[1.4fr_1fr] md:py-14">
         <div>
           <BrandWordmark name={content.displayName} variant="footer" to="/" className="inline-flex min-h-11 items-center" />
           {content.footerContextLabel && <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">{content.footerContextLabel}</p>}
           <p className="mt-3 text-sm font-medium text-[var(--site-brand-accent)]">{content.tagline}</p>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">{content.footerText}</p>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--site-secondary-text)]">{content.footerText}</p>
         </div>
         <div className="flex flex-wrap items-start gap-3 md:justify-end">
           {content.email && <a className="site-hover-accent grid h-11 w-11 place-items-center rounded-lg border border-white/10 bg-black/20 text-zinc-300 transition hover:-translate-y-0.5 hover:border-orange-300/40 hover:shadow-[0_0_16px_rgba(251,146,60,0.24)]" href={`mailto:${content.email}`} aria-label="Email">
@@ -39,8 +39,8 @@ export default function Footer() {
           })}
         </div>
       </div>
-      <div className="page-shell flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] py-5 text-xs uppercase tracking-[0.1em] text-zinc-600">
-        <span>Copyright {new Date().getFullYear()} {content.displayName}. All rights reserved.</span>
+      <div className="page-shell flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] py-5 text-xs tracking-[0.06em] text-[var(--site-muted-text)]">
+        <span>© {new Date().getFullYear()} {content.displayName}. All rights reserved.</span>
         <Link className="inline-flex min-h-11 items-center transition hover:text-[var(--site-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]" to="/privacy">{content.privacyLabel || 'Privacy Policy'}</Link>
       </div>
     </footer>

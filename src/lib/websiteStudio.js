@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { brandAlignedWebsiteBundle } from './brandContent.js';
 
 export const WEBSITE_CONTENT_EVENT = 'hevv-public-content-updated';
 export const WEBSITE_CACHE_KEYS = ['hevv-public-content-cache-v3', 'hevv-public-content-cache-v2', 'hevv-public-content-cache'];
@@ -9,13 +10,13 @@ export const WEBSITE_STUDIO_SECTIONS = [
     ['brandName', 'Brand name', 'text'], ['tagline', 'Tagline', 'textarea'], ['logoUrl', 'Main logo URL', 'url'], ['logoAlt', 'Logo description', 'text'], ['contactEmail', 'Contact email', 'email'], ['heroImageUrl', 'Creative hero portrait URL', 'url'], ['heroImageAlt', 'Creative hero portrait description', 'text'],
   ] },
   { group: 'Shared content', label: 'Navigation', key: 'global.navigation', fields: [
-    ['homeLabel', 'Home label', 'text'], ['aboutLabel', 'About label', 'text'], ['projectsLabel', 'Projects label', 'text'], ['servicesLabel', 'Services label', 'text'], ['creativesLabel', 'Creatives label', 'text'], ['contactLabel', 'Contact label', 'text'], ['showAbout', 'Show About', 'boolean'], ['showProjects', 'Show Projects', 'boolean'], ['showServices', 'Show Services', 'boolean'], ['showCreatives', 'Show Creatives', 'boolean'], ['showContact', 'Show Contact', 'boolean'],
+    ['homeLabel', 'Home label', 'text'], ['aboutLabel', 'About label', 'text'], ['projectsLabel', 'Portfolio label', 'text'], ['servicesLabel', 'Work with us label', 'text'], ['creativesLabel', 'Creatives label', 'text'], ['contactLabel', 'Contact label', 'text'], ['showAbout', 'Show About', 'boolean'], ['showProjects', 'Show Portfolio', 'boolean'], ['showServices', 'Show Work with us', 'boolean'], ['showCreatives', 'Show Creatives', 'boolean'], ['showContact', 'Show Contact', 'boolean'],
   ] },
   { group: 'Pages', label: 'Homepage', key: 'page.home', preview: '/', fields: [['featuredEyebrow','Featured creatives eyebrow','text'],['featuredTitle','Featured creatives heading','text'],['featuredDescription','Featured creatives description','textarea'],['featuredCtaLabel','Featured creatives action','text'],['inquiryEyebrow','Inquiry eyebrow','text'],['inquiryTitle','Inquiry heading','text'],['inquiryDescription','Inquiry description','textarea'],['inquiryCtaLabel','Inquiry action','text'],['inquiryCtaUrl','Inquiry action route','route']] },
   { group: 'Pages', label: 'Current Work', key: 'page.explore', preview: '/work', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
   { group: 'Pages', label: 'Creatives', key: 'page.creatives', preview: '/creatives', fields: [['heroEyebrow','Hero eyebrow','text'],['heroTitle','Hero title','text'],['heroDescription','Hero description','textarea'],['primaryCta','Primary action','text'],['primaryCtaUrl','Primary action route','route'],['secondaryCta','Secondary action','text'],['secondaryCtaUrl','Secondary action route','route'],['directoryEyebrow','Directory eyebrow','text'],['directoryTitle','Directory heading','text'],['directoryDescription','Directory description','textarea']] },
-  { group: 'Pages', label: 'Projects', key: 'page.projects', preview: '/projects', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
-  { group: 'Pages', label: 'Services', key: 'page.services', preview: '/services', fields: [['title','Heading','text'],['intro','Introduction','textarea']] },
+  { group: 'Pages', label: 'Portfolio', key: 'page.projects', preview: '/projects', fields: [['eyebrow','Eyebrow','text'],['title','Heading','text'],['description','Description','textarea']] },
+  { group: 'Pages', label: 'Work with us', key: 'page.services', preview: '/services', fields: [['title','Heading','text'],['intro','Introduction','textarea']] },
   { group: 'Pages', label: 'About', key: 'page.about', preview: '/about' },
   { group: 'Pages', label: 'Inquiries', key: 'page.inquiries', preview: '/contact', fields: [['heading','Contact heading','text'],['description','Contact description','textarea'],['ctaText','Email action','text'],['landingEyebrow','Inquiry eyebrow','text'],['landingHeading','Inquiry heading','text'],['landingDescription','Inquiry description','textarea'],['disclaimer','Public clarification','textarea']] },
   { group: 'Shared content', label: 'Footer', key: 'global.footer', fields: [['footerText','Footer description','textarea'],['privacyLabel','Privacy link label','text']] },
@@ -75,7 +76,7 @@ export function websiteImpact(entryKey) {
   if (entryKey === 'global.brand') return ['Header', 'Footer', 'browser metadata', 'Creatives hero', 'About', 'inquiries', 'login'];
   if (entryKey === 'global.navigation') return ['Public header', 'mobile navigation'];
   if (entryKey === 'global.appearance') return ['All public pages', 'light mode', 'dark mode'];
-  if (entryKey?.startsWith('service.')) return ['Services page', 'inquiry choices', 'contextual inquiry links'];
+  if (entryKey?.startsWith('service.')) return ['Legacy compatibility data'];
   return [WEBSITE_STUDIO_SECTIONS.find((item) => item.key === entryKey)?.label || 'Public website'];
 }
 
@@ -124,12 +125,13 @@ export function announceWebsitePublished() {
 }
 
 export function websiteBundleToContent(bundle = {}) {
-  const brand = bundle['global.brand'] || {};
-  const footer = bundle['global.footer'] || {};
-  const appearance = bundle['global.appearance'] || {};
-  const pages = Object.fromEntries(Object.entries(bundle).filter(([key]) => key.startsWith('page.')).map(([key, value]) => [key.slice(5), value]));
-  const branches = Object.entries(bundle).filter(([key]) => key.startsWith('branch.')).map(([, value]) => value).filter((item) => item?.status !== 'inactive').sort((a,b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
-  const services = Object.entries(bundle).filter(([key]) => key.startsWith('service.')).map(([, value]) => value).filter((item) => item?.status !== 'inactive').sort((a,b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
+  const alignedBundle = brandAlignedWebsiteBundle(bundle);
+  const brand = alignedBundle['global.brand'] || {};
+  const footer = alignedBundle['global.footer'] || {};
+  const appearance = alignedBundle['global.appearance'] || {};
+  const pages = Object.fromEntries(Object.entries(alignedBundle).filter(([key]) => key.startsWith('page.')).map(([key, value]) => [key.slice(5), value]));
+  const branches = Object.entries(alignedBundle).filter(([key]) => key.startsWith('branch.')).map(([, value]) => value).filter((item) => item?.status !== 'inactive').sort((a,b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
+  const services = Object.entries(alignedBundle).filter(([key]) => key.startsWith('service.')).map(([, value]) => value).filter((item) => item?.status !== 'inactive').sort((a,b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
   const search = pages.search || {};
   const socialLinks = [['Facebook',search.facebookUrl],['Instagram',search.instagramUrl],['LinkedIn',search.linkedInUrl],['YouTube',search.youTubeUrl],['TikTok',search.tikTokUrl],['GitHub',search.githubUrl]].filter(([,href]) => href).map(([label,href]) => ({ label, href }));
   return {
@@ -137,7 +139,7 @@ export function websiteBundleToContent(bundle = {}) {
     footerText: footer.footerText || '', footerContextLabel: footer.contextLabel || '', privacyLabel: footer.privacyLabel || 'Privacy Policy',
     primaryTextColor: appearance.primaryTextColor || '', secondaryTextColor: appearance.secondaryTextColor || '', mutedTextColor: appearance.mutedTextColor || '', accentColor: appearance.accentColor || '', dividerLineColor: appearance.dividerLineColor || '',
     ...(socialLinks.length ? { socialLinks } : {}),
-    websiteNavigation: bundle['global.navigation'] || {}, websitePages: pages, websiteBranches: branches, websiteServices: services, websiteBundle: bundle,
+    websiteNavigation: alignedBundle['global.navigation'] || {}, websitePages: pages, websiteBranches: branches, websiteServices: services, websiteBundle: alignedBundle,
   };
 }
 

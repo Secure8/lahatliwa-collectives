@@ -472,14 +472,14 @@ summary::-webkit-details-marker {
   width: 1.75rem;
   height: 2px;
   content: '';
-  background: #fb923c;
+  background: var(--site-accent-text);
   opacity: 0;
   transform: translateX(-50%) scaleX(0.35);
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
 .mobile-nav-item[aria-current="page"] {
-  color: #fb923c !important;
+  color: var(--site-accent-text) !important;
 }
 
 .mobile-nav-item[aria-current="page"]::after {
@@ -531,6 +531,46 @@ summary::-webkit-details-marker {
 }
 
 .site-button:hover { background: var(--site-accent-hover); }
+
+.public-button {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  padding-inline: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.public-button:hover { transform: translateY(-1px); }
+.public-button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.public-button--primary { background: var(--site-accent); color: #111113; }
+.public-button--primary:hover { background: var(--site-accent-hover); }
+.public-button--secondary { border: 1px solid var(--theme-border); color: var(--site-primary-text); }
+.public-button--secondary:hover { border-color: var(--site-accent-border); background: var(--theme-hover-surface); }
+
+.public-card {
+  border: 1px solid var(--theme-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--theme-primary-surface) 72%, transparent);
+  box-shadow: 0 12px 34px -28px var(--theme-shadow);
+}
+
+.public-panel {
+  border-top: 1px solid color-mix(in srgb, var(--site-divider) 32%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--site-divider) 32%, transparent);
+}
+
+.public-eyebrow {
+  color: var(--site-accent-text);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
 
 .site-border {
   border-color: var(--site-accent-border);
@@ -1478,6 +1518,7 @@ summary::-webkit-details-marker {
 [data-theme="light"] .theme-inverse :where(.text-white, .text-zinc-100, .text-zinc-200, .text-zinc-300, .text-zinc-400) {
   color: #fafafa !important;
 }
+[data-theme="light"] .theme-inverse.bg-zinc-950 { background-color: #09090b !important; }
 [data-theme="light"] .theme-inverse :where([class~="bg-zinc-950/85"], [class~="bg-zinc-900/90"], [class~="bg-zinc-900/85"], [class~="bg-black/20"], [class~="bg-black/55"]) {
   background-color: rgb(9 9 11 / 0.78) !important;
 }

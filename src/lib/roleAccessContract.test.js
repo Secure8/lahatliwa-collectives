@@ -58,6 +58,17 @@ test('database ownership and moderation remain enforced server-side', () => {
   assert.match(sql, /create policy creative_post_media_owner_insert/);
 });
 
+test('Creatives can remove only notifications addressed to their own profile', () => {
+  const notifications = read('src/lib/creativeNotifications.js');
+  const page = read('src/pages/CreativeNotifications.jsx');
+  const sql = read('supabase/migrations/20260815020000_creative_notification_deletion.sql');
+  assert.match(notifications, /from\('creative_notifications'\)\.delete\(\)\.eq\('id', notificationId\)/);
+  assert.match(page, /Delete this notification\?/);
+  assert.match(page, /Delete notification/);
+  assert.match(sql, /for delete[\s\S]*creative_member_id = private\.current_creative_member_id\(\)/);
+  assert.doesNotMatch(sql, /delete from public\.project_inquiries/);
+});
+
 test('the final interface layer is flat and uses the standard icon library', () => {
   const css = read('src/index.css');
   const feed = read('src/components/CreativeFeed.jsx');

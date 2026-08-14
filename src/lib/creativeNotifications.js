@@ -14,3 +14,10 @@ export async function markCreativeNotificationsRead(ids) {
   const { error } = await supabase.from('creative_notifications').update({ read_at: new Date().toISOString() }).in('id', values).is('read_at', null);
   if (error) throw error;
 }
+
+export async function deleteCreativeNotification(id) {
+  const notificationId = String(id || '').trim();
+  if (!notificationId) throw new Error('A notification is required.');
+  const { error } = await supabase.from('creative_notifications').delete().eq('id', notificationId);
+  if (error) throw error;
+}

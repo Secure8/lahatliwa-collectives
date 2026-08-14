@@ -9,6 +9,7 @@ test('the product exposes exactly the Super Admin and Creative account personas'
   const access = read('src/lib/adminAccess.jsx');
   const roles = read('src/lib/teamRoles.js');
   assert.match(access, /roles = \['super_admin', 'creative'\]/);
+  assert.match(access, /role === 'super_admin' \|\| role === 'owner' \|\| role === 'admin'/);
   assert.match(roles, /TEAM_ROLES = \['creative'\]/);
   assert.doesNotMatch(roles, /TEAM_ROLES = \[[^\]]*'admin'|TEAM_ROLES = \[[^\]]*'editor'/);
 });

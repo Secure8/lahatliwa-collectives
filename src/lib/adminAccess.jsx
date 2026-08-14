@@ -8,7 +8,7 @@ export const contentRoles = ['creative'];
 const AdminAccessContext = createContext(null);
 
 export function normalizeRole(role = '') {
-  return role === 'owner' || role === 'admin' ? 'super_admin' : role === 'creative' ? 'creative' : '';
+  return role === 'super_admin' || role === 'owner' || role === 'admin' ? 'super_admin' : role === 'creative' ? 'creative' : '';
 }
 
 export function roleLabel(role = '') {

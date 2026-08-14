@@ -987,10 +987,9 @@ html.admin-mode :where(a, button, img, article),
 .ll-profile-section-edit { position: absolute; top: .75rem; right: .75rem; }
 .ll-profile-identity__copy h1 { margin: .45rem 0 0; color: var(--theme-text-primary); font-size: clamp(2rem,7vw,3.75rem); font-weight: 680; line-height: 1; letter-spacing: -.045em; }
 .ll-profile-professional-title { margin: .65rem 0 0; color: var(--site-accent-text); font-size: .92rem; font-weight: 750; line-height: 1.4; }
-.ll-profile-disciplines { display: flex; align-items: center; gap: .55rem; margin: .45rem 0 0; }
-.ll-profile-disciplines > span { flex: 0 0 auto; color: var(--theme-text-muted); font-size: .62rem; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
-.ll-profile-disciplines ul { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0; padding: 0; list-style: none; }
-.ll-profile-disciplines li { border: 1px solid var(--theme-border-strong); border-radius: 999px; padding: .22rem .5rem; color: var(--theme-text-secondary); font-size: .68rem; font-weight: 550; line-height: 1.35; }
+.ll-profile-disciplines { display: flex; flex-wrap: wrap; gap: .2rem .45rem; margin: .45rem 0 0; padding: 0; color: var(--theme-text-secondary); font-size: .72rem; font-weight: 600; line-height: 1.45; list-style: none; }
+.ll-profile-disciplines li { display: inline-flex; align-items: center; }
+.ll-profile-disciplines li:not(:last-child)::after { content: "·"; margin-left: .45rem; color: var(--theme-text-subtle); }
 .ll-profile-intro { display: -webkit-box; max-width: 42rem; overflow: hidden; margin: .75rem 0 0; color: var(--theme-text-muted); font-size: .85rem; line-height: 1.6; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .ll-profile-meta { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: .8rem; color: var(--theme-text-muted); font-size: .72rem; }
 .ll-profile-meta span { display: inline-flex; align-items: center; gap: .35rem; }

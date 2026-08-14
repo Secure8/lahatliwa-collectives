@@ -15,8 +15,8 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(hero, /aria-label="Back to Creatives"/);
   assert.match(hero, /creative\.short_bio/);
   assert.match(hero, /ll-profile-professional-title/);
-  assert.match(hero, /<span>Disciplines<\/span>/);
-  assert.match(hero, /<ul>\{disciplines\.map/);
+  assert.doesNotMatch(hero, /<span>Disciplines<\/span>/);
+  assert.match(hero, /<ul className="ll-profile-disciplines" aria-label="Creative disciplines">/);
   assert.match(hero, /<li key=\{discipline\}>\{discipline\}<\/li>/);
   assert.match(hero, /availability_status/);
   assert.match(profile, /isOwner && !adminPreview/);
@@ -28,7 +28,8 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(styles, /\.ll-profile-cover[\s\S]*?aspect-ratio: 16\/6/);
   assert.match(styles, /\.ll-profile-layout[\s\S]*?grid-template-columns/);
   assert.match(styles, /\.ll-profile-professional-title \{[^}]*color: var\(--site-accent-text\)/);
-  assert.match(styles, /\.ll-profile-disciplines li \{[^}]*border: 1px solid/);
+  assert.match(styles, /\.ll-profile-disciplines li:not\(:last-child\)::after \{ content: "·"/);
+  assert.doesNotMatch(styles, /\.ll-profile-disciplines li \{[^}]*border:/);
 });
 
 test('profile media and navigation are intentionally responsive without desktop overlay utilities', async () => {
@@ -52,13 +53,14 @@ test('profile media and navigation are intentionally responsive without desktop 
 });
 
 test('disciplines have shared count and length limits in every editor and the database', async () => {
-  const [rules, hero, inlineEditor, adminEditor, selfEditor, migration] = await Promise.all([
+  const [rules, hero, inlineEditor, adminEditor, selfEditor, migration, permissionMigration] = await Promise.all([
     source('./creativeProfile.js'),
     source('../components/CreativeHero.jsx'),
     source('../components/CreativeInlineProfileEditor.jsx'),
     source('../pages/admin/CreativeEditor.jsx'),
     source('../pages/admin/MyProfile.jsx'),
     source('../../supabase/migrations/20260814210000_creative_discipline_balance.sql'),
+    source('../../supabase/migrations/20260814220000_creative_discipline_function_permissions.sql'),
   ]);
   assert.match(rules, /CREATIVE_DISCIPLINE_MAX_COUNT = 6/);
   assert.match(rules, /CREATIVE_DISCIPLINE_MAX_LENGTH = 40/);
@@ -70,6 +72,7 @@ test('disciplines have shared count and length limits in every editor and the da
   assert.match(migration, /valid_creative_disciplines/);
   assert.match(migration, /jsonb_array_length\(value\) <= 6/);
   assert.match(migration, /char_length\(btrim\(item\)\) > 40/);
+  assert.match(permissionMigration, /grant execute on function private\.valid_creative_disciplines\(jsonb\)\s+to authenticated, service_role/);
 });
 
 test('short Creative bios share one Facebook-style limit across both editors and the database', async () => {

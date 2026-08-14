@@ -23,7 +23,7 @@ export default function CreativeHero({ creative, socials, resources = [], render
         <p className="ll-kicker">Creative profile</p>
         <h1>{creative.name}</h1>
         <p className="ll-profile-professional-title">{creative.role || 'Creative'}</p>
-        {disciplines.length > 0 && <div className="ll-profile-disciplines"><span>Disciplines</span><ul>{disciplines.map((discipline) => <li key={discipline}>{discipline}</li>)}</ul></div>}
+        {disciplines.length > 0 && <ul className="ll-profile-disciplines" aria-label="Creative disciplines">{disciplines.map((discipline) => <li key={discipline}>{discipline}</li>)}</ul>}
         {creative.short_bio && <p className="ll-profile-intro">{creative.short_bio}</p>}
         <div className="ll-profile-meta">
           {creative.location && <span><MapPin size={15} /> {creative.location}</span>}

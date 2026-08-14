@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import CreativePostCard from './CreativePostCard';
 import EmptyState from './EmptyState';
-import ProjectCard from './ProjectCard';
+import ProjectFeedCard from './ProjectFeedCard';
 
 function publishedTime(item) {
   return new Date(item.kind === 'post' ? item.post.published_at || item.post.updated_at : item.project.project_date || item.project.created_at).getTime();
@@ -42,7 +42,7 @@ function ProjectFeedItem({ project, moderator, onModerate }) {
       {author ? <Link to={`/creatives/${author.slug}`} className="ll-author-link">{author.profileImageUrl ? <img src={author.profileImageUrl} alt=""/> : <span>{author.name?.slice(0,1) || 'C'}</span>}<span><strong>{author.name}</strong><small>Published a formal project</small></span></Link> : <div className="ll-project-feed-label"><ImageIcon size={15}/><span>Lahat Liwa project</span></div>}
       {moderator && <button type="button" className="ll-feed-moderate-button" onClick={()=>setOpen(true)} aria-label="Project moderation"><Ellipsis size={20}/></button>}
     </header>
-    <ProjectCard project={project} />
+    <ProjectFeedCard project={project} author={author} />
     {open && <div className="ll-moderation-dialog" role="dialog" aria-modal="true" aria-label="Remove project from public"><button type="button" className="ll-moderation-dialog__scrim" onClick={()=>setOpen(false)} aria-label="Close"/><section><header><div><p className="ll-kicker">Super Admin moderation</p><h3>Remove this project?</h3></div><button type="button" onClick={()=>setOpen(false)} aria-label="Close"><X size={19}/></button></header><p>The Creative will see your note and can revise the project before publishing it again.</p><textarea rows={4} value={note} onChange={(event)=>setNote(event.target.value)} placeholder="Add a clear note (at least 8 characters)"/><footer><button type="button" onClick={()=>setOpen(false)}>Cancel</button><button type="button" className="is-danger" disabled={note.trim().length<8} onClick={()=>{onModerate?.(project,note.trim());setOpen(false);}}><ShieldAlert size={15}/> Remove with note</button></footer></section></div>}
   </article>;
 }

@@ -33,9 +33,14 @@ test('Super Admin moderates public work without receiving Creative edit controls
 
 test('feed projects show their primary Creative identity', () => {
   const feed = read('src/components/CreativeFeed.jsx');
+  const projectFeed = read('src/components/ProjectFeedCard.jsx');
   const projectData = read('src/lib/publicProjectData.js');
   assert.match(feed, /Published a formal project/);
   assert.match(feed, /author\.profileImageUrl/);
+  assert.match(feed, /ProjectFeedCard/);
+  assert.doesNotMatch(feed, /import ProjectCard/);
+  assert.match(projectFeed, /ll-project-post__media/);
+  assert.match(projectFeed, /ll-project-post__caption/);
   assert.match(projectData, /profile_image_url/);
 });
 

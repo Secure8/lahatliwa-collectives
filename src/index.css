@@ -829,6 +829,19 @@ html.admin-mode :where(a, button, img, article),
 .ll-project-author-header { padding-bottom: .55rem; }
 .ll-feed-moderate-button { display: grid; width: 2.4rem; height: 2.4rem; flex: 0 0 auto; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--theme-text-muted); }
 .ll-feed-moderate-button:hover { background: var(--theme-hover-surface); color: var(--theme-text-primary); }
+.ll-project-post { min-width: 0; }
+.ll-project-post__media { display: block; aspect-ratio: 1; overflow: hidden; background: var(--theme-secondary-surface); color: var(--theme-text-muted); text-decoration: none; }
+.ll-project-post__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ll-project-post__media > span { display: grid; width: 100%; height: 100%; place-items: center; padding: 1rem; font-size: .78rem; }
+.ll-project-post__actions { display: grid; grid-template-columns: minmax(0,1fr) auto; border-bottom: 1px solid var(--theme-border); padding: .35rem .55rem; }
+.ll-project-post__actions a { display: inline-flex; min-height: 2.8rem; align-items: center; justify-content: center; gap: .45rem; border-radius: .45rem; color: var(--theme-text-muted); font-size: .75rem; font-weight: 700; text-decoration: none; }
+.ll-project-post__actions a:first-child { justify-content: flex-start; }
+.ll-project-post__actions a:hover { background: var(--theme-hover-surface); color: var(--theme-text-primary); }
+.ll-project-post__caption { display: grid; gap: .45rem; padding: .8rem 1rem 1rem; }
+.ll-project-post__caption p { margin: 0; color: var(--theme-text-secondary); font-size: .82rem; line-height: 1.55; }
+.ll-project-post__caption p a { margin-right: .3rem; color: var(--theme-text-primary); font-weight: 750; text-decoration: none; }
+.ll-project-post__caption p span { color: var(--theme-text-secondary); }
+.ll-project-post__caption small { overflow: hidden; color: var(--theme-text-muted); font-size: .65rem; letter-spacing: .06em; line-height: 1.45; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .ll-profile-add-work { display: inline-flex; align-items: center; gap: .4rem; margin: -.25rem 0 1rem; color: var(--site-accent-text); font-size: .76rem; font-weight: 750; text-decoration: none; }
 .ll-profile-project { position: relative; }
 .ll-profile-project__draft { display: grid; min-height: 5.25rem; grid-template-columns: 5rem minmax(0,1fr); align-items: center; gap: .85rem; padding: .55rem; color: var(--theme-text-muted); }

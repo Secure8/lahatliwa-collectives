@@ -1,4 +1,4 @@
-import { Edit3, Inbox, ShieldCheck, UsersRound } from 'lucide-react';
+import { Edit3 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import usePublicAccount from '../lib/usePublicAccount';
 
@@ -13,15 +13,10 @@ const sectionForPath = (pathname) => {
   return 'overview';
 };
 
-export default function PublicAdminBar() {
+export default function PublicInlineEditButton({ section, label = 'Edit this content', className = '' }) {
   const { pathname } = useLocation();
   const { account } = usePublicAccount();
   if (account?.role !== 'super_admin') return null;
-  const section = sectionForPath(pathname);
-  return <aside className="ll-public-admin-bar" aria-label="Super Admin website controls">
-    <span><ShieldCheck size={15} /> Super Admin view</span>
-    <Link to={`/admin/website${section === 'overview' ? '' : `?section=${section}`}`}><Edit3 size={15} /> Edit this page</Link>
-    <Link to="/admin/inquiries"><Inbox size={15} /> Inquiries</Link>
-    <Link to="/admin/team"><UsersRound size={15} /> Team</Link>
-  </aside>;
+  const target = section || sectionForPath(pathname);
+  return <Link className={`ll-inline-admin-edit ${className}`} to={`/admin/website${target === 'overview' ? '' : `?section=${target}`}`} aria-label={label} title={label}><Edit3 size={17}/></Link>;
 }

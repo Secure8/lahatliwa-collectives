@@ -19,10 +19,11 @@ test('unsafe resource URLs never become clickable', () => {
   assert.equal(resourceMeta(resourceLink('Bad', 'javascript:alert(1)')).href, '');
 });
 
-test('profile inquiry actions open the same unrestricted inquiry', async () => {
+test('profile inquiry actions target the selected Creative', async () => {
   const hero = await readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8');
   const inquiry = await readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8');
-  assert.match(hero, /to="\/inquiry"/);
+  assert.match(hero, /inquiry\?creative=/);
   assert.match(inquiry, /branch: 'general', serviceKey: 'general-inquiry'/);
-  assert.doesNotMatch(inquiry, /searchParams\.get\('creative'\)|selectRecipient/);
+  assert.match(inquiry, /searchParams\.get\('creative'\)/);
+  assert.match(inquiry, /Who would you like to contact/);
 });

@@ -22,7 +22,8 @@ test('protected routes separate Creative publishing from Super Admin operations'
   assert.match(app, /allow=\{\['creative'\]\}><MyProfile/);
   assert.match(app, /<CreativeRouteGuard><CreativePostEditor/);
   assert.match(adminGuard, /Navigate to="\/account" replace/);
-  assert.match(creativeGuard, /role !== 'creative' \|\| !adminUser\?\.creative_member_id/);
+  assert.match(creativeGuard, /resolvedRole !== 'creative' \|\| !creativeMemberId/);
+  assert.match(creativeGuard, /usePublicAccount/);
 });
 
 test('login and recovery resolve both personas through the shared account router', () => {

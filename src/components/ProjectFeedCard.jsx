@@ -22,7 +22,7 @@ export default function ProjectFeedCard({ project, author }) {
         : <span>Project image coming soon</span>}
     </Link>
     <div className="ll-project-post__actions">
-      <Link to={`/inquiry?project=${encodeURIComponent(project.slug)}`}><MessageCircle size={18}/><span>Ask about this work</span></Link>
+      <Link to={`/inquiry?creative=${encodeURIComponent(author?.slug || '')}&project=${encodeURIComponent(project.slug)}`}><MessageCircle size={18}/><span>Ask about this work</span></Link>
       <Link to={projectPath} state={state}><span>Open project</span><ArrowUpRight size={18}/></Link>
     </div>
     <div className="ll-project-post__caption">

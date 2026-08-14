@@ -59,8 +59,11 @@ export default function WebsiteStudio() {
   const [uploading, setUploading] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [desktopEditing, setDesktopEditing] = useState(() => typeof window === 'undefined' || window.matchMedia('(min-width: 1024px)').matches);
   const sectionKey = params.get('section') || 'overview';
   const selected = entries.find((entry) => entry.entry_key === sectionKey && !['branch', 'service'].includes(entry.entry_type)) || null;
+
+  useEffect(() => { const media = window.matchMedia('(min-width: 1024px)'); const sync = () => setDesktopEditing(media.matches); sync(); media.addEventListener('change', sync); return () => media.removeEventListener('change', sync); }, []);
 
   async function load() {
     setLoading(true); setError('');
@@ -118,6 +121,7 @@ export default function WebsiteStudio() {
   }
   async function publish() { if (dirty) { setError('Save the draft before publishing.'); return; } if (!selected?.draft_data) { setError('There are no unpublished changes to publish.'); return; } await run('publish', () => publishWebsiteEntry(selected.entry_key)); }
   if (!['super_admin','owner','admin'].includes(role)) return <Navigate to="/admin/dashboard" replace />;
+  if (!desktopEditing) return <main className="ll-desktop-admin-required"><section><h1>Desktop editing only</h1><p>Website editing is intentionally unavailable on small screens. Open Lahat Liwa on a desktop or laptop to edit public content safely.</p><Link to="/">Return to the website</Link></section></main>;
   const returnRoute = pageRoutes[sectionKey] || '/';
   if (loading) return <main className="ll-site-editor-loading"><LoadingState label="Loading website editor" /></main>;
 

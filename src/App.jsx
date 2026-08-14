@@ -16,7 +16,6 @@ import NotFound from './pages/NotFound';
 import { applyPublicMetadata } from './lib/publicMetadata';
 import BrandWordmark from './components/BrandWordmark';
 import { publicAppBarMode } from './lib/mobileAppShell';
-import PublicAdminBar from './components/PublicAdminBar';
 
 const Login = lazy(() => import('./pages/admin/Login'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
@@ -45,6 +44,7 @@ const CreativePostDetails = lazy(() => import('./pages/CreativePostDetails'));
 const CreativePostEditor = lazy(() => import('./pages/CreativePostEditor'));
 const AccountLanding = lazy(() => import('./pages/AccountLanding'));
 const AdminPostModeration = lazy(() => import('./pages/admin/AdminPostModeration'));
+const CreativeNotifications = lazy(() => import('./pages/CreativeNotifications'));
 
 function LegacyWebsiteEditorRedirect() {
   const { pageKey = '' } = useParams();
@@ -102,7 +102,6 @@ function PublicSiteFrame() {
       <PublicScrollRestoration />
       <a href="#public-main-content" className="skip-link">Skip to main content</a>
       <Navbar />
-      <PublicAdminBar />
       {loading && <p className="sr-only" role="status">Refreshing website content</p>}
       {error && <p className="sr-only" role="alert">{error}</p>}
       <main id="public-main-content" tabIndex={-1} data-public-app-content data-app-bar-mode={appBarMode} className={`public-app-content public-app-content--${appBarMode} min-h-[60vh] overflow-x-hidden`}><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
@@ -144,6 +143,7 @@ export default function App() {
         <Route path="/creatives" element={<Creatives />} />
         <Route path="/creatives/:slug" element={<CreativeDetails />} />
         <Route path="/posts/:slug" element={<CreativePostDetails />} />
+        <Route path="/notifications" element={<CreativeRouteGuard><CreativeNotifications /></CreativeRouteGuard>} />
         <Route path="/start-a-project" element={<StartProject />} />
         <Route path="/inquiry" element={<StartProject />} />
         <Route path="/inquiry/confirmation/:reference" element={<InquiryConfirmation />} />

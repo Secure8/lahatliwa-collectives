@@ -49,9 +49,9 @@ test('admin uses responsive top navigation and a focus-managed drawer instead of
   assert.match(styles, /\.ll-admin-tabs/);
 });
 
-test('open inquiry remains a single accessible form with contextual project support', async () => {
+test('Creative inquiry remains a single accessible form with contextual project support', async () => {
   const form = await source('../pages/StartProject.jsx');
-  assert.match(form, /aria-label="Open inquiry form"/);
+  assert.match(form, /Creative inquiry form/);
   assert.match(form, /data-inquiry-field/);
   assert.match(form, /projectContext/);
   assert.doesNotMatch(form, /role="progressbar"|data-flow-step/);

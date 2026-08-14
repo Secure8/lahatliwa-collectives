@@ -9,6 +9,7 @@ import { loadPublicCreativeFeed, moderateCreativePost } from '../lib/creativePos
 import { fetchPublicProjectSummaries, moderatePublicProject } from '../lib/publicProjectData';
 import { supabase } from '../lib/supabaseClient';
 import usePublicAccount from '../lib/usePublicAccount';
+import PublicInlineEditButton from '../components/PublicInlineEditButton';
 
 export default function Home() {
   const { content } = usePublicContent(['home']);
@@ -53,6 +54,7 @@ export default function Home() {
   return <div data-creative-network-home className="ll-network-home">
     <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
     <section className="ll-feed-intro">
+      <PublicInlineEditButton section="page.home" label="Edit home introduction" />
       <div className="ll-feed-intro__copy"><p className="ll-kicker">{page.heroEyebrow || 'Lahat Liwa creative network'}</p><h1>{page.heroTitle || 'Discover what Creatives are making now.'}</h1><p>{page.heroDescription || 'Follow published work, photography, design, writing, project updates, and creative process from people across the Lahat Liwa network.'}</p></div>
       <div className="ll-feed-intro__actions">
         {isCreative ? <Link to="/create" className="ll-primary-action"><PenLine size={17} /> Create post</Link> : <Link to="/creatives" className="ll-primary-action"><UsersRound size={17} /> Explore Creatives</Link>}

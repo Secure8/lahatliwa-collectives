@@ -423,7 +423,7 @@ export function safeInquiryDraft(value) {
   if (!branchMeta(next.branch)) next.branch = '';
   next.serviceKey = canonicalServiceKey(next.branch, next.serviceKey);
   next.creativeSlug = String(next.creativeSlug || '').trim().toLowerCase();
-  next.inquiryKind = ['service', 'tourism', 'general'].includes(next.inquiryKind) ? next.inquiryKind : 'service';
+  next.inquiryKind = ['service', 'tourism', 'general', 'creative', 'platform'].includes(next.inquiryKind) ? next.inquiryKind : 'service';
   next.inquiryCategory = String(next.inquiryCategory || '').trim().toLowerCase();
   next.editorialContext = normalizeInquiryContext(next.editorialContext);
   next.projectContext = normalizeInquiryContext(next.projectContext)?.type === 'project' ? normalizeInquiryContext(next.projectContext) : null;

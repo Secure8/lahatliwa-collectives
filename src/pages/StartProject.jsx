@@ -1,5 +1,5 @@
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
-import { ArrowRight, CheckCircle2, Send } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Send, UserRound } from 'lucide-react';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ActionFeedback, FieldError } from '../components/FieldFeedback';
@@ -15,7 +15,7 @@ const emptyDraft = (projectContext = null) => ({
   clientName: '', organization: '', clientEmail: '', clientPhone: '', preferredContactMethod: 'Email',
   summary: projectContext?.title ? `Question about ${projectContext.title}` : '', details: '', preferredSchedule: '',
   generalLocation: '', budgetRange: '', consent: false, honeypot: '', projectContext,
-  idempotencyKey: globalThis.crypto?.randomUUID?.() || '',
+  creativeSlug: '', idempotencyKey: globalThis.crypto?.randomUUID?.() || '',
 });
 
 function readDraft(context) {
@@ -48,6 +48,20 @@ export default function StartProject() {
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [creatives, setCreatives] = useState([]);
+  const platformInquiry = searchParams.get('kind') === 'platform';
+  const requestedCreative = searchParams.get('creative') || '';
+
+  useEffect(() => {
+    if (platformInquiry) return;
+    let active = true;
+    supabase.from('creative_members').select('id,name,slug,role,short_bio,profile_image_url,availability_status').eq('is_published', true).order('display_order', { ascending: true, nullsFirst: false }).then(({ data }) => {
+      if (!active) return;
+      setCreatives(data || []);
+      if (requestedCreative && (data || []).some((creative) => creative.slug === requestedCreative)) setDraft((current) => ({ ...current, creativeSlug: requestedCreative }));
+    });
+    return () => { active = false; };
+  }, [platformInquiry, requestedCreative]);
 
   useEffect(() => { setDraft((current) => ({ ...current, projectContext: projectContext || current.projectContext })); }, [projectContext]);
   useEffect(() => { try { window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {} }, [draft]);
@@ -64,6 +78,7 @@ export default function StartProject() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.clientEmail).trim())) next.clientEmail = 'Please enter a valid email address.';
     if (String(draft.summary).trim().length < 5) next.summary = 'Please add a short subject.';
     if (String(draft.details).trim().length < 20) next.details = 'Please describe your message in at least 20 characters.';
+    if (!platformInquiry && !creatives.some((creative) => creative.slug === draft.creativeSlug)) next.creativeSlug = 'Choose the Creative you want to contact.';
     if (!draft.consent) next.consent = 'Please confirm that we may contact you about this message.';
     return next;
   }
@@ -77,13 +92,14 @@ export default function StartProject() {
     try {
       const request = {
         ...draft,
-        branch: 'general', serviceKey: 'general-inquiry', creativeSlug: '', inquiryKind: 'general', inquiryCategory: '',
+        branch: 'general', serviceKey: 'general-inquiry', creativeSlug: platformInquiry ? '' : draft.creativeSlug, inquiryKind: platformInquiry ? 'platform' : 'creative', inquiryCategory: '',
         serviceMode: '', branchDetails: {}, editorialContext: null,
       };
       const { data, error } = await supabase.functions.invoke('submit-service-request', { body: { action: 'submit', request, sourcePath: `${location.pathname}${location.search}` } });
       if (error) throw error;
       if (!data?.success || !data.reference) throw new Error(data?.message || 'The message could not be submitted.');
-      const confirmation = { reference: data.reference, service: 'Open inquiry', creative: '', submittedAt: data.submittedAt || new Date().toISOString() };
+      const selectedCreative = creatives.find((creative) => creative.slug === draft.creativeSlug);
+      const confirmation = { reference: data.reference, service: platformInquiry ? 'Platform inquiry' : 'Creative inquiry', creative: selectedCreative?.name || '', submittedAt: data.submittedAt || new Date().toISOString() };
       try { window.sessionStorage.removeItem(DRAFT_KEY); window.sessionStorage.setItem(`lahat-liwa-inquiry-confirmation:${data.reference}`, JSON.stringify(confirmation)); } catch {}
       navigate(`/inquiry/confirmation/${data.reference}`, { replace: true, state: confirmation });
     } catch (error) { setSubmitError(await functionErrorMessage(error)); }
@@ -92,9 +108,10 @@ export default function StartProject() {
 
   const page = content.contactPage || {};
   return <div className="page-shell py-16 sm:py-20">
-    <PublicPageHeader eyebrow={page.landingEyebrow || 'Open inquiry'} title={page.landingHeading || 'Tell us what you need.'} description={page.landingDescription || 'Write freely about a project, problem, idea, event, collaboration, or opportunity. You do not need to fit your message into a predefined service.'} />
-    <form onSubmit={submit} aria-label="Open inquiry form" className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
+    <PublicPageHeader eyebrow={platformInquiry ? 'Contact Lahat Liwa' : 'Connect with a Creative'} title={platformInquiry ? 'Message the people behind the platform.' : 'Start a private creative conversation.'} description={platformInquiry ? 'Use this for questions about Lahat Liwa, the website, profiles, credits, or the network itself.' : 'Choose who you want to work with, then describe the project, opportunity, or collaboration directly.'} />
+    <form onSubmit={submit} aria-label={platformInquiry ? 'Platform contact form' : 'Creative inquiry form'} className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
       <section className="grid gap-6">
+        {!platformInquiry && <fieldset data-inquiry-field="creativeSlug" className="ll-creative-recipient-picker"><legend>Who would you like to contact?</legend><p>Your message will be private to the selected Creative and the Super Admin.</p><div>{creatives.map((creative) => <label key={creative.id} className={draft.creativeSlug === creative.slug ? 'is-selected' : ''}><input type="radio" name="creative" value={creative.slug} checked={draft.creativeSlug === creative.slug} onChange={() => update('creativeSlug', creative.slug)} /><span className="ll-creative-recipient-avatar">{creative.profile_image_url ? <img src={creative.profile_image_url} alt=""/> : <UserRound size={20}/>}</span><span><strong>{creative.name}</strong><small>{creative.role || creative.short_bio || 'Lahat Liwa Creative'}</small></span></label>)}</div><FieldError>{errors.creativeSlug}</FieldError></fieldset>}
         {draft.projectContext && <div className="border-l-2 border-orange-300/60 bg-orange-300/[0.04] px-4 py-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-200">Related project</p><p className="mt-2 font-medium text-white">{draft.projectContext.title || draft.projectContext.slug}</p></div>}
         <div className="grid gap-5 sm:grid-cols-2"><Field fieldKey="clientName" label="Your name" value={draft.clientName} onChange={(value) => update('clientName', value)} error={errors.clientName} required /><Field label="Organization or page (optional)" value={draft.organization} onChange={(value) => update('organization', value)} /><Field fieldKey="clientEmail" label="Email" type="email" value={draft.clientEmail} onChange={(value) => update('clientEmail', value)} error={errors.clientEmail} required /><Field label="Phone or messaging contact (optional)" value={draft.clientPhone} onChange={(value) => update('clientPhone', value)} /></div>
         <Field fieldKey="summary" label="Subject" value={draft.summary} onChange={(value) => update('summary', value)} error={errors.summary} maxLength={160} placeholder="What would you like to discuss?" required />
@@ -105,7 +122,7 @@ export default function StartProject() {
         <ActionFeedback error={submitError || (Object.keys(errors).length ? 'Please check the highlighted information.' : '')} />
         <button type="submit" disabled={submitting} className="inline-flex min-h-12 w-fit items-center gap-2 bg-orange-300 px-6 text-sm font-semibold text-zinc-950 hover:bg-orange-200 disabled:opacity-60"><Send size={16} />{submitting ? 'Sending securely…' : 'Send message'}</button>
       </section>
-      <aside className="h-fit border-t border-white/[0.1] pt-6 lg:sticky lg:top-24"><p className="text-xs uppercase tracking-[0.18em] text-orange-200">What happens next</p><div className="mt-5 grid gap-4 text-sm leading-6 text-zinc-400"><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />Your message is reviewed by the team.</p><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />We identify the right person and next step.</p><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />We reply using your preferred contact method.</p></div><p className="mt-7 text-xs leading-6 text-zinc-600">{page.disclaimer || 'Sending a message does not confirm availability, schedule, scope, or pricing.'}</p><a href={`mailto:${content.email}`} className="fine-link mt-5 inline-flex min-h-11 items-center gap-2 text-sm text-zinc-300">Or email directly <ArrowRight size={15} /></a></aside>
+      <aside className="h-fit border-t border-white/[0.1] pt-6 lg:sticky lg:top-24"><p className="text-xs uppercase tracking-[0.18em] text-orange-200">What happens next</p><div className="mt-5 grid gap-4 text-sm leading-6 text-zinc-400"><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />{platformInquiry ? 'Your message goes to the platform owner.' : 'Your message goes directly to the Creative you selected.'}</p><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />It is not placed in a public or shared inquiry pool.</p><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />A reply is sent using your preferred contact method.</p></div><p className="mt-7 text-xs leading-6 text-zinc-600">{page.disclaimer || 'Sending a message does not confirm availability, schedule, scope, or pricing.'}</p>{platformInquiry && <a href={`mailto:${content.email}`} className="fine-link mt-5 inline-flex min-h-11 items-center gap-2 text-sm text-zinc-300">Or email directly <ArrowRight size={15} /></a>}</aside>
     </form>
   </div>;
 }

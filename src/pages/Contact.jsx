@@ -24,8 +24,8 @@ export default function Contact() {
       <PublicPageHeader eyebrow="Contact" title={page.heading || content.contactPage.heading} description={page.description || content.contactPage.description} accentColor={content.contactPage.accentColor || content.accentColor} titleColor={content.contactPage.headingColor || content.primaryTextColor} bodyColor={content.contactPage.bodyTextColor || content.secondaryTextColor} />
       <section className="grid gap-12 pt-10 lg:grid-cols-[1fr_0.72fr] lg:pt-12">
         <div>
-          <p className="max-w-lg text-sm leading-7 text-[var(--site-secondary-text)]">{page.contactIntro || 'Send one open message for a project idea, collaboration, event, content request, profile or credit question, opportunity, or general concern. You do not need to choose a service first.'}</p>
-          <div className="mt-7 flex flex-wrap gap-4"><Link to="/inquiry" className="public-button public-button--primary">Inquire <ArrowRight size={17} /></Link>{hasEmail && <a href={`mailto:${content.email}`} className="public-button public-button--secondary"><Mail size={17} /> {page.ctaText || content.contactPage.ctaText}</a>}</div>
+          <p className="max-w-lg text-sm leading-7 text-[var(--site-secondary-text)]">{page.contactIntro || 'Contact the people behind Lahat Liwa about the platform, profile or credit questions, partnerships, or general concerns. To hire a Creative, open that Creative’s profile instead.'}</p>
+          <div className="mt-7 flex flex-wrap gap-4"><Link to="/inquiry?kind=platform" className="public-button public-button--primary">Message Lahat Liwa <ArrowRight size={17} /></Link>{hasEmail && <a href={`mailto:${content.email}`} className="public-button public-button--secondary"><Mail size={17} /> {page.ctaText || content.contactPage.ctaText}</a>}</div>
           {content.contactPage.notes && <p className="mt-5 max-w-xl text-sm leading-6 text-zinc-500">{content.contactPage.notes}</p>}
         </div>
         {hasLinks && <div className="py-6">

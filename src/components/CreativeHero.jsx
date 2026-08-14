@@ -30,7 +30,7 @@ export default function CreativeHero({ creative, socials, resources = [], render
           {creative.availability_status && <span className="is-available"><i /> {creative.availability_status}</span>}
         </div>
       </div>
-      <div className="ll-profile-actions">{actions || (!adminPreview && <Link to="/inquiry" className="ll-primary-action">Ask about working together <ArrowRight size={16} /></Link>)}<div className="ll-profile-socials">{socials.map(renderSocial)}</div></div>
+      <div className="ll-profile-actions">{actions || (!adminPreview && <Link to={`/inquiry?creative=${encodeURIComponent(creative.slug)}`} className="ll-primary-action">Ask about working together <ArrowRight size={16} /></Link>)}<div className="ll-profile-socials">{socials.map(renderSocial)}</div></div>
     </div>
     {resources.length > 0 && <div className="ll-profile-resources" aria-label="Creative tools and resources">{resources.slice(0, 10).map((resource) => <ResourceLink key={`${resource.name}-${resource.url}`} resource={resource} />)}</div>}
   </header>;

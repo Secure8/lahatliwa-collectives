@@ -181,7 +181,7 @@ test('public reference format is strict and non-database-identifying', () => {
   assert.equal(slugifyService('UI & Prototype'), 'ui-and-prototype');
 });
 
-test('router and CTA sources use the shared inquiry system', async () => {
+test('router and CTA sources use recipient-specific Creative inquiries', async () => {
   const [app, hero, profile, services] = await Promise.all([
     readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8'),
@@ -190,16 +190,17 @@ test('router and CTA sources use the shared inquiry system', async () => {
   ]);
   for (const route of ['/services', '/inquiry', '/inquiry/confirmation/:reference']) assert.match(app, new RegExp(route.replace(/[/:]/g, '\\$&')));
   assert.doesNotMatch(app, /\/services\/:branch/);
-  assert.match(hero, /to="\/inquiry"/);
-  assert.match(profile, /to="\/inquiry"/);
+  assert.match(hero, /inquiry\?creative=/);
+  assert.match(profile, /inquiry\?creative=/);
   assert.doesNotMatch(`${hero}\n${profile}\n${services}`, /href="#"/);
 });
 
-test('open inquiry keeps mobile controls bounded and sends the general canonical request', async () => {
+test('Creative inquiry keeps mobile controls bounded and sends the canonical targeted request', async () => {
   const source = await readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /min-w-screen|w-screen/);
-  assert.match(source, /aria-label="Open inquiry form"/);
+  assert.match(source, /Creative inquiry form/);
   assert.match(source, /branch: 'general', serviceKey: 'general-inquiry'/);
+  assert.match(source, /inquiryKind: platformInquiry \? 'platform' : 'creative'/);
   assert.match(source, /details.*at least 20 characters/);
   assert.doesNotMatch(source, /function selectBranch|function selectService|function selectRecipient/);
 });

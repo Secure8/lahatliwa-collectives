@@ -302,7 +302,8 @@ Deno.serve(async (req) => {
     const canonicalServiceKey = cleanText(resolvedService.key, 80);
 
     const creative = normalized.creativeSlug ? await resolveCreative(admin, normalized.creativeSlug) : null;
-    if (normalized.creativeSlug && !creative) return fail('INVALID_CREATIVE', 'The selected creative is unavailable. Choose another creative or the general team.', 400, cors);
+    if (normalized.creativeSlug && !creative) return fail('INVALID_CREATIVE', 'The selected Creative is unavailable. Choose another Creative.', 400, cors);
+    if (normalized.inquiryKind === 'creative' && !creative) return fail('CREATIVE_REQUIRED', 'Choose the Creative you want to contact.', 400, cors);
 
     const requestedSourcePath = cleanText(body.sourcePath, 500);
     const sourcePath = /^\/(?:inquiry|start-a-project)(?:\?|$)/.test(requestedSourcePath) && !requestedSourcePath.includes('//') ? requestedSourcePath : '/inquiry';

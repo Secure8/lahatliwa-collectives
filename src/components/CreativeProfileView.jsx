@@ -9,6 +9,7 @@ import { isResourceLink } from '../lib/profileResources';
 import { publicImageVariant } from '../lib/publicImages';
 import CreativePostCard from './CreativePostCard';
 import CreativeInlineProfileEditor from './CreativeInlineProfileEditor';
+import { normalizeCreativeProfileTemplate } from '../lib/creativeProfileTemplates';
 
 export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, moderator = false, onArchivePost, onRestorePost, onDeletePost, onModeratePost, onEditProject, onDeleteProject, adminPreview = false, onBack = null, onCreativeChange }) {
   const location = useLocation();
@@ -19,8 +20,9 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
   const socials = allLinks.filter((item) => !isResourceLink(item)).map(socialLinkMeta).filter((item) => item.href);
   const bio = creative.full_bio || creative.short_bio;
   const professional = creative.professional_details && typeof creative.professional_details === 'object' ? creative.professional_details : {};
+  const profileTemplate = normalizeCreativeProfileTemplate(creative.profile_template);
   const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Create post</Link><button type="button" className="ll-secondary-action" onClick={() => setEditingSection('overview')}><Edit3 size={16} /> Edit details</button></> : null;
-  return <article className="ll-profile-page">
+  return <article className={`ll-profile-page ll-profile-template--${profileTemplate}`} data-profile-template={profileTemplate}>
     {adminPreview && <p className="ll-preview-label">Admin preview</p>}
     <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} actions={ownerActions} onBack={onBack} onEdit={isOwner && !adminPreview ? setEditingSection : null} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
@@ -48,7 +50,7 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
       </aside>
     </div>}
 
-    {!adminPreview && <footer id="contact" className="ll-profile-contact"><div><p className="ll-kicker">Professional inquiry</p><h2>Interested in this Creative's work?</h2><p>Tell us about the project, collaboration, or opportunity. Lahat Liwa will help guide the right next step.</p></div><Link to="/inquiry" className="ll-primary-action">Ask about working together <ArrowRight size={16} /></Link></footer>}
+    {!adminPreview && <footer id="contact" className="ll-profile-contact"><div><p className="ll-kicker">Professional inquiry</p><h2>Interested in this Creative's work?</h2><p>Send a private inquiry directly to {creative.name}. Only this Creative and the Super Admin can view it.</p></div><Link to={`/inquiry?creative=${encodeURIComponent(creative.slug)}`} className="ll-primary-action">Connect with {creative.name.split(' ')[0]} <ArrowRight size={16} /></Link></footer>}
     {editingSection && <CreativeInlineProfileEditor creative={creative} initialSection={editingSection} onClose={() => setEditingSection('')} onSaved={onCreativeChange} />}
   </article>;
 }

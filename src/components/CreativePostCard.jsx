@@ -40,7 +40,7 @@ export default function CreativePostCard({ post, creative, owner = false, modera
     </header>
     <div className="ll-post-card__body"><CreativePostDocument document={post.document} media={post.creative_post_media} compact={feed} /></div>
     {post.status === 'published' && <footer className="ll-post-card__actions">
-      <Link to={`/inquiry?work=${encodeURIComponent(post.slug || post.id)}`}><MessageCircle size={17} /> Ask about this work</Link>
+      <Link to={`/inquiry?creative=${encodeURIComponent(creative?.slug || '')}&work=${encodeURIComponent(post.slug || post.id)}`}><MessageCircle size={17} /> Ask about this work</Link>
       <Link to={`/posts/${post.slug}`}><span>Open post</span><ArrowUpRight size={17} /></Link>
     </footer>}
     {post.moderation_reason && <p className="ll-moderation-note">Moderation note: {post.moderation_reason}</p>}

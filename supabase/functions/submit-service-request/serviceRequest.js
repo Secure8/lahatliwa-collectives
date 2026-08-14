@@ -4,7 +4,7 @@ export const BRANCHES = new Set(['studio', 'tech', 'digital', 'social', 'general
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const REFERENCE_PATTERN = /^LLC-\d{4}-[A-Z0-9]{6}$/;
 const EDITORIAL_TYPES = new Set(['journal', 'event', 'place', 'activity', 'local_product']);
-const INQUIRY_KINDS = new Set(['service', 'tourism', 'general']);
+const INQUIRY_KINDS = new Set(['service', 'tourism', 'general', 'creative', 'platform']);
 const TOURISM_CATEGORIES = new Set(['destination-information', 'event-or-activity', 'local-product', 'tourism-question', 'correction-or-concern']);
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -61,6 +61,7 @@ export function validateSubmission(raw = {}) {
   const errors = [];
   if (!BRANCHES.has(normalized.branch)) errors.push('Choose an available service branch.');
   if (!normalized.serviceKey) errors.push('Choose an available service category.');
+  if (normalized.inquiryKind === 'creative' && !normalized.creativeSlug) errors.push('Choose the Creative you want to contact.');
   if (normalized.inquiryKind === 'tourism' && !TOURISM_CATEGORIES.has(normalized.inquiryCategory)) errors.push('Choose an available tourism inquiry topic.');
   if (normalized.clientName.length < 2) errors.push('Enter your name or organization contact.');
   if (!EMAIL_PATTERN.test(normalized.clientEmail)) errors.push('Enter a valid email address.');

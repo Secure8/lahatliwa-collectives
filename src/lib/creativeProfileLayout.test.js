@@ -16,6 +16,8 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(hero, /creative\.short_bio/);
   assert.match(hero, /ll-profile-professional-title/);
   assert.match(hero, /<span>Disciplines<\/span>/);
+  assert.match(hero, /<ul>\{disciplines\.map/);
+  assert.match(hero, /<li key=\{discipline\}>\{discipline\}<\/li>/);
   assert.match(hero, /availability_status/);
   assert.match(profile, /isOwner && !adminPreview/);
   assert.match(profile, /to="\/create"/);
@@ -26,6 +28,7 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(styles, /\.ll-profile-cover[\s\S]*?aspect-ratio: 16\/6/);
   assert.match(styles, /\.ll-profile-layout[\s\S]*?grid-template-columns/);
   assert.match(styles, /\.ll-profile-professional-title \{[^}]*color: var\(--site-accent-text\)/);
+  assert.match(styles, /\.ll-profile-disciplines li \{[^}]*border: 1px solid/);
 });
 
 test('profile media and navigation are intentionally responsive without desktop overlay utilities', async () => {
@@ -36,14 +39,37 @@ test('profile media and navigation are intentionally responsive without desktop 
   assert.match(hero, /publicImageVariant/);
   assert.match(profile, /ll-profile-tabs/);
   assert.match(styles, /@media \(min-width: 900px\)[\s\S]*?\.ll-profile-identity/);
-  assert.match(styles, /\.ll-profile-identity \{ grid-template-columns: auto minmax\(0,1fr\) auto; align-items: start; \}/);
-  assert.match(styles, /\.ll-profile-avatar \{ align-self: start; width: 11\.5rem; height: 11\.5rem; margin-top: 2rem; \}/);
+  assert.match(styles, /\.ll-profile-identity \{ min-height: 18rem; grid-template-columns: auto minmax\(0,1fr\) auto; align-items: start; padding-bottom: 1\.75rem; \}/);
+  assert.match(styles, /\.ll-profile-avatar \{ align-self: start; width: 13rem; height: 13rem; margin-top: 1\.5rem; \}/);
+  assert.match(styles, /\.ll-profile-avatar \{[^}]*overflow: visible/);
+  assert.match(styles, /\.ll-profile-avatar\.is-editable i \{[^}]*z-index: 3/);
   assert.match(styles, /\.ll-profile-cover-back \{[^}]*left: \.85rem/);
   assert.match(styles, /\.ll-profile-intro[\s\S]*?-webkit-line-clamp: 2/);
   assert.match(styles, /@media \(max-width: 420px\)[\s\S]*?\.ll-profile-page/);
   assert.doesNotMatch(route, /pointermove|topControlsVisible|CreativeProfileQuickNav/);
   assert.doesNotMatch(route, /> Back to Creatives</);
   assert.doesNotMatch(profile, /ProfileRails/);
+});
+
+test('disciplines have shared count and length limits in every editor and the database', async () => {
+  const [rules, hero, inlineEditor, adminEditor, selfEditor, migration] = await Promise.all([
+    source('./creativeProfile.js'),
+    source('../components/CreativeHero.jsx'),
+    source('../components/CreativeInlineProfileEditor.jsx'),
+    source('../pages/admin/CreativeEditor.jsx'),
+    source('../pages/admin/MyProfile.jsx'),
+    source('../../supabase/migrations/20260814210000_creative_discipline_balance.sql'),
+  ]);
+  assert.match(rules, /CREATIVE_DISCIPLINE_MAX_COUNT = 6/);
+  assert.match(rules, /CREATIVE_DISCIPLINE_MAX_LENGTH = 40/);
+  assert.match(rules, /LEGACY_DISCIPLINE_NAMES/);
+  assert.match(hero, /normalizeCreativeDisciplines\(creative\.skills\)/);
+  assert.match(inlineEditor, /creativeDisciplineError/);
+  assert.match(adminEditor, /normalizeCreativeDisciplines/);
+  assert.match(selfEditor, /disabled=\{skills\.length >= CREATIVE_DISCIPLINE_MAX_COUNT\}/);
+  assert.match(migration, /valid_creative_disciplines/);
+  assert.match(migration, /jsonb_array_length\(value\) <= 6/);
+  assert.match(migration, /char_length\(btrim\(item\)\) > 40/);
 });
 
 test('short Creative bios share one Facebook-style limit across both editors and the database', async () => {

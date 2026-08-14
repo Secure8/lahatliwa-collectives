@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom';
 import { getPublicImageUrl } from '../lib/storage';
 import { publicImageVariant } from '../lib/publicImages';
 import { resourceMeta } from '../lib/profileResources';
+import { CREATIVE_DISCIPLINE_MAX_COUNT, normalizeCreativeDisciplines } from '../lib/creativeProfile';
 
 export default function CreativeHero({ creative, socials, resources = [], renderSocial, adminPreview = false, actions = null, onBack = null, onEdit = null }) {
   const profileImage = publicImageVariant(getPublicImageUrl(creative.profile_image_url), 'display');
   const coverImage = publicImageVariant(getPublicImageUrl(creative.cover_image), 'expanded');
-  const disciplines = (creative.skills || []).filter(Boolean).slice(0, 5);
+  const disciplines = normalizeCreativeDisciplines(creative.skills).slice(0, CREATIVE_DISCIPLINE_MAX_COUNT);
   return <header className="ll-profile-header">
     <div className="ll-profile-cover">
       {coverImage ? <SafeImage src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} /> : <div className="ll-profile-cover__fallback" aria-hidden="true" />}
@@ -22,7 +23,7 @@ export default function CreativeHero({ creative, socials, resources = [], render
         <p className="ll-kicker">Creative profile</p>
         <h1>{creative.name}</h1>
         <p className="ll-profile-professional-title">{creative.role || 'Creative'}</p>
-        {disciplines.length > 0 && <p className="ll-profile-disciplines"><span>Disciplines</span>{disciplines.join(' · ')}</p>}
+        {disciplines.length > 0 && <div className="ll-profile-disciplines"><span>Disciplines</span><ul>{disciplines.map((discipline) => <li key={discipline}>{discipline}</li>)}</ul></div>}
         {creative.short_bio && <p className="ll-profile-intro">{creative.short_bio}</p>}
         <div className="ll-profile-meta">
           {creative.location && <span><MapPin size={15} /> {creative.location}</span>}

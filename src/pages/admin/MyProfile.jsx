@@ -29,7 +29,7 @@ import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
 import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 import { useAdminAccess } from '../../lib/adminAccess';
 import { copyText } from '../../lib/clipboard';
-import { CREATIVE_SHORT_BIO_MAX_LENGTH } from '../../lib/creativeProfile';
+import { CREATIVE_DISCIPLINE_MAX_COUNT, CREATIVE_DISCIPLINE_MAX_LENGTH, CREATIVE_SHORT_BIO_MAX_LENGTH, creativeDisciplineError, normalizeCreativeDisciplines } from '../../lib/creativeProfile';
 import { cleanupReplacedProfileWebsiteMedia, uploadProfileWebsiteMedia } from '../../lib/profileExternalStorage';
 import { parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
@@ -273,7 +273,10 @@ export default function MyProfile() {
     const value = skillDraft.trim().replace(/\s+/g, ' ');
     if (!value) return;
     if (skills.some((skill) => skill.toLowerCase() === value.toLowerCase())) return;
+    if (skills.length >= CREATIVE_DISCIPLINE_MAX_COUNT) { setFieldErrors((current) => ({ ...current, skills: `Add no more than ${CREATIVE_DISCIPLINE_MAX_COUNT} disciplines.` })); return; }
+    if (value.length > CREATIVE_DISCIPLINE_MAX_LENGTH) { setFieldErrors((current) => ({ ...current, skills: `Keep each discipline within ${CREATIVE_DISCIPLINE_MAX_LENGTH} characters.` })); return; }
     update('skills', [...skills, value]);
+    setFieldErrors((current) => { const next = { ...current }; delete next.skills; return next; });
     setSkillDraft('');
   }
 
@@ -332,10 +335,7 @@ export default function MyProfile() {
     const nextFullBio = (form.full_bio || '').trim();
     const nextAvailability = (form.availability_status || '').trim();
     const nextNotificationEmail = (form.notification_email || '').trim().toLowerCase();
-    const nextSkills = Array.from(new Set((Array.isArray(form.skills) ? form.skills : parseList(form.skills))
-      .map((skill) => skill.trim().replace(/\s+/g, ' '))
-      .filter(Boolean)
-      .filter((skill, index, list) => list.findIndex((item) => item.toLowerCase() === skill.toLowerCase()) === index)));
+    const nextSkills = normalizeCreativeDisciplines(form.skills);
     const normalizedSocialLinks = (Array.isArray(form.social_links) ? form.social_links : socialLinksFromText(form.social_links || '').map(normalizeSocialRow))
       .map(normalizeSocialRow)
       .filter((item) => item.href || item.label);
@@ -346,6 +346,7 @@ export default function MyProfile() {
     if (!nextRole) nextFieldErrors.role = 'Role / title is required.';
     if (!nextSlug) nextFieldErrors.slug = 'A public slug is required.';
     if (nextShortBio.length > CREATIVE_SHORT_BIO_MAX_LENGTH) nextFieldErrors.short_bio = `Keep the short bio within ${CREATIVE_SHORT_BIO_MAX_LENGTH} characters.`;
+    if (creativeDisciplineError(nextSkills)) nextFieldErrors.skills = creativeDisciplineError(nextSkills);
     if (invalidSocialIndex !== -1) nextFieldErrors.social_links = 'Each social link needs a complete URL such as https://example.com.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextNotificationEmail)) nextFieldErrors.notification_email = 'Enter a valid private notification email.';
 
@@ -741,7 +742,9 @@ export default function MyProfile() {
                         addSkill();
                       }
                     }}
-                    placeholder="Type a skill and press Enter"
+                    placeholder="Type a discipline and press Enter"
+                    maxLength={CREATIVE_DISCIPLINE_MAX_LENGTH}
+                    disabled={skills.length >= CREATIVE_DISCIPLINE_MAX_COUNT}
                     className={lineInput}
                   />
                   <button
@@ -766,8 +769,9 @@ export default function MyProfile() {
                 ))}
               </div>
 
-              {skills.length === 0 && <p className="text-xs text-zinc-600">Add a few concise skills to improve the compact cards and profile preview.</p>}
-              {skills.length > 12 && <p className="text-xs text-amber-200">Consider trimming this list to 12 or fewer skills for a cleaner public profile.</p>}
+              {skills.length === 0 && <p className="text-xs text-zinc-600">Add a few concise disciplines to improve the profile.</p>}
+              <p className="text-xs text-zinc-600">{skills.length}/{CREATIVE_DISCIPLINE_MAX_COUNT} disciplines · {CREATIVE_DISCIPLINE_MAX_LENGTH} characters each</p>
+              {fieldErrors.skills && <p className="text-xs text-red-300">{fieldErrors.skills}</p>}
             </div>
 
             <ProfileField

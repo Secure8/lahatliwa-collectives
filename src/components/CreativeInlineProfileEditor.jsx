@@ -1,7 +1,6 @@
 import { Camera, Save, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { CREATIVE_SHORT_BIO_MAX_LENGTH } from '../lib/creativeProfile';
-import { parseList } from '../lib/helpers';
+import { CREATIVE_DISCIPLINE_MAX_COUNT, CREATIVE_DISCIPLINE_MAX_LENGTH, CREATIVE_SHORT_BIO_MAX_LENGTH, creativeDisciplineError, normalizeCreativeDisciplines } from '../lib/creativeProfile';
 import { cleanupReplacedProfileWebsiteMedia, uploadProfileWebsiteMedia } from '../lib/profileExternalStorage';
 import { socialLinksFromText } from '../lib/socialLinks';
 import { supabase } from '../lib/supabaseClient';
@@ -55,13 +54,16 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
   async function save(event) {
     event.preventDefault();
     const shortBio = form.short_bio.trim();
+    const skills = normalizeCreativeDisciplines(form.skills);
+    const disciplineError = creativeDisciplineError(skills);
     if (!form.name.trim() || !form.role.trim()) { setError('Name and professional title are required.'); return; }
     if (shortBio.length > CREATIVE_SHORT_BIO_MAX_LENGTH) { setError(`Keep the short bio within ${CREATIVE_SHORT_BIO_MAX_LENGTH} characters.`); return; }
+    if (disciplineError) { setError(disciplineError); return; }
     setSaving(true); setError('');
     const payload = {
       name: form.name.trim(), role: form.role.trim(), short_bio: shortBio || null, full_bio: form.full_bio.trim() || null,
       location: form.location.trim() || null, availability_status: form.availability_status.trim() || null,
-      skills: parseList(form.skills), social_links: socialLinksFromText(form.social_links),
+      skills, social_links: socialLinksFromText(form.social_links),
       professional_details: {
         education: lineList(form.education), experience: lineList(form.experience), achievements: lineList(form.achievements),
       }, updated_at: new Date().toISOString(),
@@ -93,7 +95,7 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
       <header><div><p className="ll-kicker">Edit on your wall</p><h2>Profile details</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={21} /></button></header>
       <nav aria-label="Profile editor sections">{sections.map(([key, label]) => <button key={key} type="button" aria-pressed={section === key} onClick={() => setSection(key)}>{label}</button>)}</nav>
       <form onSubmit={save}>
-        {section === 'overview' && <div className="ll-profile-editor-fields"><ProfileField label="Display name" value={form.name} onChange={(value) => update('name', value)} /><ProfileField label="Professional title" value={form.role} onChange={(value) => update('role', value)} /><ProfileField label="Location" value={form.location} onChange={(value) => update('location', value)} placeholder="Kalibo, Aklan" /><ProfileField label="Availability" value={form.availability_status} onChange={(value) => update('availability_status', value)} placeholder="Available for selected projects" /><ProfileTextarea label="Short bio" value={form.short_bio} onChange={(value) => update('short_bio', value)} maxLength={CREATIVE_SHORT_BIO_MAX_LENGTH} hint={`${form.short_bio.length}/${CREATIVE_SHORT_BIO_MAX_LENGTH}`} /><ProfileTextarea label="Disciplines" value={form.skills} onChange={(value) => update('skills', value)} hint="One discipline per line." /></div>}
+        {section === 'overview' && <div className="ll-profile-editor-fields"><ProfileField label="Display name" value={form.name} onChange={(value) => update('name', value)} /><ProfileField label="Professional title" value={form.role} onChange={(value) => update('role', value)} /><ProfileField label="Location" value={form.location} onChange={(value) => update('location', value)} placeholder="Kalibo, Aklan" /><ProfileField label="Availability" value={form.availability_status} onChange={(value) => update('availability_status', value)} placeholder="Available for selected projects" /><ProfileTextarea label="Short bio" value={form.short_bio} onChange={(value) => update('short_bio', value)} maxLength={CREATIVE_SHORT_BIO_MAX_LENGTH} hint={`${form.short_bio.length}/${CREATIVE_SHORT_BIO_MAX_LENGTH}`} /><ProfileTextarea label="Disciplines" value={form.skills} onChange={(value) => update('skills', value)} hint={`One per line. Up to ${CREATIVE_DISCIPLINE_MAX_COUNT}, ${CREATIVE_DISCIPLINE_MAX_LENGTH} characters each.`} /></div>}
         {section === 'about' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Full biography" value={form.full_bio} onChange={(value) => update('full_bio', value)} rows={9} hint="Tell clients about your perspective, background, and approach." /></div>}
         {section === 'professional' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Experience" value={form.experience} onChange={(value) => update('experience', value)} hint="One role or professional milestone per line." /><ProfileTextarea label="Education" value={form.education} onChange={(value) => update('education', value)} hint="One school, course, or qualification per line." /><ProfileTextarea label="Achievements" value={form.achievements} onChange={(value) => update('achievements', value)} hint="One award, recognition, or meaningful achievement per line." /></div>}
         {section === 'links' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Professional and social links" value={form.social_links} onChange={(value) => update('social_links', value)} rows={8} hint="One per line, for example Instagram: https://instagram.com/yourname" /></div>}

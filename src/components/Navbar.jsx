@@ -1,4 +1,4 @@
-import { ChevronDown, LogIn, Menu, PenLine, UserRound, X } from 'lucide-react';
+import { BriefcaseBusiness, ChevronDown, Handshake, House, Images, Info, LogIn, Mail, Menu, MoreHorizontal, PenLine, ShieldCheck, UserRound, UsersRound, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
@@ -22,13 +22,13 @@ export default function Navbar() {
   const closeMenu = useCallback(() => setOpen(false), []);
   const { panelRef, triggerRef } = useModalDrawer({ open, onClose: closeMenu });
   const primaryLinks = [
-    [navigation.homeLabel || 'Feed', '/'],
-    [navigation.currentWorkLabel || 'Work', '/work'],
-    [navigation.projectsLabel || 'Portfolio', '/projects'],
-    [navigation.creativesLabel || 'Creatives', '/creatives'],
-    [navigation.servicesLabel || 'Services', '/services'],
+    [navigation.homeLabel || 'Feed', '/', House],
+    [navigation.currentWorkLabel || 'Work', '/work', BriefcaseBusiness],
+    [navigation.projectsLabel || 'Portfolio', '/projects', Images],
+    [navigation.creativesLabel || 'Creatives', '/creatives', UsersRound],
+    [navigation.servicesLabel || 'Services', '/services', Handshake],
   ];
-  const moreLinks = [[navigation.aboutLabel || 'About', '/about'], [navigation.contactLabel || 'Contact', '/contact'], [navigation.privacyLabel || 'Privacy', '/privacy']];
+  const moreLinks = [[navigation.aboutLabel || 'About', '/about', Info], [navigation.contactLabel || 'Contact', '/contact', Mail], [navigation.privacyLabel || 'Privacy', '/privacy', ShieldCheck]];
 
   useEffect(() => setOpen(false), [location.key, location.pathname]);
   return <>
@@ -38,8 +38,8 @@ export default function Navbar() {
           {content.logoUrl ? <BrandLogo src={content.logoUrl} alt={content.logoAlt} /> : <span className="ll-brand-mark">{content.initials}</span>}
           <BrandWordmark name={content.displayName} variant="compact" mobileVariant="mobile-compact" />
         </Link>
-        <div className="ll-public-nav__links">{primaryLinks.map(([label, href]) => <NavLink key={href} to={href} onPointerEnter={() => preloadPublicRoute(href)} onFocus={() => preloadPublicRoute(href)} className={({ isActive }) => clsx(isActive && 'is-active')}>{label}</NavLink>)}
-          <button type="button" ref={triggerRef} onClick={() => setOpen(true)} aria-expanded={open} aria-controls="public-more-menu" className="ll-nav-more">More <ChevronDown size={14} /></button>
+        <div className="ll-public-nav__links">{primaryLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} title={label} aria-label={label} onPointerEnter={() => preloadPublicRoute(href)} onFocus={() => preloadPublicRoute(href)} className={({ isActive }) => clsx(isActive && 'is-active')}><Icon size={20} /><span>{label}</span></NavLink>)}
+          <button type="button" ref={triggerRef} onClick={() => setOpen(true)} aria-label="More pages" title="More" aria-expanded={open} aria-controls="public-more-menu" className="ll-nav-more"><MoreHorizontal size={21} /><span>More</span><ChevronDown className="ll-nav-more__chevron" size={14} /></button>
         </div>
         <div className="ll-public-nav__account">
           <AppearanceMenuAction iconOnly className="ll-icon-action" />
@@ -57,7 +57,7 @@ export default function Navbar() {
       <button type="button" tabIndex={-1} className="ll-drawer-scrim" onClick={closeMenu} aria-label="Close navigation" />
       <section ref={panelRef} id="public-more-menu" role="dialog" aria-modal="true" aria-label="Navigation" className="ll-public-drawer">
         <header><div><p className="ll-kicker">Explore Lahat Liwa</p><h2>{content.displayName}</h2></div><button data-drawer-initial-focus type="button" onClick={closeMenu} aria-label="Close navigation"><X size={21} /></button></header>
-        <nav aria-label="All pages">{[...primaryLinks, ...moreLinks].map(([label, href]) => <NavLink key={href} to={href} className={({ isActive }) => clsx(isActive && 'is-active')}>{label}<span>→</span></NavLink>)}</nav>
+        <nav aria-label="All pages">{[...primaryLinks, ...moreLinks].map(([label, href, Icon]) => <NavLink key={href} to={href} className={({ isActive }) => clsx(isActive && 'is-active')}><span><Icon size={18} />{label}</span><span>→</span></NavLink>)}</nav>
         <footer><p>{content.tagline}</p>{isCreative ? <Link to="/create" className="ll-primary-action"><PenLine size={17} /> Create post</Link> : <Link to="/services" className="ll-primary-action">Start a conversation</Link>}</footer>
       </section>
     </div>}

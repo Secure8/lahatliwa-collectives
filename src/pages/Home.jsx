@@ -22,7 +22,7 @@ export default function Home() {
     Promise.all([
       loadPublicCreativeFeed({ limit: 36 }),
       fetchPublicProjectSummaries(),
-      supabase.from('creative_members').select('id,name,slug,role,short_bio,profile_image_url,skills,is_featured').eq('is_published', true).order('is_featured', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false }).limit(4),
+      supabase.from('creative_members').select('id,name,slug,role,short_bio,profile_image_url,skills,is_featured').eq('is_published', true).order('is_featured', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false }).limit(10),
     ]).then(([posts, projects, creativeResult]) => {
       if (!active) return;
       setState({ loading: false, posts, projects: (projects || []).slice(0, 12), creatives: creativeResult.data || [], error: '' });
@@ -42,6 +42,13 @@ export default function Home() {
         <Link to="/services" className="ll-text-action">Work with us <ArrowRight size={16} /></Link>
       </div>
     </section>
+
+    {!state.loading && state.creatives.length > 0 && <nav className="ll-creative-strip" aria-label="Featured Creatives">
+      {state.creatives.map((creative) => <Link key={creative.id} to={`/creatives/${creative.slug}`} title={creative.name}>
+        {creative.profile_image_url ? <img src={creative.profile_image_url} alt="" loading="lazy" /> : <span aria-hidden="true">{creative.name?.slice(0, 1) || 'C'}</span>}
+        <small>{creative.name}</small>
+      </Link>)}
+    </nav>}
 
     <div className="ll-home-layout">
       <main className="min-w-0">

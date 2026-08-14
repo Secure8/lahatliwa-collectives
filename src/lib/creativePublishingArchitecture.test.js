@@ -65,3 +65,17 @@ test('post and project creation open in focused floating workspaces', () => {
   assert.match(styles, /\.ll-composer-modal, \.ll-work-editor[\s\S]*?border-radius: 1rem/);
   assert.match(styles, /\.ll-composer-modal-body, \.ll-work-editor-body \{ min-height: 0; overflow-y: auto/);
 });
+
+test('post editor provides visible structured rich text with familiar shortcuts', () => {
+  const editor = source('src/pages/CreativePostEditor.jsx');
+  const styles = source('src/index.css');
+  assert.match(editor, /contentEditable/);
+  assert.match(editor, /readRichTextSegments/);
+  assert.match(editor, /writeRichTextSegments/);
+  assert.match(editor, /event\.key\.toLowerCase\(\) === 'b'/);
+  assert.match(editor, /event\.key\.toLowerCase\(\) === 'i'/);
+  assert.match(editor, /event\.key\.toLowerCase\(\) === 'k'/);
+  assert.match(editor, /title="Bold \(Ctrl\+B\)"/);
+  assert.match(styles, /\.ll-rich-text-editor strong \{ font-weight: 750/);
+  assert.doesNotMatch(editor, /dangerouslySetInnerHTML/);
+});

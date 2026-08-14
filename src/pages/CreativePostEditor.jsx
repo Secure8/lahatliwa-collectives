@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import CreativePostDocument from '../components/CreativePostDocument';
 import LoadingState from '../components/LoadingState';
-import { applyCreativePostInlineStyle, createCreativePostDraft, createPostBlock, creativePostHasContent, CREATIVE_POST_MAX_IMAGES, emptyCreativePostDocument, loadCreativePostForEdit, normalizeCreativePostDocument, publishCreativePost, removeCreativePostMedia, saveCreativePost, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
+import { createCreativePostDraft, createPostBlock, creativePostHasContent, CREATIVE_POST_MAX_IMAGES, emptyCreativePostDocument, loadCreativePostForEdit, normalizeCreativePostDocument, publishCreativePost, removeCreativePostMedia, saveCreativePost, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
 import { useAdminAccess } from '../lib/adminAccess';
 import { supabase } from '../lib/supabaseClient';
 import { useAdminConfirmation } from '../components/admin/AdminDialog';
@@ -211,21 +211,95 @@ export default function CreativePostEditor({ create = false }) {
 
 function NaturalBlock({ block, index, media, onChange, onEnter, onRemove, onSelectMedia }) {
   const [focused, setFocused] = useState(false);
-  const textRef = useRef(null);
+  const editorRef = useRef(null);
   const text = block.content?.map((segment) => segment.text).join('') || '';
-  const styleSelection = (style) => { const field = textRef.current; if (!field || field.selectionStart === field.selectionEnd) return; const start = field.selectionStart; const end = field.selectionEnd; onChange({ content: applyCreativePostInlineStyle(block.content, start, end, style) }); window.setTimeout(() => { field.focus(); field.setSelectionRange(start, end); }, 0); };
-  const setLink = () => { const href = window.prompt('Paste a secure https:// link', 'https://'); if (href !== null) styleSelection({ href }); };
+  const runFormat = (command, value = null) => {
+    const field = editorRef.current;
+    const selection = globalThis.getSelection?.();
+    if (!field || !selection || selection.isCollapsed || !field.contains(selection.anchorNode)) return;
+    globalThis.document.execCommand('styleWithCSS', false, false);
+    globalThis.document.execCommand(command, false, value);
+    onChange({ content: readRichTextSegments(field) });
+    field.focus();
+  };
+  const setLink = () => {
+    const href = window.prompt('Paste a secure https:// link', 'https://');
+    if (href === null) return;
+    if (!/^https:\/\//i.test(href.trim())) { window.alert('Use a secure https:// link.'); return; }
+    runFormat('createLink', href.trim());
+  };
   if (block.type === 'divider') return <div data-composer-block={index} className="ll-natural-divider"><hr /><button type="button" onClick={onRemove} aria-label="Remove divider"><X size={15} /></button></div>;
   if (block.type === 'image_group') { const items = block.mediaIds.map((id) => media.find((item) => item.id === id)).filter(Boolean); return <div data-composer-block={index} className="ll-natural-gallery">{items.map((item, itemIndex) => <button key={item.id} type="button" onClick={() => onSelectMedia(item.id)} aria-label={`Edit photo ${itemIndex + 1}`}><img src={item.display_url || item.thumbnail_url} alt={item.alt_text || ''} /><span><MoreHorizontal size={18} /></span>{!item.alt_text && <small>Description needed</small>}</button>)}</div>; }
   if (block.type === 'external_embed') return <div data-composer-block={index} className="ll-natural-link"><input value={block.label} onChange={(event) => onChange({ label: event.target.value })} placeholder="Give this link a title" /><input value={block.url} onChange={(event) => onChange({ url: event.target.value })} placeholder="https://…" /><button type="button" onClick={onRemove} aria-label="Remove link"><X size={16} /></button></div>;
   if (block.type === 'bullet_list' || block.type === 'numbered_list') return <div data-composer-block={index} className="ll-natural-text is-list"><textarea rows={Math.max(2, block.items.length)} value={block.items.join('\n')} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onChange={(event) => onChange({ items: event.target.value.split('\n') })} placeholder="One thought per line…" />{focused && <ContextToolbar onRemove={onRemove} />}</div>;
   return <div data-composer-block={index} className={`ll-natural-text is-${block.type}`}>
-    {focused && <ContextToolbar onBold={() => styleSelection({ mark: 'bold' })} onItalic={() => styleSelection({ mark: 'italic' })} onLink={setLink} onRemove={onRemove} />}
-    <textarea ref={textRef} rows={block.type === 'heading' ? 2 : Math.max(3, Math.ceil(text.length / 72))} value={text} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.parentElement.contains(event.relatedTarget)) setFocused(false); }} onChange={(event) => onChange({ content: [{ text: event.target.value, marks: [] }] })} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && block.type !== 'quote') { event.preventDefault(); onEnter(); } if (event.key === 'Backspace' && !text && index > 0) onRemove(); }} placeholder={index === 0 ? 'What are you creating, learning, or sharing?' : block.type === 'heading' ? 'Add a heading…' : block.type === 'quote' ? 'Add a meaningful quote…' : 'Keep writing…'} />
+    {focused && <ContextToolbar onBold={() => runFormat('bold')} onItalic={() => runFormat('italic')} onLink={setLink} onRemove={onRemove} />}
+    <RichTextField editorRef={editorRef} content={block.content} placeholder={index === 0 ? 'What are you creating, learning, or sharing?' : block.type === 'heading' ? 'Add a heading…' : block.type === 'quote' ? 'Add a meaningful quote…' : 'Keep writing…'} onChange={(content) => onChange({ content })} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.parentElement.contains(event.relatedTarget)) setFocused(false); }} onKeyDown={(event) => {
+      const shortcut = (event.ctrlKey || event.metaKey) && !event.altKey;
+      if (shortcut && event.key.toLowerCase() === 'b') { event.preventDefault(); runFormat('bold'); return; }
+      if (shortcut && event.key.toLowerCase() === 'i') { event.preventDefault(); runFormat('italic'); return; }
+      if (shortcut && event.key.toLowerCase() === 'k') { event.preventDefault(); setLink(); return; }
+      if (event.key === 'Enter' && !event.shiftKey && block.type !== 'quote') { event.preventDefault(); onEnter(); }
+      if (event.key === 'Backspace' && !text && index > 0) onRemove();
+    }} />
   </div>;
 }
 
-function ContextToolbar({ onBold, onItalic, onLink, onRemove }) { return <div className="ll-context-toolbar" role="toolbar" aria-label="Formatting"><button type="button" onClick={onBold} disabled={!onBold} aria-label="Bold selected text"><Bold size={15} /></button><button type="button" onClick={onItalic} disabled={!onItalic} aria-label="Italicize selected text"><Italic size={15} /></button><button type="button" onClick={onLink} disabled={!onLink} aria-label="Link selected text"><Link2 size={15} /></button><span /><button type="button" onClick={onRemove} aria-label="Remove this section"><Trash2 size={15} /></button></div>; }
+function RichTextField({ editorRef, content, placeholder, onChange, onFocus, onBlur, onKeyDown }) {
+  const localSignature = useRef('');
+  useEffect(() => {
+    const signature = JSON.stringify(content || []);
+    if (localSignature.current === signature) { localSignature.current = ''; return; }
+    writeRichTextSegments(editorRef.current, content);
+  }, [content, editorRef]);
+  const emit = () => {
+    const next = readRichTextSegments(editorRef.current);
+    localSignature.current = JSON.stringify(next);
+    onChange(next);
+  };
+  return <div ref={editorRef} className="ll-rich-text-editor" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" data-placeholder={placeholder} onInput={emit} onFocus={onFocus} onBlur={onBlur} onKeyDown={onKeyDown} onPaste={(event) => { event.preventDefault(); globalThis.document.execCommand('insertText', false, event.clipboardData.getData('text/plain')); }} />;
+}
+
+function writeRichTextSegments(root, content = []) {
+  if (!root) return;
+  const fragment = globalThis.document.createDocumentFragment();
+  for (const segment of content || []) {
+    let node = globalThis.document.createTextNode(segment.text || '');
+    if (segment.marks?.includes('bold')) { const strong = globalThis.document.createElement('strong'); strong.append(node); node = strong; }
+    if (segment.marks?.includes('italic')) { const em = globalThis.document.createElement('em'); em.append(node); node = em; }
+    if (/^https:\/\//i.test(segment.href || '')) { const link = globalThis.document.createElement('a'); link.href = segment.href; link.append(node); node = link; }
+    fragment.append(node);
+  }
+  root.replaceChildren(fragment);
+}
+
+function readRichTextSegments(root) {
+  const segments = [];
+  const push = (text, marks, href) => {
+    if (!text) return;
+    const normalized = text.replaceAll('\u00a0', ' ');
+    const previous = segments.at(-1);
+    if (previous && previous.href === href && previous.marks.join('|') === marks.join('|')) previous.text += normalized;
+    else segments.push({ text: normalized, marks, ...(href ? { href } : {}) });
+  };
+  const visit = (node, marks = [], href = '') => {
+    if (node.nodeType === globalThis.Node.TEXT_NODE) { push(node.textContent || '', marks, href); return; }
+    if (node.nodeName === 'BR') { push('\n', marks, href); return; }
+    const tag = node.nodeName?.toLowerCase();
+    const nextMarks = [...marks];
+    const weight = Number.parseInt(node.style?.fontWeight || '', 10);
+    const isBold = ['b', 'strong'].includes(tag) || node.style?.fontWeight === 'bold' || weight >= 600;
+    const isItalic = ['i', 'em'].includes(tag) || node.style?.fontStyle === 'italic';
+    if (isBold && !nextMarks.includes('bold')) nextMarks.push('bold');
+    if (isItalic && !nextMarks.includes('italic')) nextMarks.push('italic');
+    const nextHref = tag === 'a' && /^https:\/\//i.test(node.getAttribute('href') || '') ? node.getAttribute('href') : href;
+    node.childNodes.forEach((child) => visit(child, nextMarks, nextHref));
+  };
+  root?.childNodes.forEach((node) => visit(node));
+  return segments.length ? segments : [{ text: '', marks: [] }];
+}
+
+function ContextToolbar({ onBold, onItalic, onLink, onRemove }) { return <div className="ll-context-toolbar" role="toolbar" aria-label="Text formatting"><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onBold} disabled={!onBold} aria-label="Bold selected text" title="Bold (Ctrl+B)"><Bold size={15} /></button><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onItalic} disabled={!onItalic} aria-label="Italicize selected text" title="Italic (Ctrl+I)"><Italic size={15} /></button><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onLink} disabled={!onLink} aria-label="Link selected text" title="Add link (Ctrl+K)"><Link2 size={15} /></button><span /><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onRemove} aria-label="Remove this section"><Trash2 size={15} /></button></div>; }
 
 function ImageInspector({ item, order, count, onClose, onChange, onMove, onRemove }) {
   const [alt, setAlt] = useState(item.alt_text || '');

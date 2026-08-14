@@ -1,5 +1,5 @@
-import { Check, ExternalLink, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Check, ExternalLink, RefreshCw, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import LoadingState from '../../components/LoadingState';
 import { supabase } from '../../lib/supabaseClient';
@@ -7,16 +7,35 @@ import { supabase } from '../../lib/supabaseClient';
 export default function CreativeJoinRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
 
-  async function load() {
-    setLoading(true);
-    const { data, error: loadError } = await supabase.from('creative_join_requests').select('*').order('created_at', { ascending: false });
+  const load = useCallback(async ({ quiet = false } = {}) => {
+    if (quiet) setRefreshing(true); else setLoading(true);
+    setError('');
+    const { data, error: loadError } = await supabase.from('creative_join_requests')
+      .select('id,name,email,portfolio_url,message,status,created_at,updated_at')
+      .order('created_at', { ascending: false });
     if (loadError) setError(loadError.message); else setRequests(data || []);
-    setLoading(false);
-  }
-  useEffect(() => { load(); }, []);
+    setLoading(false); setRefreshing(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+    const refreshWhenVisible = () => { if (document.visibilityState === 'visible') load({ quiet: true }); };
+    const refreshOnFocus = () => load({ quiet: true });
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('focus', refreshOnFocus);
+    const channel = supabase.channel('creative-join-requests-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'creative_join_requests' }, () => load({ quiet: true }))
+      .subscribe();
+    return () => {
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('focus', refreshOnFocus);
+      supabase.removeChannel(channel);
+    };
+  }, [load]);
 
   async function review(request, decision) {
     setBusy(request.id); setError('');
@@ -27,7 +46,7 @@ export default function CreativeJoinRequests() {
   }
 
   return <AdminLayout>
-    <header className="ll-operations-intro"><p className="ll-kicker">Creative access</p><h2>Join requests</h2><p>People request access publicly. Approving creates a private Creative profile and emails the applicant an account invitation.</p></header>
+    <header className="ll-operations-intro ll-operations-intro--action"><div><p className="ll-kicker">Creative access</p><h2>Join requests</h2><p>People request access publicly. Approving creates a private Creative profile and emails the applicant an account invitation.</p></div><button type="button" onClick={() => load({ quiet: true })} disabled={refreshing}><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''}/> {refreshing ? 'Refreshing…' : 'Refresh'}</button></header>
     {error && <p className="ll-form-error" role="alert">{error}</p>}
     {loading ? <LoadingState label="Loading join requests"/> : <div className="ll-request-list">
       {requests.map((request) => <article key={request.id} className="ll-request-card">

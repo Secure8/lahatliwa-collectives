@@ -189,6 +189,11 @@ test('public join requests replace the legacy people-management dashboard', asyn
   assert.match(layout, /Join requests/);
   assert.doesNotMatch(layout, /Accounts|Team Members|Add Member/);
   assert.match(joinPage, /submit_creative_join_request/);
+  assert.match(joinPage, /else if \(!data\)/);
+  assert.match(joinPage, /Request \{requestId\.slice/);
   assert.match(reviewPage, /approve_request/);
+  assert.match(reviewPage, /visibilitychange/);
+  assert.match(reviewPage, /creative-join-requests-admin/);
+  assert.match(reviewPage, /Refreshing…/);
   assert.match(migration, /create table if not exists public\.creative_join_requests/);
 });

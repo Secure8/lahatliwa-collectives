@@ -2609,6 +2609,10 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 .ll-inquiry-panel dd { margin: .35rem 0 0; color: var(--theme-text-primary); }
 .ll-inquiry-panel__privacy { margin-top: 2rem; color: var(--theme-text-muted); font-size: .72rem; }
 .ll-notifications-empty { display: grid; min-height: 24rem; place-items: center; align-content: center; gap: .6rem; color: var(--theme-text-muted); text-align: center; }
+.ll-operations-intro--action { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.ll-operations-intro--action > div { min-width: 0; }
+.ll-operations-intro--action > button { display: inline-flex; min-height: 2.55rem; flex: 0 0 auto; align-items: center; gap: .45rem; border: 1px solid var(--theme-border-strong); border-radius: .55rem; background: transparent; padding: .55rem .8rem; color: var(--theme-text-secondary); font-weight: 650; }
+.ll-operations-intro--action > button:hover { background: var(--theme-hover-surface); color: var(--theme-text-primary); }
 .ll-desktop-admin-required { display: grid; min-height: 100dvh; place-items: center; background: var(--theme-primary-surface); padding: 1.5rem; color: var(--theme-text-primary); }
 .ll-desktop-admin-required section { max-width: 32rem; border-block: 1px solid var(--theme-border); padding: 2rem 0; }
 .ll-desktop-admin-required p { margin: .75rem 0 1.25rem; color: var(--theme-text-muted); line-height: 1.7; }
@@ -2622,6 +2626,7 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   .ll-template-option { grid-template-columns: 5rem minmax(0,1fr) auto; }
   .ll-creative-recipient-picker > div { grid-template-columns: 1fr; }
   .ll-notifications-heading { align-items: start; flex-direction: column; }
+  .ll-operations-intro--action { align-items: start; flex-direction: column; }
   .ll-notifications-layout { display: block; }
   .ll-notifications-layout > nav { max-height: 17rem; overflow-y: auto; border-right: 0; border-bottom: 1px solid var(--theme-border); }
   .ll-inquiry-panel { padding: 1.2rem .85rem; }

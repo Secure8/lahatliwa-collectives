@@ -29,6 +29,7 @@ import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard';
 import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 import { useAdminAccess } from '../../lib/adminAccess';
 import { copyText } from '../../lib/clipboard';
+import { CREATIVE_SHORT_BIO_MAX_LENGTH } from '../../lib/creativeProfile';
 import { cleanupReplacedProfileWebsiteMedia, uploadProfileWebsiteMedia } from '../../lib/profileExternalStorage';
 import { parseList, slugify } from '../../lib/helpers';
 import { uploadStatusText } from '../../lib/imageCompression';
@@ -130,19 +131,20 @@ function ProfileField({ label, value, onChange, required = false, type = 'text',
   );
 }
 
-function ProfileTextarea({ label, value, onChange, rows = 4, hint, error, placeholder }) {
+function ProfileTextarea({ label, value, onChange, rows = 4, hint, error, placeholder, maxLength }) {
   return (
     <label className="grid gap-1.5 text-sm text-zinc-300">
       <span>{label}</span>
       <textarea
         rows={rows}
         value={value}
+        maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         aria-invalid={Boolean(error)}
         className={`${lineTextarea} disabled:cursor-not-allowed disabled:text-zinc-500`}
       />
-      {error ? <span className="text-xs text-red-200">{error}</span> : hint ? <span className="text-xs text-zinc-600">{hint}</span> : null}
+      {error ? <span className="text-xs text-red-200">{error}</span> : (hint || maxLength) ? <span className="flex justify-between gap-3 text-xs text-zinc-600"><span>{hint}</span>{maxLength && <span>{value.length}/{maxLength}</span>}</span> : null}
     </label>
   );
 }
@@ -343,6 +345,7 @@ export default function MyProfile() {
     if (!nextName) nextFieldErrors.name = 'Display name is required.';
     if (!nextRole) nextFieldErrors.role = 'Role / title is required.';
     if (!nextSlug) nextFieldErrors.slug = 'A public slug is required.';
+    if (nextShortBio.length > CREATIVE_SHORT_BIO_MAX_LENGTH) nextFieldErrors.short_bio = `Keep the short bio within ${CREATIVE_SHORT_BIO_MAX_LENGTH} characters.`;
     if (invalidSocialIndex !== -1) nextFieldErrors.social_links = 'Each social link needs a complete URL such as https://example.com.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextNotificationEmail)) nextFieldErrors.notification_email = 'Enter a valid private notification email.';
 
@@ -642,7 +645,9 @@ export default function MyProfile() {
               value={form.short_bio || ''}
               onChange={(value) => update('short_bio', value)}
               placeholder="A compact introduction for profile cards and preview surfaces."
-              hint="Use this for profile cards and compact previews."
+              hint="A brief introduction shown on profile cards and beside your profile photo."
+              maxLength={CREATIVE_SHORT_BIO_MAX_LENGTH}
+              error={fieldErrors.short_bio}
             />
             <ProfileTextarea
               label="Full bio"

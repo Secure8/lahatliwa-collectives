@@ -31,9 +31,26 @@ test('profile media and navigation are intentionally responsive without desktop 
   assert.match(hero, /publicImageVariant/);
   assert.match(profile, /ll-profile-tabs/);
   assert.match(styles, /@media \(min-width: 900px\)[\s\S]*?\.ll-profile-identity/);
+  assert.match(styles, /\.ll-profile-identity \{ grid-template-columns: auto minmax\(0,1fr\) auto; align-items: start; \}/);
+  assert.match(styles, /\.ll-profile-intro[\s\S]*?-webkit-line-clamp: 2/);
   assert.match(styles, /@media \(max-width: 420px\)[\s\S]*?\.ll-profile-page/);
   assert.doesNotMatch(route, /pointermove|topControlsVisible|CreativeProfileQuickNav/);
   assert.doesNotMatch(profile, /ProfileRails/);
+});
+
+test('short Creative bios share one Facebook-style limit across both editors and the database', async () => {
+  const [adminEditor, selfEditor, profileRules, migration] = await Promise.all([
+    source('../pages/admin/CreativeEditor.jsx'),
+    source('../pages/admin/MyProfile.jsx'),
+    source('./creativeProfile.js'),
+    source('../../supabase/migrations/20260814180000_creative_short_bio_balance.sql'),
+  ]);
+  assert.match(profileRules, /CREATIVE_SHORT_BIO_MAX_LENGTH = 160/);
+  assert.match(adminEditor, /maxLength=\{CREATIVE_SHORT_BIO_MAX_LENGTH\}/);
+  assert.match(selfEditor, /maxLength=\{CREATIVE_SHORT_BIO_MAX_LENGTH\}/);
+  assert.match(migration, /creative_members_short_bio_length/);
+  assert.match(migration, /john-alfred-justo/);
+  assert.match(migration, /char_length\(btrim\(short_bio\)\) <= 160/);
 });
 
 test('profile wall separates posts, formal projects, about details, and professional inquiry', async () => {

@@ -34,7 +34,7 @@ test('profile media and navigation are intentionally responsive without desktop 
   assert.match(profile, /ll-profile-tabs/);
   assert.match(styles, /@media \(min-width: 900px\)[\s\S]*?\.ll-profile-identity/);
   assert.match(styles, /\.ll-profile-identity \{ grid-template-columns: auto minmax\(0,1fr\) auto; align-items: start; \}/);
-  assert.match(styles, /\.ll-profile-avatar \{ align-self: start; margin-top: 2rem; \}/);
+  assert.match(styles, /\.ll-profile-avatar \{ align-self: start; width: 11\.5rem; height: 11\.5rem; margin-top: 2rem; \}/);
   assert.match(styles, /\.ll-profile-cover-back \{[^}]*left: \.85rem/);
   assert.match(styles, /\.ll-profile-intro[\s\S]*?-webkit-line-clamp: 2/);
   assert.match(styles, /@media \(max-width: 420px\)[\s\S]*?\.ll-profile-page/);

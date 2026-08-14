@@ -1136,7 +1136,7 @@ html.admin-mode :where(a, button, img, article),
   .ll-home-layout { grid-template-columns: minmax(0,740px) minmax(14rem,1fr); }
   .ll-discovery-panel { position: sticky; top: 6rem; display: block; }
   .ll-profile-identity { grid-template-columns: auto minmax(0,1fr) auto; align-items: start; }
-  .ll-profile-avatar { align-self: start; margin-top: 2rem; }
+  .ll-profile-avatar { align-self: start; width: 11.5rem; height: 11.5rem; margin-top: 2rem; }
   .ll-profile-actions { grid-column: auto; align-self: end; justify-content: flex-end; }
   .ll-profile-layout { grid-template-columns: minmax(0,740px) minmax(15rem,1fr); }
   .ll-profile-about { position: sticky; top: 6rem; }

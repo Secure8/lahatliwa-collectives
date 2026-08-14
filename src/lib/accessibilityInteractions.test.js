@@ -30,7 +30,7 @@ test('public routes render inside one main landmark and expose a skip link', asy
   assert.match(app, /<main id="public-main-content" tabIndex=\{-1\}/);
   assert.doesNotMatch(projects, /<main\b/);
   assert.doesNotMatch(inquiry, /<main\b/);
-  assert.match(inquiry, /aria-label="Open inquiry form"/);
+  assert.match(inquiry, /aria-label=\{platformInquiry \? 'Platform contact form' : 'Creative inquiry form'\}/);
 });
 
 test('shared admin dialog carries accessible modal behavior', async () => {
@@ -81,15 +81,15 @@ test('unsaved navigation only blocks meaningful location changes while dirty', (
   assert.equal(shouldBlockUnsavedNavigation({ dirty: true, currentLocation, nextLocation: { ...currentLocation, search: '?tab=media' } }), true);
 });
 
-test('admin shell exposes navigation labels, skip target, and route-aware titles', async () => {
+test('admin operations window exposes navigation labels, a content target, and route-aware titles', async () => {
   const [layout, searchBar, card, guard] = await Promise.all([
     source('../components/admin/AdminLayout.jsx'),
     source('../components/SearchBar.jsx'),
     source('../components/CreativeCard.jsx'),
     source('../components/admin/UnsavedChangesGuard.jsx'),
   ]);
-  assert.match(layout, /href="#admin-main-content"/);
-  assert.match(layout, /aria-label="Primary admin navigation"/);
+  assert.match(layout, /id="admin-main-content"/);
+  assert.match(layout, /aria-label="Platform tools"/);
   assert.match(layout, /document\.title =/);
   assert.match(searchBar, /type="search"/);
   assert.match(searchBar, /aria-label=\{label\}/);
@@ -113,12 +113,12 @@ test('admin visual hierarchy distinguishes content, controls, status, and naviga
   assert.match(ui, /data-admin-control/);
   assert.match(ui, /data-variant=\{variant\}/);
   assert.match(ui, /rounded-full[\s\S]*?bg-current/);
-  assert.match(layout, /ll-admin-tabs/);
+  assert.match(layout, /ll-operations-window__nav/);
   assert.doesNotMatch(layout, /AdminCommandPalette/);
-  assert.match(layout, /Platform operations/);
-  assert.match(styles, /\.admin-shell article/);
+  assert.match(layout, /Platform tools/);
+  assert.match(styles, /\.ll-operations-window__body/);
   assert.match(styles, /interactive-tab\[aria-pressed="true"\]/);
-  assert.match(styles, /\.ll-admin-tabs a\.is-active/);
+  assert.match(styles, /\.ll-operations-window__nav a\.is-active/);
   assert.match(styles, /\[data-theme="light"\] \.admin-record-card/);
   assert.match(contentEditor, /rounded-lg border px-3 text-sm font-medium/);
 });
@@ -131,19 +131,15 @@ test('adjacent admin content holders keep a small visual separation', async () =
   assert.match(styles, /\.grid > \.admin-surface \+ \.admin-surface,[\s\S]*?\.flex > \.admin-surface \+ \.admin-surface[\s\S]*?margin-top:\s*0/);
 });
 
-test('All projects and featured ordering use separated project card holders', async () => {
-  const [projects, card, styles] = await Promise.all([
+test('Super Admin projects are a read-only public-work overview', async () => {
+  const [projects, styles] = await Promise.all([
     source('../pages/admin/AdminProjects.jsx'),
-    source('../components/admin/AdminProjectCard.jsx'),
     source('../index.css'),
   ]);
-  assert.match(projects, /data-project-card-grid className="grid gap-3 p-4 sm:gap-4 sm:p-5"/);
-  assert.match(projects, /data-featured-project-grid className="grid gap-3 sm:gap-4"/);
-  assert.match(projects, /key=\{`featured-\$\{project\.id\}`\}[\s\S]*?onDelete=\{deleteProject\}[\s\S]*?separated[\s\S]*?draggable=/);
-  assert.match(projects, /onDelete=\{deleteProject\} separated/);
-  assert.match(card, /separated \? 'admin-project-box'/);
-  assert.match(styles, /\.admin-shell article\.admin-project-box[\s\S]*?border-radius:\s*0\.5rem/);
-  assert.match(styles, /\.grid > article \+ article,[\s\S]*?margin-top:\s*0/);
+  assert.match(projects, /read-only view of Creative work/);
+  assert.match(projects, /ll-project-review-list/);
+  assert.doesNotMatch(projects, /deleteProject|Delete project|AdminProjectCard/);
+  assert.match(styles, /\.ll-project-review-list__item/);
 });
 
 test('admin search fields render one boundary with a single restrained focus state', async () => {
@@ -152,7 +148,8 @@ test('admin search fields render one boundary with a single restrained focus sta
     source('../pages/admin/AdminCreatives.jsx'),
     source('../index.css'),
   ]);
-  for (const screen of [projects, creatives]) assert.match(screen, /data-search-shell/);
+  assert.match(projects, /ll-simple-search/);
+  assert.match(creatives, /data-search-shell/);
   assert.match(styles, /input\[type="search"\]:focus[\s\S]*?box-shadow:\s*none/);
   assert.match(styles, /\[data-search-shell\] > input\[type="search"\][\s\S]*?border:\s*0 !important[\s\S]*?box-shadow:\s*none !important/);
 });
@@ -177,31 +174,21 @@ test('dashboard prioritizes summary, urgent work, and a small primary action set
 test('admin navigation stays direct and avoids a hidden command layer', async () => {
   const layout = await source('../components/admin/AdminLayout.jsx');
   assert.doesNotMatch(layout, /AdminCommandPalette|metaKey|ctrlKey|Search pages and tools/);
-  assert.match(layout, /aria-label="Primary admin navigation"/);
-  assert.match(layout, /aria-controls="admin-navigation-drawer"/);
-  assert.match(layout, /useModalDrawer/);
+  assert.match(layout, /aria-label="Platform tools"/);
+  assert.match(layout, /Projects[\s\S]*Inquiries[\s\S]*Moderation[\s\S]*Join requests/);
+  assert.doesNotMatch(layout, /admin-navigation-drawer|useModalDrawer/);
 });
 
-test('admin people management connects profiles and access while preserving their responsibilities', async () => {
-  const [layout, peopleNav, team, creatives, settings] = await Promise.all([
+test('public join requests replace the legacy people-management dashboard', async () => {
+  const [layout, joinPage, reviewPage, migration] = await Promise.all([
     source('../components/admin/AdminLayout.jsx'),
-    source('../components/admin/AdminPeopleNav.jsx'),
-    source('../pages/admin/AdminTeam.jsx'),
-    source('../pages/admin/AdminCreatives.jsx'),
-    source('../pages/admin/SiteSettings.jsx'),
+    source('../pages/JoinCreative.jsx'),
+    source('../pages/admin/CreativeJoinRequests.jsx'),
+    source('../../supabase/migrations/20260815010000_public_creative_join_requests.sql'),
   ]);
-  assert.match(layout, /\['Platform', \[/);
-  assert.match(layout, /\['Access', \[/);
-  assert.match(layout, /Website[\s\S]*Services[\s\S]*Projects[\s\S]*Creatives[\s\S]*Moderation/);
-  assert.doesNotMatch(layout, /Editorial Studio/);
-  assert.match(layout, /Accounts/);
-  assert.match(peopleNav, /aria-label="People management"/);
-  assert.match(team, /profile_image_url/);
-  assert.match(team, /member\.avatar_url \|\| creatives\.find/);
-  assert.match(team, /<AdminPeopleNav \/>/);
-  assert.match(creatives, /<AdminPeopleNav \/>/);
-  assert.match(creatives, /Linked Team Member/);
-  assert.match(settings, /w-full max-w-6xl/);
-  assert.doesNotMatch(settings, /title="Hero Appearance"/);
-  assert.doesNotMatch(settings, /title="Image Display and Positioning"/);
+  assert.match(layout, /Join requests/);
+  assert.doesNotMatch(layout, /Accounts|Team Members|Add Member/);
+  assert.match(joinPage, /submit_creative_join_request/);
+  assert.match(reviewPage, /approve_request/);
+  assert.match(migration, /create table if not exists public\.creative_join_requests/);
 });

@@ -36,7 +36,7 @@ export default function AdminLayout({ children }) {
   return <main className="ll-operations-page">
     <section className="ll-operations-window" aria-label={`${title} operations`}>
       <header className="ll-operations-window__header">
-        <div><p className="ll-kicker">Platform tools</p><h1>{title}</h1></div>
+        <div><p className="ll-kicker">Platform tools</p><h1>Super Admin</h1></div>
         <div className="ll-operations-window__account">
           <span>{access.adminUser?.display_name || access.adminUser?.email || 'Account'}</span>
           <button type="button" onClick={logout}>Sign out</button>

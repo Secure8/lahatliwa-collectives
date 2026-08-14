@@ -967,7 +967,7 @@ html.admin-mode :where(a, button, img, article),
 .ll-profile-header { position: relative; }
 .ll-profile-cover { position: relative; aspect-ratio: 16/6; overflow: hidden; background: var(--theme-secondary-surface); }
 .ll-profile-cover > img { width: 100%; height: 100%; object-fit: cover; }
-.ll-profile-cover-back { position: absolute; z-index: 3; top: .85rem; right: .85rem; display: grid; width: 3.25rem; height: 3.25rem; place-items: center; border: 1px solid rgb(255 255 255 / .3); border-radius: 50%; background: rgb(10 10 10 / .72); color: white; cursor: pointer; }
+.ll-profile-cover-back { position: absolute; z-index: 3; top: .85rem; left: .85rem; display: grid; width: 3.25rem; height: 3.25rem; place-items: center; border: 1px solid rgb(255 255 255 / .3); border-radius: 50%; background: rgb(10 10 10 / .72); color: white; cursor: pointer; }
 .ll-profile-cover-back:hover { background: rgb(10 10 10 / .9); }
 .ll-profile-cover-back:focus-visible { outline: 3px solid var(--site-accent); outline-offset: 3px; }
 .ll-profile-cover::after { position: absolute; inset: 0; background: linear-gradient(180deg,transparent 55%,rgb(0 0 0 / .38)); content: ''; }
@@ -1136,7 +1136,7 @@ html.admin-mode :where(a, button, img, article),
   .ll-home-layout { grid-template-columns: minmax(0,740px) minmax(14rem,1fr); }
   .ll-discovery-panel { position: sticky; top: 6rem; display: block; }
   .ll-profile-identity { grid-template-columns: auto minmax(0,1fr) auto; align-items: start; }
-  .ll-profile-avatar { align-self: start; margin-top: 4.75rem; }
+  .ll-profile-avatar { align-self: start; margin-top: 2rem; }
   .ll-profile-actions { grid-column: auto; align-self: end; justify-content: flex-end; }
   .ll-profile-layout { grid-template-columns: minmax(0,740px) minmax(15rem,1fr); }
   .ll-profile-about { position: sticky; top: 6rem; }
@@ -2205,7 +2205,7 @@ html.admin-mode :where(a, button, img, article),
 .ll-discovery-panel { border: 1px solid var(--theme-border); border-radius: var(--ll-radius); background: var(--theme-primary-surface); padding: 1rem; }
 .ll-creative-mini a { border-radius: var(--ll-control-radius); }
 .ll-directory-intro h1 { font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.08; }
-.ll-profile-cover { aspect-ratio: 16 / 5; }
+.ll-profile-cover { aspect-ratio: 16 / 6; }
 .ll-profile-cover::after { display: none; }
 .ll-profile-cover__fallback { background: var(--theme-secondary-surface); }
 .ll-profile-avatar { box-shadow: none; }

@@ -18,7 +18,7 @@ import { roleLabel, useAdminAccess } from '../../lib/adminAccess';
 import { formatDate } from '../../lib/helpers';
 import { copyText } from '../../lib/clipboard';
 import { supabase } from '../../lib/supabaseClient';
-import { buildTeamMemberPayload, canAssignTeamRole, EDITORIAL_ASSIGNABLE_ROLES, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
+import { buildTeamMemberPayload, canAssignTeamRole, TEAM_ROLES, TEAM_ROLE_LABELS } from '../../lib/teamRoles';
 import { filterVisibleTeamMembers } from '../../lib/teamVisibility';
 import AdminDialog from '../../components/admin/AdminDialog';
 import AdminPeopleNav from '../../components/admin/AdminPeopleNav';
@@ -540,7 +540,6 @@ export default function AdminTeam() {
             <AdminInput label="Display name" value={form.display_name} onChange={(value) => update('display_name', value)} />
             <label className="grid gap-2 text-sm text-zinc-300"><span>Role</span><select value={form.role} onChange={(event) => update('role', event.target.value)}>{formRoleOptions.map((option) => <option key={option} value={option}>{TEAM_ROLE_LABELS[option]}</option>)}</select>{form.role === 'super_admin' && <span className="text-xs leading-5 text-amber-200/80">Super Admin has full access, including protected member lifecycle actions.</span>}</label>
             <AdminSelect label="Status" value={form.status} options={formStatusOptions} onChange={(value) => update('status', value)} />
-            <fieldset className="grid gap-3 sm:col-span-2"><legend className="text-sm text-zinc-300">Additional roles</legend><p className="text-xs leading-5 text-zinc-500">Combine Creative, Writer, and Editor access for members who do more than one kind of work.</p><div className="grid gap-2 sm:grid-cols-3">{EDITORIAL_ASSIGNABLE_ROLES.map((option) => <label key={option} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm ${form.editorial_roles.includes(option) ? 'border-amber-200/35 bg-amber-200/[0.08] text-amber-100' : 'border-white/[0.1] text-zinc-400'}`}><input type="checkbox" checked={form.editorial_roles.includes(option)} onChange={() => update('editorial_roles', form.editorial_roles.includes(option) ? form.editorial_roles.filter((item) => item !== option) : [...form.editorial_roles, option])} className="accent-amber-300" />{TEAM_ROLE_LABELS[option]}</label>)}</div></fieldset>
             <label className="grid gap-2 text-sm text-zinc-300 sm:col-span-2">
               <span>Linked creative profile</span>
               <select value={form.creative_member_id} onChange={(event) => update('creative_member_id', event.target.value)} className="w-full border-0 border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-white outline-none [color-scheme:dark] focus:border-amber-200/60">

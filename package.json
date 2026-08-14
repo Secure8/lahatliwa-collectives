@@ -25,6 +25,7 @@
     "test:auth-redirects": "node --test src/lib/authRedirects.test.js",
     "test:reconciliation": "node --test src/lib/storageReconciliation.test.js",
     "test:r2-media": "node --test src/lib/r2Media.test.js",
+    "test:creative-posts": "node --test src/lib/creativePosts.test.js src/lib/creativePublishingArchitecture.test.js",
     "test:storage-governance": "node --test src/lib/storageGovernance.test.js",
     "test:service-requests": "node --test src/lib/serviceRequest.test.js supabase/functions/submit-service-request/serviceRequest.test.js",
     "test:editorial": "node --test src/features/editorial/*.test.js",

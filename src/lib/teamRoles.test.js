@@ -2,31 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildTeamMemberPayload, canAssignTeamRole, EDITORIAL_ASSIGNABLE_ROLES, TEAM_ROLES } from './teamRoles.js';
 
-test('all supported roles survive the team-member payload unchanged', () => {
-  TEAM_ROLES.forEach((role) => assert.equal(buildTeamMemberPayload({ email: ' TEST@example.com ', role, status: 'invited' }).role, role));
+test('the only invited publishing persona is Creative', () => {
+  assert.deepEqual(TEAM_ROLES, ['creative']);
+  assert.equal(canAssignTeamRole('super_admin', 'creative'), true);
+  for (const role of ['super_admin', 'admin', 'editor', 'writer', 'viewer']) assert.equal(canAssignTeamRole('super_admin', role), false);
 });
 
-test('only Super Admin can assign supported non-privileged roles', () => {
-  assert.equal(canAssignTeamRole('super_admin', 'admin'), true);
-  assert.equal(canAssignTeamRole('super_admin', 'viewer'), true);
-  assert.equal(canAssignTeamRole('super_admin', 'super_admin'), false);
-  assert.equal(canAssignTeamRole('super_admin', 'owner'), false);
-  assert.equal(canAssignTeamRole('admin', 'super_admin'), false);
-  assert.equal(canAssignTeamRole('admin', 'editor'), false);
-});
-
-test('payload normalizes identity fields without creating a creative link', () => {
-  const payload = buildTeamMemberPayload({ email: ' TEST@example.com ', display_name: '  Editor  ', role: 'editor', status: 'invited', creative_member_id: '' }, 'actor-id');
+test('Creative invitations require and preserve a public profile link', () => {
+  const payload = buildTeamMemberPayload({ email: ' TEST@example.com ', display_name: '  Artist  ', role: 'creative', status: 'invited', creative_member_id: 'profile-id', editorial_roles: ['writer'] }, 'actor-id');
   assert.equal(payload.email, 'test@example.com');
-  assert.equal(payload.display_name, 'Editor');
-  assert.equal(payload.role, 'editor');
-  assert.equal(payload.creative_member_id, null);
-  assert.equal(payload.invited_by, 'actor-id');
-  assert.equal(typeof payload.updated_at, 'string');
+  assert.equal(payload.display_name, 'Artist');
+  assert.equal(payload.creative_member_id, 'profile-id');
+  assert.deepEqual(payload.editorial_roles, []);
+  assert.throws(() => buildTeamMemberPayload({ email: 'x@example.com', role: 'creative', status: 'invited' }), /Creative Profile/);
 });
 
-test('payload accepts flexible Creative, Writer, and Editor combinations only', () => {
-  assert.deepEqual(EDITORIAL_ASSIGNABLE_ROLES, ['creative', 'writer', 'editor']);
-  const payload = buildTeamMemberPayload({ email: 'multi@example.com', role: 'creative', status: 'active', editorial_roles: ['writer', 'editor', 'writer', 'viewer'] });
-  assert.deepEqual(payload.editorial_roles, ['writer', 'editor']);
+test('the retired Editorial role overlay has no assignable roles', () => {
+  assert.deepEqual(EDITORIAL_ASSIGNABLE_ROLES, []);
 });

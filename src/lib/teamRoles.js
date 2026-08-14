@@ -1,5 +1,5 @@
-export const TEAM_ROLES = ['admin', 'editor', 'writer', 'creative', 'viewer'];
-export const EDITORIAL_ASSIGNABLE_ROLES = ['creative', 'writer', 'editor'];
+export const TEAM_ROLES = ['creative'];
+export const EDITORIAL_ASSIGNABLE_ROLES = [];
 
 export const TEAM_ROLE_LABELS = {
   super_admin: 'Super Admin',
@@ -17,12 +17,12 @@ export function canAssignTeamRole(actorRole, targetRole) {
 
 export function buildTeamMemberPayload(form, invitedBy = null) {
   if (!TEAM_ROLES.includes(form.role)) throw new Error('Select a supported team role.');
-  const editorialRoles = [...new Set((form.editorial_roles || []).filter((role) => EDITORIAL_ASSIGNABLE_ROLES.includes(role)))];
+  if (!form.creative_member_id) throw new Error('Link this account to a Creative Profile.');
   return {
     email: String(form.email || '').trim().toLowerCase(),
     display_name: String(form.display_name || '').trim() || null,
     role: form.role,
-    editorial_roles: editorialRoles,
+    editorial_roles: [],
     status: form.status,
     creative_member_id: form.creative_member_id || null,
     invited_by: invitedBy || null,

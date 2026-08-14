@@ -128,8 +128,12 @@ Deno.serve(async (req) => {
     const email = normalizeInvitationEmail(body.email);
     const role = String(body.role || '');
     const editorialRoles = normalizeEditorialRoles(body.editorialRoles);
+    const creativeMemberId = String(body.creativeMemberId || '');
     if (!email) return fail('INVALID_EMAIL', 'Enter a valid email address.', 400);
     if (!validateInvitationRole(role)) return fail('INVALID_ROLE', 'Select an assignable team role.', 400);
+    if (!creativeMemberId) return fail('CREATIVE_PROFILE_REQUIRED', 'Link this invitation to a Creative Profile.', 400);
+    const { data: creativeProfile, error: creativeError } = await admin.from('creative_members').select('id').eq('id', creativeMemberId).maybeSingle();
+    if (creativeError || !creativeProfile) return fail('CREATIVE_PROFILE_REQUIRED', 'The linked Creative Profile could not be found.', 400);
 
     const { data: existing, error: existingError } = await admin.from('admin_users').select('id, status').ilike('email', email).maybeSingle();
     if (existingError) {
@@ -149,7 +153,7 @@ Deno.serve(async (req) => {
       role,
       editorial_roles: editorialRoles,
       status: 'invited',
-      creative_member_id: body.creativeMemberId || null,
+      creative_member_id: creativeMemberId,
       invited_by: user.id,
       updated_at: new Date().toISOString(),
     };

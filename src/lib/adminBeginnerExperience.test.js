@@ -20,9 +20,9 @@ test('dashboard is beginner-first and keeps attention conditional', () => {
 test('admin navigation is compact, grouped, and avoids duplicate destinations', () => {
   const layout = read('src/components/admin/AdminLayout.jsx');
   for (const group of ['Home', 'Content', 'Messages', 'Team']) assert.match(layout, new RegExp(`\\['${group}'`));
-  for (const label of ['Website Studio', 'Projects', 'Creative Profiles', 'Team Members']) assert.match(layout, new RegExp(`\\['${label}'`));
+  for (const label of ['Website Studio', 'Current Work & Portfolio', 'Creative Profiles', 'Post Moderation', 'Team Members']) assert.match(layout, new RegExp(`\\['${label}'`));
   assert.doesNotMatch(layout, /Editorial Studio/);
   for (const removed of ['Advanced', 'Media and storage', 'Feature flags', 'Audit history', 'System status']) assert.doesNotMatch(layout, new RegExp(`\\['${removed}'`));
-  for (const removedGroup of ['Explore Aklan', 'Creative work', 'Website']) assert.doesNotMatch(layout, new RegExp(`\\['${removedGroup}'`));
+  for (const removedGroup of ['Explore Aklan', 'Creative work']) assert.doesNotMatch(layout, new RegExp(`\\['${removedGroup}'`));
   assert.doesNotMatch(layout, /\['Categories'|\['Municipalities'|\['Assignments'|\['Delivery Status'/);
 });

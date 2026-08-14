@@ -1,5 +1,5 @@
-export const ASSIGNABLE_TEAM_ROLES = ['admin', 'editor', 'writer', 'creative', 'viewer'];
-export const ASSIGNABLE_EDITORIAL_ROLES = ['creative', 'writer', 'editor'];
+export const ASSIGNABLE_TEAM_ROLES = ['creative'];
+export const ASSIGNABLE_EDITORIAL_ROLES = [];
 
 export function normalizeEditorialRoles(value) {
   if (!Array.isArray(value)) return [];

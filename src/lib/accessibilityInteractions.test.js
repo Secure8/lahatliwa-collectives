@@ -195,7 +195,7 @@ test('admin people management connects profiles and access while preserving thei
   ]);
   assert.match(layout, /\['Content', \[/);
   assert.match(layout, /\['Team', \[/);
-  assert.match(layout, /Website Studio[\s\S]*Projects[\s\S]*Creative Profiles/);
+  assert.match(layout, /Website Studio[\s\S]*Current Work & Portfolio[\s\S]*Creative Profiles[\s\S]*Post Moderation/);
   assert.doesNotMatch(layout, /Editorial Studio/);
   assert.match(layout, /Team Members/);
   assert.match(peopleNav, /aria-label="People management"/);

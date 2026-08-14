@@ -14,10 +14,11 @@ export const R2_MEDIA_CATEGORIES = Object.freeze({
   service_image: Object.freeze({ target: 'site', prefix: 'site/services', primaryVariant: 'display' }),
   editorial_cover: Object.freeze({ target: 'editorial', prefix: 'editorial/covers', primaryVariant: 'expanded' }),
   editorial_inline: Object.freeze({ target: 'editorial', prefix: 'editorial/inline', primaryVariant: 'expanded' }),
+  creative_post_image: Object.freeze({ target: 'creative_post', prefix: 'posts/images', primaryVariant: 'expanded' }),
 });
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SAFE_KEY = /^(?:projects|profiles|site|editorial)\/[a-z0-9/_-]+\/[0-9a-f-]{36}\/(?:thumbnail|display|expanded)\.webp$/;
+const SAFE_KEY = /^(?:projects|profiles|site|editorial|posts)\/[a-z0-9/_-]+\/[0-9a-f-]{36}\/(?:thumbnail|display|expanded)\.webp$/;
 
 export function r2Configuration(env = {}) {
   const accountId = String(env.R2_ACCOUNT_ID || '').trim();
@@ -49,11 +50,13 @@ export function validateR2UploadRequest(input = {}) {
   const projectId = String(input.projectId || '');
   const creativeMemberId = String(input.creativeMemberId || '');
   const editorialPostId = String(input.editorialPostId || '');
+  const creativePostId = String(input.creativePostId || '');
   const variants = Array.isArray(input.variants) ? input.variants : [];
   if (!category) return { ok: false, code: 'CATEGORY_NOT_ALLOWED', message: 'The selected media category is unavailable.' };
   if (category.target === 'project' && !UUID_PATTERN.test(projectId)) return { ok: false, code: 'PROJECT_REQUIRED', message: 'Save the project before uploading media.' };
   if (category.target === 'profile' && !UUID_PATTERN.test(creativeMemberId)) return { ok: false, code: 'PROFILE_REQUIRED', message: 'A valid creative profile is required.' };
   if (category.target === 'editorial' && !UUID_PATTERN.test(editorialPostId)) return { ok: false, code: 'EDITORIAL_POST_REQUIRED', message: 'Save the editorial draft before uploading media.' };
+  if (category.target === 'creative_post' && !UUID_PATTERN.test(creativePostId)) return { ok: false, code: 'CREATIVE_POST_REQUIRED', message: 'Save the post draft before uploading images.' };
   if (variants.length !== 3 || new Set(variants.map((item) => item?.variant)).size !== 3) return { ok: false, code: 'VARIANTS_REQUIRED', message: 'Thumbnail, display, and expanded image variants are required.' };
   const cleanVariants = [];
   for (const item of variants) {
@@ -67,7 +70,7 @@ export function validateR2UploadRequest(input = {}) {
     }
     cleanVariants.push({ variant: item.variant, mimeType: 'image/webp', sizeBytes, width, height });
   }
-  return { ok: true, categoryKey: String(input.category), category, projectId, creativeMemberId, editorialPostId, variants: cleanVariants };
+  return { ok: true, categoryKey: String(input.category), category, projectId, creativeMemberId, editorialPostId, creativePostId, variants: cleanVariants };
 }
 
 export function createR2ObjectKey(category, targetId, groupId, variant) {
@@ -82,9 +85,8 @@ export function createR2ObjectKey(category, targetId, groupId, variant) {
  */
 export function r2ProjectPermissionAllowed({ role, userId, project, accessLevel = '' } = {}, mode = 'edit') {
   if (!project || !userId) return false;
-  if (mode === 'delete') return ['super_admin', 'admin'].includes(role) && project.status !== 'published';
-  return ['super_admin', 'admin'].includes(role) || project.owner_user_id === userId || project.created_by === userId
-    || ['editor', 'manager'].includes(accessLevel);
+  if (mode === 'delete') return role === 'super_admin' && project.status !== 'published';
+  return role === 'super_admin';
 }
 
 export function r2ProfilePermissionAllowed({ role, creativeMemberId, targetCreativeMemberId } = {}) {
@@ -92,7 +94,7 @@ export function r2ProfilePermissionAllowed({ role, creativeMemberId, targetCreat
 }
 
 export function r2SitePermissionAllowed(role = '') {
-  return ['super_admin', 'admin', 'editor'].includes(role);
+  return role === 'super_admin';
 }
 
 export function r2EditorialPermissionAllowed({ role, editorialRoles = [], userId, post } = {}) {
@@ -104,6 +106,13 @@ export function r2EditorialPermissionAllowed({ role, editorialRoles = [], userId
   if (!roles.some((value) => ['admin', 'editor', 'writer'].includes(value))) return false;
   if (post.author_user_id !== userId && post.assigned_editor_user_id !== userId) return false;
   return post.status !== 'archived';
+}
+
+export function r2CreativePostPermissionAllowed({ role, userId, creativeMemberId, post } = {}) {
+  if (!post || !userId) return false;
+  return role === 'creative' && post.author_user_id === userId
+    && Boolean(creativeMemberId) && post.creative_member_id === creativeMemberId
+    && post.status !== 'archived' && post.moderation_status !== 'removed';
 }
 
 export function validR2DerivativeFile({ variant, filename, mimeType, sizeBytes, expectedBytes, signature } = {}) {

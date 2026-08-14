@@ -1,8 +1,8 @@
-import { CircleUserRound, Ellipsis, ExternalLink, FolderKanban, GalleryHorizontalEnd, House, Inbox, LayoutDashboard, LogOut, MessagesSquare, UserCog, Users, Workflow, X } from 'lucide-react';
+import { CircleUserRound, Ellipsis, ExternalLink, FolderKanban, House, Inbox, LayoutDashboard, LogOut, PlusSquare, ShieldCheck, UserCog, Users, Workflow, X } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { canCreateProjects, canManageTeam, isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
+import { canManageTeam, isPrivilegedRole, useAdminAccess } from '../../lib/adminAccess';
 import { usePublicContent } from '../../lib/contentApi';
 import { supabase } from '../../lib/supabaseClient';
 import BrandLogo from '../BrandLogo';
@@ -15,16 +15,19 @@ import AdminCommandPalette from './AdminCommandPalette';
 
 const links = [
   ['Home', [
-    ['Dashboard', '/admin/dashboard', LayoutDashboard, () => true],
+    ['Dashboard', '/admin/dashboard', LayoutDashboard, ({ role }) => role === 'super_admin'],
+    ['My public profile', '/account', CircleUserRound, ({ role }) => role === 'creative'],
+    ['Create Post', '/create', PlusSquare, ({ role }) => role === 'creative'],
     ['View website', '/', ExternalLink, () => true],
   ]],
   ['Content', [
-    ['Website Studio', '/admin/website', Workflow, ({ role }) => ['super_admin', 'admin'].includes(role)],
-    ['Projects', '/admin/projects', FolderKanban, ({ role }) => canCreateProjects(role) || role === 'viewer'],
+    ['Website Studio', '/admin/website', Workflow, ({ role }) => role === 'super_admin'],
+    ['Current Work & Portfolio', '/admin/projects', FolderKanban, ({ role }) => role === 'super_admin'],
     ['Creative Profiles', '/admin/creatives', Users, ({ role }) => isPrivilegedRole(role)],
+    ['Post Moderation', '/admin/moderation', ShieldCheck, ({ role }) => role === 'super_admin'],
   ]],
   ['Messages', [
-    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => ['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(role)],
+    ['Inquiries', '/admin/inquiries', Inbox, ({ role }) => role === 'super_admin'],
   ]],
   ['Team', [
     ['Team Members', '/admin/team', UserCog, ({ role }) => canManageTeam(role)],
@@ -50,15 +53,9 @@ export default function AdminLayout({ children }) {
     .map(([group, groupLinks]) => [group, groupLinks.filter(([, , , canShow]) => canShow(access))])
     .filter(([, groupLinks]) => groupLinks.length > 0);
   const currentPageTitle = adminPageTitle(location.pathname, visibleGroups);
-  const profileDestination = access.role === 'viewer'
-    ? ['Directory', '/admin/directory', CircleUserRound]
-    : ['Profile', '/admin/my-profile', CircleUserRound];
-  const defaultMobilePrimaryLinks = [
-    ['Home', '/admin/dashboard', House],
-    [isPrivilegedRole(access.role) ? 'Website' : 'Projects', isPrivilegedRole(access.role) ? '/admin/website' : '/admin/projects', isPrivilegedRole(access.role) ? Workflow : GalleryHorizontalEnd],
-    ['Inquiries', '/admin/inquiries', MessagesSquare],
-    profileDestination,
-  ];
+  const defaultMobilePrimaryLinks = access.role === 'creative'
+    ? [['Profile', '/account', CircleUserRound], ['Create', '/create', PlusSquare], ['Edit profile', '/admin/my-profile', UserCog], ['Website', '/', ExternalLink]]
+    : [['Home', '/admin/dashboard', House], ['Website', '/admin/website', Workflow], ['Inquiries', '/admin/inquiries', Inbox], ['Profiles', '/admin/creatives', Users]];
   const mobilePrimaryLinks = defaultMobilePrimaryLinks;
   const primaryRouteIsActive = (href) => location.pathname === href || (href !== '/admin/dashboard' && location.pathname.startsWith(`${href}/`));
   const moreIsActive = !mobilePrimaryLinks.some(([, href]) => primaryRouteIsActive(href));
@@ -70,7 +67,7 @@ export default function AdminLayout({ children }) {
   const { panelRef, triggerRef } = useModalDrawer({ open: mobileOpen, onClose: closeMobileMenu });
 
   useEffect(() => {
-    if (!['super_admin', 'admin', 'editor', 'creative', 'viewer'].includes(access.role) || !access.adminUser?.id) return undefined;
+    if (access.role !== 'super_admin' || !access.adminUser?.id) return undefined;
     let active = true;
     const loadCount = async () => {
       const { count, error } = await supabase.from('inquiry_read_receipts').select('inquiry_id', { count: 'exact', head: true }).eq('team_member_id', access.adminUser.id).eq('is_unread', true);
@@ -145,7 +142,7 @@ export default function AdminLayout({ children }) {
           className="admin-app-bar__primary theme-navigation-surface relative z-10 px-3 pb-1 pt-[calc(0.75rem+var(--admin-mobile-safe-area-top))] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:h-full lg:translate-y-0 lg:p-0 lg:opacity-100"
         >
           <div className="flex items-center justify-between gap-3 lg:h-full lg:flex-col lg:items-stretch">
-          <Link to="/admin/dashboard" preventScrollReset className="flex min-w-0 items-center gap-3 lg:border-b lg:border-white/[0.08] lg:px-2 lg:pb-3" aria-label={`${content.displayName} admin dashboard`}>
+          <Link to={access.role === 'creative' ? '/account' : '/admin/dashboard'} preventScrollReset className="flex min-w-0 items-center gap-3 lg:border-b lg:border-white/[0.08] lg:px-2 lg:pb-3" aria-label={`${content.displayName} ${access.role === 'creative' ? 'Creative workspace' : 'admin dashboard'}`}>
             {content.logoUrl ? (
               <BrandLogo src={content.logoUrl} alt={content.logoAlt} variant="admin" />
             ) : (
@@ -154,8 +151,8 @@ export default function AdminLayout({ children }) {
               </span>
             )}
             <div className="min-w-0">
-              <div className="lg:hidden"><p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-200/65">Admin workspace</p><p className="mt-0.5 truncate text-sm font-semibold text-zinc-100">{currentPageTitle}</p></div>
-              <div className="hidden lg:block"><BrandWordmark name={content.displayName} variant="admin" /><p className="truncate text-xs text-zinc-500">Admin workspace</p></div>
+              <div className="lg:hidden"><p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-200/65">{access.role === 'creative' ? 'Creative workspace' : 'Admin workspace'}</p><p className="mt-0.5 truncate text-sm font-semibold text-zinc-100">{currentPageTitle}</p></div>
+              <div className="hidden lg:block"><BrandWordmark name={content.displayName} variant="admin" /><p className="truncate text-xs text-zinc-500">{access.role === 'creative' ? 'Creative workspace' : 'Admin workspace'}</p></div>
             </div>
           </Link>
 
@@ -197,7 +194,7 @@ export default function AdminLayout({ children }) {
           data-primary-visible={isPrimaryHeaderVisible ? 'true' : 'false'}
           className="admin-app-bar__secondary theme-navigation-surface relative z-20 border-b border-white/[0.08] transition-[transform,opacity,background-color] ease-out motion-reduce:transition-none lg:hidden"
         >
-          <div className={clsx('grid', access.role === 'writer' ? 'grid-cols-3' : 'grid-cols-5')}>
+          <div className="grid grid-cols-5">
             {mobilePrimaryLinks.map(([label, href, Icon]) => {
               const active = primaryRouteIsActive(href);
               return (

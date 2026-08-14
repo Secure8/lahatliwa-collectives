@@ -1,4 +1,4 @@
-import { ArrowRight, Dribbble, ExternalLink, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, Twitter, Youtube } from 'lucide-react';
+import { ArrowRight, Dribbble, Edit3, ExternalLink, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, Plus, Twitter, Youtube } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import CreativeHero from './CreativeHero';
 import { getPublicImageUrl } from '../lib/storage';
@@ -7,8 +7,9 @@ import { publicLocationState } from '../lib/navigationHistory';
 import { projectLayout } from '../lib/creativeProfileLayout';
 import { isResourceLink } from '../lib/profileResources';
 import { publicImageVariant } from '../lib/publicImages';
+import CreativePostCard from './CreativePostCard';
 
-export default function CreativeProfileView({ creative, projects = [], adminPreview = false }) {
+export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, onArchivePost, onRestorePost, onDeletePost, adminPreview = false }) {
   const location = useLocation();
   const skills = Array.isArray(creative.skills) ? creative.skills.filter(Boolean) : [];
   const allLinks = Array.isArray(creative.social_links) ? creative.social_links : [];
@@ -21,14 +22,18 @@ export default function CreativeProfileView({ creative, projects = [], adminPrev
     <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
     <div className="mx-auto w-full max-w-[1120px]">
-    {!adminPreview && (projects.length || bio || skills.length) > 0 && <nav aria-label="Profile sections" className="public-filter-scroll flex min-w-0 gap-7 overflow-x-auto border-b border-white/[0.09] py-4 text-xs uppercase tracking-[0.16em] text-zinc-500">
+    {isOwner && !adminPreview && <div className="flex flex-wrap gap-3 border-b border-white/[0.09] py-4"><Link to="/create" className="public-button public-button--primary"><Plus size={16} /> Create post</Link><Link to="/admin/my-profile" className="public-button public-button--secondary border-white/20 text-white"><Edit3 size={16} /> Edit profile</Link></div>}
+    {!adminPreview && (posts.length || projects.length || bio || skills.length) > 0 && <nav aria-label="Profile sections" className="public-filter-scroll flex min-w-0 gap-7 overflow-x-auto border-b border-white/[0.09] py-4 text-xs uppercase tracking-[0.16em] text-zinc-500">
+      <a href="#feed" className="min-h-11 content-center border-b border-orange-300 text-white">Posts</a>
       {projects.length > 0 && <a href="#work" className="min-h-11 content-center border-b border-orange-300 text-white">Selected work</a>}
       {bio && <a href="#about" className="min-h-11 content-center transition hover:text-white">About</a>}
       {skills.length > 0 && <a href="#skills" className="min-h-11 content-center transition hover:text-white">Capabilities</a>}
       <a href="#contact" className="min-h-11 content-center transition hover:text-white">Contact</a>
     </nav>}
 
-    {!adminPreview && <section id="work" className="scroll-mt-24 py-8 sm:py-10">
+    {!adminPreview && <section id="feed" className="scroll-mt-24 py-8 sm:py-10"><SectionHeading eyebrow="Creative feed" title="Posts" />{posts.length ? <div className="mx-auto mt-7 grid max-w-3xl gap-7">{posts.map((post) => <CreativePostCard key={post.id} post={post} creative={creative} owner={isOwner} onArchive={onArchivePost} onRestore={onRestorePost} onDelete={onDeletePost} />)}</div> : <div className="mt-7 rounded-xl border border-dashed border-white/10 px-5 py-10 text-center"><p className="text-sm text-zinc-400">No posts published yet.</p>{isOwner && <Link to="/create" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-orange-200"><Plus size={16} /> Create your first post</Link>}</div>}</section>}
+
+    {!adminPreview && projects.length > 0 && <section id="work" className="scroll-mt-24 border-t border-white/[0.09] py-8 sm:py-10">
       <SectionHeading eyebrow="Selected work" title="Portfolio" />
       {projects.length ? <div className="mx-auto mt-7 grid max-w-[1040px] gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-12">{projects.map((project, index) => <ProfileProject key={project.id} project={project} layout={projectLayout(index, projects.length)} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div> : <div className="mt-7 py-8"><p className="text-sm text-zinc-400">Work in progress.</p><p className="mt-2 text-sm text-zinc-600">Published credited projects will appear here.</p></div>}
     </section>}

@@ -38,8 +38,8 @@ test('public and admin mobile navigation identify the current page without clutt
   assert.match(admin, /mobile-nav-current-label/);
   assert.doesNotMatch(navbar, /secondaryPageLabel/);
   assert.match(admin, /House/);
-  assert.match(admin, /GalleryHorizontalEnd/);
-  assert.match(admin, /MessagesSquare/);
+  assert.match(admin, /PlusSquare/);
+  assert.match(admin, /Inbox/);
   assert.match(admin, /CircleUserRound/);
   assert.match(admin, /Ellipsis/);
   assert.doesNotMatch(admin, /h-9 w-12 place-items-center rounded-xl/);
@@ -107,7 +107,7 @@ test('admin keeps stable role-aware navigation, a responsive dashboard, and a on
   assert.match(admin, /groupLinks\.filter\(\(\[, , , canShow\]\) => canShow\(access\)\)/);
   assert.match(admin, /admin-app-bar[\s\S]*?sticky inset-x-0 top-0[\s\S]*?lg:fixed/);
   assert.match(admin, /mobilePrimaryLinks/);
-  assert.match(admin, /profileDestination/);
+  assert.match(admin, /access\.role === 'creative'/);
   assert.match(admin, /Open all admin sections/);
   assert.equal((admin.match(/onClick=\{\(\) => setMobileOpen\(true\)\}/g) || []).length, 1);
   assert.match(admin, /ref=\{triggerRef\}[\s\S]*?Open all admin sections/);

@@ -1,14 +1,14 @@
 import { createContext, useContext } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
-export const roles = ['super_admin', 'admin', 'editor', 'writer', 'creative', 'viewer'];
-export const privilegedRoles = ['super_admin', 'admin'];
-export const contentRoles = ['super_admin', 'admin', 'editor', 'creative'];
+export const roles = ['super_admin', 'creative'];
+export const privilegedRoles = ['super_admin'];
+export const contentRoles = ['creative'];
 
 const AdminAccessContext = createContext(null);
 
 export function normalizeRole(role = '') {
-  return role === 'owner' ? 'super_admin' : role || 'viewer';
+  return role === 'owner' || role === 'admin' ? 'super_admin' : role === 'creative' ? 'creative' : '';
 }
 
 export function roleLabel(role = '') {
@@ -46,7 +46,7 @@ export function canDeleteProject(role, project = {}) {
 export function canEditProject(role, project = {}, userId = '') {
   const normalized = normalizeRole(role);
   if (isPrivilegedRole(normalized)) return true;
-  if (!['editor', 'creative'].includes(normalized)) return false;
+  if (normalized !== 'creative') return false;
   const ownsProject = project.owner_user_id === userId || project.created_by === userId;
   return ownsProject;
 }
@@ -61,7 +61,7 @@ export function useAdminAccess() {
   return context || outletContext || {
     session: null,
     user: null,
-    role: 'viewer',
+    role: '',
     adminUser: null,
     isPrivileged: false,
   };

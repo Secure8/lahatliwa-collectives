@@ -3,8 +3,8 @@ import test from 'node:test';
 import { canRecreatePendingInvitation, canResendInvitation, invitationConflict, invitationRedirectUrl, isActiveSuperAdmin, isExistingAuthUserError, mapInvitationApiError, mapPasswordResetApiError, normalizeEditorialRoles, normalizeInvitationEmail, orphanedAuthConflict, validateInvitationRole } from '../../supabase/functions/invite-team-member/inviteTeamMember.js';
 
 test('invitation roles exclude privileged and unsupported roles', () => {
-  ['admin', 'editor', 'creative', 'viewer'].forEach((role) => assert.equal(validateInvitationRole(role), true));
-  ['super_admin', 'owner', ''].forEach((role) => assert.equal(validateInvitationRole(role), false));
+  assert.equal(validateInvitationRole('creative'), true);
+  ['super_admin', 'owner', 'admin', 'editor', 'writer', 'viewer', ''].forEach((role) => assert.equal(validateInvitationRole(role), false));
 });
 
 test('email normalization is strict and lowercase', () => {
@@ -12,8 +12,8 @@ test('email normalization is strict and lowercase', () => {
   assert.equal(normalizeInvitationEmail('not-an-email'), null);
 });
 
-test('invitation normalizes flexible work roles without accepting privileged roles', () => {
-  assert.deepEqual(normalizeEditorialRoles(['Creative', 'writer', 'editor', 'writer', 'admin', 'super_admin']), ['creative', 'writer', 'editor']);
+test('invitation discards retired Editorial role overlays', () => {
+  assert.deepEqual(normalizeEditorialRoles(['Creative', 'writer', 'editor', 'writer', 'admin', 'super_admin']), []);
   assert.deepEqual(normalizeEditorialRoles('writer'), []);
 });
 

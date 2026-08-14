@@ -71,7 +71,7 @@ export default function Login() {
 
   if (authStatus === 'initializing') return <div className="page-shell py-20"><LoadingState label="Restoring session" /></div>;
   if (!dashboardRedirectAllowed(authFlow)) return <Navigate to="/set-password" replace />;
-  if (authStatus === 'authenticated' && !loading) return <Navigate to="/admin/dashboard" replace />;
+  if (authStatus === 'authenticated' && !loading) return <Navigate to="/account" replace />;
 
   function switchMode(nextMode) {
     setMode(nextMode);
@@ -98,7 +98,7 @@ export default function Login() {
       throw new Error(blockedReason);
     }
 
-    navigate('/admin/dashboard', { replace: true });
+    navigate('/account', { replace: true });
   }
 
   async function handleSetup() {
@@ -128,7 +128,7 @@ export default function Login() {
         await supabase.auth.signOut();
         throw new Error(blockedReason);
       }
-      navigate('/admin/dashboard', { replace: true });
+      navigate('/account', { replace: true });
       return;
     }
 

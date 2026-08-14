@@ -1,4 +1,4 @@
-import { R2_MEDIA_CATEGORIES, R2_PROVIDER, r2Configuration, r2EditorialPermissionAllowed, r2ProfilePermissionAllowed, r2ProjectPermissionAllowed, r2SitePermissionAllowed, uploadR2Object, validR2DerivativeFile } from '../_shared/r2Media.js';
+import { R2_MEDIA_CATEGORIES, R2_PROVIDER, r2Configuration, r2CreativePostPermissionAllowed, r2EditorialPermissionAllowed, r2ProfilePermissionAllowed, r2ProjectPermissionAllowed, r2SitePermissionAllowed, uploadR2Object, validR2DerivativeFile } from '../_shared/r2Media.js';
 import { authenticatedTeamMember, corsHeaders, edgeEnvironment, fail, reply } from '../_shared/googleDriveEdge.ts';
 
 function config() {
@@ -37,6 +37,13 @@ async function authorizedForRow(actor: any, row: any) {
     if (flagError || postError || !flags?.module_enabled || !flags?.editorial_media_uploads_enabled) return false;
     return r2EditorialPermissionAllowed({ role: actor.role, editorialRoles: actor.teamMember.editorial_roles, userId: actor.user.id, post });
   }
+  if (definition.target === 'creative_post') {
+    const { data: post, error } = await actor.admin.from('creative_posts')
+      .select('id,status,moderation_status,author_user_id,creative_member_id').eq('id', row.creative_post_id).maybeSingle();
+    if (error) return false;
+    return r2CreativePostPermissionAllowed({ role: actor.role, userId: actor.user.id,
+      creativeMemberId: actor.teamMember.creative_member_id, post });
+  }
   return r2SitePermissionAllowed(actor.role);
 }
 
@@ -60,7 +67,7 @@ Deno.serve(async (request) => {
   if (!(file instanceof File) || !mediaId || !groupId) return fail('INVALID_UPLOAD', 'The website image upload is incomplete.', 400, cors);
 
   const { data: row, error } = await actor.admin.from('external_media_objects')
-    .select('id,owner_user_id,provider,external_file_id,mime_type,size_bytes,status,file_category,project_id,creative_member_id,editorial_post_id,media_group_id,media_variant')
+    .select('id,owner_user_id,provider,external_file_id,mime_type,size_bytes,status,file_category,project_id,creative_member_id,editorial_post_id,creative_post_id,media_group_id,media_variant')
     .eq('id', mediaId).eq('media_group_id', groupId).eq('provider', R2_PROVIDER).maybeSingle();
   if (error || !row || row.status !== 'uploading') return fail('UPLOAD_NOT_AVAILABLE', 'The prepared website image upload was not found.', 404, cors);
 

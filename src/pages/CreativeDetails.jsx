@@ -8,16 +8,23 @@ import { detailBackAction } from '../lib/navigationHistory';
 import { applyPublicMetadata } from '../lib/publicMetadata';
 import { getPublicImageUrl } from '../lib/storage';
 import useMobileAppBar from '../lib/useMobileAppBar';
+import { useAuthSession } from '../lib/authSession';
+import { archiveCreativePost, deleteCreativePost, loadOwnCreativePosts, loadPublicCreativePosts, restoreCreativePost } from '../lib/creativePosts';
+import { useAdminConfirmation } from '../components/admin/AdminDialog';
 
 export default function CreativeDetails() {
+  const { session } = useAuthSession();
   const location = useLocation(); const navigate = useNavigate();
   const { slug } = useParams();
   const [topControlsVisible, setTopControlsVisible] = useState(false);
   const mobileTopControlsVisible = useMobileAppBar({ locked: topControlsVisible, routeKey: `${location.pathname}${location.search}` }).visible;
   const [creative, setCreative] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
 
   useEffect(() => {
     let active = true;
@@ -26,6 +33,7 @@ export default function CreativeDetails() {
       setError('');
       setCreative(null);
       setProjects([]);
+      setPosts([]);
       const { data, error: creativeError } = await supabase.from('creative_members').select('id, name, slug, role, short_bio, full_bio, profile_image_url, cover_image, skills, social_links, availability_status').eq('slug', slug).eq('is_published', true).single();
       if (!active) return;
       if (creativeError) {
@@ -34,14 +42,43 @@ export default function CreativeDetails() {
         return;
       }
       setCreative(data);
-      const { data: links } = await supabase.from('project_creatives').select('credit_roles, contribution_role, role, projects(id, title, slug, category, cover_image, status)').eq('creative_id', data.id).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false });
+      let ownsProfile = false;
+      if (session?.user?.id) {
+        const { data: account } = await supabase.from('admin_users').select('role,creative_member_id,status').eq('user_id', session.user.id).maybeSingle();
+        ownsProfile = account?.role === 'creative' && account?.status === 'active' && account?.creative_member_id === data.id;
+      }
+      if (!active) return;
+      setIsOwner(ownsProfile);
+      const [{ data: links }, loadedPosts] = await Promise.all([
+        supabase.from('project_creatives').select('credit_roles, contribution_role, role, projects(id, title, slug, category, cover_image, status)').eq('creative_id', data.id).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false }),
+        ownsProfile ? loadOwnCreativePosts() : loadPublicCreativePosts(data.id),
+      ]);
       if (!active) return;
       setProjects((links || []).map((link) => link.projects ? ({ ...link.projects, credit_roles: link.credit_roles, contribution_role: link.contribution_role, role: link.role }) : null).filter((project) => project?.status === 'published'));
+      setPosts(loadedPosts);
       setLoading(false);
     }
     loadCreative();
     return () => { active = false; };
-  }, [slug]);
+  }, [slug, session?.user?.id]);
+
+  async function changePost(post, action) {
+    try {
+      if (action === 'archive') await archiveCreativePost(post.id);
+      if (action === 'restore') await restoreCreativePost(post.id);
+      if (action === 'delete') await deleteCreativePost(post.id);
+      setPosts(await loadOwnCreativePosts());
+    } catch (reason) { setError(reason.message); }
+  }
+  function confirmPostChange(post, action) {
+    requestConfirmation({
+      title: action === 'delete' ? 'Permanently delete this post?' : `${action === 'archive' ? 'Archive' : 'Restore'} this post?`,
+      description: action === 'delete' ? 'Its R2 images will be queued for safe cleanup. This cannot be undone.' : action === 'archive' ? 'It will disappear from your public feed but remain recoverable.' : 'It will return as a private draft for editing.',
+      confirmLabel: action === 'delete' ? 'Delete permanently' : action === 'archive' ? 'Archive post' : 'Restore draft',
+      destructive: action !== 'restore',
+      onConfirm: () => changePost(post, action),
+    });
+  }
 
   useEffect(() => {
     if (!creative) return;
@@ -71,7 +108,8 @@ export default function CreativeDetails() {
   return <article className="mx-auto w-[min(1360px,calc(100%-24px))] pb-12 pt-1 sm:pb-16">
     <button data-creative-profile-back data-mobile-visible={mobileTopControlsVisible ? 'true' : 'false'} type="button" onClick={goBack} onFocus={() => setTopControlsVisible(true)} onBlur={() => setTopControlsVisible(false)} className={`group fixed left-3 top-[7.25rem] z-40 inline-flex min-h-11 items-center gap-2 border-b border-white/15 bg-zinc-950/75 px-3 text-xs font-medium uppercase tracking-[0.16em] text-zinc-300 backdrop-blur-sm transition hover:border-orange-300/60 hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 xl:left-[max(0.75rem,calc((100vw-1360px)/2))] xl:top-[4.5rem] xl:transition-[transform,opacity] xl:duration-300 xl:ease-out motion-reduce:transition-none ${topControlsVisible ? 'xl:translate-y-0 xl:opacity-100' : 'xl:pointer-events-none xl:-translate-y-2 xl:opacity-0'}`}><ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5 motion-reduce:transform-none" />Back</button>
     <CreativeProfileQuickNav visible={topControlsVisible} hasBio={Boolean(bio)} hasSkills={hasSkills} onFocusChange={setTopControlsVisible} />
-    <div className="relative mt-1"><CreativeProfileView creative={creative} projects={projects} /></div>
+    <div className="relative mt-1"><CreativeProfileView creative={creative} projects={projects} posts={posts} isOwner={isOwner} onArchivePost={(post) => confirmPostChange(post, 'archive')} onRestorePost={(post) => confirmPostChange(post, 'restore')} onDeletePost={(post) => confirmPostChange(post, 'delete')} /></div>
+    {confirmationDialog}
   </article>;
 }
 

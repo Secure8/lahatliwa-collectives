@@ -14,6 +14,8 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(hero, /ll-profile-cover-back/);
   assert.match(hero, /aria-label="Back to Creatives"/);
   assert.match(hero, /creative\.short_bio/);
+  assert.match(hero, /ll-profile-professional-title/);
+  assert.match(hero, /<span>Disciplines<\/span>/);
   assert.match(hero, /availability_status/);
   assert.match(profile, /isOwner && !adminPreview/);
   assert.match(profile, /to="\/create"/);
@@ -23,6 +25,7 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(route, /account\?\.role === 'creative'/);
   assert.match(styles, /\.ll-profile-cover[\s\S]*?aspect-ratio: 16\/6/);
   assert.match(styles, /\.ll-profile-layout[\s\S]*?grid-template-columns/);
+  assert.match(styles, /\.ll-profile-professional-title \{[^}]*color: var\(--site-accent-text\)/);
 });
 
 test('profile media and navigation are intentionally responsive without desktop overlay utilities', async () => {

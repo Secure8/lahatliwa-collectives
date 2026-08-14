@@ -170,12 +170,12 @@ export default function Login() {
     <main className="ll-auth-page">
       <section className="ll-auth-card">
         <BrandWordmark variant="auth" to="/" />
-        <Link to="/" className="fine-link mt-7 inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-100">
+        <Link to="/" className="ll-auth-back fine-link">
           <ArrowLeft size={16} /> Back
         </Link>
         <form onSubmit={handleSubmit} className="ll-auth-form">
-          <div className="flex items-start gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center bg-amber-300 text-zinc-950">
+          <div className="ll-auth-heading">
+            <span className="ll-auth-heading__icon">
               <HeaderIcon size={20} />
             </span>
             <div>
@@ -215,11 +215,11 @@ export default function Login() {
           {notice && <div className="mt-5 flex gap-3 rounded-md bg-emerald-300/10 p-3 text-sm leading-6 text-emerald-100 ring-1 ring-emerald-300/20" role="status"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /><span>{notice}</span></div>}
           <ActionFeedback error={actionError} className="mt-5" />
 
-          <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-amber-300 px-5 py-3 font-semibold text-zinc-950 transition hover:bg-amber-200 disabled:opacity-60">
+          <button disabled={loading} className="ll-primary-action ll-auth-submit">
             <ShieldCheck size={17} /> {submitLabel}
           </button>
 
-          <div className="mt-5 grid gap-3 border-t border-white/[0.07] pt-5 text-sm">
+          <div className="ll-auth-links">
             {mode !== 'login' && (
               <button type="button" onClick={() => switchMode('login')} className="fine-link min-h-10 text-left text-zinc-300 transition hover:text-amber-100">
                 Sign in

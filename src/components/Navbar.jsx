@@ -1,4 +1,4 @@
-import { Bell, BriefcaseBusiness, ChevronDown, Handshake, House, Images, Info, LogIn, LogOut, Mail, Menu, MoreHorizontal, PenLine, ShieldCheck, UserRound, UsersRound, X } from 'lucide-react';
+import { Bell, BriefcaseBusiness, ChevronDown, Handshake, House, Images, Info, LogIn, Mail, Menu, MoreHorizontal, PenLine, ShieldCheck, UserRound, UsersRound, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -61,7 +61,7 @@ export default function Navbar() {
             {(creative?.profile_image_url || account?.avatar_url) ? <img src={creative?.profile_image_url || account.avatar_url} alt="" /> : <UserRound size={18} />}
             <span>{isCreative ? 'My profile' : 'Admin'}</span>
           </Link> : authenticated ? <Link to="/account" className="ll-account-action"><UserRound size={18} /><span>Account</span></Link> : <Link to="/admin/login" className="ll-account-action"><LogIn size={17} /><span>Sign in</span></Link>}
-          {authenticated && <button type="button" onClick={signOut} className="ll-signout-action" aria-label="Sign out" title="Sign out"><LogOut size={18}/><span>Sign out</span></button>}
+          {authenticated && <button type="button" onClick={signOut} className="ll-signout-action">Sign out</button>}
           <button type="button" onClick={() => setOpen(true)} className="ll-mobile-menu-button" aria-label="Open navigation" aria-expanded={open}><Menu size={21} /></button>
         </div>
       </nav>
@@ -72,7 +72,7 @@ export default function Navbar() {
       <section ref={panelRef} id="public-more-menu" role="dialog" aria-modal="true" aria-label="Navigation" className="ll-public-drawer">
         <header><div><p className="ll-kicker">Explore Lahat Liwa</p><h2>{content.displayName}</h2></div><button data-drawer-initial-focus type="button" onClick={closeMenu} aria-label="Close navigation"><X size={21} /></button></header>
         <nav aria-label="All pages">{[...primaryLinks, ...moreLinks].map(([label, href, Icon]) => <NavLink key={href} to={href} className={({ isActive }) => clsx(isActive && 'is-active')}><span><Icon size={18} />{label}</span><span>→</span></NavLink>)}</nav>
-        <footer><p>{content.tagline}</p>{isCreative ? <Link to="/create" className="ll-primary-action"><PenLine size={17} /> Create post</Link> : <Link to="/services" className="ll-primary-action">Start a conversation</Link>}{authenticated && <button type="button" className="ll-drawer-signout" onClick={signOut}><LogOut size={17}/> Sign out and switch account</button>}</footer>
+        <footer><p>{content.tagline}</p>{isCreative ? <Link to="/create" className="ll-primary-action"><PenLine size={17} /> Create post</Link> : <Link to="/services" className="ll-primary-action">Start a conversation</Link>}{authenticated && <button type="button" className="ll-drawer-signout" onClick={signOut}>Sign out and switch account</button>}</footer>
       </section>
     </div>}
   </>;

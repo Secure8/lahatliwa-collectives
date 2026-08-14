@@ -16,6 +16,7 @@ import NotFound from './pages/NotFound';
 import { applyPublicMetadata } from './lib/publicMetadata';
 import BrandWordmark from './components/BrandWordmark';
 import { publicAppBarMode } from './lib/mobileAppShell';
+import PublicAdminToolbar from './components/PublicAdminToolbar';
 
 const Login = lazy(() => import('./pages/admin/Login'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
@@ -102,6 +103,7 @@ function PublicSiteFrame() {
       <PublicScrollRestoration />
       <a href="#public-main-content" className="skip-link">Skip to main content</a>
       <Navbar />
+      <PublicAdminToolbar />
       {loading && <p className="sr-only" role="status">Refreshing website content</p>}
       {error && <p className="sr-only" role="alert">{error}</p>}
       <main id="public-main-content" tabIndex={-1} data-public-app-content data-app-bar-mode={appBarMode} className={`public-app-content public-app-content--${appBarMode} min-h-[60vh] overflow-x-hidden`}><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>

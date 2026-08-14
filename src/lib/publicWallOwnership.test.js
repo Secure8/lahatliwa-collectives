@@ -33,6 +33,19 @@ test('Super Admin moderates public work without receiving Creative edit controls
   assert.doesNotMatch(studio, /<AdminLayout>/);
 });
 
+test('Super Admin receives a desktop authoring toolbar and every platform index has an editor target', () => {
+  const app = read('src/App.jsx');
+  const toolbar = read('src/components/PublicAdminToolbar.jsx');
+  const projects = read('src/pages/Projects.jsx');
+  const creatives = read('src/pages/Creatives.jsx');
+  const services = read('src/pages/Services.jsx');
+  assert.match(app, /<PublicAdminToolbar \/>/);
+  for (const section of ['page.home', 'page.explore', 'page.projects', 'page.creatives', 'page.about', 'page.inquiries', 'page.privacy', 'global.brand', 'global.navigation', 'global.appearance']) assert.match(toolbar, new RegExp(section.replace('.', '\\.')));
+  assert.match(projects, /section="page\.projects"/);
+  assert.match(creatives, /section="page\.creatives"/);
+  assert.match(services, /page\.servicesBody/);
+});
+
 test('profile templates preserve Social as default while offering opt-in layouts', () => {
   const editor = read('src/components/CreativeInlineProfileEditor.jsx');
   const profile = read('src/components/CreativeProfileView.jsx');

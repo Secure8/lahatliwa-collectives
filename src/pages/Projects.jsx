@@ -7,6 +7,7 @@ import SearchBar from '../components/SearchBar';
 import { usePublicContent } from '../lib/contentApi';
 import { fetchPublicProjectSummaries, readCachedPublicProjectSummaries } from '../lib/publicProjectData';
 import { scrollPreservingNavigationState } from '../lib/navigationHistory';
+import PublicInlineEditButton from '../components/PublicInlineEditButton';
 
 export default function Projects() {
   const [projects, setProjects] = useState(() => readCachedPublicProjectSummaries('completed') || []);
@@ -50,7 +51,8 @@ export default function Projects() {
 
   return (
     <div className="page-shell pb-16 pt-14 sm:pb-20 sm:pt-20">
-      <header className="border-b border-white/[0.09] pb-9 sm:pb-11">
+      <header className="relative border-b border-white/[0.09] pb-9 sm:pb-11">
+        <PublicInlineEditButton section="page.projects" label="Edit Portfolio introduction" />
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
           <div className="max-w-4xl">
             <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.22em] text-orange-300">

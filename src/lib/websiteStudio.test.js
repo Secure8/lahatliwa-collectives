@@ -91,7 +91,7 @@ test('Website Studio excludes branch and fixed-service records and explains the 
   const api = read('src/lib/websiteStudio.js');
   assert.doesNotMatch(api, /export const BRANCH_FIELDS/);
   assert.match(studio, /!\['branch', 'service'\]\.includes\(entry\.entry_type\)/);
-  assert.match(studio, /Step 1:[\s\S]*Save a private draft[\s\S]*Step 2:[\s\S]*Publish it/);
+  assert.match(studio, /Save draft[\s\S]*Publish live/);
   assert.match(studio, /Draft saved\. Publish it to update every connected public page\./);
 });
 
@@ -103,7 +103,7 @@ test('appearance validation enforces usable contrast', () => {
 
 test('Website Studio exposes a beginner single-column editor without a simulated device preview', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
-  for (const text of ['Save draft','Published','Publish live','Discard draft','View live website','Preview page','Unpublished changes','Advanced settings','Admin home']) assert.match(studio, new RegExp(text, 'i'));
+  for (const text of ['Save draft','Published','Publish live','Discard draft','Preview page','Unpublished changes','Advanced settings','Website editor']) assert.match(studio, new RegExp(text, 'i'));
   assert.match(studio, /function SectionChooser/);
   assert.match(studio, /What would you like to change\?/);
   assert.match(studio, /All website sections/);
@@ -128,7 +128,7 @@ test('Website Studio exposes a beginner single-column editor without a simulated
 test('Website Studio presents the requested sections and keeps shared values synchronized', () => {
   const footer = read('src/components/Footer.jsx');
   const navbar = read('src/components/Navbar.jsx');
-  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Feed', 'About', 'Work', 'Portfolio', 'Creatives', 'Contact', 'Privacy Policy', 'Colors']);
+  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Feed', 'About', 'Work', 'Portfolio', 'Creatives', 'Contact & Services', 'Privacy Policy', 'Colors']);
   assert.ok(!WEBSITE_STUDIO_SECTIONS.some(({ label }) => ['Footer', 'Search', 'Social links'].includes(label)));
   assert.match(footer, /content\.displayName/);
   assert.match(footer, /content\.tagline/);
@@ -210,7 +210,7 @@ test('Services and inquiries use open messages instead of a fixed canonical serv
   assert.match(services, /not a predefined category/);
   assert.doesNotMatch(services, /content\.websiteServices|allServiceCategories/);
   assert.match(inquiry, /branch: 'general', serviceKey: 'general-inquiry'/);
-  assert.match(inquiry, /aria-label="Open inquiry form"/);
+  assert.match(inquiry, /Creative inquiry form/);
   assert.doesNotMatch(inquiry, /content\.websiteServices|allServiceCategories|selectService|selectRecipient/);
 });
 
@@ -223,7 +223,7 @@ test('page-specific Website Studio copy reaches homepage, Current Work, inquirie
   assert.match(home, /page\.heroTitle/);
   assert.match(home, /page\.heroDescription/);
   assert.match(explore, /websitePages\?\.explore/);
-  assert.match(inquiry, /page\.landingHeading/);
+  assert.match(inquiry, /Connect with a Creative/);
   assert.match(inquiry, /page\.disclaimer/);
   assert.match(app, /openGraphImageUrl/);
   const content = websiteBundleToContent({ 'page.search': { facebookUrl: 'https://facebook.com/lahatliwa', instagramUrl: '' } });

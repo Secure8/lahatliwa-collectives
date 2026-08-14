@@ -37,16 +37,14 @@ test('mobile Home is a fluid feed with no artificial item limit', async () => {
   assert.match(app, /<Footer \/>/);
 });
 
-test('admin uses responsive top navigation and a focus-managed drawer instead of a permanent sidebar', async () => {
-  const [admin, dashboard, drawer, styles] = await Promise.all([source('../components/admin/AdminLayout.jsx'), source('../pages/admin/Dashboard.jsx'), source('./useModalDrawer.js'), source('../index.css')]);
-  assert.match(admin, /ll-admin-tabs/);
-  assert.match(admin, /Open admin navigation/);
-  assert.match(admin, /useModalDrawer/);
-  assert.match(admin, /role="dialog"/);
+test('admin uses a compact responsive operations window instead of a permanent sidebar', async () => {
+  const [admin, dashboard, styles] = await Promise.all([source('../components/admin/AdminLayout.jsx'), source('../pages/admin/Dashboard.jsx'), source('../index.css')]);
+  assert.match(admin, /ll-operations-window__nav/);
+  assert.match(admin, /aria-label="Platform tools"/);
+  assert.doesNotMatch(admin, /useModalDrawer|role="dialog"/);
   assert.doesNotMatch(admin, /lg:w-64|lg:ml-64/);
   assert.match(dashboard, /aria-label="Primary actions"/);
-  assert.match(drawer, /event\.key !== 'Tab'/);
-  assert.match(styles, /\.ll-admin-tabs/);
+  assert.match(styles, /\.ll-operations-window__nav/);
 });
 
 test('Creative inquiry remains a single accessible form with contextual project support', async () => {
@@ -59,8 +57,8 @@ test('Creative inquiry remains a single accessible form with contextual project 
 
 test('project cards remain square, fully linked, and height-safe', async () => {
   const [grid, card] = await Promise.all([source('../components/ProjectGrid.jsx'), source('../components/ProjectCard.jsx')]);
-  assert.match(grid, /grid items-stretch/);
-  assert.match(card, /flex h-full[\s\S]*?flex-col/);
+  assert.match(grid, /ll-portfolio-grid/);
+  assert.match(card, /ll-portfolio-card__link/);
   assert.match(card, /aspect-square/);
   assert.doesNotMatch(card, /h-\[\d+px\]/);
 });

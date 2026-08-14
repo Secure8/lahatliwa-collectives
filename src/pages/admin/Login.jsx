@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Lock, ShieldCheck, UserPlus } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
@@ -9,18 +9,15 @@ import PasswordField from '../../components/auth/PasswordField';
 import LoadingState from '../../components/LoadingState';
 import { dashboardRedirectAllowed } from '../../lib/authCallback';
 import { ActionFeedback, FieldError } from '../../components/FieldFeedback';
-import BrandWordmark from '../../components/BrandWordmark';
 
 const modeCopy = {
   login: {
-    icon: Lock,
-    title: 'Welcome back',
+    title: 'Login',
     description: 'Sign in to open your Creative profile or platform workspace.',
   },
   setup: {
-    icon: UserPlus,
-    title: 'Set up your account',
-    description: 'Create a password for your invited Lahat Liwa account.',
+    title: 'Sign up',
+    description: 'Create a password for your approved account.',
   },
 };
 
@@ -56,7 +53,6 @@ export default function Login() {
   const confirmRef = useRef(null);
 
   const currentCopy = modeCopy[mode] || modeCopy.login;
-  const HeaderIcon = currentCopy.icon;
   const isSetup = mode === 'setup';
   const passwordLabel = isSetup ? 'Create password' : 'Password';
 
@@ -169,15 +165,11 @@ export default function Login() {
   return (
     <main className="ll-auth-page">
       <section className="ll-auth-card">
-        <BrandWordmark variant="auth" to="/" />
         <Link to="/" className="ll-auth-back fine-link">
           <ArrowLeft size={16} /> Back
         </Link>
         <form onSubmit={handleSubmit} className="ll-auth-form">
           <div className="ll-auth-heading">
-            <span className="ll-auth-heading__icon">
-              <HeaderIcon size={20} />
-            </span>
             <div>
               <h1 className="text-2xl font-semibold text-white">{currentCopy.title}</h1>
               <p className="mt-1 text-sm leading-6 text-zinc-400">{currentCopy.description}</p>
@@ -208,7 +200,7 @@ export default function Login() {
 
           {isSetup && (
             <p className="mt-4 text-xs leading-5 text-zinc-500">
-              This sign-in is only for invited platform members. The email must already appear in Team with an invited or active status.
+              This sign-in is only for approved platform members. Your email must already have an invitation or active access.
             </p>
           )}
 

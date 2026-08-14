@@ -52,9 +52,9 @@ test('public project and profile copy emphasizes publication and contributor cre
   const profile = source('components/CreativeProfileView.jsx');
 
   assert.match(projects, /project portfolio/);
-  assert.match(details, /Published through <BrandWordmark name=\{content\.displayName\}/);
+  assert.match(details, /Published a formal project/);
   assert.match(details, /Credited contributors/);
-  assert.match(profile, /Ask about working together/);
+  assert.match(profile, /Connect with \{creative\.name\.split/);
 });
 
 test('public brand names remain CMS-driven and custom logo behavior stays separate', () => {
@@ -74,8 +74,8 @@ test('contact and confirmation copy explain the correct next step', () => {
   const contact = source('pages/Contact.jsx');
   const confirmation = source('pages/InquiryConfirmation.jsx');
 
-  assert.match(contact, /Send one open message/);
-  assert.match(contact, /do not need to choose a service first/);
+  assert.match(contact, /Contact the people behind Lahat Liwa/);
+  assert.match(contact, /To hire a Creative, open that Creative’s profile instead/);
   assert.match(contact, /profile or credit question/i);
   assert.match(confirmation, /identify the right next step/i);
   assert.match(confirmation, /does not confirm availability, scope, schedule, pricing, booking/i);

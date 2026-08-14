@@ -1,11 +1,10 @@
-import { ArrowRight, ArrowUpRight, Calendar, ExternalLink, FileText, Github, Play, Share2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Calendar, ExternalLink, FileText, Github, Play, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState';
 import { actionLabelForItem, getGalleryItemMediaUrl, getGalleryItemThumbnailUrl, getYouTubeVideoId, normalizeProjectGallery } from '../lib/galleryItems';
 import { formatDate } from '../lib/helpers';
 import { normalizeCreditRoleList } from '../lib/projectCredits';
-import { usePublicContent } from '../lib/contentApi';
 import { detailBackAction } from '../lib/navigationHistory';
 import { supabase } from '../lib/supabaseClient';
 import { getPublicImageUrl } from '../lib/storage';
@@ -13,7 +12,6 @@ import { publicImageVariant } from '../lib/publicImages';
 import { safeExternalUrl } from '../lib/externalUrls';
 import { applyPublicMetadata } from '../lib/publicMetadata';
 import { getSingleProjectExternalLink, projectExternalLinkLabel, projectExternalLinkText } from '../lib/projectExternalLinks';
-import BrandWordmark from '../components/BrandWordmark';
 import { inquiryUrl } from '../lib/serviceRequest';
 import { normalizeProjectUpdates, projectWorkStatus } from '../lib/projectProgress';
 
@@ -30,7 +28,6 @@ export default function ProjectDetails() {
   const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { content } = usePublicContent([]);
 
   useEffect(() => {
     let active = true;
@@ -96,36 +93,32 @@ export default function ProjectDetails() {
   const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, workStatus === 'active' ? '/work' : '/projects'); if (action.delta) navigate(action.delta); else navigate(action.to); };
 
   return (
-    <article className="page-shell py-20">
-      <button type="button" onClick={goBack} className="fine-link site-hover-accent inline-flex min-h-11 min-w-11 items-center justify-center px-3 text-sm text-zinc-400">Back</button>
-      <div className={`mt-10 grid gap-10 ${cover ? 'lg:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.88fr)] lg:items-center' : 'lg:grid-cols-1'}`}>
-        {cover && (
-          <ProjectCover cover={cover} title={project.title} externalLink={coverExternalLink} />
-        )}
-        <div className="min-w-0 lg:py-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--site-accent-text)]">{workStatus === 'active' ? 'Work in progress' : project.featured ? 'Selected completed work' : 'Completed project'}</p>
-          <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl" style={{ color: 'var(--site-primary-text)' }}>{project.title}</h1>
-          <p className="mt-5 text-lg leading-8" style={{ color: 'var(--site-secondary-text)' }}>{project.description}</p>
-          <div className="mt-6 grid gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}>
-            {primaryContributor && (
-              <p>Primary contributor: <Link to={`/creatives/${primaryContributor.slug}`} className="site-hover-accent text-zinc-200">{primaryContributor.name}</Link></p>
-            )}
-            <p>Published through <BrandWordmark name={content.displayName} variant="inline" /></p>
-          </div>
-          <p className="mt-5 inline-flex items-center gap-2 text-sm" style={{ color: 'var(--site-muted-text)' }}><Calendar size={16} /> {formatDate(project.project_date)}</p>
+    <article className="page-shell ll-project-detail">
+      <header className="ll-project-detail__header">
+        <button type="button" onClick={goBack} aria-label="Back to projects"><ArrowLeft size={21}/></button>
+        {primaryContributor ? <Link to={`/creatives/${primaryContributor.slug}`} className="ll-project-detail__author">
+          {primaryContributor.profile_image_url && <img src={publicImageVariant(primaryContributor.profile_image_url, 'thumbnail')} alt=""/>}
+          <span><strong>{primaryContributor.name}</strong><small>Published a formal project · {formatDate(project.project_date)}</small></span>
+        </Link> : <div className="ll-project-detail__author"><span><strong>Published project</strong><small>{formatDate(project.project_date)}</small></span></div>}
+      </header>
+      {cover && <ProjectCover cover={cover} title={project.title} externalLink={coverExternalLink} />}
+      <div className="ll-project-detail__body">
+          <p className="ll-kicker">{workStatus === 'active' ? 'Work in progress' : project.featured ? 'Selected completed work' : 'Completed project'}</p>
+          <h1>{project.title}</h1>
+          <p className="ll-project-detail__description">{project.description}</p>
+          <p className="ll-project-detail__date"><Calendar size={16} /> {formatDate(project.project_date)}</p>
           {project.tools?.length > 0 && (
-            <div className="major-border-y mt-7 flex flex-wrap gap-x-4 gap-y-2 py-5">
-              {project.tools.map((tool) => <span key={tool} className="text-sm" style={{ color: 'var(--site-secondary-text)' }}>{tool}</span>)}
+            <div className="ll-project-detail__tools">
+              {project.tools.map((tool) => <span key={tool}>{tool}</span>)}
             </div>
           )}
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+          <div className="ll-project-detail__actions">
             <Action href={project.video_url} icon={Play} label="Watch Video" />
             <Action href={project.social_post_url} icon={Share2} label="Open Post" />
             <Action href={project.live_url} icon={ArrowUpRight} label="Open Full Project" />
             <Action href={project.github_url} icon={Github} label="GitHub" />
             <Link to={inquiryUrl({ context: { type: 'project', id: project.id, slug: project.slug, title: project.title, sourceAction: 'project-detail-inquiry' } })} className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--site-accent)] px-4 text-sm font-semibold text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">Ask about this project <ArrowRight size={16} /></Link>
           </div>
-        </div>
       </div>
 
       {contributors.length > 0 && (
@@ -166,16 +159,16 @@ export default function ProjectDetails() {
 }
 
 function ProjectCover({ cover, title, externalLink }) {
-  const frameClass = 'overflow-hidden rounded-[10px] border border-white/10 bg-zinc-900 shadow-[0_18px_58px_-32px_rgba(251,146,60,0.35)]';
-  const image = <img className={`aspect-square w-full object-cover ${externalLink ? 'transition duration-500 group-hover:scale-[1.015] group-hover:opacity-95 motion-reduce:transition-none' : ''}`} src={cover} alt={title} decoding="async" fetchpriority="high" width="1200" height="1200" />;
+  const frameClass = 'll-project-detail__cover';
+  const image = <img src={cover} alt={title} decoding="async" fetchpriority="high" width="1200" height="1200" />;
 
   if (!externalLink) return <div className={frameClass}>{image}</div>;
 
   return (
-    <a href={externalLink.url} target="_blank" rel="noopener noreferrer" aria-label={projectExternalLinkLabel(externalLink)} className={`${frameClass} group relative block cursor-pointer transition hover:border-orange-300/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950`}>
+    <a href={externalLink.url} target="_blank" rel="noopener noreferrer" aria-label={projectExternalLinkLabel(externalLink)} className={`${frameClass} group`}>
       {image}
-      <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-end bg-gradient-to-t from-black/75 via-black/20 to-transparent px-4 pb-4 pt-12 text-xs font-medium text-white opacity-90 sm:px-5 sm:pb-5">
-        <span className="theme-inverse inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 backdrop-blur-sm">{projectExternalLinkText(externalLink)} <ExternalLink size={14} aria-hidden="true" /></span>
+      <span className="ll-project-detail__cover-link">
+        <span>{projectExternalLinkText(externalLink)} <ExternalLink size={14} aria-hidden="true" /></span>
       </span>
     </a>
   );

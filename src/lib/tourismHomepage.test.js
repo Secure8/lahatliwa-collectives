@@ -47,7 +47,8 @@ test('project covers are square while uploaded gallery images retain their natur
   const details = read('src/pages/ProjectDetails.jsx');
   assert.match(card, /aspect-square/);
   assert.match(work, /aspect-square/);
-  assert.match(details, /ProjectCover[\s\S]*aspect-square/);
+  assert.match(details, /ll-project-detail__cover/);
+  assert.match(read('src/index.css'), /\.ll-project-detail__cover[^}]*aspect-ratio:\s*1/);
   assert.match(details, /item\.type === 'image'[\s\S]*className="h-auto w-full/);
 });
 

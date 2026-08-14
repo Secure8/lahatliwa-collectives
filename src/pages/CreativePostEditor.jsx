@@ -1,6 +1,6 @@
-import { ArrowLeft, ArrowUp, ArrowDown, Bold, Check, Eye, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, MoreHorizontal, Plus, Quote, Send, Trash2, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Bold, Check, Eye, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, MoreHorizontal, Plus, Quote, Send, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import CreativePostDocument from '../components/CreativePostDocument';
 import LoadingState from '../components/LoadingState';
 import { applyCreativePostInlineStyle, createCreativePostDraft, createPostBlock, creativePostHasContent, CREATIVE_POST_MAX_IMAGES, emptyCreativePostDocument, loadCreativePostForEdit, normalizeCreativePostDocument, publishCreativePost, removeCreativePostMedia, saveCreativePost, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
@@ -36,6 +36,12 @@ export default function CreativePostEditor({ create = false }) {
   const postRef = useRef(null);
   const documentRef = useRef(null);
   const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -176,14 +182,19 @@ export default function CreativePostEditor({ create = false }) {
   if (loading) return <main className="ll-composer-loading"><LoadingState label="Preparing your post" /></main>;
   if (error && !post) return <main className="ll-composer-loading"><p>{error}</p></main>;
 
-  return <main className="ll-composer-page">
+  const exitPath = creative?.slug ? `/creatives/${creative.slug}` : '/account';
+  const closeComposer = async () => { await saveNow(); navigate(exitPath); };
+
+  return <main className="ll-composer-page ll-composer-modal-layer">
+    <button type="button" className="ll-composer-modal-scrim" onClick={closeComposer} aria-label="Close post composer" />
+    <section className="ll-composer-modal" role="dialog" aria-modal="true" aria-label={create ? 'Create a post' : 'Edit post'}>
     <header className="ll-composer-header">
-      <Link to={creative?.slug ? `/creatives/${creative.slug}` : '/account'}><ArrowLeft size={18} /><span>My profile</span></Link>
+      <button type="button" onClick={closeComposer} className="ll-composer-close"><X size={18} /><span>Close</span></button>
       <div className="ll-save-state" role="status">{status === 'saving' ? 'Saving…' : status === 'saved' ? <><Check size={14} /> Saved</> : status === 'not_saved' ? 'Start writing to save' : status === 'error' ? 'Save interrupted' : 'Unsaved changes'}</div>
       <div><button type="button" onClick={() => setPreview((value) => !value)} className="ll-icon-action" aria-label={preview ? 'Return to editing' : 'Preview post'}><Eye size={18} /></button><button type="button" onClick={publish} disabled={publishing || uploading} className="ll-primary-action"><Send size={16} /> {publishing ? 'Publishing…' : 'Publish'}</button></div>
     </header>
 
-    <div className="ll-composer-shell">
+    <div className="ll-composer-modal-body"><div className="ll-composer-shell">
       <header className="ll-composer-author">{creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}<div><strong>{creative?.name || 'Your Creative profile'}</strong><small>{post.status === 'published' ? 'Editing a published post' : 'New post'}</small></div></header>
       {error && <p className="ll-composer-error" role="alert">{error}</p>}
       {preview ? <section className="ll-composer-preview"><CreativePostDocument document={previewDocument} media={media} /></section> : <section className="ll-natural-canvas" aria-label="Post composition canvas">
@@ -191,7 +202,8 @@ export default function CreativePostEditor({ create = false }) {
         <div className="ll-insert-row"><button type="button" onClick={() => setInsertOpen((value) => !value)} aria-expanded={insertOpen}><Plus size={18} /> Add to post</button>{insertOpen && <div className="ll-insert-menu">{insertChoices.map(([type, label, Icon]) => <button key={type} type="button" onClick={() => insertBlock(type)}><Icon size={17} /> {label}</button>)}</div>}</div>
       </section>}
       {!preview && <div className="ll-composer-add-media"><input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={upload} className="sr-only" /><button type="button" onClick={() => fileRef.current?.click()} disabled={uploading || media.length >= CREATIVE_POST_MAX_IMAGES}><ImagePlus size={19} /><span>{uploading ? 'Uploading photos…' : 'Add photos'}</span><small>{media.length}/{CREATIVE_POST_MAX_IMAGES}</small></button><p>JPEG, PNG, or WebP. Add a short description before publishing.</p></div>}
-    </div>
+    </div></div>
+    </section>
     {selectedMedia && <ImageInspector item={selectedMedia} order={media.findIndex((item) => item.id === selectedMedia.id)} count={media.length} onClose={() => setSelectedMediaId(null)} onChange={(patch) => updateImage(selectedMedia, patch)} onMove={(delta) => moveImage(selectedMedia.id, delta)} onRemove={() => confirmImageRemoval(selectedMedia)} />}
     {confirmationDialog}
   </main>;

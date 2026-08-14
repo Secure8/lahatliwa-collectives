@@ -51,3 +51,15 @@ test('empty composers stay local and owned drafts can be deleted directly', () =
   assert.match(migration, /post\.status not in \('draft','archived'\)/);
   assert.match(migration, /status in \('draft','archived'\)/);
 });
+
+test('post and project creation open in focused floating workspaces', () => {
+  const postEditor = source('src/pages/CreativePostEditor.jsx');
+  const workEditor = source('src/pages/admin/NewProject.jsx');
+  const styles = source('src/index.css');
+  assert.match(postEditor, /ll-composer-modal-layer/);
+  assert.match(postEditor, /role="dialog"[\s\S]*Create a post/);
+  assert.match(workEditor, /ll-work-editor-layer/);
+  assert.match(workEditor, /role="dialog"[\s\S]*ProjectForm/);
+  assert.match(styles, /\.ll-composer-modal, \.ll-work-editor[\s\S]*?border-radius: 1rem/);
+  assert.match(styles, /\.ll-composer-modal-body, \.ll-work-editor-body \{ min-height: 0; overflow-y: auto/);
+});

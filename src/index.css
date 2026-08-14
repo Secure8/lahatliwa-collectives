@@ -2402,3 +2402,76 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   .ll-public-menu-layer .ll-public-drawer > nav a { min-height: 2.9rem; font-size: .84rem; }
   .ll-public-menu-layer .ll-public-drawer > footer { gap: .75rem; padding: 1rem; }
 }
+
+/* Creation flows use focused floating workspaces on every entry point. */
+.ll-composer-modal-layer, .ll-work-editor-layer {
+  position: fixed;
+  z-index: 110;
+  inset: 0;
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  overflow: hidden;
+  padding: 1.25rem;
+}
+.ll-composer-modal-scrim, .ll-work-editor-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(0 0 0 / .72);
+}
+.ll-composer-modal, .ll-work-editor {
+  position: relative;
+  display: grid;
+  width: min(56rem, calc(100vw - 2.5rem));
+  max-height: calc(100dvh - 2.5rem);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 1rem;
+  background: var(--theme-modal-surface);
+  animation: ll-floating-panel-in 180ms ease-out;
+  box-shadow: 0 24px 80px rgb(0 0 0 / .46) !important;
+}
+.ll-composer-modal { height: min(50rem, calc(100dvh - 2.5rem)); }
+.ll-composer-modal .ll-composer-header { position: relative; top: auto; padding: .65rem 1rem; }
+.ll-composer-close {
+  display: inline-flex;
+  min-height: 2.65rem;
+  align-items: center;
+  gap: .4rem;
+  border: 0;
+  border-radius: var(--ll-control-radius);
+  background: transparent;
+  padding: .5rem .65rem;
+  color: var(--theme-text-muted);
+  font-size: .78rem;
+  font-weight: 700;
+}
+.ll-composer-close:hover { background: var(--theme-hover-surface); color: var(--theme-text-primary); }
+.ll-composer-modal-body, .ll-work-editor-body { min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
+.ll-composer-modal .ll-composer-shell { width: 100%; min-height: 0; margin: 0; border: 0; border-radius: 0; background: transparent; }
+
+.ll-work-editor { height: min(54rem, calc(100dvh - 2.5rem)); }
+.ll-work-editor > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--theme-border);
+  padding: 1rem 1.25rem;
+}
+.ll-work-editor > header h1 { margin: .2rem 0 0; color: var(--theme-text-primary); font-size: 1.25rem; }
+.ll-work-editor > header p:last-child { margin: .3rem 0 0; color: var(--theme-text-muted); font-size: .75rem; }
+.ll-work-editor > header > a { display: grid; width: 2.6rem; height: 2.6rem; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--theme-hover-surface); color: var(--theme-text-primary); }
+.ll-work-editor-body { padding: 1.25rem; }
+
+@media (max-width: 639px) {
+  .ll-composer-modal-layer, .ll-work-editor-layer { padding: 0; }
+  .ll-composer-modal, .ll-work-editor { width: 100%; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
+  .ll-composer-modal .ll-composer-header { padding-right: .65rem; padding-left: .65rem; }
+  .ll-composer-close span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ll-work-editor > header { padding: .8rem 1rem; }
+  .ll-work-editor > header p:last-child { display: none; }
+  .ll-work-editor-body { padding: .85rem; }
+}

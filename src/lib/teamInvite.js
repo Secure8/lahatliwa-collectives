@@ -26,7 +26,7 @@ export async function claimSignedInTeamRecord(user) {
   if (existingRecord.user_id && existingRecord.user_id !== user.id) {
     return { data: null, blockedReason: notInvitedMessage };
   }
-  if (existingRecord.user_id === user.id) {
+  if (existingRecord.user_id === user.id && existingRecord.status === 'active') {
     return { data: { ...existingRecord, role: normalizeRole(existingRecord.role) } };
   }
 
@@ -34,7 +34,7 @@ export async function claimSignedInTeamRecord(user) {
     .from('admin_users')
     .update({
       user_id: user.id,
-      status: existingRecord.status === 'invited' ? 'active' : existingRecord.status,
+      status: 'active',
       updated_at: new Date().toISOString(),
     })
     .eq('id', existingRecord.id)

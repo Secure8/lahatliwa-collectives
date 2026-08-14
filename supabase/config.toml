@@ -424,13 +424,7 @@ verify_jwt = false
 [functions.r2-media-upload]
 verify_jwt = false
 
-[functions.storage-governance]
-verify_jwt = false
-
 [functions.supabase-media-reconciliation]
-verify_jwt = false
-
-[functions.emergency-public-media-upload]
 verify_jwt = false
 
 # [edge_runtime.secrets]

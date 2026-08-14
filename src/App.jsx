@@ -14,7 +14,6 @@ import { publicRouteBoundaryKey } from './lib/navigationHistory';
 import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadCurrentWork, loadInquiryConfirmation, loadPrivacy, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
 import NotFound from './pages/NotFound';
 import { applyPublicMetadata } from './lib/publicMetadata';
-import ThemeToggle from './components/ThemeToggle';
 import BrandWordmark from './components/BrandWordmark';
 import { publicAppBarMode } from './lib/mobileAppShell';
 
@@ -41,7 +40,6 @@ const CreativeEditor = lazy(() => import('./pages/admin/CreativeEditor'));
 const AdminInquiries = lazy(() => import('./pages/admin/AdminInquiries'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const MyProfile = lazy(() => import('./pages/admin/MyProfile'));
-const CreativeDirectory = lazy(() => import('./pages/admin/CreativeDirectory'));
 const WebsiteStudio = lazy(() => import('./pages/admin/WebsiteStudio'));
 const CreativePostDetails = lazy(() => import('./pages/CreativePostDetails'));
 const CreativePostEditor = lazy(() => import('./pages/CreativePostEditor'));
@@ -178,6 +176,6 @@ export default function App() {
         <Route path="/admin/content" element={<Navigate to="/admin/website" replace />} />
         <Route path="/admin/content/:pageKey" element={<LegacyWebsiteEditorRedirect />} />
       </Route>
-    </Routes><ThemeToggle /></>
+    </Routes></>
   );
 }

@@ -228,7 +228,7 @@ export default function Login() {
             {mode === 'login' && (
               <>
                 <button type="button" onClick={() => switchMode('setup')} className="fine-link min-h-10 text-left text-zinc-300 transition hover:text-amber-100">
-                  Set up
+                  Set up an invited account
                 </button>
                 <Link to="/forgot-password" className="fine-link min-h-10 content-center text-left text-zinc-400 transition hover:text-amber-100">Forgot password?</Link>
               </>

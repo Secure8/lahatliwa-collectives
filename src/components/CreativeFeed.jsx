@@ -1,4 +1,4 @@
-import { ArrowRight, BriefcaseBusiness, Image as ImageIcon, PenLine, Sparkles } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Image as ImageIcon, LayoutGrid, Newspaper, PenLine } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CreativePostCard from './CreativePostCard';
 import EmptyState from './EmptyState';
@@ -19,9 +19,9 @@ export default function CreativeFeed({ posts = [], projects = [], filter = 'all'
   const items = mergeCreativeFeed(posts, projects).filter((item) => filter === 'all' || (filter === 'posts' ? item.kind === 'post' : item.kind === 'project'));
   return <section aria-labelledby="creative-feed-heading" className="ll-feed-shell">
     <div className="ll-feed-heading">
-      <div><p className="ll-kicker"><Sparkles size={14} /> Fresh from the network</p><h2 id="creative-feed-heading">Creative feed</h2></div>
+      <div><p className="ll-kicker"><Newspaper size={14} /> Latest from the network</p><h2 id="creative-feed-heading">Creative feed</h2></div>
       <div className="ll-feed-filters" role="group" aria-label="Filter feed">
-        {[['all', 'All', Sparkles], ['posts', 'Posts', PenLine], ['projects', 'Projects', BriefcaseBusiness]].map(([value, label, Icon]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => onFilterChange?.(value)}><Icon size={15} /> {label}</button>)}
+        {[['all', 'All', LayoutGrid], ['posts', 'Posts', PenLine], ['projects', 'Projects', BriefcaseBusiness]].map(([value, label, Icon]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => onFilterChange?.(value)}><Icon size={15} /> {label}</button>)}
       </div>
     </div>
     {creativeOwner && <Link to="/create" className="ll-composer-prompt"><span className="ll-composer-prompt__icon"><PenLine size={19} /></span><span><strong>Share something you made</strong><small>Write, add photos, or document your process.</small></span><ArrowRight size={18} /></Link>}

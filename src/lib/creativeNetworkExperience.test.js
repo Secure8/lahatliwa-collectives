@@ -27,7 +27,7 @@ test('Creative profiles behave as personal walls with owner-only controls', () =
   assert.match(profile, /Create post/);
   assert.match(profile, /Edit profile/);
   assert.match(profile, /Formal portfolio/);
-  assert.match(account, /Navigate to=\{`\/creatives\/\$\{slug\}`\}/);
+  assert.match(account, /Navigate to=\{`\/creatives\/\$\{profile\.slug\}`\}/);
 });
 
 test('post composition hides CMS structure behind a natural autosaving canvas', () => {

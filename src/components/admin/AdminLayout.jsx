@@ -10,7 +10,6 @@ import BrandWordmark from '../BrandWordmark';
 import AppearanceMenuAction from '../AppearanceMenuAction';
 import { adminPageTitle } from '../../lib/mobileAppShell';
 import useModalDrawer from '../../lib/useModalDrawer';
-import AdminCommandPalette from './AdminCommandPalette';
 
 const links = [
   ['Overview', [
@@ -67,7 +66,7 @@ export default function AdminLayout({ children }) {
           {content.logoUrl ? <BrandLogo src={content.logoUrl} alt={content.logoAlt} variant="admin" /> : <span>{content.initials || 'LL'}</span>}
           <div><BrandWordmark name={content.displayName} variant="admin" /><small>{access.role === 'creative' ? 'Creative profile' : 'Platform operations'}</small></div>
         </Link>
-        <div className="ll-admin-header__tools"><span className="ll-admin-current-page">{currentPageTitle}</span><AdminCommandPalette groups={visibleGroups} /><AppearanceMenuAction iconOnly className="ll-icon-action" /><Link to="/" target="_blank" rel="noreferrer noopener" className="ll-admin-site-link"><ExternalLink size={15} /> View site</Link><button ref={triggerRef} type="button" onClick={() => setMenuOpen(true)} aria-label="Open admin navigation" aria-expanded={menuOpen} aria-controls="admin-navigation-drawer" className="ll-admin-menu-button"><Menu size={20} /></button></div>
+        <div className="ll-admin-header__tools"><span className="ll-admin-current-page">{currentPageTitle}</span><AppearanceMenuAction iconOnly className="ll-icon-action" /><Link to="/" target="_blank" rel="noreferrer noopener" className="ll-admin-site-link"><ExternalLink size={15} /> View site</Link><button ref={triggerRef} type="button" onClick={() => setMenuOpen(true)} aria-label="Open admin navigation" aria-expanded={menuOpen} aria-controls="admin-navigation-drawer" className="ll-admin-menu-button"><Menu size={20} /></button></div>
       </div>
       <nav className="ll-admin-tabs" aria-label="Primary admin navigation">{visibleLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} className={({ isActive }) => clsx(isActive && 'is-active')}><Icon size={15} /><span>{label}</span>{href === '/admin/inquiries' && unreadInquiries > 0 && <em>{unreadInquiries > 99 ? '99+' : unreadInquiries}</em>}</NavLink>)}</nav>
     </header>

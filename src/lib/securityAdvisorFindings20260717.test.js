@@ -6,18 +6,21 @@ const root = new URL('../../', import.meta.url);
 const source = (path) => readFile(new URL(path, root), 'utf8');
 const migrationPath = 'supabase/migrations/20260717100000_security_advisor_findings_hardening.sql';
 
-test('storage totals are invoker views with no direct ordinary-role grants', async () => {
-  const [sql, edge] = await Promise.all([
+test('legacy storage totals remain locked down while their admin endpoint is retired', async () => {
+  const [sql, retirement, config] = await Promise.all([
     source(migrationPath),
-    source('supabase/functions/storage-governance/index.ts'),
+    source('supabase/migrations/20260814160000_role_lifecycle_and_storage_retirement.sql'),
+    source('supabase/config.toml'),
   ]);
   for (const view of ['storage_usage_by_owner', 'storage_usage_by_project', 'storage_usage_by_creative']) {
     assert.match(sql, new RegExp(`alter view public\\.${view} set \\(security_invoker = true, security_barrier = true\\)`));
     assert.match(sql, new RegExp(`revoke all on table public\\.${view} from public, anon, authenticated, service_role`));
   }
   assert.match(sql, /RLS must be enabled on public\.external_media_objects/);
-  assert.match(edge, /get_storage_governance_snapshot/);
-  assert.match(edge, /actor\.role\s*!==\s*'super_admin'/);
+  assert.match(retirement, /drop function if exists public\.get_storage_governance_snapshot\(\)/);
+  assert.match(retirement, /emergency_supabase_fallback_enabled\s*=\s*false/);
+  assert.doesNotMatch(config, /\[functions\.storage-governance\]/);
+  await assert.rejects(source('supabase/functions/storage-governance/index.ts'), /ENOENT/);
 });
 
 test('own-usage function derives identity only from auth.uid and is backend-only', async () => {

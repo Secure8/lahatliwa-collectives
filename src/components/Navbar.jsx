@@ -15,7 +15,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { content } = usePublicContent([]);
-  const { account, authenticated } = usePublicAccount();
+  const { account, authenticated, authorized } = usePublicAccount();
   const navigation = content.websiteNavigation || {};
   const isCreative = account?.role === 'creative';
   const creative = account?.creative_members;
@@ -44,10 +44,10 @@ export default function Navbar() {
         <div className="ll-public-nav__account">
           <AppearanceMenuAction iconOnly className="ll-icon-action" />
           {isCreative && <Link to="/create" className="ll-create-action"><PenLine size={16} /><span>Create</span></Link>}
-          {authenticated ? <Link to="/account" className="ll-account-action" aria-label={isCreative ? `Open ${creative?.name || 'your'} profile` : 'Open platform overview'}>
+          {authorized ? <Link to="/account" className="ll-account-action" aria-label={isCreative ? `Open ${creative?.name || 'your'} profile` : 'Open platform overview'}>
             {(creative?.profile_image_url || account?.avatar_url) ? <img src={creative?.profile_image_url || account.avatar_url} alt="" /> : <UserRound size={18} />}
             <span>{isCreative ? 'My profile' : 'Admin'}</span>
-          </Link> : <Link to="/admin/login" className="ll-account-action"><LogIn size={17} /><span>Sign in</span></Link>}
+          </Link> : authenticated ? <Link to="/account" className="ll-account-action"><UserRound size={18} /><span>Account</span></Link> : <Link to="/admin/login" className="ll-account-action"><LogIn size={17} /><span>Sign in</span></Link>}
           <button type="button" onClick={() => setOpen(true)} className="ll-mobile-menu-button" aria-label="Open navigation" aria-expanded={open}><Menu size={21} /></button>
         </div>
       </nav>

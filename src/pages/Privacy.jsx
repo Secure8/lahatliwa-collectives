@@ -15,7 +15,7 @@ const defaultPolicySections = [
   {
     titleKey: 'useTitle', bodyKey: 'useBody',
     title: 'How we use information',
-    body: 'We use collected information only to provide and maintain the site, authenticate authorized administrators, respond to inquiries, publish approved project updates and creative profiles, protect the service, and meet applicable legal obligations.\n\nWe do not sell personal information or use it for advertising, credit decisions, or to train general-purpose artificial intelligence or machine-learning models.',
+    body: 'We use collected information only to provide and maintain the site, authenticate authorized members, respond to inquiries, publish approved project updates and creative profiles, protect the service, and meet applicable legal obligations.\n\nWe do not sell personal information or use it for advertising, credit decisions, or unrelated profiling.',
   },
   {
     titleKey: 'sharingTitle', bodyKey: 'sharingBody',

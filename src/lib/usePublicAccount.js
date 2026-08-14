@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthSession } from './authSession';
+import { normalizeRole } from './adminAccess';
 import { supabase } from './supabaseClient';
 
 export default function usePublicAccount() {
@@ -33,12 +34,12 @@ export default function usePublicAccount() {
         creative = result.data || null;
       }
       if (active) {
-        setAccount({ ...data, creative_members: creative });
+        setAccount({ ...data, role: normalizeRole(data.role), creative_members: creative });
         setLoading(false);
       }
     })();
     return () => { active = false; };
   }, [session?.user?.id, status]);
 
-  return { account, loading, authenticated: status === 'authenticated', session };
+  return { account, loading, authenticated: status === 'authenticated', authorized: Boolean(account), session };
 }

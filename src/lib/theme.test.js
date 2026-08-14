@@ -130,7 +130,7 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.equal((toggle.match(/window\.addEventListener\('scroll'/g) || []).length, 1);
   assert.equal((toggle.match(/window\.removeEventListener\('scroll'/g) || []).length, 1);
   assert.equal((toggle.match(/<button/g) || []).length, 1);
-  assert.equal((app.match(/<ThemeToggle/g) || []).length, 1);
+  assert.equal((app.match(/<ThemeToggle/g) || []).length, 0);
   for (const oldPlacement of [navbar, adminLayout, login, forgotPassword, setPassword, protectedRoute]) {
     assert.doesNotMatch(oldPlacement, /ThemeToggle|ThemeControl/);
   }

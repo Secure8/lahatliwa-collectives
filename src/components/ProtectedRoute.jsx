@@ -46,8 +46,8 @@ export default function ProtectedRoute() {
         setAuthorization({ status: 'error', adminUser: null, message: 'We could not verify admin access for this account. Please try signing in again or contact an authorized administrator.' });
       } else if (!data) {
         setAuthorization({ status: 'unauthorized', adminUser: null, message: notInvitedMessage });
-      } else if (data.status === 'disabled') {
-        setAuthorization({ status: 'unauthorized', adminUser: data, message: disabledTeamMessage });
+      } else if (data.status !== 'active') {
+        setAuthorization({ status: 'unauthorized', adminUser: data, message: data.status === 'disabled' ? disabledTeamMessage : 'This platform account is not active yet.' });
       } else {
         setAuthorization({ status: 'authorized', adminUser: { ...data, role: normalizeRole(data.role) }, message: '' });
       }

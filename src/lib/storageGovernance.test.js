@@ -103,25 +103,33 @@ test('cleanup scheduler stores the complete Edge Function endpoint', () => {
   assert.match(bootstrap, /vault\.update_secret\(v_id,v_worker_url/);
 });
 
-test('governance exposes monitoring and policy only, with no migration execution actions', () => {
-  const edge = source('supabase/functions/storage-governance/index.ts');
+test('retired storage dashboards do not remain callable while R2 policy stays intact', () => {
+  const retirement = source('supabase/migrations/20260814160000_role_lifecycle_and_storage_retirement.sql');
+  assert.match(retirement, /drop function if exists public\.get_provider_storage_usage/);
+  assert.match(retirement, /drop function if exists public\.get_storage_governance_snapshot/);
+  assert.match(retirement, /emergency_supabase_fallback_enabled=false/);
+  assert.match(source('supabase/functions/r2-media/index.ts'), /evaluate_public_media_budget/);
+});
+
+test('legacy media migration execution remains retired', () => {
   const retirement = source('supabase/migrations/20260717170000_retire_public_media_migration.sql');
-  assert.match(edge, /actor\.role!=='super_admin'/);
-  assert.match(edge, /get_storage_governance_snapshot/);
-  assert.match(edge, /get_provider_storage_usage/);
-  assert.doesNotMatch(edge, /safeMigration|list_migrations|inspect_migration|retry_migration|pause_migration|resume_migration/);
   assert.match(retirement, /drop function if exists public\.claim_one_public_media_migration/);
   assert.match(retirement, /drop function if exists public\.activate_public_media_migration/);
   assert.match(retirement, /source preserved/);
 });
 
-test('emergency fallback remains explicit, expiring, one-time, super-admin-only, and audited', () => {
-  const governance = source('supabase/functions/storage-governance/index.ts');
-  const fallback = source('supabase/functions/emergency-public-media-upload/index.ts');
-  assert.match(governance, /emergency_supabase_fallback_enabled/);
-  assert.match(governance, /expires_at:new Date\(Date\.now\(\)\+10\*60\*1000\)/);
-  assert.match(fallback, /actor\.role!=='super_admin'/);
-  assert.match(fallback, /status:'used'/);
+test('member lifecycle migration qualifies project ownership references', () => {
+  const migration = source('supabase/migrations/20260814160000_role_lifecycle_and_storage_retirement.sql');
+  assert.match(migration, /v_project_id uuid/);
+  assert.match(migration, /where pc\.project_id=v_project_id/);
+  assert.doesNotMatch(migration, /project_creatives\.project_id=project_id/);
+});
+
+test('R2 budget checks validate their actor and operation context', () => {
+  const migration = source('supabase/migrations/20260814170000_public_media_budget_parameter_validation.sql');
+  assert.match(migration, /p_actor_user_id is null/);
+  assert.match(migration, /nullif\(trim\(coalesce\(p_operation_kind,''\)\),''\) is null/);
+  assert.match(migration, /provider='cloudflare_r2'/);
 });
 
 test('legacy public references still render through provider-neutral URL resolution', () => {

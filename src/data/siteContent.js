@@ -111,7 +111,7 @@ export const defaultPageContent = {
     iconColor: '',
     groups: defaultSiteContent.services.map((service, index) => ({
       ...service,
-      iconName: ['Camera', 'Sparkles', 'Code2', 'Wrench'][index] || 'Circle',
+      iconName: ['Camera', 'Palette', 'Code2', 'Wrench'][index] || 'Circle',
       iconUrl: '',
       customIconUrl: '',
       serviceLogoUrl: '',

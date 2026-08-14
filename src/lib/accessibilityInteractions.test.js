@@ -114,7 +114,7 @@ test('admin visual hierarchy distinguishes content, controls, status, and naviga
   assert.match(ui, /data-variant=\{variant\}/);
   assert.match(ui, /rounded-full[\s\S]*?bg-current/);
   assert.match(layout, /ll-admin-tabs/);
-  assert.match(layout, /AdminCommandPalette/);
+  assert.doesNotMatch(layout, /AdminCommandPalette/);
   assert.match(layout, /Platform operations/);
   assert.match(styles, /\.admin-shell article/);
   assert.match(styles, /interactive-tab\[aria-pressed="true"\]/);
@@ -147,14 +147,12 @@ test('All projects and featured ordering use separated project card holders', as
 });
 
 test('admin search fields render one boundary with a single restrained focus state', async () => {
-  const [projects, creatives, directory, palette, styles] = await Promise.all([
+  const [projects, creatives, styles] = await Promise.all([
     source('../pages/admin/AdminProjects.jsx'),
     source('../pages/admin/AdminCreatives.jsx'),
-    source('../pages/admin/CreativeDirectory.jsx'),
-    source('../components/admin/AdminCommandPalette.jsx'),
     source('../index.css'),
   ]);
-  for (const screen of [projects, creatives, directory, palette]) assert.match(screen, /data-search-shell/);
+  for (const screen of [projects, creatives]) assert.match(screen, /data-search-shell/);
   assert.match(styles, /input\[type="search"\]:focus[\s\S]*?box-shadow:\s*none/);
   assert.match(styles, /\[data-search-shell\] > input\[type="search"\][\s\S]*?border:\s*0 !important[\s\S]*?box-shadow:\s*none !important/);
 });
@@ -176,14 +174,12 @@ test('dashboard prioritizes summary, urgent work, and a small primary action set
   assert.match(dashboard, /canManagePeople/);
 });
 
-test('admin command palette supports keyboard access, navigation search, and focus containment', async () => {
-  const palette = await source('../components/admin/AdminCommandPalette.jsx');
-  assert.match(palette, /event\.metaKey \|\| event\.ctrlKey/);
-  assert.match(palette, /key\.toLowerCase\(\) === 'k'/);
-  assert.match(palette, /role="dialog"/);
-  assert.match(palette, /aria-modal="true"/);
-  assert.match(palette, /useModalDrawer/);
-  assert.match(palette, /Search pages and tools/);
+test('admin navigation stays direct and avoids a hidden command layer', async () => {
+  const layout = await source('../components/admin/AdminLayout.jsx');
+  assert.doesNotMatch(layout, /AdminCommandPalette|metaKey|ctrlKey|Search pages and tools/);
+  assert.match(layout, /aria-label="Primary admin navigation"/);
+  assert.match(layout, /aria-controls="admin-navigation-drawer"/);
+  assert.match(layout, /useModalDrawer/);
 });
 
 test('admin people management connects profiles and access while preserving their responsibilities', async () => {

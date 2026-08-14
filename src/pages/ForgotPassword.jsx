@@ -20,7 +20,7 @@ export default function ForgotPassword() {
 
   if (status === 'initializing') return <div className="page-shell py-20"><LoadingState label="Restoring session" /></div>;
   if (!dashboardRedirectAllowed(authFlow)) return <Navigate to="/set-password" replace />;
-  if (status === 'authenticated') return <Navigate to="/admin/dashboard" replace />;
+  if (status === 'authenticated') return <Navigate to="/account" replace />;
 
   async function submit(event) {
     event.preventDefault();

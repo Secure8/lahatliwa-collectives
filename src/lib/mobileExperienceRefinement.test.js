@@ -18,6 +18,13 @@ test('public mobile navigation is a five-destination professional network dock',
   assert.match(styles, /@media \(max-width: 420px\)/);
 });
 
+test('desktop More navigation opens as an anchored floating menu instead of a right drawer', async () => {
+  const [navbar, styles] = await Promise.all([source('../components/Navbar.jsx'), source('../index.css')]);
+  assert.match(navbar, /ll-drawer-layer ll-public-menu-layer/);
+  assert.match(styles, /\.ll-public-menu-layer \.ll-public-drawer[\s\S]*?bottom: 4\.75rem;[\s\S]*?left: 5\.5rem/);
+  assert.match(styles, /\.ll-post-card\.has-open-menu \{ overflow: visible/);
+});
+
 test('mobile Home is a fluid feed with no artificial item limit', async () => {
   const [home, feed, styles, app] = await Promise.all([source('../pages/Home.jsx'), source('../components/CreativeFeed.jsx'), source('../index.css'), source('../App.jsx')]);
   assert.match(home, /data-creative-network-home/);

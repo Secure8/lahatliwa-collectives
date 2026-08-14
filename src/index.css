@@ -2325,3 +2325,80 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   .ll-feed-list { gap: 1.15rem; }
   .ll-project-feed-item { padding-right: .5rem; padding-left: .5rem; }
 }
+
+/* Floating public menus and profile editing */
+@keyframes ll-floating-panel-in {
+  from { opacity: 0; transform: translateY(.65rem) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ll-profile-editor-scrim { background: rgb(0 0 0 / .72); }
+.ll-profile-editor { transform-origin: center; animation: ll-floating-panel-in 180ms ease-out; box-shadow: 0 22px 70px rgb(0 0 0 / .42) !important; }
+.ll-profile-editor form { scrollbar-gutter: stable; }
+.ll-profile-editor footer { position: sticky; bottom: -2rem; z-index: 2; background: var(--theme-modal-surface); padding-bottom: 1rem; }
+.ll-profile-media-choices > button:hover { border-color: var(--site-accent-border); background: var(--theme-hover-surface); }
+
+.ll-public-drawer { transform-origin: left bottom; animation: ll-floating-panel-in 170ms ease-out; }
+.ll-post-card.has-open-menu { overflow: visible; isolation: isolate; z-index: 40; }
+.ll-post-card.has-open-menu .ll-context-menu > div {
+  z-index: 100;
+  overflow: visible;
+  border-color: var(--theme-border-strong);
+  animation: ll-floating-panel-in 140ms ease-out;
+  box-shadow: 0 14px 36px rgb(0 0 0 / .32) !important;
+  transform-origin: top right;
+}
+
+@media (min-width: 640px) {
+  .ll-profile-editor-layer { place-items: center; padding: 1.25rem; }
+  .ll-profile-editor {
+    width: min(42rem, calc(100vw - 2.5rem));
+    height: auto;
+    max-height: calc(100dvh - 2.5rem);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    border: 1px solid var(--theme-border-strong);
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+  .ll-profile-editor form { max-height: calc(100dvh - 11rem); padding: 1.25rem 1.35rem 0; }
+  .ll-profile-editor > header { padding: 1.1rem 1.25rem; }
+  .ll-profile-editor > nav { padding: 0 1rem; }
+  .ll-profile-editor-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ll-profile-editor-fields label:has(textarea) { grid-column: 1 / -1; }
+  .ll-profile-media-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 900px) {
+  .ll-public-menu-layer { display: grid; place-items: center; padding: 1.5rem; }
+  .ll-public-menu-layer .ll-drawer-scrim { background: rgb(0 0 0 / .58); }
+  .ll-public-menu-layer .ll-public-drawer {
+    position: relative;
+    inset: auto;
+    width: min(31rem, calc(100vw - 3rem));
+    height: auto;
+    max-height: calc(100dvh - 3rem);
+    border: 1px solid var(--theme-border-strong);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 22px 70px rgb(0 0 0 / .38) !important;
+  }
+  .ll-public-menu-layer .ll-public-drawer > nav { max-height: min(31rem, 58dvh); }
+}
+
+@media (min-width: 1180px) {
+  .ll-public-menu-layer { display: block; padding: 0; }
+  .ll-public-menu-layer .ll-drawer-scrim { background: rgb(0 0 0 / .36); }
+  .ll-public-menu-layer .ll-public-drawer {
+    position: absolute;
+    top: auto;
+    right: auto;
+    bottom: 4.75rem;
+    left: 5.5rem;
+    width: min(22rem, calc(100vw - 7rem));
+    max-height: calc(100dvh - 6rem);
+  }
+  .ll-public-menu-layer .ll-public-drawer > header { min-height: 4.5rem; padding: .85rem 1rem; }
+  .ll-public-menu-layer .ll-public-drawer > nav { max-height: min(27rem, 56dvh); padding: .65rem .85rem; }
+  .ll-public-menu-layer .ll-public-drawer > nav a { min-height: 2.9rem; font-size: .84rem; }
+  .ll-public-menu-layer .ll-public-drawer > footer { gap: .75rem; padding: 1rem; }
+}

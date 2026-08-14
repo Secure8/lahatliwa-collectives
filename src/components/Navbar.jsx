@@ -53,7 +53,7 @@ export default function Navbar() {
       </nav>
     </header>
     <MobileTopNavigation />
-    {open && <div className="ll-drawer-layer">
+    {open && <div className="ll-drawer-layer ll-public-menu-layer">
       <button type="button" tabIndex={-1} className="ll-drawer-scrim" onClick={closeMenu} aria-label="Close navigation" />
       <section ref={panelRef} id="public-more-menu" role="dialog" aria-modal="true" aria-label="Navigation" className="ll-public-drawer">
         <header><div><p className="ll-kicker">Explore Lahat Liwa</p><h2>{content.displayName}</h2></div><button data-drawer-initial-focus type="button" onClick={closeMenu} aria-label="Close navigation"><X size={21} /></button></header>

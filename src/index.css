@@ -921,6 +921,8 @@ html.admin-mode :where(a, button, img, article),
 .ll-context-menu > div a, .ll-context-menu > div button { display: flex; min-height: 2.65rem; align-items: center; gap: .55rem; border: 0; border-radius: .55rem; background: transparent; padding: .55rem .7rem; color: var(--theme-text-secondary); font-size: .78rem; text-align: left; text-decoration: none; }
 .ll-context-menu > div a:hover, .ll-context-menu > div button:hover { background: var(--theme-hover-surface); color: var(--theme-text-primary); }
 .ll-context-menu .is-danger { color: var(--theme-error); }
+.ll-post-card.has-open-menu { position: relative; z-index: 30; }
+.ll-post-card.has-open-menu .ll-context-menu > div { width: 13.5rem; }
 .ll-post-card__body { padding: .35rem 1rem 1rem; }
 .ll-post-document { display: grid; gap: 1.15rem; color: var(--theme-text-secondary); }
 .ll-post-document > p { margin: 0; color: var(--theme-text-secondary) !important; font-size: .96rem !important; line-height: 1.7 !important; }
@@ -975,6 +977,13 @@ html.admin-mode :where(a, button, img, article),
 .ll-profile-identity { display: grid; gap: 1rem; padding: 0 1rem 1.25rem; }
 .ll-profile-avatar { position: relative; z-index: 2; display: grid; width: 7.5rem; height: 7.5rem; place-items: center; overflow: hidden; margin-top: -3.75rem; border: 4px solid var(--theme-primary-surface); border-radius: 50%; background: var(--site-accent-surface); color: var(--site-accent-text); font-size: 2rem; font-weight: 800; box-shadow: 0 12px 35px var(--theme-shadow); }
 .ll-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ll-profile-avatar.is-editable { padding: 0; cursor: pointer; }
+.ll-profile-avatar.is-editable i { position: absolute; right: .35rem; bottom: .35rem; display: grid; width: 2.2rem; height: 2.2rem; place-items: center; border: 2px solid var(--theme-primary-surface); border-radius: 50%; background: var(--theme-modal-surface); color: var(--theme-text-primary); }
+.ll-profile-cover-edit { position: absolute; z-index: 3; right: .85rem; bottom: .85rem; display: inline-flex; min-height: 2.6rem; align-items: center; gap: .45rem; border: 1px solid rgb(255 255 255 / .25); border-radius: .65rem; background: rgb(10 10 10 / .72); padding: .5rem .75rem; color: white; font-size: .75rem; font-weight: 700; }
+.ll-profile-identity__copy { position: relative; }
+.ll-profile-identity-edit, .ll-profile-section-edit { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border: 0; border-radius: 50%; background: var(--theme-hover-surface); color: var(--theme-text-muted); }
+.ll-profile-identity-edit { position: absolute; top: .15rem; right: 0; }
+.ll-profile-section-edit { position: absolute; top: .75rem; right: .75rem; }
 .ll-profile-identity__copy h1 { margin: .45rem 0 0; color: var(--theme-text-primary); font-size: clamp(2rem,7vw,3.75rem); font-weight: 680; line-height: 1; letter-spacing: -.045em; }
 .ll-profile-disciplines { margin: .65rem 0 0; color: var(--theme-text-secondary); font-size: .86rem; font-weight: 650; }
 .ll-profile-intro { display: -webkit-box; max-width: 42rem; overflow: hidden; margin: .75rem 0 0; color: var(--theme-text-muted); font-size: .85rem; line-height: 1.6; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -1001,11 +1010,35 @@ html.admin-mode :where(a, button, img, article),
 .ll-profile-empty { border: 1px dashed var(--theme-border-strong); border-radius: .9rem; margin-top: 1rem; padding: 2.5rem 1rem; color: var(--theme-text-muted); text-align: center; }
 .ll-profile-empty a { display: inline-flex; align-items: center; gap: .4rem; margin-top: .8rem; color: var(--site-accent-text); font-size: .8rem; text-decoration: none; }
 .ll-profile-about { display: grid; align-content: start; gap: 1rem; }
-.ll-profile-about section { border: 1px solid var(--theme-border); border-radius: .9rem; padding: 1rem; }
+.ll-profile-about section { position: relative; border: 1px solid var(--theme-border); border-radius: .9rem; padding: 1rem; }
 .ll-profile-about h2 { margin: .5rem 0 0; font-size: 1.05rem; }
 .ll-profile-about section > p:last-child { white-space: pre-line; color: var(--theme-text-muted); font-size: .78rem; line-height: 1.65; }
 .ll-profile-about ul { display: flex; flex-wrap: wrap; gap: .4rem; margin: .85rem 0 0; padding: 0; list-style: none; }
 .ll-profile-about li { border: 1px solid var(--theme-border); border-radius: 999px; padding: .35rem .6rem; color: var(--theme-text-secondary); font-size: .7rem; }
+.ll-profile-placeholder { color: var(--theme-text-muted) !important; font-style: italic; }
+
+.ll-profile-editor-layer { position: fixed; z-index: 90; inset: 0; display: grid; justify-items: end; }
+.ll-profile-editor-scrim { position: absolute; inset: 0; border: 0; background: rgb(0 0 0 / .64); }
+.ll-profile-editor { position: relative; display: grid; width: min(34rem,100%); height: 100dvh; grid-template-rows: auto auto minmax(0,1fr); overflow: hidden; border-left: 1px solid var(--theme-border-strong); background: var(--theme-modal-surface); box-shadow: -18px 0 50px var(--theme-shadow); }
+.ll-profile-editor > header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--theme-border); padding: 1rem 1.1rem; }
+.ll-profile-editor > header h2 { margin: .25rem 0 0; font-size: 1.25rem; }
+.ll-profile-editor > header button { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border: 0; border-radius: 50%; background: var(--theme-hover-surface); color: var(--theme-text-primary); }
+.ll-profile-editor > nav { display: flex; overflow-x: auto; border-bottom: 1px solid var(--theme-border); padding: 0 .65rem; }
+.ll-profile-editor > nav button { flex: 0 0 auto; border: 0; border-bottom: 2px solid transparent; background: transparent; padding: .85rem .65rem; color: var(--theme-text-muted); font-size: .75rem; font-weight: 700; }
+.ll-profile-editor > nav button[aria-pressed="true"] { border-color: var(--site-accent); color: var(--theme-text-primary); }
+.ll-profile-editor form { min-height: 0; overflow-y: auto; padding: 1rem 1.1rem 2rem; }
+.ll-profile-editor-fields { display: grid; gap: 1.1rem; }
+.ll-profile-editor-fields label { display: grid; gap: .45rem; color: var(--theme-text-secondary); font-size: .78rem; font-weight: 650; }
+.ll-profile-editor-fields input, .ll-profile-editor-fields textarea { width: 100%; border: 1px solid var(--theme-border-strong); border-radius: .65rem; background: var(--theme-secondary-surface); padding: .75rem; color: var(--theme-text-primary); font: inherit; font-weight: 400; line-height: 1.5; outline: none; }
+.ll-profile-editor-fields input:focus, .ll-profile-editor-fields textarea:focus { border-color: var(--site-accent); }
+.ll-profile-editor-fields small { color: var(--theme-text-muted); font-size: .68rem; font-weight: 400; }
+.ll-profile-editor footer { display: flex; justify-content: flex-end; gap: .65rem; margin-top: 1.25rem; border-top: 1px solid var(--theme-border); padding-top: 1rem; }
+.ll-profile-editor footer > button:first-child { border: 0; background: transparent; padding: .65rem .8rem; color: var(--theme-text-muted); }
+.ll-profile-editor-error { margin: 1rem 0 0; color: var(--theme-error); font-size: .78rem; }
+.ll-profile-media-choices { display: grid; gap: .75rem; }
+.ll-profile-media-choices > button { display: flex; min-height: 4.5rem; align-items: center; gap: .85rem; border: 1px solid var(--theme-border-strong); border-radius: .75rem; background: var(--theme-secondary-surface); padding: .85rem; color: var(--theme-text-primary); text-align: left; }
+.ll-profile-media-choices strong, .ll-profile-media-choices small { display: block; }
+.ll-profile-media-choices small { margin-top: .2rem; color: var(--theme-text-muted); font-size: .7rem; }
 .ll-profile-projects { display: grid; gap: .75rem; margin-top: 1rem; }
 .ll-profile-project a { display: grid; grid-template-columns: 5rem minmax(0,1fr) auto; align-items: center; gap: .75rem; overflow: hidden; border: 1px solid var(--theme-border); border-radius: .9rem; color: var(--theme-text-primary); text-decoration: none; }
 .ll-profile-project img, .ll-profile-project__fallback { width: 5rem; height: 5rem; background: var(--theme-secondary-surface); object-fit: cover; }

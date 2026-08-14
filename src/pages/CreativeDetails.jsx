@@ -30,7 +30,7 @@ export default function CreativeDetails() {
       setCreative(null);
       setProjects([]);
       setPosts([]);
-      const { data, error: creativeError } = await supabase.from('creative_members').select('id, name, slug, role, short_bio, full_bio, profile_image_url, cover_image, skills, social_links, availability_status').eq('slug', slug).eq('is_published', true).single();
+      const { data, error: creativeError } = await supabase.from('creative_members').select('id, name, slug, role, short_bio, full_bio, profile_image_url, cover_image, skills, social_links, availability_status, location, professional_details').eq('slug', slug).eq('is_published', true).single();
       if (!active) return;
       if (creativeError) {
         setError('Creative profile not found or not published yet.');
@@ -67,10 +67,11 @@ export default function CreativeDetails() {
     } catch (reason) { setError(reason.message); }
   }
   function confirmPostChange(post, action) {
+    const deletingDraft = action === 'delete' && post.status === 'draft';
     requestConfirmation({
-      title: action === 'delete' ? 'Permanently delete this post?' : `${action === 'archive' ? 'Archive' : 'Restore'} this post?`,
-      description: action === 'delete' ? 'Its R2 images will be queued for safe cleanup. This cannot be undone.' : action === 'archive' ? 'It will disappear from your public feed but remain recoverable.' : 'It will return as a private draft for editing.',
-      confirmLabel: action === 'delete' ? 'Delete permanently' : action === 'archive' ? 'Archive post' : 'Restore draft',
+      title: deletingDraft ? 'Delete this draft?' : action === 'delete' ? 'Permanently delete this post?' : `${action === 'archive' ? 'Archive' : 'Restore'} this post?`,
+      description: action === 'delete' ? 'Any attached R2 images will be queued for safe cleanup. This cannot be undone.' : action === 'archive' ? 'It will disappear from your public feed but remain recoverable.' : 'It will return as a private draft for editing.',
+      confirmLabel: deletingDraft ? 'Delete draft' : action === 'delete' ? 'Delete permanently' : action === 'archive' ? 'Archive post' : 'Restore draft',
       destructive: action !== 'restore',
       onConfirm: () => changePost(post, action),
     });
@@ -92,7 +93,7 @@ export default function CreativeDetails() {
 
   const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/creatives'); if (action.delta) navigate(action.delta); else navigate(action.to); };
   return <article className="ll-profile-route">
-    <CreativeProfileView creative={creative} projects={projects} posts={posts} isOwner={isOwner} onBack={goBack} onArchivePost={(post) => confirmPostChange(post, 'archive')} onRestorePost={(post) => confirmPostChange(post, 'restore')} onDeletePost={(post) => confirmPostChange(post, 'delete')} />
+    <CreativeProfileView creative={creative} projects={projects} posts={posts} isOwner={isOwner} onBack={goBack} onCreativeChange={setCreative} onArchivePost={(post) => confirmPostChange(post, 'archive')} onRestorePost={(post) => confirmPostChange(post, 'restore')} onDeletePost={(post) => confirmPostChange(post, 'delete')} />
     {confirmationDialog}
   </article>;
 }

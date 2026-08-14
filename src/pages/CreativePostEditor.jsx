@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import CreativePostDocument from '../components/CreativePostDocument';
 import LoadingState from '../components/LoadingState';
-import { applyCreativePostInlineStyle, createCreativePostDraft, createPostBlock, CREATIVE_POST_MAX_IMAGES, loadCreativePostForEdit, normalizeCreativePostDocument, publishCreativePost, removeCreativePostMedia, saveCreativePost, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
+import { applyCreativePostInlineStyle, createCreativePostDraft, createPostBlock, creativePostHasContent, CREATIVE_POST_MAX_IMAGES, emptyCreativePostDocument, loadCreativePostForEdit, normalizeCreativePostDocument, publishCreativePost, removeCreativePostMedia, saveCreativePost, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
 import { useAdminAccess } from '../lib/adminAccess';
 import { supabase } from '../lib/supabaseClient';
 import { useAdminConfirmation } from '../components/admin/AdminDialog';
@@ -41,13 +41,13 @@ export default function CreativePostEditor({ create = false }) {
     let active = true;
     async function open() {
       try {
-        const loaded = create ? await createCreativePostDraft() : await loadCreativePostForEdit(id);
+        const loaded = create ? { id: null, status: 'draft', document: emptyCreativePostDocument(), creative_post_media: [] } : await loadCreativePostForEdit(id);
         if (!active) return;
         const normalized = normalizeCreativePostDocument(loaded.document);
         setPost(loaded); postRef.current = loaded;
         setDocument(normalized); documentRef.current = normalized;
         setMedia(loaded.creative_post_media || []);
-        if (create) navigate(`/posts/${loaded.id}/edit`, { replace: true });
+        if (create) setStatus('not_saved');
       } catch (reason) { if (active) setError(reason.message); }
       finally { if (active) setLoading(false); }
     }
@@ -70,19 +70,33 @@ export default function CreativePostEditor({ create = false }) {
     });
   }, []);
 
+  const ensureDraft = useCallback(async () => {
+    if (postRef.current?.id) return postRef.current;
+    const created = await createCreativePostDraft();
+    postRef.current = created; setPost(created);
+    return created;
+  }, []);
+
   const saveNow = useCallback(async () => {
-    if (!postRef.current || !documentRef.current || savingRef.current || savedRevisionRef.current === revisionRef.current) return postRef.current;
+    if (!documentRef.current || savingRef.current || savedRevisionRef.current === revisionRef.current) return postRef.current?.id ? postRef.current : null;
+    if (!creativePostHasContent(documentRef.current, media)) {
+      savedRevisionRef.current = revisionRef.current;
+      setStatus('not_saved');
+      return null;
+    }
     const savingRevision = revisionRef.current;
     savingRef.current = true; setStatus('saving'); setError('');
     try {
-      const saved = await saveCreativePost(postRef.current, documentRef.current);
+      const persisted = await ensureDraft();
+      const saved = await saveCreativePost(persisted, documentRef.current);
       postRef.current = { ...postRef.current, ...saved }; setPost(postRef.current);
       savedRevisionRef.current = savingRevision;
       setStatus(savedRevisionRef.current === revisionRef.current ? 'saved' : 'unsaved');
+      if (create) navigate(`/posts/${saved.id}/edit`, { replace: true });
       return postRef.current;
     } catch (reason) { setError(reason.message); setStatus('error'); return null; }
     finally { savingRef.current = false; }
-  }, []);
+  }, [create, ensureDraft, media, navigate]);
 
   useEffect(() => {
     if (loading || status !== 'unsaved') return undefined;
@@ -101,6 +115,7 @@ export default function CreativePostEditor({ create = false }) {
   async function publish() {
     setPublishing(true); setError('');
     try {
+      if (!creativePostHasContent(documentRef.current, media)) throw new Error('Add some text or at least one photo before publishing.');
       const saved = await saveNow();
       if (!saved) throw new Error('Wait for the draft to finish saving, then try again.');
       const published = await publishCreativePost(saved.id);
@@ -115,20 +130,28 @@ export default function CreativePostEditor({ create = false }) {
     if (media.length + files.length > CREATIVE_POST_MAX_IMAGES) { setError(`Choose up to ${CREATIVE_POST_MAX_IMAGES} photos for one post.`); return; }
     setUploading(true); setError('');
     try {
+      const persisted = await ensureDraft();
       const added = [];
       const usedOrders = new Set(media.map((item) => item.display_order));
       for (const file of files) {
         const nextOrder = Array.from({ length: CREATIVE_POST_MAX_IMAGES }, (_, index) => index).find((order) => !usedOrders.has(order));
         usedOrders.add(nextOrder);
-        added.push(await uploadCreativePostImage(file, { postId: post.id, order: nextOrder, altText: '' }));
+        added.push(await uploadCreativePostImage(file, { postId: persisted.id, order: nextOrder, altText: '' }));
       }
       setMedia((current) => [...current, ...added]);
-      markDirty((current) => {
+      const nextDocument = (() => {
+        const current = documentRef.current;
         const galleryIndex = current.blocks.findIndex((block) => block.type === 'image_group');
         if (galleryIndex >= 0) return { ...current, blocks: current.blocks.map((block, index) => index === galleryIndex ? { ...block, mediaIds: [...block.mediaIds, ...added.map((item) => item.id)] } : block) };
         return { ...current, blocks: [...current.blocks, { ...createPostBlock('image_group'), mediaIds: added.map((item) => item.id) }, createPostBlock('paragraph')] };
-      });
+      })();
+      documentRef.current = nextDocument; setDocument(nextDocument);
+      revisionRef.current += 1; setStatus('saving');
+      const saved = await saveCreativePost(persisted, nextDocument);
+      postRef.current = { ...persisted, ...saved }; setPost(postRef.current);
+      savedRevisionRef.current = revisionRef.current; setStatus('saved');
       setSelectedMediaId(added[0]?.id || null);
+      if (create) navigate(`/posts/${persisted.id}/edit`, { replace: true });
     } catch (reason) { setError(reason.message); }
     finally { setUploading(false); }
   }
@@ -156,7 +179,7 @@ export default function CreativePostEditor({ create = false }) {
   return <main className="ll-composer-page">
     <header className="ll-composer-header">
       <Link to={creative?.slug ? `/creatives/${creative.slug}` : '/account'}><ArrowLeft size={18} /><span>My profile</span></Link>
-      <div className="ll-save-state" role="status">{status === 'saving' ? 'Saving…' : status === 'saved' ? <><Check size={14} /> Saved</> : status === 'error' ? 'Save interrupted' : 'Unsaved changes'}</div>
+      <div className="ll-save-state" role="status">{status === 'saving' ? 'Saving…' : status === 'saved' ? <><Check size={14} /> Saved</> : status === 'not_saved' ? 'Start writing to save' : status === 'error' ? 'Save interrupted' : 'Unsaved changes'}</div>
       <div><button type="button" onClick={() => setPreview((value) => !value)} className="ll-icon-action" aria-label={preview ? 'Return to editing' : 'Preview post'}><Eye size={18} /></button><button type="button" onClick={publish} disabled={publishing || uploading} className="ll-primary-action"><Send size={16} /> {publishing ? 'Publishing…' : 'Publish'}</button></div>
     </header>
 

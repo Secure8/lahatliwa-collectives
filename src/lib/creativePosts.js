@@ -61,6 +61,17 @@ export function creativePostExcerpt(document, max = 180) {
   return text.length <= max ? text : `${text.slice(0, max).trimEnd()}…`;
 }
 
+export function creativePostHasContent(document, media = []) {
+  if ((media || []).length > 0) return true;
+  return normalizeCreativePostDocument(document).blocks.some((block) => {
+    if (block.content) return block.content.some((segment) => segment.text.trim().length > 0);
+    if (block.items) return block.items.some((item) => item.trim().length > 0);
+    if (block.type === 'external_embed') return Boolean(block.url.trim() || block.label.trim());
+    if (block.type === 'image_group') return block.mediaIds.length > 0;
+    return false;
+  });
+}
+
 export function postMediaById(media = []) {
   return new Map((media || []).map((item) => [item.id, item]));
 }

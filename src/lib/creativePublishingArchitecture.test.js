@@ -39,3 +39,15 @@ test('Creative post media stays server-mediated in Cloudflare R2', () => {
   assert.match(edge, /creative_post_id/);
   assert.match(upload, /r2CreativePostPermissionAllowed/);
 });
+
+test('empty composers stay local and owned drafts can be deleted directly', () => {
+  const editor = source('src/pages/CreativePostEditor.jsx');
+  const card = source('src/components/CreativePostCard.jsx');
+  const migration = source('supabase/migrations/20260814190000_inline_profile_and_draft_cleanup.sql');
+  assert.match(editor, /create \? \{ id: null, status: 'draft'/);
+  assert.match(editor, /creativePostHasContent/);
+  assert.match(editor, /Start writing to save/);
+  assert.match(card, /Delete draft/);
+  assert.match(migration, /post\.status not in \('draft','archived'\)/);
+  assert.match(migration, /status in \('draft','archived'\)/);
+});

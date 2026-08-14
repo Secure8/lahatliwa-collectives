@@ -17,7 +17,7 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(hero, /availability_status/);
   assert.match(profile, /isOwner && !adminPreview/);
   assert.match(profile, /to="\/create"/);
-  assert.match(profile, /to="\/admin\/my-profile"/);
+  assert.match(profile, /Edit details/);
   assert.match(profile, /id="feed"/);
   assert.match(profile, /CreativePostCard/);
   assert.match(route, /account\?\.role === 'creative'/);
@@ -56,6 +56,27 @@ test('short Creative bios share one Facebook-style limit across both editors and
   assert.match(migration, /creative_members_short_bio_length/);
   assert.match(migration, /john-alfred-justo/);
   assert.match(migration, /char_length\(btrim\(short_bio\)\) <= 160/);
+});
+
+test('profile owners edit their wall in place, including professional details and media', async () => {
+  const [profile, hero, inlineEditor, route, migration] = await Promise.all([
+    source('../components/CreativeProfileView.jsx'),
+    source('../components/CreativeHero.jsx'),
+    source('../components/CreativeInlineProfileEditor.jsx'),
+    source('../pages/CreativeDetails.jsx'),
+    source('../../supabase/migrations/20260814190000_inline_profile_and_draft_cleanup.sql'),
+  ]);
+  assert.match(profile, /CreativeInlineProfileEditor/);
+  assert.match(profile, /ProfessionalSection title="Education"/);
+  assert.match(profile, /ProfessionalSection title="Achievements"/);
+  assert.doesNotMatch(profile, /to="\/admin\/my-profile"/);
+  assert.match(hero, /Change profile photo/);
+  assert.match(hero, /Change cover photo/);
+  assert.match(inlineEditor, /Choose profile photo/);
+  assert.match(inlineEditor, /professional_details/);
+  assert.match(route, /onCreativeChange=\{setCreative\}/);
+  assert.match(migration, /add column if not exists professional_details jsonb/);
+  assert.match(route, /location, professional_details/);
 });
 
 test('profile wall separates posts, formal projects, about details, and professional inquiry', async () => {

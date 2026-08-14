@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyCreativePostInlineStyle, CREATIVE_POST_BLOCK_TYPES, CREATIVE_POST_MAX_IMAGES, creativePostExcerpt, creativePostPlainText, emptyCreativePostDocument, normalizeCreativePostDocument } from './creativePosts.js';
+import { applyCreativePostInlineStyle, CREATIVE_POST_BLOCK_TYPES, CREATIVE_POST_MAX_IMAGES, creativePostExcerpt, creativePostHasContent, creativePostPlainText, emptyCreativePostDocument, normalizeCreativePostDocument } from './creativePosts.js';
 
 test('Creative posts use a bounded structured document instead of HTML', () => {
   assert.deepEqual(CREATIVE_POST_BLOCK_TYPES, ['paragraph', 'heading', 'quote', 'bullet_list', 'numbered_list', 'divider', 'image_group', 'external_embed']);
@@ -26,6 +26,14 @@ test('plain text and excerpts are derived from blocks', () => {
   const document = emptyCreativePostDocument(); document.blocks[0].content = [{ text: 'A thoughtful creative story with context.', marks: [] }];
   assert.equal(creativePostPlainText(document), 'A thoughtful creative story with context.');
   assert.equal(creativePostExcerpt(document, 12), 'A thoughtful…');
+});
+
+test('an untouched composer is not meaningful draft content', () => {
+  const empty = emptyCreativePostDocument();
+  assert.equal(creativePostHasContent(empty), false);
+  empty.blocks[0].content = [{ text: 'A real update', marks: [] }];
+  assert.equal(creativePostHasContent(empty), true);
+  assert.equal(creativePostHasContent(emptyCreativePostDocument(), [{ id: 'photo' }]), true);
 });
 
 test('inline styles are stored as structured segments, never HTML', () => {

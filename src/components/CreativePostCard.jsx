@@ -21,7 +21,7 @@ export default function CreativePostCard({ post, creative, owner = false, onArch
     return () => window.removeEventListener('pointerdown', close);
   }, [menuOpen]);
 
-  return <article className="ll-post-card">
+  return <article className={`ll-post-card${menuOpen ? ' has-open-menu' : ''}`}>
     <header className="ll-post-card__header">
       <Link to={creative?.slug ? `/creatives/${creative.slug}` : '#'} className="ll-author-link">
         {creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}
@@ -30,7 +30,7 @@ export default function CreativePostCard({ post, creative, owner = false, onArch
       {owner && <div ref={menuRef} className="ll-context-menu"><button type="button" onClick={() => setMenuOpen((value) => !value)} aria-expanded={menuOpen} aria-label="Post options"><Ellipsis size={20} /></button>{menuOpen && <div role="menu">
         {post.status !== 'archived' && <Link role="menuitem" to={`/posts/${post.id}/edit`}><Edit3 size={16} /> Edit post</Link>}
         {post.status === 'archived' ? <button role="menuitem" type="button" onClick={() => { setMenuOpen(false); onRestore?.(post); }}><RotateCcw size={16} /> Restore draft</button> : <button role="menuitem" type="button" onClick={() => { setMenuOpen(false); onArchive?.(post); }}><Archive size={16} /> Archive</button>}
-        {post.status === 'archived' && <button role="menuitem" type="button" className="is-danger" onClick={() => { setMenuOpen(false); onDelete?.(post); }}><Trash2 size={16} /> Delete permanently</button>}
+        {post.status !== 'published' && <button role="menuitem" type="button" className="is-danger" onClick={() => { setMenuOpen(false); onDelete?.(post); }}><Trash2 size={16} /> {post.status === 'draft' ? 'Delete draft' : 'Delete permanently'}</button>}
       </div>}</div>}
     </header>
     <div className="ll-post-card__body"><CreativePostDocument document={post.document} media={post.creative_post_media} compact={feed} /></div>

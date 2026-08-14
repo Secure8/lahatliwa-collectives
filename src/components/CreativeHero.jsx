@@ -1,11 +1,11 @@
-import { ArrowRight, ChevronLeft, MapPin } from 'lucide-react';
+import { ArrowRight, Camera, ChevronLeft, Edit3, MapPin } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPublicImageUrl } from '../lib/storage';
 import { publicImageVariant } from '../lib/publicImages';
 import { resourceMeta } from '../lib/profileResources';
 
-export default function CreativeHero({ creative, socials, resources = [], renderSocial, adminPreview = false, actions = null, onBack = null }) {
+export default function CreativeHero({ creative, socials, resources = [], renderSocial, adminPreview = false, actions = null, onBack = null, onEdit = null }) {
   const profileImage = publicImageVariant(getPublicImageUrl(creative.profile_image_url), 'display');
   const coverImage = publicImageVariant(getPublicImageUrl(creative.cover_image), 'expanded');
   const disciplines = [creative.role, ...(creative.skills || []).slice(0, 3)].filter(Boolean);
@@ -13,10 +13,12 @@ export default function CreativeHero({ creative, socials, resources = [], render
     <div className="ll-profile-cover">
       {coverImage ? <SafeImage src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} /> : <div className="ll-profile-cover__fallback" aria-hidden="true" />}
       {onBack && <button type="button" className="ll-profile-cover-back" onClick={onBack} aria-label="Back to Creatives" title="Back to Creatives"><ChevronLeft size={30} strokeWidth={2.2} /></button>}
+      {onEdit && <button type="button" className="ll-profile-cover-edit" onClick={() => onEdit('media')}><Camera size={17} /> Change cover photo</button>}
     </div>
     <div className="ll-profile-identity">
-      <div className="ll-profile-avatar">{profileImage ? <SafeImage src={profileImage} alt={`${creative.name} profile`} /> : <span>{creative.name?.slice(0, 1) || 'L'}</span>}</div>
+      {onEdit ? <button type="button" className="ll-profile-avatar is-editable" onClick={() => onEdit('media')} aria-label="Change profile photo">{profileImage ? <SafeImage src={profileImage} alt={`${creative.name} profile`} /> : <span>{creative.name?.slice(0, 1) || 'L'}</span>}<i><Camera size={18} /></i></button> : <div className="ll-profile-avatar">{profileImage ? <SafeImage src={profileImage} alt={`${creative.name} profile`} /> : <span>{creative.name?.slice(0, 1) || 'L'}</span>}</div>}
       <div className="ll-profile-identity__copy">
+        {onEdit && <button type="button" className="ll-profile-identity-edit" onClick={() => onEdit('overview')} aria-label="Edit profile introduction"><Edit3 size={15} /></button>}
         <p className="ll-kicker">Creative profile</p>
         <h1>{creative.name}</h1>
         <p className="ll-profile-disciplines">{disciplines.join(' · ') || 'Creative'}</p>

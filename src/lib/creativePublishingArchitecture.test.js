@@ -58,6 +58,8 @@ test('post and project creation open in focused floating workspaces', () => {
   const styles = source('src/index.css');
   assert.match(postEditor, /ll-composer-modal-layer/);
   assert.match(postEditor, /role="dialog"[\s\S]*Create a post/);
+  assert.match(postEditor, /globalThis\.document\.body\.style\.overflow/);
+  assert.doesNotMatch(postEditor, /const previousOverflow = document\.body/);
   assert.match(workEditor, /ll-work-editor-layer/);
   assert.match(workEditor, /role="dialog"[\s\S]*ProjectForm/);
   assert.match(styles, /\.ll-composer-modal, \.ll-work-editor[\s\S]*?border-radius: 1rem/);

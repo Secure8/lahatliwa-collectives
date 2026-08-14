@@ -38,9 +38,9 @@ export default function CreativePostEditor({ create = false }) {
   const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previousOverflow; };
+    const previousOverflow = globalThis.document.body.style.overflow;
+    globalThis.document.body.style.overflow = 'hidden';
+    return () => { globalThis.document.body.style.overflow = previousOverflow; };
   }, []);
 
   useEffect(() => {

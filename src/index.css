@@ -976,7 +976,8 @@ html.admin-mode :where(a, button, img, article),
 .ll-profile-cover__fallback { width: 100%; height: 100%; background: radial-gradient(circle at 75% 20%,var(--site-accent-surface),transparent 34%),linear-gradient(135deg,var(--theme-secondary-surface),var(--theme-primary-surface)); }
 .ll-profile-identity { display: grid; gap: 1rem; padding: 0 1rem 1.25rem; }
 .ll-profile-avatar { position: relative; z-index: 2; display: grid; width: 7.5rem; height: 7.5rem; place-items: center; overflow: visible; margin-top: -3.75rem; border: 4px solid var(--theme-primary-surface); border-radius: 50%; background: var(--site-accent-surface); color: var(--site-accent-text); font-size: 2rem; font-weight: 800; box-shadow: 0 12px 35px var(--theme-shadow); }
-.ll-profile-avatar img, .ll-profile-avatar > span { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.ll-profile-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.ll-profile-avatar > span { width: 100%; height: 100%; border-radius: 50%; }
 .ll-profile-avatar > span { display: grid; place-items: center; }
 .ll-profile-avatar.is-editable { padding: 0; cursor: pointer; }
 .ll-profile-avatar.is-editable i { position: absolute; z-index: 3; right: .2rem; bottom: .4rem; display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border: 3px solid var(--theme-primary-surface); border-radius: 50%; background: var(--theme-modal-surface); color: var(--theme-text-primary); }
@@ -1178,7 +1179,7 @@ html.admin-mode :where(a, button, img, article),
   .ll-home-layout { grid-template-columns: minmax(0,740px) minmax(14rem,1fr); }
   .ll-discovery-panel { position: sticky; top: 6rem; display: block; }
   .ll-profile-identity { min-height: 18rem; grid-template-columns: auto minmax(0,1fr) auto; align-items: start; padding-bottom: 1.75rem; }
-  .ll-profile-avatar { align-self: start; width: 13rem; height: 13rem; margin-top: 1.5rem; }
+  .ll-profile-avatar { align-self: center; width: 13rem; height: 13rem; margin-top: 0; transform: translateY(.875rem); }
   .ll-profile-avatar.is-editable i { right: .35rem; bottom: .55rem; width: 2.7rem; height: 2.7rem; }
   .ll-profile-actions { grid-column: auto; align-self: end; justify-content: flex-end; }
   .ll-profile-layout { grid-template-columns: minmax(0,740px) minmax(15rem,1fr); }

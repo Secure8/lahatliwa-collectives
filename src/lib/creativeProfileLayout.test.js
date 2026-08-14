@@ -41,8 +41,9 @@ test('profile media and navigation are intentionally responsive without desktop 
   assert.match(profile, /ll-profile-tabs/);
   assert.match(styles, /@media \(min-width: 900px\)[\s\S]*?\.ll-profile-identity/);
   assert.match(styles, /\.ll-profile-identity \{ min-height: 18rem; grid-template-columns: auto minmax\(0,1fr\) auto; align-items: start; padding-bottom: 1\.75rem; \}/);
-  assert.match(styles, /\.ll-profile-avatar \{ align-self: start; width: 13rem; height: 13rem; margin-top: 1\.5rem; \}/);
+  assert.match(styles, /\.ll-profile-avatar \{ align-self: center; width: 13rem; height: 13rem; margin-top: 0; transform: translateY\(\.875rem\); \}/);
   assert.match(styles, /\.ll-profile-avatar \{[^}]*overflow: visible/);
+  assert.match(styles, /\.ll-profile-avatar img \{ position: absolute; inset: 0; width: 100%; height: 100%;/);
   assert.match(styles, /\.ll-profile-avatar\.is-editable i \{[^}]*z-index: 3/);
   assert.match(styles, /\.ll-profile-cover-back \{[^}]*left: \.85rem/);
   assert.match(styles, /\.ll-profile-intro[\s\S]*?-webkit-line-clamp: 2/);

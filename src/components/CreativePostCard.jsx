@@ -1,19 +1,43 @@
-import { Archive, Edit3, ExternalLink, RotateCcw, Trash2 } from 'lucide-react';
+import { Archive, ArrowUpRight, Edit3, Ellipsis, MessageCircle, RotateCcw, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CreativePostDocument from './CreativePostDocument';
 
-export default function CreativePostCard({ post, creative, owner = false, onArchive, onRestore, onDelete }) {
-  const date = new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format(new Date(post.published_at || post.updated_at));
-  return <article className="overflow-hidden rounded-2xl border border-white/[0.1] bg-zinc-950/75 shadow-[0_22px_70px_-45px_rgba(0,0,0,0.9)]">
-    <header className="flex items-center justify-between gap-4 border-b border-white/[0.08] px-4 py-4 sm:px-6">
-      <Link to={creative?.slug ? `/creatives/${creative.slug}` : '#'} className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
-        {creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" className="h-10 w-10 rounded-full object-cover" /> : <span className="grid h-10 w-10 rounded-full bg-orange-300/15 text-sm font-semibold text-orange-200 place-items-center">{creative?.name?.slice(0, 1) || 'C'}</span>}
-        <span className="min-w-0"><strong className="block truncate text-sm text-white">{creative?.name || 'Lahat Liwa Creative'}</strong><span className="text-xs text-zinc-500">{post.status === 'published' ? date : `${post.status} · Updated ${date}`}</span></span>
+function displayDate(value) {
+  const date = new Date(value);
+  const relativeDays = Math.round((date.getTime() - Date.now()) / 86400000);
+  if (Math.abs(relativeDays) < 7) return new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(relativeDays, 'day');
+  return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format(date);
+}
+
+export default function CreativePostCard({ post, creative, owner = false, onArchive, onRestore, onDelete, feed = false }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const date = displayDate(post.published_at || post.updated_at);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const close = (event) => { if (!menuRef.current?.contains(event.target)) setMenuOpen(false); };
+    window.addEventListener('pointerdown', close);
+    return () => window.removeEventListener('pointerdown', close);
+  }, [menuOpen]);
+
+  return <article className="ll-post-card">
+    <header className="ll-post-card__header">
+      <Link to={creative?.slug ? `/creatives/${creative.slug}` : '#'} className="ll-author-link">
+        {creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}
+        <span><strong>{creative?.name || 'Lahat Liwa Creative'}</strong><small>{post.status === 'published' ? date : `${post.status} · Updated ${date}`}{creative?.role ? ` · ${creative.role}` : ''}</small></span>
       </Link>
-      {owner && <div className="flex shrink-0 gap-1">{post.status !== 'archived' && <Link to={`/posts/${post.id}/edit`} aria-label="Edit post" className="grid h-10 w-10 place-items-center rounded-lg text-zinc-400 hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-orange-300"><Edit3 size={17} /></Link>}{post.status === 'archived' ? <button type="button" onClick={() => onRestore?.(post)} aria-label="Restore post" className="grid h-10 w-10 place-items-center rounded-lg text-zinc-400 hover:bg-white/[0.06] hover:text-white"><RotateCcw size={17} /></button> : <button type="button" onClick={() => onArchive?.(post)} aria-label="Archive post" className="grid h-10 w-10 place-items-center rounded-lg text-zinc-400 hover:bg-white/[0.06] hover:text-white"><Archive size={17} /></button>}{post.status === 'archived' && <button type="button" onClick={() => onDelete?.(post)} aria-label="Delete post permanently" className="grid h-10 w-10 place-items-center rounded-lg text-red-300 hover:bg-red-300/10"><Trash2 size={17} /></button>}</div>}
+      {owner && <div ref={menuRef} className="ll-context-menu"><button type="button" onClick={() => setMenuOpen((value) => !value)} aria-expanded={menuOpen} aria-label="Post options"><Ellipsis size={20} /></button>{menuOpen && <div role="menu">
+        {post.status !== 'archived' && <Link role="menuitem" to={`/posts/${post.id}/edit`}><Edit3 size={16} /> Edit post</Link>}
+        {post.status === 'archived' ? <button role="menuitem" type="button" onClick={() => { setMenuOpen(false); onRestore?.(post); }}><RotateCcw size={16} /> Restore draft</button> : <button role="menuitem" type="button" onClick={() => { setMenuOpen(false); onArchive?.(post); }}><Archive size={16} /> Archive</button>}
+        {post.status === 'archived' && <button role="menuitem" type="button" className="is-danger" onClick={() => { setMenuOpen(false); onDelete?.(post); }}><Trash2 size={16} /> Delete permanently</button>}
+      </div>}</div>}
     </header>
-    <div className="px-4 py-5 sm:px-6"><CreativePostDocument document={post.document} media={post.creative_post_media} /></div>
-    {post.status === 'published' && <footer className="border-t border-white/[0.08] px-4 py-3 sm:px-6"><Link to={`/posts/${post.slug}`} className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-orange-200 hover:text-orange-100">Open post <ExternalLink size={14} /></Link></footer>}
-    {post.moderation_reason && <p className="border-t border-red-300/20 bg-red-300/[0.06] px-4 py-3 text-sm text-red-100 sm:px-6">Moderation note: {post.moderation_reason}</p>}
+    <div className="ll-post-card__body"><CreativePostDocument document={post.document} media={post.creative_post_media} compact={feed} /></div>
+    {post.status === 'published' && <footer className="ll-post-card__actions">
+      <Link to={`/inquiry?work=${encodeURIComponent(post.slug || post.id)}`}><MessageCircle size={17} /> Ask about this work</Link>
+      <Link to={`/posts/${post.slug}`}><span>Open post</span><ArrowUpRight size={17} /></Link>
+    </footer>}
+    {post.moderation_reason && <p className="ll-moderation-note">Moderation note: {post.moderation_reason}</p>}
   </article>;
 }

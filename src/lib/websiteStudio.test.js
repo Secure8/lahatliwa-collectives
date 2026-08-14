@@ -101,14 +101,14 @@ test('appearance validation enforces usable contrast', () => {
   assert.doesNotThrow(() => validateWebsiteEntry({ primaryTextColor: '#f5f5f4', secondaryTextColor: '#d4d4d8' }, [['primaryTextColor','Primary','color'],['secondaryTextColor','Secondary','color']]));
 });
 
-test('Website Studio exposes a beginner single-column editor without a simulated preview', () => {
+test('Website Studio exposes a beginner single-column editor without a simulated device preview', () => {
   const studio = read('src/pages/admin/WebsiteStudio.jsx');
   for (const text of ['Save draft','Published','Publish live','Discard draft','View live website','Preview page','Unpublished changes','Advanced settings','Admin home']) assert.match(studio, new RegExp(text, 'i'));
   assert.match(studio, /function SectionChooser/);
   assert.match(studio, /What would you like to change\?/);
   assert.match(studio, /All website sections/);
   for (const pageGroup of ['Public pages', 'Shared across the website']) assert.match(studio, new RegExp(pageGroup));
-  for (const pagePart of ['Logo, brand name, and tagline', 'Homepage descriptions', 'Current Work']) assert.match(studio, new RegExp(pagePart));
+  for (const pagePart of ['Logo, brand name, and tagline', 'Creative Feed introduction', 'Active Work introduction']) assert.match(studio, new RegExp(pagePart));
   assert.match(studio, /sm:grid-cols-2/);
   assert.doesNotMatch(studio, /\{items\.length\} services|Service listing and inquiry choice/);
   assert.doesNotMatch(studio, /group\/category|shadow-2xl backdrop-blur-xl/);
@@ -128,13 +128,13 @@ test('Website Studio exposes a beginner single-column editor without a simulated
 test('Website Studio presents the requested sections and keeps shared values synchronized', () => {
   const footer = read('src/components/Footer.jsx');
   const navbar = read('src/components/Navbar.jsx');
-  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Home', 'About', 'Current Work', 'Portfolio', 'Creatives', 'Contact', 'Privacy Policy', 'Colors']);
+  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Feed', 'About', 'Work', 'Portfolio', 'Creatives', 'Contact', 'Privacy Policy', 'Colors']);
   assert.ok(!WEBSITE_STUDIO_SECTIONS.some(({ label }) => ['Footer', 'Search', 'Social links'].includes(label)));
   assert.match(footer, /content\.displayName/);
   assert.match(footer, /content\.tagline/);
   assert.match(footer, /content\.socialLinks/);
   assert.doesNotMatch(footer, /BrandLogo|content\.logoUrl/);
-  assert.match(navbar, /navigation\.servicesLabel \|\| 'Work with us', '\/services', true/);
+  assert.match(navbar, /navigation\.servicesLabel \|\| 'Services'/);
   assert.doesNotMatch(footer, /footerText|footerContextLabel/);
   const content = websiteBundleToContent({
     'global.brand': { brandName: 'New Shared Brand', tagline: 'One shared tagline' },
@@ -163,8 +163,8 @@ test('people admin distinguishes team accounts from public creative profiles', (
   const layout = read('src/components/admin/AdminLayout.jsx');
   const team = read('src/pages/admin/AdminTeam.jsx');
   const creatives = read('src/pages/admin/AdminCreatives.jsx');
-  assert.match(layout, /\['Team Members'/);
-  assert.match(layout, /\['Creative Profiles'/);
+  assert.match(layout, /\['Accounts', '\/admin\/team'/);
+  assert.match(layout, /\['Creatives', '\/admin\/creatives'/);
   assert.match(team, /Link profile/);
   assert.match(team, /Create profile/);
   assert.match(creatives, /Linked Team Member/);
@@ -188,9 +188,9 @@ test('legacy editors redirect into one Website Studio and admin navigation is gr
   assert.match(app, /LegacyWebsiteEditorRedirect/);
   assert.doesNotMatch(app, /\/admin\/service-branches/);
   assert.doesNotMatch(app, /<AdminServiceBranches|<ServiceBranchEditor|<ContentEditor|<SiteSettings/);
-  assert.match(layout, /\['Content'/);
-  assert.match(layout, /Website Studio/);
-  assert.doesNotMatch(layout, /\['Website', \[/);
+  assert.match(layout, /\['Platform'/);
+  assert.match(layout, /\['Website', '\/admin\/website'/);
+  assert.doesNotMatch(layout, /lg:w-64|lg:ml-64/);
 });
 
 test('public content always revalidates and published actions clear every legacy cache', () => {
@@ -220,8 +220,8 @@ test('page-specific Website Studio copy reaches homepage, Current Work, inquirie
   const inquiry = read('src/pages/StartProject.jsx');
   const app = read('src/App.jsx');
   assert.match(home, /websitePages\?\.home/);
-  assert.match(home, /page\.featuredTitle/);
-  assert.match(home, /page\.inquiryTitle/);
+  assert.match(home, /page\.heroTitle/);
+  assert.match(home, /page\.heroDescription/);
   assert.match(explore, /websitePages\?\.explore/);
   assert.match(inquiry, /page\.landingHeading/);
   assert.match(inquiry, /page\.disclaimer/);

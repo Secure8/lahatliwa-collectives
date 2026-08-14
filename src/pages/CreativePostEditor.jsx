@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowLeft, ArrowUp, Bold, Eye, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Quote, Save, Send, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowUp, ArrowDown, Bold, Check, Eye, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, MoreHorizontal, Plus, Quote, Send, Trash2, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import CreativePostDocument from '../components/CreativePostDocument';
 import LoadingState from '../components/LoadingState';
@@ -8,58 +8,193 @@ import { useAdminAccess } from '../lib/adminAccess';
 import { supabase } from '../lib/supabaseClient';
 import { useAdminConfirmation } from '../components/admin/AdminDialog';
 
-const blockChoices = [
-  ['paragraph', 'Text'], ['heading', 'Heading'], ['quote', 'Quote'], ['bullet_list', 'Bullets'], ['numbered_list', 'Numbers'], ['divider', 'Divider'], ['external_embed', 'Link card'],
+const insertChoices = [
+  ['heading', 'Heading', Heading2], ['quote', 'Quote', Quote], ['bullet_list', 'Bulleted list', List],
+  ['numbered_list', 'Numbered list', ListOrdered], ['divider', 'Divider', Minus], ['external_embed', 'External link', Link2],
 ];
 
 export default function CreativePostEditor({ create = false }) {
-  const { id } = useParams(); const navigate = useNavigate(); const { adminUser } = useAdminAccess();
-  const [post, setPost] = useState(null); const [document, setDocument] = useState(null); const [media, setMedia] = useState([]); const [creative, setCreative] = useState(null);
-  const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(''); const [error, setError] = useState(''); const [notice, setNotice] = useState(''); const [preview, setPreview] = useState(false); const fileRef = useRef(null);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { adminUser } = useAdminAccess();
+  const [post, setPost] = useState(null);
+  const [document, setDocument] = useState(null);
+  const [media, setMedia] = useState([]);
+  const [creative, setCreative] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('saved');
+  const [publishing, setPublishing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [preview, setPreview] = useState(false);
+  const [insertOpen, setInsertOpen] = useState(false);
+  const [selectedMediaId, setSelectedMediaId] = useState(null);
+  const fileRef = useRef(null);
+  const revisionRef = useRef(0);
+  const savedRevisionRef = useRef(0);
+  const savingRef = useRef(false);
+  const postRef = useRef(null);
+  const documentRef = useRef(null);
   const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
-  useEffect(() => { let active = true; async function open() { try { const loaded = create ? await createCreativePostDraft() : await loadCreativePostForEdit(id); if (!active) return; setPost(loaded); setDocument(normalizeCreativePostDocument(loaded.document)); setMedia(loaded.creative_post_media || []); if (create) navigate(`/posts/${loaded.id}/edit`, { replace: true }); } catch (reason) { if (active) setError(reason.message); } finally { if (active) setLoading(false); } } open(); return () => { active = false; }; }, [create, id]);
-  useEffect(() => { if (!adminUser?.creative_member_id) return; supabase.from('creative_members').select('name,slug').eq('id', adminUser.creative_member_id).single().then(({ data }) => setCreative(data)); }, [adminUser?.creative_member_id]);
-  const mediaCount = media.length; const blocks = document?.blocks || [];
-  const updateBlock = (index, patch) => setDocument((current) => ({ ...current, blocks: current.blocks.map((block, i) => i === index ? { ...block, ...patch } : block) }));
-  const removeBlock = (index) => setDocument((current) => ({ ...current, blocks: current.blocks.filter((_, i) => i !== index) }));
-  const moveBlock = (index, delta) => setDocument((current) => { const next = [...current.blocks]; const target = index + delta; if (target < 0 || target >= next.length) return current; [next[index], next[target]] = [next[target], next[index]]; return { ...current, blocks: next }; });
-  const addBlock = (type) => setDocument((current) => ({ ...current, blocks: [...current.blocks, createPostBlock(type)] }));
+
+  useEffect(() => {
+    let active = true;
+    async function open() {
+      try {
+        const loaded = create ? await createCreativePostDraft() : await loadCreativePostForEdit(id);
+        if (!active) return;
+        const normalized = normalizeCreativePostDocument(loaded.document);
+        setPost(loaded); postRef.current = loaded;
+        setDocument(normalized); documentRef.current = normalized;
+        setMedia(loaded.creative_post_media || []);
+        if (create) navigate(`/posts/${loaded.id}/edit`, { replace: true });
+      } catch (reason) { if (active) setError(reason.message); }
+      finally { if (active) setLoading(false); }
+    }
+    open();
+    return () => { active = false; };
+  }, [create, id, navigate]);
+
+  useEffect(() => {
+    if (!adminUser?.creative_member_id) return;
+    supabase.from('creative_members').select('name,slug,profile_image_url').eq('id', adminUser.creative_member_id).single().then(({ data }) => setCreative(data));
+  }, [adminUser?.creative_member_id]);
+
+  const markDirty = useCallback((updater) => {
+    setDocument((current) => {
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      documentRef.current = next;
+      revisionRef.current += 1;
+      setStatus('unsaved');
+      return next;
+    });
+  }, []);
+
+  const saveNow = useCallback(async () => {
+    if (!postRef.current || !documentRef.current || savingRef.current || savedRevisionRef.current === revisionRef.current) return postRef.current;
+    const savingRevision = revisionRef.current;
+    savingRef.current = true; setStatus('saving'); setError('');
+    try {
+      const saved = await saveCreativePost(postRef.current, documentRef.current);
+      postRef.current = { ...postRef.current, ...saved }; setPost(postRef.current);
+      savedRevisionRef.current = savingRevision;
+      setStatus(savedRevisionRef.current === revisionRef.current ? 'saved' : 'unsaved');
+      return postRef.current;
+    } catch (reason) { setError(reason.message); setStatus('error'); return null; }
+    finally { savingRef.current = false; }
+  }, []);
+
+  useEffect(() => {
+    if (loading || status !== 'unsaved') return undefined;
+    const timer = window.setTimeout(saveNow, 1100);
+    return () => window.clearTimeout(timer);
+  }, [loading, saveNow, status, document]);
+
+  function updateBlock(index, patch) { markDirty((current) => ({ ...current, blocks: current.blocks.map((block, blockIndex) => blockIndex === index ? { ...block, ...patch } : block) })); }
+  function insertBlock(type, afterIndex = (documentRef.current?.blocks.length || 1) - 1) {
+    markDirty((current) => { const blocks = [...current.blocks]; blocks.splice(afterIndex + 1, 0, createPostBlock(type)); return { ...current, blocks }; });
+    setInsertOpen(false);
+  }
+  function removeBlock(index) { markDirty((current) => ({ ...current, blocks: current.blocks.length === 1 ? [createPostBlock('paragraph')] : current.blocks.filter((_, blockIndex) => blockIndex !== index) })); }
+  function addParagraphAfter(index) { insertBlock('paragraph', index); window.setTimeout(() => document.querySelector(`[data-composer-block="${index + 1}"] textarea`)?.focus(), 0); }
+
+  async function publish() {
+    setPublishing(true); setError('');
+    try {
+      const saved = await saveNow();
+      if (!saved) throw new Error('Wait for the draft to finish saving, then try again.');
+      const published = await publishCreativePost(saved.id);
+      navigate(`/posts/${published.slug}`);
+    } catch (reason) { setError(reason.message); }
+    finally { setPublishing(false); }
+  }
+
+  async function upload(event) {
+    const files = [...(event.target.files || [])]; event.target.value = '';
+    if (!files.length) return;
+    if (media.length + files.length > CREATIVE_POST_MAX_IMAGES) { setError(`Choose up to ${CREATIVE_POST_MAX_IMAGES} photos for one post.`); return; }
+    setUploading(true); setError('');
+    try {
+      const added = [];
+      const usedOrders = new Set(media.map((item) => item.display_order));
+      for (const file of files) {
+        const nextOrder = Array.from({ length: CREATIVE_POST_MAX_IMAGES }, (_, index) => index).find((order) => !usedOrders.has(order));
+        usedOrders.add(nextOrder);
+        added.push(await uploadCreativePostImage(file, { postId: post.id, order: nextOrder, altText: '' }));
+      }
+      setMedia((current) => [...current, ...added]);
+      markDirty((current) => {
+        const galleryIndex = current.blocks.findIndex((block) => block.type === 'image_group');
+        if (galleryIndex >= 0) return { ...current, blocks: current.blocks.map((block, index) => index === galleryIndex ? { ...block, mediaIds: [...block.mediaIds, ...added.map((item) => item.id)] } : block) };
+        return { ...current, blocks: [...current.blocks, { ...createPostBlock('image_group'), mediaIds: added.map((item) => item.id) }, createPostBlock('paragraph')] };
+      });
+      setSelectedMediaId(added[0]?.id || null);
+    } catch (reason) { setError(reason.message); }
+    finally { setUploading(false); }
+  }
+
+  async function updateImage(item, patch) {
+    setMedia((current) => current.map((entry) => entry.id === item.id ? { ...entry, ...patch } : entry));
+    try { await updateCreativePostMedia(item.id, patch); } catch (reason) { setError(reason.message); }
+  }
+  async function removeImage(item) {
+    try {
+      await removeCreativePostMedia(item);
+      setMedia((current) => current.filter((entry) => entry.id !== item.id));
+      setSelectedMediaId(null);
+      markDirty((current) => ({ ...current, blocks: current.blocks.map((block) => block.type === 'image_group' ? { ...block, mediaIds: block.mediaIds.filter((mediaId) => mediaId !== item.id) } : block).filter((block) => block.type !== 'image_group' || block.mediaIds.length) }));
+    } catch (reason) { setError(reason.message); }
+  }
+  function confirmImageRemoval(item) { requestConfirmation({ title: 'Remove this photo?', description: 'It will leave this draft and be queued for safe R2 cleanup.', confirmLabel: 'Remove photo', destructive: true, onConfirm: () => removeImage(item) }); }
+  function moveImage(itemId, delta) { markDirty((current) => ({ ...current, blocks: current.blocks.map((block) => { if (block.type !== 'image_group') return block; const index = block.mediaIds.indexOf(itemId); const target = index + delta; if (index < 0 || target < 0 || target >= block.mediaIds.length) return block; const mediaIds = [...block.mediaIds]; [mediaIds[index], mediaIds[target]] = [mediaIds[target], mediaIds[index]]; return { ...block, mediaIds }; }) })); }
+
   const previewDocument = useMemo(() => normalizeCreativePostDocument(document), [document]);
+  const selectedMedia = media.find((item) => item.id === selectedMediaId);
+  if (loading) return <main className="ll-composer-loading"><LoadingState label="Preparing your post" /></main>;
+  if (error && !post) return <main className="ll-composer-loading"><p>{error}</p></main>;
 
-  async function save(showNotice = true) { setBusy('saving'); setError(''); try { const saved = await saveCreativePost(post, document); setPost((current) => ({ ...current, ...saved })); if (showNotice) setNotice('Draft saved.'); return saved; } catch (reason) { setError(reason.message); return null; } finally { setBusy(''); } }
-  async function publish() { setBusy('publishing'); setError(''); try { const saved = await saveCreativePost(post, document); const published = await publishCreativePost(saved.id); setPost((current) => ({ ...current, ...published })); navigate(`/posts/${published.slug}`); } catch (reason) { setError(reason.message); } finally { setBusy(''); } }
-  async function upload(event) { const files = [...(event.target.files || [])]; event.target.value = ''; if (!files.length) return; if (mediaCount + files.length > CREATIVE_POST_MAX_IMAGES) { setError(`A post can contain up to ${CREATIVE_POST_MAX_IMAGES} images.`); return; } setBusy('uploading'); setError(''); try { const added = []; const usedOrders = new Set(media.map((item) => item.display_order)); for (const file of files) { const nextOrder = Array.from({ length: CREATIVE_POST_MAX_IMAGES }, (_, index) => index).find((order) => !usedOrders.has(order)); usedOrders.add(nextOrder); const item = await uploadCreativePostImage(file, { postId: post.id, order: nextOrder, altText: '', onStatus: (status) => setNotice(status?.message || '') }); added.push(item); } setMedia((current) => [...current, ...added]); setDocument((current) => { const existing = current.blocks.findIndex((block) => block.type === 'image_group'); if (existing >= 0) return { ...current, blocks: current.blocks.map((block, i) => i === existing ? { ...block, mediaIds: [...block.mediaIds, ...added.map((item) => item.id)] } : block) }; return { ...current, blocks: [...current.blocks, { ...createPostBlock('image_group'), mediaIds: added.map((item) => item.id) }] }; }); setNotice(`${added.length} image${added.length === 1 ? '' : 's'} added. Add descriptions before publishing.`); } catch (reason) { setError(reason.message); } finally { setBusy(''); } }
-  async function removeImage(item) { setBusy('removing'); try { await removeCreativePostMedia(item); setMedia((current) => current.filter((entry) => entry.id !== item.id)); setDocument((current) => ({ ...current, blocks: current.blocks.map((block) => block.type === 'image_group' ? { ...block, mediaIds: block.mediaIds.filter((mediaId) => mediaId !== item.id) } : block).filter((block) => block.type !== 'image_group' || block.mediaIds.length) })); } catch (reason) { setError(reason.message); } finally { setBusy(''); } }
-  function confirmImageRemoval(item) { requestConfirmation({ title: 'Remove this image?', description: 'The image will be removed from this draft and queued for safe R2 cleanup.', confirmLabel: 'Remove image', destructive: true, onConfirm: () => removeImage(item) }); }
-  async function updateImage(item, patch) { setMedia((current) => current.map((entry) => entry.id === item.id ? { ...entry, ...patch } : entry)); try { await updateCreativePostMedia(item.id, patch); } catch (reason) { setError(reason.message); } }
-  function moveImage(itemId, delta) { setDocument((current) => ({ ...current, blocks: current.blocks.map((block) => { if (block.type !== 'image_group') return block; const index = block.mediaIds.indexOf(itemId); const target = index + delta; if (index < 0 || target < 0 || target >= block.mediaIds.length) return block; const mediaIds = [...block.mediaIds]; [mediaIds[index], mediaIds[target]] = [mediaIds[target], mediaIds[index]]; return { ...block, mediaIds }; }) })); }
+  return <main className="ll-composer-page">
+    <header className="ll-composer-header">
+      <Link to={creative?.slug ? `/creatives/${creative.slug}` : '/account'}><ArrowLeft size={18} /><span>My profile</span></Link>
+      <div className="ll-save-state" role="status">{status === 'saving' ? 'Saving…' : status === 'saved' ? <><Check size={14} /> Saved</> : status === 'error' ? 'Save interrupted' : 'Unsaved changes'}</div>
+      <div><button type="button" onClick={() => setPreview((value) => !value)} className="ll-icon-action" aria-label={preview ? 'Return to editing' : 'Preview post'}><Eye size={18} /></button><button type="button" onClick={publish} disabled={publishing || uploading} className="ll-primary-action"><Send size={16} /> {publishing ? 'Publishing…' : 'Publish'}</button></div>
+    </header>
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-zinc-950 text-white"><LoadingState label="Preparing your post" /></main>;
-  if (error && !post) return <main className="grid min-h-screen place-items-center bg-zinc-950 p-6 text-zinc-200"><p>{error}</p></main>;
-  return <main className="min-h-screen bg-zinc-950 text-white">
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/95 backdrop-blur"><div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4"><Link to={creative?.slug ? `/creatives/${creative.slug}` : '/account'} className="inline-flex min-h-11 items-center gap-2 text-sm text-zinc-300 hover:text-white"><ArrowLeft size={17} /> Profile</Link><div className="flex gap-2"><button type="button" onClick={() => setPreview((value) => !value)} className="creative-editor-button"><Eye size={16} /> <span className="hidden sm:inline">{preview ? 'Edit' : 'Preview'}</span></button><button type="button" onClick={() => save()} disabled={Boolean(busy)} className="creative-editor-button"><Save size={16} /> <span className="hidden sm:inline">Save</span></button><button type="button" onClick={publish} disabled={Boolean(busy)} className="creative-editor-button creative-editor-button--primary"><Send size={16} /> Publish</button></div></div></header>
-    <div className="mx-auto grid max-w-7xl gap-8 px-4 py-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section className="min-w-0"><div className="mb-6"><p className="text-xs uppercase tracking-[0.18em] text-orange-300">{post.status === 'published' ? 'Published post' : 'Creative draft'}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{preview ? 'Preview' : 'Tell the story your way'}</h1><p className="mt-2 text-sm leading-6 text-zinc-400">Structure the story with text, headings, lists, images, quotes, and links. Lahat Liwa keeps the presentation consistent.</p></div>
-        {error && <p role="alert" className="mb-4 rounded-lg border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">{error}</p>}{notice && <p role="status" className="mb-4 text-sm text-zinc-400">{notice}</p>}
-        {preview ? <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-5 sm:p-8"><CreativePostDocument document={previewDocument} media={media} /></div> : <div className="grid gap-3">{blocks.map((block, index) => <BlockEditor key={block.id} block={block} index={index} count={blocks.length} onChange={(patch) => updateBlock(index, patch)} onMove={(delta) => moveBlock(index, delta)} onRemove={() => removeBlock(index)} />)}<div className="flex flex-wrap gap-2 rounded-xl border border-dashed border-white/15 p-3">{blockChoices.map(([type, label]) => <button key={type} type="button" onClick={() => addBlock(type)} className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 hover:border-orange-300/30 hover:text-white">+ {label}</button>)}</div></div>}
-      </section>
-      <aside className="min-w-0"><div className="sticky top-24 grid gap-5 rounded-xl border border-white/10 bg-zinc-900/70 p-4"><div><h2 className="font-semibold">Images</h2><p className="mt-1 text-xs leading-5 text-zinc-500">Up to 10 images. Galleries adapt automatically on every screen.</p></div><input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={upload} className="sr-only" /><button type="button" onClick={() => fileRef.current?.click()} disabled={Boolean(busy) || mediaCount >= CREATIVE_POST_MAX_IMAGES} className="creative-editor-button justify-center"><ImagePlus size={17} /> Add images ({mediaCount}/{CREATIVE_POST_MAX_IMAGES})</button><div className="grid gap-3">{media.map((item, mediaIndex) => <div key={item.id} className="rounded-lg border border-white/10 p-2"><img src={item.thumbnail_url} alt="" className="aspect-video w-full rounded-md object-cover" /><div className="mt-1 flex justify-end"><button type="button" onClick={() => moveImage(item.id, -1)} disabled={mediaIndex === 0} aria-label="Move image earlier" className="block-tool"><ArrowUp size={14} /></button><button type="button" onClick={() => moveImage(item.id, 1)} disabled={mediaIndex === media.length - 1} aria-label="Move image later" className="block-tool"><ArrowDown size={14} /></button></div><input value={item.alt_text || ''} onChange={(event) => setMedia((current) => current.map((entry) => entry.id === item.id ? { ...entry, alt_text: event.target.value } : entry))} onBlur={(event) => updateImage(item, { alt_text: event.target.value, caption: item.caption })} placeholder="Describe the image" className="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-2 py-2 text-xs text-white placeholder:text-zinc-600" /><input value={item.caption || ''} onChange={(event) => setMedia((current) => current.map((entry) => entry.id === item.id ? { ...entry, caption: event.target.value } : entry))} onBlur={(event) => updateImage(item, { alt_text: item.alt_text, caption: event.target.value })} placeholder="Caption (optional)" className="mt-2 w-full rounded-md border border-white/10 bg-zinc-950 px-2 py-2 text-xs text-white placeholder:text-zinc-600" /><button type="button" onClick={() => confirmImageRemoval(item)} className="mt-2 inline-flex min-h-9 items-center gap-2 text-xs text-red-300"><Trash2 size={14} /> Remove</button></div>)}</div></div></aside>
-    </div>{confirmationDialog}
+    <div className="ll-composer-shell">
+      <header className="ll-composer-author">{creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}<div><strong>{creative?.name || 'Your Creative profile'}</strong><small>{post.status === 'published' ? 'Editing a published post' : 'New post'}</small></div></header>
+      {error && <p className="ll-composer-error" role="alert">{error}</p>}
+      {preview ? <section className="ll-composer-preview"><CreativePostDocument document={previewDocument} media={media} /></section> : <section className="ll-natural-canvas" aria-label="Post composition canvas">
+        {(document?.blocks || []).map((block, index) => <NaturalBlock key={block.id} block={block} index={index} media={media} onChange={(patch) => updateBlock(index, patch)} onEnter={() => addParagraphAfter(index)} onRemove={() => removeBlock(index)} onSelectMedia={setSelectedMediaId} />)}
+        <div className="ll-insert-row"><button type="button" onClick={() => setInsertOpen((value) => !value)} aria-expanded={insertOpen}><Plus size={18} /> Add to post</button>{insertOpen && <div className="ll-insert-menu">{insertChoices.map(([type, label, Icon]) => <button key={type} type="button" onClick={() => insertBlock(type)}><Icon size={17} /> {label}</button>)}</div>}</div>
+      </section>}
+      {!preview && <div className="ll-composer-add-media"><input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={upload} className="sr-only" /><button type="button" onClick={() => fileRef.current?.click()} disabled={uploading || media.length >= CREATIVE_POST_MAX_IMAGES}><ImagePlus size={19} /><span>{uploading ? 'Uploading photos…' : 'Add photos'}</span><small>{media.length}/{CREATIVE_POST_MAX_IMAGES}</small></button><p>JPEG, PNG, or WebP. Add a short description before publishing.</p></div>}
+    </div>
+    {selectedMedia && <ImageInspector item={selectedMedia} order={media.findIndex((item) => item.id === selectedMedia.id)} count={media.length} onClose={() => setSelectedMediaId(null)} onChange={(patch) => updateImage(selectedMedia, patch)} onMove={(delta) => moveImage(selectedMedia.id, delta)} onRemove={() => confirmImageRemoval(selectedMedia)} />}
+    {confirmationDialog}
   </main>;
 }
 
-function BlockEditor({ block, index, count, onChange, onMove, onRemove }) {
+function NaturalBlock({ block, index, media, onChange, onEnter, onRemove, onSelectMedia }) {
+  const [focused, setFocused] = useState(false);
   const textRef = useRef(null);
   const text = block.content?.map((segment) => segment.text).join('') || '';
-  const setText = (value) => onChange({ content: [{ text: value, marks: [] }] });
   const styleSelection = (style) => { const field = textRef.current; if (!field || field.selectionStart === field.selectionEnd) return; const start = field.selectionStart; const end = field.selectionEnd; onChange({ content: applyCreativePostInlineStyle(block.content, start, end, style) }); window.setTimeout(() => { field.focus(); field.setSelectionRange(start, end); }, 0); };
-  const toggleMark = (mark) => styleSelection({ mark });
-  const setLink = () => { const field = textRef.current; if (!field || field.selectionStart === field.selectionEnd) return; const href = window.prompt('Paste an https:// link', 'https://'); if (href !== null) styleSelection({ href }); };
-  return <article className="group rounded-xl border border-white/10 bg-zinc-900/60 p-3 sm:p-4"><div className="mb-3 flex items-center justify-between gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{block.type.replace('_', ' ')}</span><div className="flex"><button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label="Move block up" className="block-tool"><ArrowUp size={15} /></button><button type="button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label="Move block down" className="block-tool"><ArrowDown size={15} /></button><button type="button" onClick={onRemove} aria-label="Remove block" className="block-tool text-red-300"><Trash2 size={15} /></button></div></div>
-    {block.content && <><div className="mb-2 flex items-center gap-1"><button type="button" onClick={() => toggleMark('bold')} className="block-tool" title="Bold selected text"><Bold size={15} /></button><button type="button" onClick={() => toggleMark('italic')} className="block-tool" title="Italicize selected text"><Italic size={15} /></button><button type="button" onClick={setLink} className="block-tool" title="Link selected text"><Link2 size={15} /></button><span className="ml-2 text-[10px] text-zinc-600">Select text, then format it</span></div><textarea ref={textRef} rows={block.type === 'heading' ? 2 : 5} value={text} onChange={(event) => setText(event.target.value)} placeholder={block.type === 'heading' ? 'Write a clear heading' : block.type === 'quote' ? 'Add a meaningful quote' : 'Write your story…'} className={`w-full resize-y bg-transparent text-zinc-100 outline-none placeholder:text-zinc-600 ${block.type === 'heading' ? 'text-2xl font-semibold' : block.type === 'quote' ? 'border-l-2 border-orange-300 pl-4 text-lg italic' : 'leading-7'}`} /></>}
-    {(block.type === 'bullet_list' || block.type === 'numbered_list') && <textarea rows={5} value={block.items.join('\n')} onChange={(event) => onChange({ items: event.target.value.split('\n') })} placeholder="One item per line" className="w-full resize-y bg-transparent leading-7 text-zinc-100 outline-none placeholder:text-zinc-600" />}
-    {block.type === 'divider' && <div className="flex items-center gap-3 text-zinc-600"><Minus /><hr className="flex-1 border-white/15" /></div>}
-    {block.type === 'external_embed' && <div className="grid gap-2"><input value={block.label} onChange={(event) => onChange({ label: event.target.value })} placeholder="Link label" className="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm" /><input value={block.url} onChange={(event) => onChange({ url: event.target.value })} placeholder="https://…" className="rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm" /></div>}
-    {block.type === 'image_group' && <p className="text-sm text-zinc-500">This gallery contains {block.mediaIds.length} image{block.mediaIds.length === 1 ? '' : 's'}. Manage image details in the side panel.</p>}
-  </article>;
+  const setLink = () => { const href = window.prompt('Paste a secure https:// link', 'https://'); if (href !== null) styleSelection({ href }); };
+  if (block.type === 'divider') return <div data-composer-block={index} className="ll-natural-divider"><hr /><button type="button" onClick={onRemove} aria-label="Remove divider"><X size={15} /></button></div>;
+  if (block.type === 'image_group') { const items = block.mediaIds.map((id) => media.find((item) => item.id === id)).filter(Boolean); return <div data-composer-block={index} className="ll-natural-gallery">{items.map((item, itemIndex) => <button key={item.id} type="button" onClick={() => onSelectMedia(item.id)} aria-label={`Edit photo ${itemIndex + 1}`}><img src={item.display_url || item.thumbnail_url} alt={item.alt_text || ''} /><span><MoreHorizontal size={18} /></span>{!item.alt_text && <small>Description needed</small>}</button>)}</div>; }
+  if (block.type === 'external_embed') return <div data-composer-block={index} className="ll-natural-link"><input value={block.label} onChange={(event) => onChange({ label: event.target.value })} placeholder="Give this link a title" /><input value={block.url} onChange={(event) => onChange({ url: event.target.value })} placeholder="https://…" /><button type="button" onClick={onRemove} aria-label="Remove link"><X size={16} /></button></div>;
+  if (block.type === 'bullet_list' || block.type === 'numbered_list') return <div data-composer-block={index} className="ll-natural-text is-list"><textarea rows={Math.max(2, block.items.length)} value={block.items.join('\n')} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onChange={(event) => onChange({ items: event.target.value.split('\n') })} placeholder="One thought per line…" />{focused && <ContextToolbar onRemove={onRemove} />}</div>;
+  return <div data-composer-block={index} className={`ll-natural-text is-${block.type}`}>
+    {focused && <ContextToolbar onBold={() => styleSelection({ mark: 'bold' })} onItalic={() => styleSelection({ mark: 'italic' })} onLink={setLink} onRemove={onRemove} />}
+    <textarea ref={textRef} rows={block.type === 'heading' ? 2 : Math.max(3, Math.ceil(text.length / 72))} value={text} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.parentElement.contains(event.relatedTarget)) setFocused(false); }} onChange={(event) => onChange({ content: [{ text: event.target.value, marks: [] }] })} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && block.type !== 'quote') { event.preventDefault(); onEnter(); } if (event.key === 'Backspace' && !text && index > 0) onRemove(); }} placeholder={index === 0 ? 'What are you creating, learning, or sharing?' : block.type === 'heading' ? 'Add a heading…' : block.type === 'quote' ? 'Add a meaningful quote…' : 'Keep writing…'} />
+  </div>;
+}
+
+function ContextToolbar({ onBold, onItalic, onLink, onRemove }) { return <div className="ll-context-toolbar" role="toolbar" aria-label="Formatting"><button type="button" onClick={onBold} disabled={!onBold} aria-label="Bold selected text"><Bold size={15} /></button><button type="button" onClick={onItalic} disabled={!onItalic} aria-label="Italicize selected text"><Italic size={15} /></button><button type="button" onClick={onLink} disabled={!onLink} aria-label="Link selected text"><Link2 size={15} /></button><span /><button type="button" onClick={onRemove} aria-label="Remove this section"><Trash2 size={15} /></button></div>; }
+
+function ImageInspector({ item, order, count, onClose, onChange, onMove, onRemove }) {
+  const [alt, setAlt] = useState(item.alt_text || '');
+  const [caption, setCaption] = useState(item.caption || '');
+  useEffect(() => { setAlt(item.alt_text || ''); setCaption(item.caption || ''); }, [item.id, item.alt_text, item.caption]);
+  return <div className="ll-image-inspector-layer" role="dialog" aria-modal="true" aria-label="Photo options"><button className="ll-drawer-scrim" type="button" onClick={onClose} aria-label="Close photo options" /><section className="ll-image-inspector"><header><div><p className="ll-kicker">Photo {order + 1} of {count}</p><h2>Photo details</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={20} /></button></header><img src={item.display_url || item.thumbnail_url} alt="" /><label><span>Image description <em>Required</em></span><textarea value={alt} onChange={(event) => setAlt(event.target.value)} onBlur={() => onChange({ alt_text: alt, caption })} placeholder="Describe what is visible for people using screen readers." /></label><label><span>Caption <em>Optional</em></span><textarea value={caption} onChange={(event) => setCaption(event.target.value)} onBlur={() => onChange({ alt_text: alt, caption })} placeholder="Add context that appears with this photo." /></label><div className="ll-image-inspector__actions"><button type="button" onClick={() => onMove(-1)} disabled={order === 0}><ArrowUp size={16} /> Earlier</button><button type="button" onClick={() => onMove(1)} disabled={order === count - 1}><ArrowDown size={16} /> Later</button><button type="button" className="is-danger" onClick={onRemove}><Trash2 size={16} /> Remove</button></div><button type="button" className="ll-primary-action" onClick={() => { onChange({ alt_text: alt, caption }); onClose(); }}>Done</button></section></div>;
 }

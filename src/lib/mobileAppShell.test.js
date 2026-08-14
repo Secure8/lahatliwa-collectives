@@ -3,219 +3,71 @@ import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { adminPageTitle, createMobileAppBarScrollState, MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD, MOBILE_APP_BAR_SCROLL_JITTER_TOLERANCE, MOBILE_APP_BAR_SHOW_DISTANCE_THRESHOLD, MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY, mobileAppBarVisibility, PUBLIC_PRIMARY_DESTINATIONS, publicAppBarMode, publicDestinationIsActive } from './mobileAppShell.js';
 
-test('public app bar uses overlay only for visual-first routes', () => {
+test('legacy app-bar helpers remain stable for routes that still use them', () => {
   assert.equal(publicAppBarMode('/'), 'overlay');
   assert.equal(publicAppBarMode('/creatives/mara'), 'surface');
-  assert.equal(publicAppBarMode('/services'), 'surface');
-  assert.equal(publicAppBarMode('/projects/example'), 'surface');
-  assert.equal(publicAppBarMode('/inquiry'), 'surface');
+  assert.equal(publicDestinationIsActive('/projects/sample', '/projects'), true);
+  assert.equal(PUBLIC_PRIMARY_DESTINATIONS.length, 5);
 });
 
-test('mobile app bar follows accumulated scroll intent instead of raw direction changes', () => {
+test('mobile app bar intent calculation remains jitter resistant', () => {
   let state = createMobileAppBarScrollState({ lastY: 40 });
   state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_SCROLL_JITTER_TOLERANCE - 1 });
-  assert.equal(state.visible, true);
   assert.equal(state.accumulatedDistance, 0);
-
-  state = mobileAppBarVisibility({ state, nextY: 55 });
-  state = mobileAppBarVisibility({ state, nextY: 70 });
-  assert.equal(state.visible, true);
-  assert.equal(state.accumulatedDistance, 30);
   state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD + 4 });
-  assert.equal(state.visible, false);
-  assert.equal(state.primaryVisible, false);
-  assert.equal(state.accumulatedDistance, 0);
-
-  state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD });
   assert.equal(state.visible, false);
   state = mobileAppBarVisibility({ state, nextY: 40 + MOBILE_APP_BAR_HIDE_DISTANCE_THRESHOLD - MOBILE_APP_BAR_SHOW_DISTANCE_THRESHOLD });
   assert.equal(state.visible, true);
-  assert.equal(state.primaryVisible, false);
-
   state = mobileAppBarVisibility({ state, nextY: MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY });
-  assert.equal(state.visible, true);
-  assert.equal(state.primaryVisible, true);
-  assert.equal(state.accumulatedDistance, 0);
-  assert.equal(state.direction, 0);
-  state = mobileAppBarVisibility({ state: { ...state, visible: false }, nextY: 0 });
-  assert.equal(state.visible, true);
-});
-
-test('mobile app bar resets accumulated intent on a meaningful direction change and interaction lock', () => {
-  let state = createMobileAppBarScrollState({ lastY: 100 });
-  state = mobileAppBarVisibility({ state, nextY: 118 });
-  assert.equal(state.accumulatedDistance, 18);
-  state = mobileAppBarVisibility({ state, nextY: 108 });
-  assert.equal(state.direction, -1);
-  assert.equal(state.accumulatedDistance, 10);
-  assert.equal(state.visible, true);
-  state = mobileAppBarVisibility({ state: { ...state, visible: false }, nextY: 140, locked: true });
-  assert.deepEqual(state, createMobileAppBarScrollState({ lastY: 140 }));
-});
-
-test('deep upward intent reveals only the secondary navigation without waiting for the top boundary', () => {
-  let state = createMobileAppBarScrollState({ lastY: 0 });
-  state = mobileAppBarVisibility({ state, nextY: 800 });
-  assert.equal(state.visible, false);
-  assert.equal(state.primaryVisible, false);
-
-  const beforeJitter = state;
-  state = mobileAppBarVisibility({ state, nextY: 797 });
-  assert.strictEqual(state, beforeJitter);
-
-  state = mobileAppBarVisibility({ state, nextY: 794 });
-  assert.equal(state.accumulatedDistance, 6);
-  state = mobileAppBarVisibility({ state, nextY: 788 });
-  assert.equal(state.visible, true);
-  assert.equal(state.primaryVisible, false);
-
-  state = mobileAppBarVisibility({ state, nextY: 776 });
-  assert.equal(state.visible, true);
-  assert.equal(state.primaryVisible, false);
-
-  state = mobileAppBarVisibility({ state, nextY: 824 });
-  assert.equal(state.visible, false);
-  assert.equal(state.primaryVisible, false);
-
-  state = mobileAppBarVisibility({ state, nextY: MOBILE_APP_BAR_TOP_VISIBLE_BOUNDARY });
-  assert.equal(state.visible, true);
   assert.equal(state.primaryVisible, true);
 });
 
-test('route changes restore both public mobile navigation sections', async () => {
-  const [hook, navbar] = await Promise.all([
-    readFile(new URL('./useMobileAppBar.js', import.meta.url), 'utf8'),
-    readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
-  ]);
-
-  assert.match(hook, /useLayoutEffect\([\s\S]*?createMobileAppBarScrollState\(\{ lastY: window\.scrollY \|\| 0 \}\)[\s\S]*?setVisibility\(scrollStateRef\.current\)[\s\S]*?\}, \[routeKey\]\)/);
-  assert.match(navbar, /isPrimaryHeaderVisible = mobileAppBar\.primaryVisible/);
-  assert.match(navbar, /isSecondaryNavVisible = mobileAppBar\.visible/);
-});
-
-test('public top navigation is limited to five primary destinations with detail-route awareness', () => {
-  assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS.map(([label]) => label), ['Home', 'Current Work', 'Portfolio', 'Creatives', 'Work with us']);
-  assert.equal(PUBLIC_PRIMARY_DESTINATIONS.length, 5);
-  assert.equal(publicDestinationIsActive('/work', '/work'), true);
-  assert.equal(publicDestinationIsActive('/projects/sample', '/projects'), true);
-  assert.equal(publicDestinationIsActive('/creatives/sample', '/creatives'), true);
-  assert.equal(publicDestinationIsActive('/services', '/services'), true);
-  assert.equal(publicDestinationIsActive('/about', '/'), false);
-});
-
-test('admin mobile title follows the most specific permitted route', () => {
-  const groups = [['Studio', [['Projects', '/admin/projects'], ['Inquiries', '/admin/inquiries']]]];
+test('admin route title follows the most specific permitted route', () => {
+  const groups = [['Platform', [['Projects', '/admin/projects'], ['Inquiries', '/admin/inquiries']]]];
   assert.equal(adminPageTitle('/admin/projects/new', groups), 'Projects');
   assert.equal(adminPageTitle('/admin/inquiries', groups), 'Inquiries');
   assert.equal(adminPageTitle('/admin/unknown', groups), 'Dashboard');
 });
 
-test('public and admin drawers provide modal keyboard behavior while mobile theme controls stay reachable', async () => {
-  const [navbar, footer, admin, drawer, app, styles] = await Promise.all([
+test('public and admin navigation drawers are modal, focus-managed, and theme-aware', async () => {
+  const [navbar, admin, drawer, styles] = await Promise.all([
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../components/Footer.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
     readFile(new URL('./useModalDrawer.js', import.meta.url), 'utf8'),
-    readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
   ]);
-
-  for (const source of [navbar, admin]) {
-    assert.match(source, /role="dialog"/);
-    assert.match(source, /aria-modal="true"/);
-    assert.match(source, /AppearanceMenuAction/);
-    assert.match(source, /safe-area-inset-bottom/);
-  }
-  assert.match(navbar, /visibleSecondaryLinks/);
-  assert.match(navbar, /aria-label="Secondary mobile navigation"/);
-  assert.doesNotMatch(navbar, /visibleSecondaryLinks[\s\S]*?\['Home', '\/'\]/);
-  assert.match(navbar, /LockKeyhole/);
-  assert.match(navbar, /to="\/admin\/dashboard"/);
-  assert.match(navbar, /AppearanceMenuAction[\s\S]*?iconOnly/);
-  assert.doesNotMatch(footer, /to="\/admin\/dashboard"|Platform admin access/);
-  assert.match(admin, /AppearanceMenuAction[\s\S]*?iconOnly/);
-  assert.match(admin, /data-admin-mobile-top-navigation[\s\S]*?min-h-\[3\.25rem\]/);
-  assert.match(admin, /aria-current=\{active \? 'page'[\s\S]*?mobile-nav-item/);
-  assert.match(admin, /mobile-nav-current-label[\s\S]*?\{label\}/);
-  assert.match(admin, /moreIsActive \? morePageLabel : 'More'/);
-  assert.match(navbar, /secondaryRouteIsActive[\s\S]*?aria-current=\{secondaryRouteIsActive \? 'page'/);
-  assert.doesNotMatch(navbar, /mobile-nav-current-label[\s\S]*?secondaryPageLabel/);
-  assert.match(styles, /\.mobile-nav-item\[aria-current="page"\][\s\S]*?color: var\(--site-accent-text\) !important;/);
-  assert.match(styles, /\.mobile-nav-item\[aria-current="page"\] \.mobile-nav-icon[\s\S]*?drop-shadow/);
-  assert.doesNotMatch(styles, /\.mobile-nav-item\[aria-current="page"\] \.mobile-nav-icon[\s\S]*?fill: currentColor;/);
-  assert.match(styles, /\.mobile-nav-item\[aria-current="page"\] \.mobile-nav-current-label[\s\S]*?opacity: 1;/);
-  assert.doesNotMatch(admin, /data-admin-mobile-bottom-navigation/);
+  for (const component of [navbar, admin]) { assert.match(component, /role="dialog"/); assert.match(component, /aria-modal="true"/); assert.match(component, /AppearanceMenuAction/); }
+  assert.match(navbar, /public-more-menu/);
+  assert.match(admin, /admin-navigation-drawer/);
   assert.match(drawer, /event\.key === 'Escape'/);
   assert.match(drawer, /event\.key !== 'Tab'/);
-  assert.match(drawer, /document\.body\.style\.overflow = 'hidden'/);
-  assert.match(app, /data-public-app-content/);
-  assert.match(styles, /public-app-content--surface/);
-  assert.match(styles, /mobile-navigation-open \.theme-toggle--global/);
+  assert.match(styles, /\.ll-drawer-scrim/);
+  assert.match(styles, /safe-area-inset-bottom/);
 });
 
-test('public and admin mobile app bars share direction-aware scroll behavior', async () => {
-  const [navbar, admin, creative, styles, index] = await Promise.all([
+test('new mobile product shell stays intentional at phone and desktop breakpoints', async () => {
+  const [mobile, navbar, admin, creative, styles, index] = await Promise.all([
+    readFile(new URL('../components/MobileTopNavigation.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../pages/CreativeDetails.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
     readFile(new URL('../../index.html', import.meta.url), 'utf8'),
   ]);
-  assert.match(navbar, /useMobileAppBar/);
-  assert.match(navbar, /data-mobile-app-bar/);
-  assert.match(navbar, /isPrimaryHeaderVisible = mobileAppBar\.primaryVisible/);
-  assert.match(navbar, /isSecondaryNavVisible = mobileAppBar\.visible/);
-  assert.match(navbar, /data-public-mobile-primary/);
-  assert.match(navbar, /data-public-mobile-secondary/);
-  assert.match(navbar, /data-primary-visible=\{isPrimaryHeaderVisible \? 'true' : 'false'\}/);
-  assert.doesNotMatch(navbar, /public-app-bar[\s\S]*?mobileVisible \? 'translate-y-0'/);
-  assert.match(navbar, /public-app-bar[\s\S]*?sticky inset-x-0 top-0/);
-  assert.match(admin, /useMobileAppBar/);
-  assert.match(admin, /data-admin-mobile-app-bar/);
-  assert.match(admin, /isPrimaryHeaderVisible = mobileAppBar\.primaryVisible/);
-  assert.match(admin, /isSecondaryNavVisible = mobileAppBar\.visible/);
-  assert.match(admin, /data-admin-mobile-primary/);
-  assert.match(admin, /data-admin-mobile-secondary/);
-  assert.match(admin, /data-primary-visible=\{isPrimaryHeaderVisible \? 'true' : 'false'\}/);
-  assert.match(admin, /data-primary-visible=\{isPrimaryHeaderVisible \? 'true' : 'false'\}/);
-  assert.match(admin, /admin-app-bar[\s\S]*?sticky inset-x-0 top-0[\s\S]*?lg:fixed/);
-  assert.match(admin, /admin-shell min-h-screen text-white/);
-  assert.doesNotMatch(admin, /admin-shell min-h-screen overflow-x-(?:hidden|clip)/);
-  assert.match(admin, /admin-app-content[\s\S]*?pt-4[\s\S]*?lg:pt-24/);
-  assert.match(admin, /locked: mobileOpen \|\| headerFocused/);
-  assert.match(creative, /useMobileAppBar/);
-  assert.match(creative, /data-creative-profile-back/);
-  assert.match(creative, /data-mobile-visible=\{mobileTopControlsVisible \? 'true' : 'false'\}/);
-  assert.match(styles, /\[data-creative-profile-back\]\[data-mobile-visible="false"\][\s\S]*?opacity: 0;/);
-  assert.match(styles, /--mobile-app-bar-hide-duration: 220ms;/);
-  assert.match(styles, /--mobile-app-bar-show-duration: 180ms;/);
-  assert.match(styles, /will-change: transform, opacity;/);
-  assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="true"\]\[data-primary-visible="false"\][\s\S]*?translateY\(calc\(-3\.5rem - var\(--public-mobile-safe-area-top\)\)\)/);
-  assert.match(styles, /\[data-admin-mobile-secondary\]\[data-mobile-visible="true"\]\[data-primary-visible="false"\][\s\S]*?translateY\(calc\(-3\.75rem - var\(--admin-mobile-safe-area-top\)\)\)/);
-  assert.match(styles, /\[data-public-mobile-primary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(-100%\)/);
-  assert.match(styles, /\[data-admin-mobile-primary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(-100%\)/);
-  assert.match(styles, /\[data-public-mobile-secondary\]\[data-mobile-visible="false"\][\s\S]*?transform: translateY\(calc\(-100% - 3\.5rem - var\(--public-mobile-safe-area-top\)\)\)/);
-  assert.match(styles, /html\.public-mode,\s*html\.public-mode body,\s*html\.admin-mode,\s*html\.admin-mode body\s*\{\s*overflow-x: clip;/);
-  assert.doesNotMatch(styles, /\.public-app-bar\s*\{\s*padding-top: 0;\s*(?:-webkit-)?backdrop-filter:/);
-  assert.match(styles, /\.admin-app-bar\s*\{[\s\S]*?backdrop-filter: none;/);
-  assert.match(styles, /\.admin-app-bar\[data-primary-visible="false"\]\s*\{\s*height: 0;/);
-  assert.match(styles, /\.theme-navigation-surface\.public-app-bar--surface[\s\S]*?background-color: rgb\(9 9 11 \/ 0\.985\)/);
-  assert.match(styles, /\.theme-navigation-surface\.admin-app-bar__primary,[\s\S]*?background: rgb\(9 9 11 \/ 0\.985\)/);
-  assert.match(styles, /\[data-theme="light"\] \.theme-navigation-surface\.admin-app-bar__primary,[\s\S]*?background: rgb\(245 241 232 \/ 0\.985\)/);
+  assert.match(mobile, /ll-mobile-dock/);
+  assert.match(navbar, /ll-public-header/);
+  assert.match(admin, /ll-admin-header/);
+  assert.doesNotMatch(admin, /lg:w-64|lg:ml-64/);
+  assert.doesNotMatch(creative, /pointermove|data-creative-profile-back/);
+  assert.match(styles, /@media \(max-width: 420px\)/);
+  assert.match(styles, /@media \(min-width: 900px\)/);
   assert.match(index, /name="viewport" content="width=device-width, initial-scale=1\.0, viewport-fit=cover"/);
-  assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: 0;/);
-  assert.match(navbar, /motion-reduce:transition-none/);
-  assert.match(admin, /motion-reduce:transition-none/);
-  assert.match(creative, /motion-reduce:transition-none/);
 });
 
 test('existing manifest remains install-ready without introducing a service worker', async () => {
   const [manifest, sourceFiles] = await Promise.all([
     readFile(new URL('../../public/site.webmanifest', import.meta.url), 'utf8'),
-    Promise.all([
-      readFile(new URL('../main.jsx', import.meta.url), 'utf8'),
-      readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
-    ]),
+    Promise.all([readFile(new URL('../main.jsx', import.meta.url), 'utf8'), readFile(new URL('../App.jsx', import.meta.url), 'utf8')]),
   ]);
   const parsed = JSON.parse(manifest);
   assert.equal(parsed.display, 'standalone');

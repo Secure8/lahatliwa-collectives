@@ -55,7 +55,7 @@ function LegacyWebsiteEditorRedirect() {
 }
 
 const routeMetadata = {
-  '/': ['Current Work | Lahat Liwa Collectives', 'Follow active client projects, content releases, event coverage, and completed work from Lahat Liwa Collectives.'],
+  '/': ['Creative Feed | Lahat Liwa Collectives', 'Discover published work, process, photography, writing, and formal projects from Creatives across Lahat Liwa.'],
   '/work': ['Current Work | Lahat Liwa Collectives', 'Follow public progress from active client projects, social content, events, and ongoing productions.'],
   '/about': ['About | Lahat Liwa Collectives', 'Learn how Lahat Liwa shares current work, preserves completed projects, credits contributors, and welcomes open inquiries.'],
   '/projects': ['Portfolio | Lahat Liwa Collectives', 'Explore completed projects, visible outcomes, and credited contributions across creative, digital, social, and community work.'],

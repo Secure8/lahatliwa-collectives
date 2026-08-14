@@ -1,10 +1,9 @@
-import { ArrowRight, Dribbble, Edit3, ExternalLink, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, Plus, Twitter, Youtube } from 'lucide-react';
+import { ArrowRight, Dribbble, Edit3, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, PenLine, Plus, Twitter, Youtube } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import CreativeHero from './CreativeHero';
 import { getPublicImageUrl } from '../lib/storage';
 import { socialLinkMeta } from '../lib/socialLinks';
 import { publicLocationState } from '../lib/navigationHistory';
-import { projectLayout } from '../lib/creativeProfileLayout';
 import { isResourceLink } from '../lib/profileResources';
 import { publicImageVariant } from '../lib/publicImages';
 import CreativePostCard from './CreativePostCard';
@@ -16,80 +15,40 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
   const resources = allLinks.filter(isResourceLink);
   const socials = allLinks.filter((item) => !isResourceLink(item)).map(socialLinkMeta).filter((item) => item.href);
   const bio = creative.full_bio || creative.short_bio;
-  return <article className="relative isolate min-w-0 overflow-hidden">
-    {!adminPreview && <ProfileRails />}
-    {adminPreview && <p className="mb-4 text-xs uppercase tracking-[0.2em] text-amber-200">Admin preview</p>}
-    <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
+  const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Create post</Link><Link to="/admin/my-profile" className="ll-secondary-action"><Edit3 size={16} /> Edit profile</Link></> : null;
+  return <article className="ll-profile-page">
+    {adminPreview && <p className="ll-preview-label">Admin preview</p>}
+    <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} actions={ownerActions} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
-    <div className="mx-auto w-full max-w-[1120px]">
-    {isOwner && !adminPreview && <div className="flex flex-wrap gap-3 border-b border-white/[0.09] py-4"><Link to="/create" className="public-button public-button--primary"><Plus size={16} /> Create post</Link><Link to="/admin/my-profile" className="public-button public-button--secondary border-white/20 text-white"><Edit3 size={16} /> Edit profile</Link></div>}
-    {!adminPreview && (posts.length || projects.length || bio || skills.length) > 0 && <nav aria-label="Profile sections" className="public-filter-scroll flex min-w-0 gap-7 overflow-x-auto border-b border-white/[0.09] py-4 text-xs uppercase tracking-[0.16em] text-zinc-500">
-      <a href="#feed" className="min-h-11 content-center border-b border-orange-300 text-white">Posts</a>
-      {projects.length > 0 && <a href="#work" className="min-h-11 content-center border-b border-orange-300 text-white">Selected work</a>}
-      {bio && <a href="#about" className="min-h-11 content-center transition hover:text-white">About</a>}
-      {skills.length > 0 && <a href="#skills" className="min-h-11 content-center transition hover:text-white">Capabilities</a>}
-      <a href="#contact" className="min-h-11 content-center transition hover:text-white">Contact</a>
+    {!adminPreview && <nav className="ll-profile-tabs" aria-label="Profile sections">
+      <a href="#feed">Posts <span>{posts.filter((post) => post.status === 'published').length || ''}</span></a>
+      {projects.length > 0 && <a href="#work">Projects <span>{projects.length}</span></a>}
+      {bio && <a href="#about">About</a>}
+      <a href="#contact">Contact</a>
     </nav>}
 
-    {!adminPreview && <section id="feed" className="scroll-mt-24 py-8 sm:py-10"><SectionHeading eyebrow="Creative feed" title="Posts" />{posts.length ? <div className="mx-auto mt-7 grid max-w-3xl gap-7">{posts.map((post) => <CreativePostCard key={post.id} post={post} creative={creative} owner={isOwner} onArchive={onArchivePost} onRestore={onRestorePost} onDelete={onDeletePost} />)}</div> : <div className="mt-7 rounded-xl border border-dashed border-white/10 px-5 py-10 text-center"><p className="text-sm text-zinc-400">No posts published yet.</p>{isOwner && <Link to="/create" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-orange-200"><Plus size={16} /> Create your first post</Link>}</div>}</section>}
+    {!adminPreview && <div className="ll-profile-layout">
+      <main className="min-w-0">
+        {isOwner && <Link to="/create" className="ll-composer-prompt"><span className="ll-composer-prompt__icon"><Plus size={20} /></span><span><strong>Create a post</strong><small>Share work, process, photography, or a reflection.</small></span><ArrowRight size={17} /></Link>}
+        <section id="feed" className="ll-profile-section"><SectionHeading eyebrow="Personal wall" title="Published work and stories" />
+          {posts.length ? <div className="ll-feed-list">{posts.map((post) => <CreativePostCard key={post.id} post={post} creative={creative} owner={isOwner} onArchive={onArchivePost} onRestore={onRestorePost} onDelete={onDeletePost} />)}</div> : <div className="ll-profile-empty"><p>No posts published yet.</p>{isOwner && <Link to="/create"><Plus size={16} /> Create your first post</Link>}</div>}
+        </section>
+        {projects.length > 0 && <section id="work" className="ll-profile-section"><SectionHeading eyebrow="Formal portfolio" title="Projects" /><div className="ll-profile-projects">{projects.map((project) => <ProfileProject key={project.id} project={project} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div></section>}
+      </main>
+      <aside className="ll-profile-about" id="about">
+        {bio && <section><p className="ll-kicker">About</p><h2>Creative perspective</h2><p>{bio}</p></section>}
+        {skills.length > 0 && <section><p className="ll-kicker">Disciplines</p><ul>{skills.map((skill) => <li key={skill}>{skill}</li>)}</ul></section>}
+      </aside>
+    </div>}
 
-    {!adminPreview && projects.length > 0 && <section id="work" className="scroll-mt-24 border-t border-white/[0.09] py-8 sm:py-10">
-      <SectionHeading eyebrow="Selected work" title="Portfolio" />
-      {projects.length ? <div className="mx-auto mt-7 grid max-w-[1040px] gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-12">{projects.map((project, index) => <ProfileProject key={project.id} project={project} layout={projectLayout(index, projects.length)} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div> : <div className="mt-7 py-8"><p className="text-sm text-zinc-400">Work in progress.</p><p className="mt-2 text-sm text-zinc-600">Published credited projects will appear here.</p></div>}
-    </section>}
-
-    {bio && <section id="about" className="scroll-mt-24 border-t border-white/[0.09] py-8 sm:py-10">
-      <SectionHeading eyebrow="About" title="Creative perspective" />
-      <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-12">
-        <div className="max-w-[44rem] whitespace-pre-line text-base leading-7 text-zinc-200 sm:text-lg sm:leading-8">{bio}</div>
-        <dl className="self-start border-t border-orange-300/70 text-sm">
-          <Fact label="Discipline" value={creative.role} />
-          {creative.availability_status && <Fact label="Availability" value={creative.availability_status} />}
-          {creative.location && <Fact label="Location" value={creative.location} />}
-        </dl>
-      </div>
-    </section>}
-
-    {skills.length > 0 && <section id="skills" className="scroll-mt-24 border-t border-white/[0.09] bg-white/[0.018] px-4 py-8 sm:px-5 sm:py-10">
-      <SectionHeading eyebrow="Capabilities" title="Selected disciplines" />
-      <ul className="mt-7 grid border-t border-white/[0.1] sm:grid-cols-2 lg:grid-cols-3">{skills.map((skill) => <li key={skill} className="grid min-w-0 grid-cols-[0.75rem_minmax(0,1fr)] items-start gap-3 border-b border-white/[0.09] py-3.5 sm:pr-5"><span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.55)]" aria-hidden="true" /><span className="[overflow-wrap:anywhere] text-sm text-zinc-200">{skill}</span></li>)}</ul>
-    </section>}
-
-    {!adminPreview && <footer id="contact" className="scroll-mt-24 border-t border-orange-300/60 py-8 sm:py-10">
-      <p className="text-xs uppercase tracking-[0.2em] text-orange-300">Collaboration</p>
-      <div className="mt-5 grid gap-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div><h2 className="max-w-2xl text-[clamp(1.85rem,3.5vw,3.25rem)] font-medium leading-[1.05] tracking-[-0.035em] text-white">Start a possible collaboration.</h2>{creative.availability_status && <p className="mt-3 text-sm text-zinc-400">{creative.availability_status}</p>}<p className="mt-3 max-w-xl text-xs leading-6 text-zinc-500">Use the open inquiry to describe the project or opportunity. The team will review the best next step; a profile does not guarantee availability or assignment.</p></div>
-        <div className="flex flex-wrap gap-4"><Link to="/inquiry" className="public-button public-button--primary">Inquire <ArrowRight size={16} /></Link><Link to="/creatives" className="public-button public-button--secondary border-white/20 text-white">All creatives</Link></div>
-      </div>
-    </footer>}
-    </div>
+    {!adminPreview && <footer id="contact" className="ll-profile-contact"><div><p className="ll-kicker">Professional inquiry</p><h2>Interested in this Creative's work?</h2><p>Tell us about the project, collaboration, or opportunity. Lahat Liwa will help guide the right next step.</p></div><Link to="/inquiry" className="ll-primary-action">Ask about working together <ArrowRight size={16} /></Link></footer>}
   </article>;
 }
 
-function SectionHeading({ eyebrow, title }) {
-  return <div className="border-l border-orange-300/70 pl-4"><p className="text-[11px] uppercase tracking-[0.18em] text-orange-300">{eyebrow}</p><h2 className="mt-2 text-[clamp(1.7rem,3vw,2.65rem)] font-medium leading-none tracking-[-0.03em] text-white">{title}</h2></div>;
-}
-function ProfileRails() {
-  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 hidden xl:block">
-    <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-orange-200/40 via-orange-300/10 to-orange-200/40 shadow-[0_0_5px_rgba(251,146,60,0.3)]" />
-    <span className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-orange-200/45 via-orange-300/10 to-orange-200/35 shadow-[0_0_5px_rgba(251,146,60,0.4)]" />
-    <span className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-orange-200/45 via-orange-300/10 to-orange-200/35 shadow-[0_0_5px_rgba(251,146,60,0.4)]" />
-    <span className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-orange-200/40 via-orange-300/10 to-orange-200/40 shadow-[0_0_5px_rgba(251,146,60,0.3)]" />
-    <span className="absolute bottom-0 left-0 h-1 w-1 -translate-x-[1.5px] translate-y-[1.5px] rounded-full bg-orange-200/80 shadow-[0_0_6px_rgba(251,146,60,0.65)]" />
-    <span className="absolute bottom-0 right-0 h-1 w-1 translate-x-[1.5px] translate-y-[1.5px] rounded-full bg-orange-200/80 shadow-[0_0_6px_rgba(251,146,60,0.65)]" />
-  </div>;
-}
-function Fact({ label, value }) { return <div className="border-b border-white/[0.09] py-4"><dt className="text-[10px] uppercase tracking-[0.17em] text-zinc-600">{label}</dt><dd className="mt-1 text-zinc-300">{value}</dd></div>; }
-function SocialLink({ item }) { const icons={facebook:Facebook,instagram:Instagram,linkedin:Linkedin,youtube:Youtube,twitter:Twitter,github:Github,dribbble:Dribbble,tiktok:Music2,email:Mail,website:Globe2}; const Icon=icons[item.platform]||Globe2; const external=!item.href.startsWith('mailto:'); return <a href={item.href} target={external?'_blank':undefined} rel={external?'noopener noreferrer':undefined} aria-label={`${item.label}${external?' (opens in a new tab)':''}`} title={item.label} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-white/10 bg-zinc-900/90 text-zinc-200 transition hover:-translate-y-1 hover:border-orange-200/50 hover:text-orange-200 hover:shadow-[0_0_18px_rgba(251,146,60,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 motion-reduce:transform-none"><Icon size={18}/></a>; }
-function ProfileProject({project,layout,linkState}) {
+function SectionHeading({ eyebrow, title }) { return <div className="ll-section-heading"><p className="ll-kicker">{eyebrow}</p><h2>{title}</h2></div>; }
+function SocialLink({ item }) { const icons={facebook:Facebook,instagram:Instagram,linkedin:Linkedin,youtube:Youtube,twitter:Twitter,github:Github,dribbble:Dribbble,tiktok:Music2,email:Mail,website:Globe2}; const Icon=icons[item.platform]||Globe2; const external=!item.href.startsWith('mailto:'); return <a href={item.href} target={external?'_blank':undefined} rel={external?'noopener noreferrer':undefined} aria-label={`${item.label}${external?' (opens in a new tab)':''}`} title={item.label}><Icon size={17}/></a>; }
+function ProfileProject({project,linkState}) {
   const image=publicImageVariant(getPublicImageUrl(project.cover_image),'display');
   const roles=[...(project.credit_roles||[]),project.contribution_role,project.role].filter(Boolean);
-  const span={feature:'sm:col-span-2 lg:col-span-12',half:'lg:col-span-6','offset-large':'lg:col-span-7','offset-small':'lg:col-span-5',cinematic:'sm:col-span-2 lg:col-span-12'}[layout]||'lg:col-span-6';
-  const ratio='aspect-square';
-  return <article id={`creative-project-${project.id}`} className={`group min-w-0 scroll-mt-24 ${span}`}>
-    <Link to={`/projects/${project.slug}`} state={linkState} aria-label={`View ${project.title}`} className="block transition duration-500 hover:-translate-y-1 hover:shadow-[0_16px_55px_-28px_rgba(251,146,60,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 motion-reduce:transform-none motion-reduce:transition-none">
-      <div className="relative overflow-hidden bg-zinc-900 after:pointer-events-none after:absolute after:inset-0 after:border after:border-transparent after:transition after:duration-500 group-hover:after:border-orange-300/25">{image?<img src={image} alt={project.title} loading="lazy" decoding="async" width="1400" height="875" sizes={['feature','cinematic'].includes(layout)?'(max-width: 767px) calc(100vw - 24px), 70vw':'(max-width: 639px) calc(100vw - 24px), 44vw'} className={`${ratio} w-full object-cover transition duration-500 motion-reduce:transition-none group-hover:scale-[1.015]`}/>:<div className={`grid ${ratio} place-items-center bg-[radial-gradient(circle_at_75%_20%,rgba(251,146,60,0.2),transparent_32%),linear-gradient(145deg,#27272a,#09090b)] text-sm text-zinc-500`}>Project image coming soon</div>}</div>
-      <div className="relative grid border-b border-white/[0.09] pb-5 pt-3.5 after:absolute after:bottom-[-1px] after:left-0 after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.8)] after:transition-all after:duration-500 group-hover:after:w-24 motion-reduce:after:transition-none sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4"><div><p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.17em] text-orange-300"><span className="h-1.5 w-1.5 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.9)]" aria-hidden="true" />{project.category}</p><h3 className="mt-2 [overflow-wrap:anywhere] text-lg font-medium text-white">{project.title}</h3>{roles.length>0&&<p className="mt-1.5 text-xs text-zinc-500">{[...new Set(roles)].join(' · ')}</p>}</div><span className="mt-2 inline-flex min-h-10 items-center gap-2 self-end text-sm text-zinc-300 transition group-hover:text-orange-200 sm:mt-0">View project <ExternalLink size={14}/></span></div>
-    </Link>
-  </article>;
+  return <article id={`creative-project-${project.id}`} className="ll-profile-project"><Link to={`/projects/${project.slug}`} state={linkState}>{image?<img src={image} alt="" loading="lazy" decoding="async"/>:<span className="ll-profile-project__fallback"/>}<span><small>{project.category}</small><strong>{project.title}</strong>{roles.length>0&&<em>{[...new Set(roles)].join(' · ')}</em>}</span><ArrowRight size={17}/></Link></article>;
 }

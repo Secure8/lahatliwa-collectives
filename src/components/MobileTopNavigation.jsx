@@ -1,58 +1,21 @@
-import { FolderKanban, Handshake, House, Images, UsersRound } from 'lucide-react';
+import { BriefcaseBusiness, Handshake, House, Images, PenLine, UsersRound } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
-import { PUBLIC_PRIMARY_DESTINATIONS, publicDestinationIsActive } from '../lib/mobileAppShell';
-import { usePublicContent } from '../lib/contentApi';
-import { preloadPublicRoute } from '../lib/publicRoutePreload';
-
-const icons = {
-  '/': House,
-  '/work': FolderKanban,
-  '/projects': Images,
-  '/creatives': UsersRound,
-  '/services': Handshake,
-};
+import usePublicAccount from '../lib/usePublicAccount';
 
 export default function MobileTopNavigation() {
   const location = useLocation();
-  const { content } = usePublicContent([]);
-  const navigation = content.websiteNavigation || {};
-  const labelsByPath = {
-    '/': navigation.homeLabel || 'Home',
-    '/work': navigation.currentWorkLabel || 'Current Work',
-    '/projects': navigation.projectsLabel || 'Portfolio',
-    '/creatives': navigation.creativesLabel || 'Creatives',
-    '/services': navigation.servicesLabel || 'Work with us',
-  };
-
-  return (
-    <nav aria-label="Primary mobile navigation" data-mobile-top-navigation className="page-shell lg:hidden">
-      <div className="grid grid-cols-5">
-        {PUBLIC_PRIMARY_DESTINATIONS.map(([, href]) => {
-          const label = labelsByPath[href];
-          const Icon = icons[href];
-          const active = publicDestinationIsActive(location.pathname, href);
-          return (
-            <NavLink
-              key={href}
-              to={href}
-              aria-label={label}
-              aria-current={active ? 'page' : undefined}
-              title={label}
-              onPointerEnter={() => preloadPublicRoute(href)}
-              onFocus={() => preloadPublicRoute(href)}
-              className={clsx(
-                'mobile-nav-item relative flex min-h-[3.25rem] min-w-0 items-center justify-center px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
-                active ? 'text-[var(--site-accent-text)]' : 'text-zinc-500 hover:text-zinc-200',
-              )}
-            >
-              <span className={clsx('grid h-10 w-12 place-items-center rounded-xl transition', active && 'bg-[var(--site-accent-surface)]')}>
-                <Icon className="mobile-nav-icon" size={22} strokeWidth={active ? 2.25 : 1.8} aria-hidden="true" />
-              </span>
-            </NavLink>
-          );
-        })}
-      </div>
-    </nav>
-  );
+  const { account } = usePublicAccount();
+  const isCreative = account?.role === 'creative';
+  const links = [
+    ['Feed', '/', House],
+    ['Work', '/work', BriefcaseBusiness],
+    [isCreative ? 'Create' : 'Portfolio', isCreative ? '/create' : '/projects', isCreative ? PenLine : Images],
+    ['Creatives', '/creatives', UsersRound],
+    [isCreative ? 'Portfolio' : 'Services', isCreative ? '/projects' : '/services', isCreative ? Images : Handshake],
+  ];
+  const active = (href) => href === '/' ? location.pathname === '/' : location.pathname === href || location.pathname.startsWith(`${href}/`);
+  return <nav data-mobile-top-navigation className="ll-mobile-dock" aria-label="Primary mobile navigation">
+    {links.map(([label, href, Icon], index) => <NavLink key={`${href}-${index}`} to={href} aria-label={label} aria-current={active(href) ? 'page' : undefined} className={clsx(active(href) && 'is-active', isCreative && href === '/create' && 'is-create')}><span><Icon size={21} strokeWidth={active(href) ? 2.35 : 1.85} /></span><small>{active(href) ? label : ''}</small></NavLink>)}
+  </nav>;
 }

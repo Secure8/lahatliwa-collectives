@@ -1,4 +1,4 @@
-import { ArrowRight, ExternalLink, FolderKanban, Inbox, PanelsTopLeft, Plus, Users } from 'lucide-react';
+import { ArrowRight, ExternalLink, FolderKanban, Handshake, Inbox, PanelsTopLeft, Plus, ShieldCheck, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
@@ -8,7 +8,7 @@ import { formatDate } from '../../lib/helpers.js';
 import { supabase } from '../../lib/supabaseClient.js';
 
 const focusLink = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50';
-const inquiryRoles = new Set(['super_admin', 'admin', 'editor', 'creative', 'viewer']);
+const inquiryRoles = new Set(['super_admin']);
 
 export default function Dashboard() {
   const access = useAdminAccess();
@@ -57,10 +57,12 @@ export default function Dashboard() {
 
   const displayName = adminUser?.display_name || adminUser?.name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'there';
   const actions = useMemo(() => [
-    ...(['super_admin', 'admin'].includes(role) ? [{ to: '/admin/website', icon: PanelsTopLeft, label: 'Edit website', description: 'Change the words, links, and colors visitors see.', primary: true }] : []),
-    { to: '/admin/projects/new', icon: Plus, label: 'Start a project', description: 'Create active work, add public updates, and move it to the portfolio when complete.', primary: !['super_admin', 'admin'].includes(role) },
+    ...(['super_admin'].includes(role) ? [{ to: '/admin/website', icon: PanelsTopLeft, label: 'Website', description: 'Manage the brand, navigation, page copy, and appearance.', primary: true }] : []),
+    { to: '/admin/projects/new', icon: Plus, label: 'Create project', description: 'Publish formal current work or a completed portfolio case study.', primary: false },
     { to: '/admin/projects', icon: FolderKanban, label: 'Update current work', description: 'Post progress or mark a project completed.' },
+    { to: '/admin/website?section=page.services', icon: Handshake, label: 'Services', description: 'Keep service and inquiry guidance clear and current.' },
     ...(canViewInquiries ? [{ to: '/admin/inquiries', icon: Inbox, label: 'Review inquiries', description: 'Read questions and continue follow-up.' }] : []),
+    { to: '/admin/moderation', icon: ShieldCheck, label: 'Moderation', description: 'Review flags and protect the professionalism of the network.' },
     ...(canManagePeople ? [{ to: '/admin/team', icon: Users, label: 'Manage team', description: 'Invite members and update access.' }] : []),
     { to: '/', icon: ExternalLink, label: 'View live website', description: 'Open the public website.', external: true },
   ], [canManagePeople, canViewInquiries, role]);
@@ -72,10 +74,10 @@ export default function Dashboard() {
   ];
 
   return <AdminLayout>
-    <AdminPageHeader eyebrow={`${roleLabel(role)} workspace`} title={`Welcome, ${displayName}`} description="Choose a task below to update the website, publish work, or respond to people." />
+    <AdminPageHeader eyebrow={`${roleLabel(role)} · Platform operations`} title={`Welcome, ${displayName}`} description="Maintain the platform, support Creatives, and respond to professional inquiries." />
     {state.error && <AdminNotice className="mb-6"><div className="flex flex-wrap items-center justify-between gap-3"><span>{state.error}</span><button type="button" onClick={() => setReloadKey((value) => value + 1)} className={`text-sm underline decoration-white/30 underline-offset-4 ${focusLink}`}>Retry</button></div></AdminNotice>}
 
-    <section aria-labelledby="quick-actions-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Start here</p><h2 id="quick-actions-heading" className="mt-1 text-xl font-semibold">What would you like to do?</h2></div><nav className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Primary actions">{actions.map((action) => <QuickAction key={action.label} {...action} />)}</nav></section>
+    <section aria-labelledby="quick-actions-heading"><div className="mb-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">Workspace</p><h2 id="quick-actions-heading" className="mt-1 text-xl font-semibold">Choose an area</h2></div><nav className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Primary actions">{actions.map((action) => <QuickAction key={action.label} {...action} />)}</nav></section>
 
     <section className="mt-8" aria-labelledby="overview-heading"><div className="mb-4"><h2 id="overview-heading" className="text-xl font-semibold">Overview</h2></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(([key, label]) => <AdminSurface key={key} className="min-h-28"><p className="text-sm text-zinc-400">{label}</p><p className="mt-5 text-3xl font-semibold text-white">{state.loading ? '…' : state.totals[key] ?? '—'}</p></AdminSurface>)}</div></section>
 

@@ -16,20 +16,19 @@ test('the approved tagline remains exact in the public defaults', () => {
 
 test('public positioning serves clients and published creatives without agency claims', () => {
   const home = source('pages/Home.jsx');
-  const homeHero = source('components/ActiveWorkHero.jsx');
   const about = source('pages/About.jsx');
   const creatives = source('pages/Creatives.jsx');
   const footer = source('components/Footer.jsx');
 
-  assert.match(homeHero, /Creative work, shared from first progress to finished portfolio/i);
-  assert.match(home, /Featured creatives/i);
-  assert.match(about, /content\.displayName.*is rooted in Aklan/i);
+  assert.match(home, /Discover what Creatives are making now/i);
+  assert.match(home, /Creative feed/i);
+  assert.match(about, /content\.displayName.*rooted in Aklan/i);
   assert.match(about, /does not automatically mean employment/i);
   assert.match(about, /Built from Aklan/i);
-  assert.match(creatives, /people credited in the work/i);
+  assert.match(creatives, /people behind the work/i);
   assert.match(footer, /content\.tagline/);
 
-  const publicCopy = [home, homeHero, about, creatives, footer, source('pages/Services.jsx'), source('pages/Projects.jsx')].join('\n');
+  const publicCopy = [home, about, creatives, footer, source('pages/Services.jsx'), source('pages/Projects.jsx')].join('\n');
   assert.doesNotMatch(publicCopy, /full[- ]service agency|staffed departments|industry[- ]leading|guaranteed jobs|all creatives are (?:employees|staff)/i);
 });
 
@@ -52,10 +51,10 @@ test('public project and profile copy emphasizes publication and contributor cre
   const details = source('pages/ProjectDetails.jsx');
   const profile = source('components/CreativeProfileView.jsx');
 
-  assert.match(projects, /permanent project portfolio/);
+  assert.match(projects, /project portfolio/);
   assert.match(details, /Published through <BrandWordmark name=\{content\.displayName\}/);
   assert.match(details, /Credited contributors/);
-  assert.match(profile, />Inquire <ArrowRight/);
+  assert.match(profile, /Ask about working together/);
 });
 
 test('public brand names remain CMS-driven and custom logo behavior stays separate', () => {

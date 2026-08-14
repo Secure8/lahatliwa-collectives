@@ -94,8 +94,8 @@ test('admin shell exposes navigation labels, skip target, and route-aware titles
   assert.match(searchBar, /type="search"/);
   assert.match(searchBar, /aria-label=\{label\}/);
   assert.match(card, /headingLevel/);
-  assert.match(card, /border-t border-white\/\[0\.09\][\s\S]*?after:bg-orange-300/);
-  assert.match(card, /border-b border-white\/\[0\.12\]/);
+  assert.match(card, /ll-creative-mini/);
+  assert.match(card, /aria-label=\{`View \$\{creative\.name\}`\}/);
   assert.match(guard, /useBlocker/);
   assert.match(guard, /beforeunload/);
   assert.match(guard, /AdminConfirmationDialog/);
@@ -113,12 +113,12 @@ test('admin visual hierarchy distinguishes content, controls, status, and naviga
   assert.match(ui, /data-admin-control/);
   assert.match(ui, /data-variant=\{variant\}/);
   assert.match(ui, /rounded-full[\s\S]*?bg-current/);
-  assert.match(layout, /admin-sidebar-link/);
+  assert.match(layout, /ll-admin-tabs/);
   assert.match(layout, /AdminCommandPalette/);
-  assert.match(layout, /Admin workspace/);
+  assert.match(layout, /Platform operations/);
   assert.match(styles, /\.admin-shell article/);
   assert.match(styles, /interactive-tab\[aria-pressed="true"\]/);
-  assert.match(styles, /admin-sidebar-link\[aria-current="page"\]/);
+  assert.match(styles, /\.ll-admin-tabs a\.is-active/);
   assert.match(styles, /\[data-theme="light"\] \.admin-record-card/);
   assert.match(contentEditor, /rounded-lg border px-3 text-sm font-medium/);
 });
@@ -162,10 +162,11 @@ test('admin search fields render one boundary with a single restrained focus sta
 test('dashboard prioritizes summary, urgent work, and a small primary action set', async () => {
   const dashboard = await source('../pages/admin/Dashboard.jsx');
   assert.match(dashboard, /aria-label="Primary actions"/);
-  assert.match(dashboard, /Edit website/);
-  assert.match(dashboard, /Start a project/);
+  assert.match(dashboard, /Website/);
+  assert.match(dashboard, /Create project/);
   assert.match(dashboard, /Update current work/);
   assert.match(dashboard, /Review inquiries/);
+  assert.match(dashboard, /Moderation/);
   assert.match(dashboard, /Manage team/);
   assert.match(dashboard, /View live website/);
   assert.match(dashboard, /Needs attention/);
@@ -193,11 +194,11 @@ test('admin people management connects profiles and access while preserving thei
     source('../pages/admin/AdminCreatives.jsx'),
     source('../pages/admin/SiteSettings.jsx'),
   ]);
-  assert.match(layout, /\['Content', \[/);
-  assert.match(layout, /\['Team', \[/);
-  assert.match(layout, /Website Studio[\s\S]*Current Work & Portfolio[\s\S]*Creative Profiles[\s\S]*Post Moderation/);
+  assert.match(layout, /\['Platform', \[/);
+  assert.match(layout, /\['Access', \[/);
+  assert.match(layout, /Website[\s\S]*Services[\s\S]*Projects[\s\S]*Creatives[\s\S]*Moderation/);
   assert.doesNotMatch(layout, /Editorial Studio/);
-  assert.match(layout, /Team Members/);
+  assert.match(layout, /Accounts/);
   assert.match(peopleNav, /aria-label="People management"/);
   assert.match(team, /profile_image_url/);
   assert.match(team, /member\.avatar_url \|\| creatives\.find/);

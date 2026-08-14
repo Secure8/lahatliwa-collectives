@@ -33,8 +33,8 @@ function studioPlacement(key, entryType = '') {
   if (key === 'global.brand') return ['Shared across the website', 'Logo, brand name, and tagline used throughout the site'];
   if (key === 'global.navigation') return ['Shared across the website', 'Labels and visibility for the top and mobile menus'];
   if (key === 'global.appearance') return ['Shared across the website', 'Website-wide colors, buttons, text, and borders'];
-  if (key === 'page.home') return ['Public pages', 'Homepage descriptions; project and profile images stay automatic'];
-  if (key === 'page.explore') return ['Public pages', 'Current Work introduction'];
+  if (key === 'page.home') return ['Public pages', 'Creative Feed introduction; posts, projects, and profile images stay automatic'];
+  if (key === 'page.explore') return ['Public pages', 'Active Work introduction'];
   if (key === 'page.creatives') return ['Public pages', 'Creative directory descriptions'];
   if (key === 'page.projects') return ['Public pages', 'Portfolio introduction'];
   if (key === 'page.about') return ['Public pages', 'About page content and information cards'];
@@ -157,7 +157,7 @@ function StudioContent(props) {
   return <div className="mx-auto max-w-4xl">
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.08] pb-5"><div><p className="text-xs uppercase tracking-[0.16em] text-zinc-500">{selected.entry_type}</p><h2 className="mt-1 text-2xl font-semibold text-white">{form.name || config?.label || labelFromKey(selected.entry_key)}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Changes here appear in {websiteImpact(selected.entry_key).join(', ')}.</p></div><span className={`text-xs font-semibold ${state === 'Published' && !dirty ? 'text-emerald-200' : 'text-amber-200'}`}>{statusLabel}</span></div>
     {sectionKey === 'global.appearance' && <AppearanceGuide/>}
-    {sectionKey === 'page.home' && <div className="mt-6 border-l-2 border-sky-300/35 pl-4"><h3 className="text-sm font-semibold text-white">Images stay connected automatically</h3><p className="mt-1 text-sm leading-6 text-zinc-400">Homepage project covers come from Projects, and creative photos come from Creative Profiles. This section edits wording only, so images cannot fall out of sync.</p></div>}
+    {sectionKey === 'page.home' && <div className="mt-6 border-l-2 border-sky-300/35 pl-4"><h3 className="text-sm font-semibold text-white">The feed stays connected automatically</h3><p className="mt-1 text-sm leading-6 text-zinc-400">Published Creative posts, project media, names, and profile photos flow into Home automatically. This section edits only the feed introduction.</p></div>}
     {sectionKey === 'global.brand' && <div className="mt-6 border-l-2 border-amber-200/40 pl-4"><h3 className="text-sm font-semibold text-white">One shared identity</h3><p className="mt-1 text-sm leading-6 text-zinc-400">The brand name, logo, and tagline update the navbar, footer, and other connected public areas together.</p></div>}
     {sectionKey === 'page.inquiries' && <div className="mt-6 border-l-2 border-emerald-300/35 pl-4"><h3 className="text-sm font-semibold text-white">Contact details are shared</h3><p className="mt-1 text-sm leading-6 text-zinc-400">Email and social links appear on Contact and automatically flow into the footer.</p></div>}
     <section className="mt-6"><h3 className="text-base font-semibold text-white">Editable content</h3><p className="mt-1 text-sm text-zinc-500">Use plain, visitor-friendly wording. Every field below has one clear destination.</p><div className="mt-5 grid gap-5 sm:grid-cols-2">{commonFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} uploading={uploading === key} onUpload={(file) => uploadImage(key,file)} onChange={(value) => updateField(key,value,type)}/>)}</div></section>

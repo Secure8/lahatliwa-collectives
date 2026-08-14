@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { preloadPublicRoute } from '../lib/publicRoutePreload';
 import { publicImageVariant } from '../lib/publicImages';
 
-export default function CreativeCard({ creative, headingLevel = 'h3' }) {
+export default function CreativeCard({ creative, headingLevel = 'h3', compact = false }) {
   const location = useLocation();
   const linkState = publicLocationState(location, `creative-${creative.id}`);
   const profileImage = publicImageVariant(getPublicImageUrl(creative.profile_image_url), 'thumbnail');
@@ -14,6 +14,13 @@ export default function CreativeCard({ creative, headingLevel = 'h3' }) {
   const allSkills = Array.isArray(creative.skills) ? creative.skills : [];
   const skills = allSkills.slice(0, 4);
   const Heading = headingLevel;
+
+  if (compact) return <article id={`creative-${creative.id}`} className="ll-creative-mini">
+    <Link to={`/creatives/${creative.slug}`} state={linkState} aria-label={`View ${creative.name}`}>
+      {profileImage && !imageFailed ? <img src={profileImage} alt="" loading="lazy" decoding="async" onError={() => setImageFailed(true)} /> : <span className="ll-creative-mini__avatar">{creative.name?.slice(0, 1) || 'L'}</span>}
+      <span><strong>{creative.name}</strong><small>{creative.role || skills.slice(0, 2).join(' · ') || 'Creative'}</small></span><ArrowUpRight size={16} />
+    </Link>
+  </article>;
 
   return (
     <article id={`creative-${creative.id}`} className="mobile-app-card group relative flex h-full scroll-mt-24 flex-col border-t border-white/[0.09] pt-5 after:absolute after:left-0 after:top-[-1px] after:h-px after:w-0 after:bg-orange-300 after:shadow-[0_0_12px_rgba(253,186,116,0.75)] after:transition-all after:duration-500 hover:after:w-20">

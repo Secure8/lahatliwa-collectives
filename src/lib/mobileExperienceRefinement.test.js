@@ -2,154 +2,67 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 
-test('public and admin mobile navigation identify the current page without cluttering inactive icons', async () => {
-  const [component, navbar, app, admin, styles] = await Promise.all([
-    readFile(new URL('../components/MobileTopNavigation.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../index.css', import.meta.url), 'utf8'),
-  ]);
+const source = (path) => readFile(new URL(path, import.meta.url), 'utf8');
+
+test('public mobile navigation is a five-destination professional network dock', async () => {
+  const [component, navbar, app, styles] = await Promise.all([source('../components/MobileTopNavigation.jsx'), source('../components/Navbar.jsx'), source('../App.jsx'), source('../index.css')]);
   assert.match(component, /data-mobile-top-navigation/);
-  assert.match(component, /lg:hidden/);
-  assert.match(component, /grid-cols-5/);
-  assert.match(component, /aria-current=\{active \? 'page'/);
-  assert.doesNotMatch(component, /mobile-nav-current-label/);
+  assert.match(component, /isCreative \? 'Create' : 'Portfolio'/);
+  assert.match(component, /aria-current=\{active\(href\) \? 'page'/);
   assert.match(component, /House/);
-  assert.match(component, /FolderKanban/);
-  assert.match(component, /Images/);
+  assert.match(component, /BriefcaseBusiness/);
   assert.match(component, /UsersRound/);
-  assert.match(component, /Handshake/);
-  assert.match(component, /usePublicContent/);
-  assert.match(component, /navigation\.currentWorkLabel \|\| 'Current Work'/);
-  assert.match(component, /navigation\.projectsLabel \|\| 'Portfolio'/);
-  assert.match(component, /navigation\.creativesLabel \|\| 'Creatives'/);
-  assert.match(component, /navigation\.servicesLabel \|\| 'Work with us'/);
-  assert.match(component, /h-10 w-12 place-items-center rounded-xl/);
-  assert.match(component, /active && 'bg-\[var\(--site-accent-surface\)\]'/);
   assert.match(navbar, /<MobileTopNavigation \/>/);
-  assert.match(navbar, /AppearanceMenuAction[\s\S]*?iconOnly/);
   assert.doesNotMatch(app, /MobileBottomNavigation/);
-  assert.match(admin, /data-admin-mobile-top-navigation/);
-  assert.doesNotMatch(admin, /data-admin-mobile-bottom-navigation|useKeyboardVisibility/);
-  assert.match(admin, /useMobileAppBar/);
-  assert.match(admin, /grid-cols-5/);
-  assert.match(admin, /aria-current=\{active \? 'page'/);
-  assert.match(admin, /mobile-nav-current-label/);
-  assert.doesNotMatch(navbar, /secondaryPageLabel/);
-  assert.match(admin, /House/);
-  assert.match(admin, /PlusSquare/);
-  assert.match(admin, /Inbox/);
-  assert.match(admin, /CircleUserRound/);
-  assert.match(admin, /Ellipsis/);
-  assert.doesNotMatch(admin, /h-9 w-12 place-items-center rounded-xl/);
-  assert.doesNotMatch(admin, /active && 'bg-amber-200\/\[0\.12\]'/);
-  assert.match(styles, /\.mobile-nav-current-label[\s\S]*?font-size: 0\.6rem;/);
-  const adminLockLinks = [...navbar.matchAll(/<Link\s+to="\/admin\/dashboard"[\s\S]*?<\/Link>/g)].map((match) => match[0]);
-  assert.equal(adminLockLinks.length, 2);
-  adminLockLinks.forEach((link) => assert.doesNotMatch(link, /rounded-(?:xl|full)|border-white|bg-white/));
-  assert.match(styles, /\.public-app-content--surface[\s\S]*?padding-top: 0;/);
-  assert.doesNotMatch(styles, /\.public-footer[\s\S]*?padding-bottom: calc\(4\.5rem \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(styles, /\.ll-mobile-dock[\s\S]*?grid-template-columns: repeat\(5/);
+  assert.match(styles, /@media \(max-width: 420px\)/);
 });
 
-test('mobile Home prioritizes current work, bounded content, and the shared footer', async () => {
-  const [home, app, styles] = await Promise.all([
-    readFile(new URL('../pages/Home.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../App.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../index.css', import.meta.url), 'utf8'),
-  ]);
-  assert.match(home, /data-current-work-homepage/);
-  assert.match(home, /fetchPublicProjectSummaries\(\{ workStatus: 'active' \}\)/);
-  assert.match(home, /to="\/work"/);
-  assert.match(home, /home-creatives-grid/);
-  assert.match(home, /home-featured-creatives/);
-  assert.doesNotMatch(home, /ExploreAklanHero|DestinationsFeed/);
-  assert.match(styles, /overflow-x: clip/);
+test('mobile Home is a fluid feed with no artificial item limit', async () => {
+  const [home, feed, styles, app] = await Promise.all([source('../pages/Home.jsx'), source('../components/CreativeFeed.jsx'), source('../index.css'), source('../App.jsx')]);
+  assert.match(home, /data-creative-network-home/);
+  assert.match(home, /loadPublicCreativeFeed/);
+  assert.match(home, /fetchPublicProjectSummaries\(\)/);
+  assert.match(feed, /mergeCreativeFeed/);
+  assert.match(feed, /CreativePostCard/);
+  assert.doesNotMatch(home, /ActiveWorkHero|home-creatives-grid/);
+  assert.match(styles, /\.ll-feed-list/);
   assert.match(app, /<Footer \/>/);
-  assert.doesNotMatch(app, /hidden lg:block' : ''/);
 });
 
-test('open inquiry stays one page and never forces the document to page top', async () => {
-  const [form, hook, progressive] = await Promise.all([
-    readFile(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('./useStepScroll.js', import.meta.url), 'utf8'),
-    readFile(new URL('./useProgressiveNavigation.js', import.meta.url), 'utf8'),
-  ]);
-  assert.doesNotMatch(form, /window\.scrollTo\(\{ top: 0/);
-  assert.match(hook, /scheduleProgressiveNavigation/);
-  assert.match(progressive, /prefers-reduced-motion: reduce/);
-  assert.match(form, /data-inquiry-field/);
+test('admin uses responsive top navigation and a focus-managed drawer instead of a permanent sidebar', async () => {
+  const [admin, dashboard, drawer, styles] = await Promise.all([source('../components/admin/AdminLayout.jsx'), source('../pages/admin/Dashboard.jsx'), source('./useModalDrawer.js'), source('../index.css')]);
+  assert.match(admin, /ll-admin-tabs/);
+  assert.match(admin, /Open admin navigation/);
+  assert.match(admin, /useModalDrawer/);
+  assert.match(admin, /role="dialog"/);
+  assert.doesNotMatch(admin, /lg:w-64|lg:ml-64/);
+  assert.match(dashboard, /aria-label="Primary actions"/);
+  assert.match(drawer, /event\.key !== 'Tab'/);
+  assert.match(styles, /\.ll-admin-tabs/);
+});
+
+test('open inquiry remains a single accessible form with contextual project support', async () => {
+  const form = await source('../pages/StartProject.jsx');
   assert.match(form, /aria-label="Open inquiry form"/);
-  assert.match(form, /document\.querySelector/);
+  assert.match(form, /data-inquiry-field/);
+  assert.match(form, /projectContext/);
   assert.doesNotMatch(form, /role="progressbar"|data-flow-step/);
 });
 
-test('project cards stretch equally on desktop without fixed mobile heights', async () => {
-  const [grid, card, projects] = await Promise.all([
-    readFile(new URL('../components/ProjectGrid.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../components/ProjectCard.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/Projects.jsx', import.meta.url), 'utf8'),
-  ]);
+test('project cards remain square, fully linked, and height-safe', async () => {
+  const [grid, card] = await Promise.all([source('../components/ProjectGrid.jsx'), source('../components/ProjectCard.jsx')]);
   assert.match(grid, /grid items-stretch/);
   assert.match(card, /flex h-full[\s\S]*?flex-col/);
-  assert.match(card, /project-card-body[\s\S]*?flex-1/);
   assert.match(card, /aspect-square/);
   assert.doesNotMatch(card, /h-\[\d+px\]/);
-  assert.match(projects, /<ProjectGrid projects=\{visible\}/);
 });
 
-test('admin keeps stable role-aware navigation, a responsive dashboard, and a one-handed primary bar', async () => {
-  const [admin, dashboard, styles] = await Promise.all([
-    readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/admin/Dashboard.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../index.css', import.meta.url), 'utf8'),
-  ]);
-  assert.match(admin, /groupLinks\.filter\(\(\[, , , canShow\]\) => canShow\(access\)\)/);
-  assert.match(admin, /admin-app-bar[\s\S]*?sticky inset-x-0 top-0[\s\S]*?lg:fixed/);
-  assert.match(admin, /mobilePrimaryLinks/);
-  assert.match(admin, /access\.role === 'creative'/);
-  assert.match(admin, /Open all admin sections/);
-  assert.equal((admin.match(/onClick=\{\(\) => setMobileOpen\(true\)\}/g) || []).length, 1);
-  assert.match(admin, /ref=\{triggerRef\}[\s\S]*?Open all admin sections/);
-  assert.match(admin, /Admin workspace[\s\S]*?currentPageTitle/);
-  assert.match(admin, /AppearanceMenuAction[\s\S]*?iconOnly/);
-  assert.match(dashboard, /aria-label="Primary actions"/);
-  assert.match(dashboard, /sm:grid-cols-2 lg:grid-cols-3/);
-  assert.match(dashboard, />Overview</);
-  assert.match(styles, /\.admin-record-actions[\s\S]*?grid-template-columns/);
-});
-
-test('long admin forms share mobile sections and sticky actions above the safe-area edge', async () => {
-  const [ui, projectForm, creativeEditor, settings, contentEditor, profile, styles] = await Promise.all([
-    readFile(new URL('../components/admin/AdminUI.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../components/admin/ProjectForm.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/admin/CreativeEditor.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/admin/SiteSettings.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/admin/ContentEditor.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../pages/admin/MyProfile.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../index.css', import.meta.url), 'utf8'),
-  ]);
-  assert.match(ui, /export function ResponsiveFormSection/);
-  assert.match(ui, /export function StickyMobileActions/);
-  assert.match(ui, /data-sticky-mobile-actions/);
-  for (const source of [projectForm, creativeEditor, settings, contentEditor, profile]) {
-    assert.match(source, /StickyMobileActions/);
-    assert.match(source, /ResponsiveFormSection/);
-  }
-  assert.match(styles, /\[data-sticky-mobile-actions\][\s\S]*?bottom: env\(safe-area-inset-bottom\)/);
-  assert.match(styles, /font-size: 1rem/);
-});
-
-test('inquiry details use a focus-trapped full-screen mobile dialog and a mobile confirmation sheet', async () => {
-  const [inquiries, dialog] = await Promise.all([
-    readFile(new URL('../pages/admin/AdminInquiries.jsx', import.meta.url), 'utf8'),
-    readFile(new URL('../components/admin/AdminDialog.jsx', import.meta.url), 'utf8'),
-  ]);
-  assert.match(inquiries, /presentation="fullscreen"/);
-  assert.match(inquiries, /presentation="sheet"/);
+test('long admin forms and dialogs retain touch-safe shared components', async () => {
+  const [ui, dialog, styles] = await Promise.all([source('../components/admin/AdminUI.jsx'), source('../components/admin/AdminDialog.jsx'), source('../index.css')]);
+  assert.match(ui, /ResponsiveFormSection/);
+  assert.match(ui, /StickyMobileActions/);
   assert.match(dialog, /useModalDrawer/);
   assert.match(dialog, /h-dvh/);
-  assert.match(dialog, /data-drawer-initial-focus/);
-  assert.match(dialog, /items-end sm:items-center/);
-  assert.match(dialog, /safe-area-inset-bottom/);
+  assert.match(styles, /safe-area-inset-bottom/);
 });

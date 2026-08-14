@@ -13,11 +13,12 @@ function RichText({ segments = [] }) {
   });
 }
 
-export default function CreativePostDocument({ document, media = [] }) {
+export default function CreativePostDocument({ document, media = [], compact = false }) {
   const normalized = normalizeCreativePostDocument(document);
   const mediaMap = postMediaById(media);
-  return <div className="creative-post-document grid gap-6 text-zinc-200">
-    {normalized.blocks.map((block) => {
+  const blocks = compact && normalized.blocks.length > 8 ? normalized.blocks.slice(0, 8) : normalized.blocks;
+  return <div className="creative-post-document ll-post-document">
+    {blocks.map((block) => {
       if (block.type === 'heading') { const Heading = block.level === 3 ? 'h3' : 'h2'; return <Heading key={block.id} className="text-balance text-2xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-3xl"><RichText segments={block.content} /></Heading>; }
       if (block.type === 'paragraph') return <p key={block.id} className="whitespace-pre-wrap text-[1.02rem] leading-8 text-zinc-200"><RichText segments={block.content} /></p>;
       if (block.type === 'quote') return <blockquote key={block.id} className="border-l-2 border-orange-300 pl-5 text-xl italic leading-8 text-zinc-100"><RichText segments={block.content} /></blockquote>;
@@ -28,5 +29,6 @@ export default function CreativePostDocument({ document, media = [] }) {
       if (block.type === 'external_embed') return <a key={block.id} href={block.url} target="_blank" rel="noopener noreferrer" className="group rounded-xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-orange-300/35"><span className="block text-xs uppercase tracking-[0.16em] text-orange-300">External showcase</span><span className="mt-2 block break-words font-medium text-white group-hover:text-orange-100">{block.label || block.url}</span></a>;
       return null;
     })}
+    {compact && normalized.blocks.length > blocks.length && <p className="ll-post-continue">Open the post to continue reading.</p>}
   </div>;
 }

@@ -20,7 +20,7 @@ export function isPrivilegedRole(role) {
 }
 
 export function canCreateProjects(role) {
-  return contentRoles.includes(normalizeRole(role));
+  return isPrivilegedRole(role);
 }
 
 export function canManageTeam(role) {

@@ -1,4 +1,4 @@
-export const BRAND_POSITIONING = 'Lahat Liwa Collectives is an Aklan-based creative work platform. We document work in progress, publish completed projects, credit collaborators, and welcome open inquiries for creative and digital work.';
+export const BRAND_POSITIONING = 'Lahat Liwa Collectives is a professional creative social portfolio where Creatives publish work, process, writing, photography, and projects, and where viewers discover the people behind that work.';
 
 export const CURRENT_WORK_COPY = Object.freeze({
   eyebrow: 'Current work',
@@ -52,7 +52,7 @@ export function brandAlignedWebsiteBundle(bundle = {}) {
   if (/Website by Liwa Digital|service branch|practical services/i.test(`${footer.contextLabel || ''} ${footer.footerText || ''}`)) aligned['global.footer'] = { ...footer, contextLabel: '', footerText: 'An Aklan-based creative work platform for current project updates, completed work, contributor credit, and open inquiries.' };
 
   const navigation = aligned['global.navigation'] || {};
-  aligned['global.navigation'] = { ...navigation, projectsLabel: navigation.projectsLabel === 'Projects' ? 'Portfolio' : navigation.projectsLabel, servicesLabel: !navigation.servicesLabel || navigation.servicesLabel === 'Services' ? 'Work with us' : navigation.servicesLabel };
+  aligned['global.navigation'] = { ...navigation, homeLabel: !navigation.homeLabel || navigation.homeLabel === 'Home' ? 'Feed' : navigation.homeLabel, currentWorkLabel: navigation.currentWorkLabel === 'Current Work' ? 'Work' : navigation.currentWorkLabel, projectsLabel: navigation.projectsLabel === 'Projects' ? 'Portfolio' : navigation.projectsLabel, servicesLabel: navigation.servicesLabel === 'Work with us' ? 'Services' : navigation.servicesLabel };
 
   const creatives = aligned['page.creatives'] || {};
   if (/AKLAN CREATIVES|shared space where creatives|collective identity/i.test(`${creatives.heroEyebrow || ''} ${creatives.heroDescription || ''}`)) aligned['page.creatives'] = { ...creatives, ...CREATIVES_COPY };

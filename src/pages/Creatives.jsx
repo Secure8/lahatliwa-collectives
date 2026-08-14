@@ -4,8 +4,6 @@ import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
 import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
-import PublicPageHeader from '../components/PublicPageHeader';
-import CollectiveHero from '../components/CollectiveHero.jsx';
 
 export default function Creatives() {
   const [creatives, setCreatives] = useState([]);
@@ -35,10 +33,8 @@ export default function Creatives() {
   }, []);
 
   return (
-    <div>
-      <CollectiveHero content={content} />
-      <div className="page-shell py-20">
-      <PublicPageHeader eyebrow={page.directoryEyebrow || 'Creative directory'} title={page.directoryTitle || 'Meet the people credited in the work.'} description={page.directoryDescription || `Explore profiles, skills, selected work, and project contributions published through ${content.displayName}. A profile records creative work and credit without implying employment, permanent affiliation, or guaranteed availability.`} accentColor={content.accentColor} titleColor={content.primaryTextColor} bodyColor={content.secondaryTextColor} aside={<><p className="text-[10px] uppercase tracking-[0.18em] text-[var(--site-muted-text)]">Profile focus</p><p className="mt-2 max-w-44 text-sm leading-6 text-[var(--site-secondary-text)]">Skills, selected work, and contributor credits.</p></>} />
+    <div className="page-shell py-12 sm:py-16">
+      <header className="ll-directory-intro"><p className="ll-kicker">{page.directoryEyebrow || 'Creative network'}</p><h1>{page.directoryTitle || 'Discover the people behind the work.'}</h1><p>{page.directoryDescription || `Explore professional profiles, published posts, disciplines, and formal project contributions across ${content.displayName}.`}</p></header>
       <div className="pt-12">
       {loading && <LoadingState label="Loading creatives" />}
       {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}
@@ -49,7 +45,6 @@ export default function Creatives() {
           </div>
         ) : <EmptyState title="No published profiles yet" message="Published creative profiles will appear here." />
       )}
-      </div>
       </div>
     </div>
   );

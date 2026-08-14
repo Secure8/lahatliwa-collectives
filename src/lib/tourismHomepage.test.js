@@ -24,27 +24,16 @@ test('project lifecycle fails closed to the completed portfolio', () => {
   assert.equal(projectWorkStatus('unexpected'), 'completed');
 });
 
-test('homepage and Current Work use active projects instead of the tourism portal', () => {
+test('homepage is a global creative feed while Work retains active project updates', () => {
   const home = read('src/pages/Home.jsx');
   const work = read('src/pages/CurrentWork.jsx');
   const app = read('src/App.jsx');
-  assert.match(home, /data-current-work-homepage/);
-  assert.match(home, /fetchPublicProjectSummaries\(\{ workStatus: 'active' \}\)/);
-  assert.match(home, /<ActiveWorkHero projects=\{activeProjects\}/);
-  assert.match(home, /activeProjects\.map/);
-  assert.doesNotMatch(home, /activeProjects\.slice|\.limit\([^)]*active/i);
-  const hero = read('src/components/ActiveWorkHero.jsx');
-  assert.match(hero, /projects\.length/);
-  assert.match(hero, /Previous active project/);
-  assert.match(hero, /Next active project/);
-  assert.match(hero, /AUTOPLAY_MS = 6000/);
-  assert.match(hero, /Pause automatic sliding/);
-  assert.match(hero, /Resume automatic sliding/);
-  assert.match(hero, /grid-cols-3[\s\S]*gap-3 sm:gap-4/);
-  assert.match(hero, /className="mt-2 flex w-fit items-center gap-2[^"]*"[\s\S]*className="mt-4 inline-flex/);
-  assert.doesNotMatch(hero, /onMouseEnter|hoverPaused|focusPaused/);
-  assert.match(hero, /prefers-reduced-motion/);
-  assert.match(hero, /aria-live="polite"/);
+  assert.match(home, /data-creative-network-home/);
+  assert.match(home, /loadPublicCreativeFeed\(\{ limit: 36 \}\)/);
+  assert.match(home, /fetchPublicProjectSummaries\(\)/);
+  assert.match(home, /<CreativeFeed/);
+  assert.match(home, /People to discover/);
+  assert.doesNotMatch(home, /ActiveWorkHero|activeProjects/);
   assert.match(work, /normalizeProjectUpdates/);
   assert.match(work, /Event coverage/);
   assert.match(app, /path="\/work" element=\{<CurrentWork \/>\}/);

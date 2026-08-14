@@ -113,7 +113,7 @@ test('public image priorities match the installed React runtime and loading plac
   assert.match(loadingState, /role="status" aria-live="polite"/);
 });
 
-test('native menus follow the active theme and mobile admin actions stay distinct', () => {
+test('native menus follow the active theme and admin actions stay distinct', () => {
   const styles = readFileSync(resolve(root, 'src/index.css'), 'utf8');
   const inquiry = readFileSync(resolve(root, 'src/pages/StartProject.jsx'), 'utf8');
   const adminLayout = readFileSync(resolve(root, 'src/components/admin/AdminLayout.jsx'), 'utf8');
@@ -122,8 +122,9 @@ test('native menus follow the active theme and mobile admin actions stay distinc
   assert.match(styles, /\.admin-shell select option/);
   assert.match(inquiry, /aria-label="Open inquiry form"/);
   assert.match(inquiry, /className="dark-select/);
-  assert.match(adminLayout, /View site<\/Link>[\s\S]*?Logout<\/button>/);
-  assert.match(adminLayout, /pb-\[max\(1rem,env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(adminLayout, /View site<\/Link>/);
+  assert.match(adminLayout, /<LogOut size=\{16\} \/> Sign out/);
+  assert.match(adminLayout, /ll-admin-tabs/);
 });
 
 test('shared interaction treatments expose persistent focus, active, and disclosure cues', () => {
@@ -135,8 +136,8 @@ test('shared interaction treatments expose persistent focus, active, and disclos
   assert.match(styles, /:where\(a\[href\], button, input, textarea, select, summary\):focus-visible/);
   assert.match(styles, /\.interactive-tab\[aria-selected="true"\]/);
   assert.match(navbar, /aria-expanded=\{open\}/);
-  assert.match(navbar, /aria-controls="public-mobile-navigation"/);
-  assert.match(adminLayout, /aria-controls="admin-mobile-navigation"/);
+  assert.match(navbar, /aria-controls="public-more-menu"/);
+  assert.match(adminLayout, /aria-controls="admin-navigation-drawer"/);
   assert.match(inquiries, /ChevronDown/);
   assert.match(inquiries, /group-open:rotate-180/);
   assert.match(services, /not a predefined category/);
@@ -161,5 +162,5 @@ test('editorial labels use meaningful language instead of decorative ordinal cou
   assert.doesNotMatch(sources, /projectCount|Published profiles|\$\{skills\.length\} capabilities/);
   assert.match(sources, /Useful details/);
   assert.match(sources, /not a predefined category/);
-  assert.match(sources, /Profile focus/);
+  assert.match(sources, /Creative profile|Creative perspective/);
 });

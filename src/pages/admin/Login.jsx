@@ -14,13 +14,13 @@ import BrandWordmark from '../../components/BrandWordmark';
 const modeCopy = {
   login: {
     icon: Lock,
-    title: 'Admin Login',
-    description: 'Use your Lahat Liwa team account.',
+    title: 'Welcome back',
+    description: 'Sign in to open your Creative profile or platform workspace.',
   },
   setup: {
     icon: UserPlus,
-    title: 'Set up team account',
-    description: 'Create a password only if your email was invited by the team.',
+    title: 'Set up your account',
+    description: 'Create a password for your invited Lahat Liwa account.',
   },
 };
 
@@ -63,10 +63,10 @@ export default function Login() {
   const submitLabel = useMemo(() => {
     if (loading) {
       if (isSetup) return 'Setting up...';
-      return 'Logging in...';
+      return 'Signing in...';
     }
     if (isSetup) return 'Create password';
-    return 'Login';
+    return 'Sign in';
   }, [isSetup, loading]);
 
   if (authStatus === 'initializing') return <div className="page-shell py-20"><LoadingState label="Restoring session" /></div>;
@@ -167,13 +167,13 @@ export default function Login() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-zinc-950 px-4 py-12">
-      <section className="w-full max-w-md">
+    <main className="ll-auth-page">
+      <section className="ll-auth-card">
         <BrandWordmark variant="auth" to="/" />
         <Link to="/" className="fine-link mt-7 inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-100">
           <ArrowLeft size={16} /> Back
         </Link>
-        <form onSubmit={handleSubmit} className="mt-5 border-y border-white/[0.1] py-7">
+        <form onSubmit={handleSubmit} className="ll-auth-form">
           <div className="flex items-start gap-3">
             <span className="grid h-12 w-12 shrink-0 place-items-center bg-amber-300 text-zinc-950">
               <HeaderIcon size={20} />

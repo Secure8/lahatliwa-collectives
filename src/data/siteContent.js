@@ -11,7 +11,7 @@ export const defaultSiteContent = {
   heroImageUrl: '',
   heroImageAlt: 'Lahat Liwa Collectives hero portrait',
   showHeroPortrait: false,
-  footerText: 'An Aklan-based creative work platform for current project updates, completed work, contributor credit, and open inquiries.',
+  footerText: 'A professional creative network for discovering work, process, stories, projects, and the people behind them.',
   primaryTextColor: '#f5f5f4',
   secondaryTextColor: '#d4d4d8',
   mutedTextColor: '#a1a1aa',
@@ -20,19 +20,19 @@ export const defaultSiteContent = {
   defaultBackgroundImageUrl: '',
   defaultBackgroundOverlayOpacity: 0.55,
   hero: {
-    eyebrow: 'AKLAN-BASED CREATIVE WORK',
-    title: 'Work in public. Credit people clearly.',
+    eyebrow: 'LAHAT LIWA CREATIVE NETWORK',
+    title: 'Discover what Creatives are making now.',
     description:
-      'Follow active projects as they develop, explore finished work, and meet the people credited for their contributions.',
-    primaryCta: 'View Current Work',
+      'Follow published work, photography, design, writing, project updates, and creative process from people across the network.',
+    primaryCta: 'Explore Creatives',
     secondaryCta: 'Send an Inquiry',
   },
   about: {
-    title: 'Creative work made visible from first progress to finished project.',
+    title: 'A professional home for creative work and the people behind it.',
     intro:
-      'Lahat Liwa Collectives is an Aklan-based creative work platform. We share active projects, preserve completed work, credit contributors, and welcome open inquiries.',
+      'Lahat Liwa is a professional creative social portfolio where Creatives publish work, process, writing, photography, and projects.',
     journey:
-      'It was built to make creative work easier to follow, understand, and credit—and to give people one clear place to start a project or conversation.',
+      'It gives every Creative a professional profile and living wall while giving viewers a clear path from discovery to professional inquiry.',
   },
   skills: [
     'Photography',

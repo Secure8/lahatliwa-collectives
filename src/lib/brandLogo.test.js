@@ -29,12 +29,12 @@ test('custom logos use one shared component without changing header structures',
   ]);
 
   assert.match(navbar, /<Link to="\/"[\s\S]*?aria-label=\{`\$\{content\.displayName\} home`\}/);
-  assert.match(navbar, /content\.logoUrl \? \([\s\S]*?<BrandLogo src=\{content\.logoUrl\} alt=\{content\.logoAlt\}/);
-  assert.match(navbar, /aria-controls="public-mobile-navigation"/);
-  assert.match(navbar, /id="public-mobile-navigation"/);
+  assert.match(navbar, /content\.logoUrl \? <BrandLogo src=\{content\.logoUrl\} alt=\{content\.logoAlt\}/);
+  assert.match(navbar, /aria-controls="public-more-menu"/);
+  assert.match(navbar, /id="public-more-menu"/);
   assert.match(adminLayout, /content\.logoUrl \?[\s\S]*?<BrandLogo src=\{content\.logoUrl\} alt=\{content\.logoAlt\} variant="admin"/);
-  assert.match(adminLayout, /aria-label=\{`\$\{content\.displayName\} \$\{access\.role === 'creative' \? 'Creative workspace' : 'admin dashboard'\}`\}/);
-  assert.match(adminLayout, /aria-controls="admin-mobile-navigation"/);
+  assert.match(adminLayout, /ll-admin-brand/);
+  assert.match(adminLayout, /aria-controls="admin-navigation-drawer"/);
   assert.doesNotMatch(wordmark, /BrandLogo|brand-logo/);
 });
 

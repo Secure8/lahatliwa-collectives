@@ -125,6 +125,19 @@ export async function loadPublicCreativePosts(creativeMemberId) {
   return (data || []).map((post) => ({ ...post, creative_post_media: [...(post.creative_post_media || [])].sort((a, b) => a.display_order - b.display_order) }));
 }
 
+export async function loadPublicCreativeFeed({ limit = 30 } = {}) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 30, 60));
+  const { data, error } = await supabase.from('creative_posts')
+    .select('id,creative_member_id,slug,document,status,visibility,moderation_status,published_at,updated_at,creative_post_media(*),creative_members(id,name,slug,role,short_bio,profile_image_url)')
+    .eq('status', 'published').eq('visibility', 'public').eq('moderation_status', 'clear')
+    .order('published_at', { ascending: false }).limit(safeLimit);
+  if (error) throw postError(error, 'The creative feed could not be loaded.');
+  return (data || []).map((post) => ({
+    ...post,
+    creative_post_media: [...(post.creative_post_media || [])].sort((a, b) => a.display_order - b.display_order),
+  }));
+}
+
 export async function loadOwnCreativePosts() {
   const { data, error } = await supabase.from('creative_posts')
     .select('id,creative_member_id,slug,document,status,visibility,moderation_status,moderation_reason,published_at,updated_at,creative_post_media(*)')

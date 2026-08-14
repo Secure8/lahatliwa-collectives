@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BRAND_POSITIONING, CURRENT_WORK_COPY, brandAlignedWebsiteBundle, currentWorkPageCopy } from './brandContent.js';
 
-test('brand positioning states the four public purposes clearly', () => {
-  for (const phrase of ['Aklan-based creative work platform', 'work in progress', 'completed projects', 'credit collaborators', 'open inquiries']) {
+test('brand positioning states the creative-network purpose clearly', () => {
+  for (const phrase of ['professional creative social portfolio', 'Creatives publish work', 'process', 'photography', 'viewers discover']) {
     assert.match(BRAND_POSITIONING, new RegExp(phrase, 'i'));
   }
 });
@@ -31,6 +31,7 @@ test('known legacy homepage, footer, navigation, and creative copy is aligned wi
   assert.equal(aligned['page.home'].featuredTitle, 'Meet the people behind the work.');
   assert.equal(aligned['global.footer'].contextLabel, '');
   assert.equal(aligned['global.navigation'].projectsLabel, 'Portfolio');
+  assert.equal(aligned['global.navigation'].servicesLabel, 'Services');
   assert.equal(aligned['global.navigation'].contactLabel, 'Talk to us');
   assert.equal(aligned['page.creatives'].heroTitle, 'People behind the work.');
 });

@@ -159,18 +159,16 @@ test('Website Studio sync migration preserves custom values and adds Privacy and
   assert.match(migration, /set search_path = pg_catalog/i);
 });
 
-test('people admin distinguishes team accounts from public creative profiles', () => {
+test('public join requests replace manual team invitations', () => {
   const layout = read('src/components/admin/AdminLayout.jsx');
-  const team = read('src/pages/admin/AdminTeam.jsx');
-  const creatives = read('src/pages/admin/AdminCreatives.jsx');
-  assert.match(layout, /\['Accounts', '\/admin\/team'/);
-  assert.match(layout, /\['Creatives', '\/admin\/creatives'/);
-  assert.match(team, /Link profile/);
-  assert.match(team, /Create profile/);
-  assert.match(creatives, /Linked Team Member/);
-  assert.match(creatives, /supabase\.from\('admin_users'\)/);
-  assert.doesNotMatch(creatives, /supabase\.from\('team_members'\)/);
-  assert.doesNotMatch(creatives, /member\.email/);
+  const join = read('src/pages/JoinCreative.jsx');
+  const review = read('src/pages/admin/CreativeJoinRequests.jsx');
+  const migration = read('supabase/migrations/20260815010000_public_creative_join_requests.sql');
+  assert.match(layout, /\['Join requests', '\/admin\/team'/);
+  assert.match(join, /submit_creative_join_request/);
+  assert.match(review, /approve_request/);
+  assert.match(migration, /creative_join_requests/);
+  assert.doesNotMatch(layout, /AdminPeopleNav|Add Member/);
 });
 
 test('Editorial Studio has a clear protected exit to admin', () => {
@@ -181,15 +179,15 @@ test('Editorial Studio has a clear protected exit to admin', () => {
   assert.doesNotMatch(editorial, />Admin controls</);
 });
 
-test('legacy editors redirect into one Website Studio and admin navigation is grouped', () => {
+test('legacy editors redirect into Website Studio while operations stay separate', () => {
   const app = read('src/App.jsx');
   const layout = read('src/components/admin/AdminLayout.jsx');
   assert.match(app, /path="\/admin\/website"/);
   assert.match(app, /LegacyWebsiteEditorRedirect/);
   assert.doesNotMatch(app, /\/admin\/service-branches/);
   assert.doesNotMatch(app, /<AdminServiceBranches|<ServiceBranchEditor|<ContentEditor|<SiteSettings/);
-  assert.match(layout, /\['Platform'/);
-  assert.match(layout, /\['Website', '\/admin\/website'/);
+  assert.match(layout, /ll-operations-window/);
+  assert.doesNotMatch(layout, /\['Website', '\/admin\/website'/);
   assert.doesNotMatch(layout, /lg:w-64|lg:ml-64/);
 });
 

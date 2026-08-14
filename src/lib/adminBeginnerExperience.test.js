@@ -15,12 +15,12 @@ test('Super Admin overview is task-oriented and keeps attention conditional', ()
   assert.doesNotMatch(dashboard, /Slideshow status|Nothing needs attention right now/);
 });
 
-test('admin navigation is a compact top-level operations model without a permanent sidebar', () => {
+test('legacy CMS navigation is replaced by a compact operations window', () => {
   const layout = read('src/components/admin/AdminLayout.jsx');
-  for (const group of ['Overview', 'Platform', 'Communication', 'Access']) assert.match(layout, new RegExp(`\\['${group}'`));
-  for (const label of ['Platform Overview', 'Website', 'Services', 'Projects', 'Creatives', 'Moderation', 'Inquiries', 'Accounts']) assert.match(layout, new RegExp(`\\['${label}'`));
-  assert.match(layout, /ll-admin-tabs/);
-  assert.match(layout, /ll-admin-drawer/);
+  for (const label of ['Projects', 'Inquiries', 'Moderation', 'Join requests']) assert.match(layout, new RegExp(`\\['${label}'`));
+  assert.match(layout, /ll-operations-window/);
+  assert.match(layout, /Platform tools/);
+  assert.doesNotMatch(layout, /ll-admin-tabs|ll-admin-drawer|Platform Overview|Website|Services|Creatives|Accounts/);
   assert.doesNotMatch(layout, /lg:w-64|lg:ml-64|admin-sidebar-link/);
   for (const removed of ['Media and storage', 'Audit history', 'System status', 'Editorial Studio']) assert.doesNotMatch(layout, new RegExp(removed));
 });

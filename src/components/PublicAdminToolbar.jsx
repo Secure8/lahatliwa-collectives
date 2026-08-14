@@ -1,4 +1,4 @@
-import { Contact, Menu, Palette, PanelTop, Settings2, Type, UsersRound } from 'lucide-react';
+import { Bell, Contact, FolderKanban, Menu, Palette, PanelTop, Settings2, ShieldCheck, Type, UsersRound } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import usePublicAccount from '../lib/usePublicAccount';
 
@@ -28,6 +28,11 @@ export default function PublicAdminToolbar() {
       <Link to={editor('global.appearance')}><Palette size={16}/><span>Colors</span></Link>
       <Link to={editor('page.inquiries')}><Contact size={16}/><span>Contact</span></Link>
     </nav>
-    <Link to="/admin/team" className="ll-admin-authoring-toolbar__team"><UsersRound size={16}/><span>Team</span></Link>
+    <div className="ll-admin-authoring-toolbar__operations" aria-label="Platform operations">
+      <Link to="/admin/projects"><FolderKanban size={16}/><span>Projects</span></Link>
+      <Link to="/admin/inquiries"><Bell size={16}/><span>Inquiries</span></Link>
+      <Link to="/admin/moderation"><ShieldCheck size={16}/><span>Moderation</span></Link>
+      <Link to="/admin/team" className="ll-admin-authoring-toolbar__team"><UsersRound size={16}/><span>Join requests</span></Link>
+    </div>
   </aside>;
 }

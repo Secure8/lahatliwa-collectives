@@ -110,6 +110,7 @@ test('public image priorities match the installed React runtime and loading plac
   assert.doesNotMatch(loadingState, /animate-pulse/);
   assert.match(loadingState, /ll-loading-dots/);
   assert.match(loadingState, /<i\/><i\/><i\/>/);
+  assert.doesNotMatch(loadingState, /<img|BrandWordmark|<p>\{label\}<\/p>/);
   assert.match(loadingState, /role="status" aria-live="polite"/);
 });
 
@@ -122,9 +123,9 @@ test('native menus follow the active theme and admin actions stay distinct', () 
   assert.match(styles, /\.admin-shell select option/);
   assert.match(inquiry, /Creative inquiry form/);
   assert.match(inquiry, /className="dark-select/);
-  assert.match(adminLayout, /View site<\/Link>/);
+  assert.match(adminLayout, /aria-label="Close platform tools"/);
   assert.match(adminLayout, /<button type="button" onClick=\{logout\}>Sign out<\/button>/);
-  assert.match(adminLayout, /ll-admin-tabs/);
+  assert.match(adminLayout, /ll-operations-window__nav/);
 });
 
 test('shared interaction treatments expose persistent focus, active, and disclosure cues', () => {
@@ -137,7 +138,7 @@ test('shared interaction treatments expose persistent focus, active, and disclos
   assert.match(styles, /\.interactive-tab\[aria-selected="true"\]/);
   assert.match(navbar, /aria-expanded=\{open\}/);
   assert.match(navbar, /aria-controls="public-more-menu"/);
-  assert.match(adminLayout, /aria-controls="admin-navigation-drawer"/);
+  assert.match(adminLayout, /aria-label="Platform tools"/);
   assert.match(inquiries, /ChevronDown/);
   assert.match(inquiries, /group-open:rotate-180/);
   assert.match(services, /not a predefined category/);

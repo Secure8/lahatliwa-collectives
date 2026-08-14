@@ -182,9 +182,9 @@ export default function AdminProjects() {
   return (
     <AdminLayout>
       <AdminPageHeader
-        eyebrow="Project manager"
-        title="Projects"
-        description={canManageAll ? 'Publish active work, add progress updates, and move completed projects into the permanent portfolio.' : 'Open a project to add progress or update its public stage.'}
+        eyebrow="Content moderation"
+        title="Published projects"
+        description="Review Creative-owned projects and remove work that should not remain public. Super Admin cannot create or edit Creative work."
         action={canCreate && <AdminButton to="/admin/projects/new" variant="primary">
           <Plus size={18} /> New project
         </AdminButton>}

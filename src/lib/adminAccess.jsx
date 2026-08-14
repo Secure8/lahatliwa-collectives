@@ -20,7 +20,7 @@ export function isPrivilegedRole(role) {
 }
 
 export function canCreateProjects(role) {
-  return ['super_admin', 'creative'].includes(normalizeRole(role));
+  return normalizeRole(role) === 'creative';
 }
 
 export function canManageTeam(role) {
@@ -32,7 +32,7 @@ export function canManageSettings(role) {
 }
 
 export function canManageAllProjects(role) {
-  return isPrivilegedRole(role);
+  return false;
 }
 
 export function canApproveProjects(role) {
@@ -41,13 +41,13 @@ export function canApproveProjects(role) {
 
 export function canDeleteProject(role, project = {}) {
   const normalized = normalizeRole(role);
-  if (isPrivilegedRole(normalized)) return project.status !== 'published';
-  return normalized === 'creative' && Boolean(project.canEdit || project.owner_user_id || project.created_by);
+  if (isPrivilegedRole(normalized)) return true;
+  return normalized === 'creative' && project.canEdit === true;
 }
 
 export function canEditProject(role, project = {}, userId = '') {
   const normalized = normalizeRole(role);
-  if (isPrivilegedRole(normalized)) return true;
+  if (isPrivilegedRole(normalized)) return false;
   if (normalized !== 'creative') return false;
   const ownsProject = project.owner_user_id === userId || project.created_by === userId;
   return ownsProject;

@@ -19,7 +19,7 @@ test('protected routes separate Creative publishing from Super Admin operations'
   const adminGuard = read('src/components/admin/AdminRouteGuard.jsx');
   const creativeGuard = read('src/components/CreativeRouteGuard.jsx');
   assert.match(app, /path="\/admin\/dashboard" element=\{<Navigate to="\/" replace/);
-  assert.match(app, /allow=\{\['creative'\]\}><MyProfile/);
+  assert.match(app, /path="\/admin\/my-profile" element=\{<Navigate to="\/account" replace/);
   assert.match(app, /<CreativeRouteGuard><CreativePostEditor/);
   assert.match(adminGuard, /Navigate to="\/account" replace/);
   assert.match(creativeGuard, /resolvedRole !== 'creative' \|\| !creativeMemberId/);

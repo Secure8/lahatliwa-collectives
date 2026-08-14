@@ -16,7 +16,6 @@ export default function LoadingState({ label = 'Loading', delay = 180, compact =
   return (
     <div className={`ll-loading-state ${compact ? 'is-compact' : ''}`} role="status" aria-live="polite" aria-label={label}>
       <span className="ll-loading-dots" aria-hidden="true"><i/><i/><i/></span>
-      <p>{label}</p>
     </div>
   );
 }

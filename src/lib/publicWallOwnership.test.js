@@ -8,13 +8,14 @@ test('Creative owners manage published posts and primary projects from their wal
   const card = read('src/components/CreativePostCard.jsx');
   const profile = read('src/components/CreativeProfileView.jsx');
   const app = read('src/App.jsx');
-  const migration = read('supabase/migrations/20260814230000_public_wall_permissions_and_image_position.sql');
+  const migration = read('supabase/migrations/20260815010000_public_creative_join_requests.sql');
   assert.match(card, /Delete post/);
   assert.match(profile, /onEditProject/);
   assert.match(profile, /onDeleteProject/);
-  assert.match(app, /allow=\{\['super_admin','creative'\]\}><EditProject/);
+  assert.match(app, /allow=\{\['creative'\]\}><EditProject/);
   assert.match(migration, /credit\.is_primary=true/);
-  assert.match(migration, /role in \('super_admin','creative'\)/);
+  assert.match(migration, /account\.role='creative'/);
+  assert.match(migration, /role='super_admin'\)\s*or private\.can_edit_project/);
 });
 
 test('Super Admin moderates public work without receiving Creative edit controls', () => {

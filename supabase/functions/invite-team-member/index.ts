@@ -68,7 +68,47 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const action = String(body.action || 'invite');
-    if (!['invite', 'resend', 'password_reset'].includes(action)) return fail('INVALID_ACTION', 'The requested invitation action is invalid.', 400);
+    if (!['invite', 'resend', 'password_reset', 'approve_request', 'reject_request'].includes(action)) return fail('INVALID_ACTION', 'The requested invitation action is invalid.', 400);
+
+    if (action === 'approve_request' || action === 'reject_request') {
+      const requestId = String(body.requestId || '');
+      const { data: joinRequest, error: requestError } = await admin.from('creative_join_requests').select('*').eq('id', requestId).maybeSingle();
+      if (requestError) return fail('DATABASE_ERROR', 'The join request could not be checked.', 500);
+      if (!joinRequest || joinRequest.status !== 'pending') return fail('REQUEST_NOT_PENDING', 'This join request is no longer waiting for review.', 409);
+      if (action === 'reject_request') {
+        const { error: rejectError } = await admin.from('creative_join_requests').update({ status: 'rejected', reviewed_by: user.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', requestId).eq('status', 'pending');
+        if (rejectError) return fail('DATABASE_ERROR', 'The join request could not be declined.', 500);
+        return reply({ success: true, code: 'REQUEST_REJECTED', message: 'Join request declined.' });
+      }
+
+      const email = normalizeInvitationEmail(joinRequest.email);
+      const existingAuthUser = await findAuthUserByEmail(admin, email);
+      if (existingAuthUser) return fail('AUTH_USER_EXISTS', 'An authentication account already exists for this email. Review it before approving this request.', 409);
+      const { data: existingMember } = await admin.from('admin_users').select('id,status').ilike('email', email).maybeSingle();
+      const conflict = invitationConflict(existingMember);
+      if (conflict) return fail(conflict.code, conflict.message, 409);
+
+      const slugBase = String(joinRequest.name || 'creative').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 55) || 'creative';
+      const slug = `${slugBase}-${requestId.slice(0, 6)}`;
+      const { data: profile, error: profileError } = await admin.from('creative_members').insert({ name: joinRequest.name, slug, role: 'Creative', short_bio: null, skills: [], social_links: [], is_published: false }).select('id').single();
+      if (profileError) return fail('PROFILE_CREATION_FAILED', 'A private Creative profile could not be prepared.', 500);
+
+      const { data: member, error: memberError } = await admin.from('admin_users').insert({ email, display_name: joinRequest.name, role: 'creative', editorial_roles: [], status: 'invited', creative_member_id: profile.id, invited_by: user.id, updated_at: new Date().toISOString() }).select('id').single();
+      if (memberError) {
+        await admin.from('creative_members').delete().eq('id', profile.id);
+        return fail('MEMBER_CREATION_FAILED', 'The approved account could not be prepared.', 500);
+      }
+      const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
+      if (inviteError) {
+        await admin.from('admin_users').delete().eq('id', member.id);
+        await admin.from('creative_members').delete().eq('id', profile.id);
+        const safe = mapInvitationApiError(inviteError);
+        return fail(safe.code, safe.message, inviteError.status === 429 ? 429 : 502);
+      }
+      const { error: approveError } = await admin.from('creative_join_requests').update({ status: 'approved', reviewed_by: user.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', requestId).eq('status', 'pending');
+      if (approveError) return fail('DATABASE_ERROR', 'The account was invited, but the request status could not be updated.', 500);
+      return reply({ success: true, code: 'REQUEST_APPROVED', message: 'Request approved and invitation sent.', memberId: member.id, creativeMemberId: profile.id });
+    }
 
     if (action === 'password_reset') {
       const memberId = String(body.memberId || '');

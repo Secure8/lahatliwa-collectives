@@ -58,7 +58,7 @@ export default function ProtectedRoute() {
 
   if (!dashboardRedirectAllowed(authFlow)) return <Navigate to="/set-password" replace />;
   if (authStatus === 'initializing' || (authStatus === 'authenticated' && authorization.status !== 'authorized' && !['unauthorized', 'error'].includes(authorization.status))) {
-    return <main className="grid min-h-screen place-items-center bg-zinc-950 px-4 py-12 text-white"><section className="w-full max-w-lg"><BrandWordmark variant="auth" to="/" /><div className="mt-8"><LoadingState label="Checking admin access" /></div></section></main>;
+    return <main className="grid min-h-screen place-items-center bg-zinc-950 text-white"><LoadingState label="Checking admin access" /></main>;
   }
 
   if (authStatus === 'unauthenticated') return <Navigate to="/admin/login" replace />;

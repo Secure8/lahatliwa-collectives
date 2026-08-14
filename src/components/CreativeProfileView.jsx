@@ -8,7 +8,7 @@ import { isResourceLink } from '../lib/profileResources';
 import { publicImageVariant } from '../lib/publicImages';
 import CreativePostCard from './CreativePostCard';
 
-export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, onArchivePost, onRestorePost, onDeletePost, adminPreview = false }) {
+export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, onArchivePost, onRestorePost, onDeletePost, adminPreview = false, onBack = null }) {
   const location = useLocation();
   const skills = Array.isArray(creative.skills) ? creative.skills.filter(Boolean) : [];
   const allLinks = Array.isArray(creative.social_links) ? creative.social_links : [];
@@ -18,7 +18,7 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
   const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Create post</Link><Link to="/admin/my-profile" className="ll-secondary-action"><Edit3 size={16} /> Edit profile</Link></> : null;
   return <article className="ll-profile-page">
     {adminPreview && <p className="ll-preview-label">Admin preview</p>}
-    <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} actions={ownerActions} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
+    <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} actions={ownerActions} onBack={onBack} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
     {!adminPreview && <nav className="ll-profile-tabs" aria-label="Profile sections">
       <a href="#feed">Posts <span>{posts.filter((post) => post.status === 'published').length || ''}</span></a>

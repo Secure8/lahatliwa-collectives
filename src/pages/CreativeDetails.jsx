@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import CreativeProfileView from '../components/CreativeProfileView';
 import LoadingState from '../components/LoadingState';
@@ -93,8 +92,7 @@ export default function CreativeDetails() {
 
   const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/creatives'); if (action.delta) navigate(action.delta); else navigate(action.to); };
   return <article className="ll-profile-route">
-    <button type="button" onClick={goBack} className="ll-back-action"><ArrowLeft size={16} /> Back to Creatives</button>
-    <CreativeProfileView creative={creative} projects={projects} posts={posts} isOwner={isOwner} onArchivePost={(post) => confirmPostChange(post, 'archive')} onRestorePost={(post) => confirmPostChange(post, 'restore')} onDeletePost={(post) => confirmPostChange(post, 'delete')} />
+    <CreativeProfileView creative={creative} projects={projects} posts={posts} isOwner={isOwner} onBack={goBack} onArchivePost={(post) => confirmPostChange(post, 'archive')} onRestorePost={(post) => confirmPostChange(post, 'restore')} onDeletePost={(post) => confirmPostChange(post, 'delete')} />
     {confirmationDialog}
   </article>;
 }

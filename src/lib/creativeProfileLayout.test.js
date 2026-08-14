@@ -11,6 +11,8 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   ]);
   assert.match(hero, /ll-profile-cover/);
   assert.match(hero, /ll-profile-avatar/);
+  assert.match(hero, /ll-profile-cover-back/);
+  assert.match(hero, /aria-label="Back to Creatives"/);
   assert.match(hero, /creative\.short_bio/);
   assert.match(hero, /availability_status/);
   assert.match(profile, /isOwner && !adminPreview/);
@@ -32,9 +34,11 @@ test('profile media and navigation are intentionally responsive without desktop 
   assert.match(profile, /ll-profile-tabs/);
   assert.match(styles, /@media \(min-width: 900px\)[\s\S]*?\.ll-profile-identity/);
   assert.match(styles, /\.ll-profile-identity \{ grid-template-columns: auto minmax\(0,1fr\) auto; align-items: start; \}/);
+  assert.match(styles, /\.ll-profile-avatar \{ align-self: start; margin-top: 4\.75rem; \}/);
   assert.match(styles, /\.ll-profile-intro[\s\S]*?-webkit-line-clamp: 2/);
   assert.match(styles, /@media \(max-width: 420px\)[\s\S]*?\.ll-profile-page/);
   assert.doesNotMatch(route, /pointermove|topControlsVisible|CreativeProfileQuickNav/);
+  assert.doesNotMatch(route, /> Back to Creatives</);
   assert.doesNotMatch(profile, /ProfileRails/);
 });
 

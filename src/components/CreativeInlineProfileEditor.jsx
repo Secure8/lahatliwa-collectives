@@ -32,6 +32,7 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
   const [form, setForm] = useState(() => initialForm(creative));
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState('');
+  const [pendingMedia, setPendingMedia] = useState(null);
   const [error, setError] = useState('');
   const profileInput = useRef(null);
   const coverInput = useRef(null);
@@ -74,19 +75,33 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
     onSaved?.(data); onClose();
   }
 
-  async function upload(kind, file) {
+  function prepareMedia(kind, file) {
+    if (!file) return;
+    setPendingMedia({ kind, file, preview: URL.createObjectURL(file), x: 50, y: 50 });
+  }
+
+  async function upload(kind, file, position = '50% 50%') {
     if (!file) return;
     setUploading(kind); setError('');
     const field = kind === 'cover' ? 'cover_image' : 'profile_image_url';
+    const positionField = kind === 'cover' ? 'cover_image_position' : 'profile_image_position';
     const previous = creative[field] || '';
     try {
       const result = await uploadProfileWebsiteMedia(file, { creativeMemberId: creative.id, kind });
-      const { data, error: updateError } = await supabase.from('creative_members').update({ [field]: result.url, updated_at: new Date().toISOString() }).eq('id', creative.id).select('*').single();
+      const { data, error: updateError } = await supabase.from('creative_members').update({ [field]: result.url, [positionField]: position, updated_at: new Date().toISOString() }).eq('id', creative.id).select('*').single();
       if (updateError) throw updateError;
       await cleanupReplacedProfileWebsiteMedia(previous, result.url).catch(() => null);
       onSaved?.(data);
     } catch (reason) { setError(reason.message || 'The photo could not be replaced.'); }
     finally { setUploading(''); }
+  }
+
+  async function confirmMedia() {
+    if (!pendingMedia) return;
+    const media = pendingMedia;
+    await upload(media.kind, media.file, `${media.x}% ${media.y}%`);
+    URL.revokeObjectURL(media.preview);
+    setPendingMedia(null);
   }
 
   return <div className="ll-profile-editor-layer" role="dialog" aria-modal="true" aria-label="Edit Creative profile">
@@ -99,11 +114,12 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
         {section === 'about' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Full biography" value={form.full_bio} onChange={(value) => update('full_bio', value)} rows={9} hint="Tell clients about your perspective, background, and approach." /></div>}
         {section === 'professional' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Experience" value={form.experience} onChange={(value) => update('experience', value)} hint="One role or professional milestone per line." /><ProfileTextarea label="Education" value={form.education} onChange={(value) => update('education', value)} hint="One school, course, or qualification per line." /><ProfileTextarea label="Achievements" value={form.achievements} onChange={(value) => update('achievements', value)} hint="One award, recognition, or meaningful achievement per line." /></div>}
         {section === 'links' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Professional and social links" value={form.social_links} onChange={(value) => update('social_links', value)} rows={8} hint="One per line, for example Instagram: https://instagram.com/yourname" /></div>}
-        {section === 'media' && <div className="ll-profile-media-choices"><input ref={profileInput} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={(event) => upload('profile', event.target.files?.[0])} /><input ref={coverInput} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={(event) => upload('cover', event.target.files?.[0])} /><button type="button" onClick={() => profileInput.current?.click()} disabled={Boolean(uploading)}><Camera size={21} /><span><strong>{uploading === 'profile' ? 'Uploading…' : 'Choose profile photo'}</strong><small>Square images work best.</small></span></button><button type="button" onClick={() => coverInput.current?.click()} disabled={Boolean(uploading)}><Camera size={21} /><span><strong>{uploading === 'cover' ? 'Uploading…' : 'Choose cover photo'}</strong><small>Use a wide landscape image.</small></span></button></div>}
+        {section === 'media' && <div className="ll-profile-media-choices"><input ref={profileInput} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={(event) => prepareMedia('profile', event.target.files?.[0])} /><input ref={coverInput} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={(event) => prepareMedia('cover', event.target.files?.[0])} /><button type="button" onClick={() => profileInput.current?.click()} disabled={Boolean(uploading)}><Camera size={21} /><span><strong>{uploading === 'profile' ? 'Uploading…' : 'Choose profile photo'}</strong><small>Position it before saving.</small></span></button><button type="button" onClick={() => coverInput.current?.click()} disabled={Boolean(uploading)}><Camera size={21} /><span><strong>{uploading === 'cover' ? 'Uploading…' : 'Choose cover photo'}</strong><small>Position it before saving.</small></span></button></div>}
         {error && <p className="ll-profile-editor-error" role="alert">{error}</p>}
         {section !== 'media' && <footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" className="ll-primary-action" disabled={saving}><Save size={16} /> {saving ? 'Saving…' : 'Save changes'}</button></footer>}
       </form>
     </section>
+    {pendingMedia && <section className="ll-image-positioner" aria-label={`Position ${pendingMedia.kind} photo`}><header><div><p className="ll-kicker">Photo framing</p><h3>Position your {pendingMedia.kind} photo</h3></div><button type="button" onClick={() => { URL.revokeObjectURL(pendingMedia.preview); setPendingMedia(null); }} aria-label="Close"><X size={19}/></button></header><div className={`ll-image-positioner__preview is-${pendingMedia.kind}`}><img src={pendingMedia.preview} alt="Preview" style={{objectPosition:`${pendingMedia.x}% ${pendingMedia.y}%`}}/></div><label>Move left or right<input type="range" min="0" max="100" value={pendingMedia.x} onChange={(event)=>setPendingMedia((current)=>({...current,x:Number(event.target.value)}))}/></label><label>Move up or down<input type="range" min="0" max="100" value={pendingMedia.y} onChange={(event)=>setPendingMedia((current)=>({...current,y:Number(event.target.value)}))}/></label><footer><button type="button" onClick={() => { URL.revokeObjectURL(pendingMedia.preview); setPendingMedia(null); }}>Cancel</button><button type="button" className="ll-primary-action" disabled={Boolean(uploading)} onClick={confirmMedia}><Save size={16}/>{uploading ? 'Uploading…' : 'Use this framing'}</button></footer></section>}
   </div>;
 }
 

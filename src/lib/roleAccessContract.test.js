@@ -18,7 +18,7 @@ test('protected routes separate Creative publishing from Super Admin operations'
   const app = read('src/App.jsx');
   const adminGuard = read('src/components/admin/AdminRouteGuard.jsx');
   const creativeGuard = read('src/components/CreativeRouteGuard.jsx');
-  assert.match(app, /allow=\{\['super_admin'\]\}><Dashboard/);
+  assert.match(app, /path="\/admin\/dashboard" element=\{<Navigate to="\/" replace/);
   assert.match(app, /allow=\{\['creative'\]\}><MyProfile/);
   assert.match(app, /<CreativeRouteGuard><CreativePostEditor/);
   assert.match(adminGuard, /Navigate to="\/account" replace/);
@@ -32,7 +32,7 @@ test('login and recovery resolve both personas through the shared account router
   assert.match(login, /Navigate to="\/account" replace/);
   assert.match(login, /navigate\('\/account', \{ replace: true \}\)/);
   assert.match(forgot, /Navigate to="\/account" replace/);
-  assert.match(landing, /role === 'super_admin'[\s\S]*Navigate to="\/admin\/dashboard"/);
+  assert.match(landing, /role === 'super_admin'[\s\S]*Navigate to="\/"/);
   assert.match(landing, /profile\.slug[\s\S]*Navigate to=\{`\/creatives\/\$\{profile\.slug\}`\}/);
   assert.match(landing, /Account needs attention/);
 });

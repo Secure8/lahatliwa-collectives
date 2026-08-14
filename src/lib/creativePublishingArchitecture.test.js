@@ -22,7 +22,7 @@ test('application separates Creative publishing and Super Admin maintenance', ()
   const access = source('src/lib/adminAccess.jsx');
   const login = source('src/pages/admin/Login.jsx');
   assert.match(app, /path="\/create"[\s\S]*CreativeRouteGuard/);
-  assert.match(app, /path="\/admin\/dashboard"[\s\S]*allow=\{\['super_admin'\]\}/);
+  assert.match(app, /path="\/admin\/dashboard" element=\{<Navigate to="\/" replace/);
   assert.match(app, /path="\/admin\/my-profile"[\s\S]*allow=\{\['creative'\]\}/);
   assert.deepEqual([...access.matchAll(/export const roles = \[([^\]]+)\]/g)].length, 1);
   assert.match(access, /roles = \['super_admin', 'creative'\]/);
@@ -48,8 +48,9 @@ test('empty composers stay local and owned drafts can be deleted directly', () =
   assert.match(editor, /creativePostHasContent/);
   assert.match(editor, /Start writing to save/);
   assert.match(card, /Delete draft/);
-  assert.match(migration, /post\.status not in \('draft','archived'\)/);
-  assert.match(migration, /status in \('draft','archived'\)/);
+  const wallMigration = source('supabase/migrations/20260814230000_public_wall_permissions_and_image_position.sql');
+  assert.doesNotMatch(wallMigration, /CREATIVE_POST_ARCHIVE_REQUIRED/);
+  assert.match(wallMigration, /using\(private\.owns_creative_post\(auth\.uid\(\),id\)\)/);
 });
 
 test('post and project creation open in focused floating workspaces', () => {

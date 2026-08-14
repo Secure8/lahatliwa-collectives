@@ -28,7 +28,7 @@ export default function AccountLanding() {
   }, [role, adminUser?.creative_member_id]);
 
   if (profile.loading) return <main className="ll-auth-page"><LoadingState label="Opening your Creative profile" /></main>;
-  if (role === 'super_admin') return <Navigate to="/admin/dashboard" replace />;
+  if (role === 'super_admin') return <Navigate to="/" replace />;
   if (profile.slug) return <Navigate to={`/creatives/${profile.slug}`} replace />;
   return <AccountIssue message={profile.error || 'This account does not have a supported platform role.'} />;
 }

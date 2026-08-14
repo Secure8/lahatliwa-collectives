@@ -1,4 +1,4 @@
-import { ArrowRight, Dribbble, Edit3, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, PenLine, Plus, Twitter, Youtube } from 'lucide-react';
+import { ArrowRight, Dribbble, Edit3, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, PenLine, Plus, Trash2, Twitter, Youtube } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import CreativeHero from './CreativeHero';
@@ -10,7 +10,7 @@ import { publicImageVariant } from '../lib/publicImages';
 import CreativePostCard from './CreativePostCard';
 import CreativeInlineProfileEditor from './CreativeInlineProfileEditor';
 
-export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, onArchivePost, onRestorePost, onDeletePost, adminPreview = false, onBack = null, onCreativeChange }) {
+export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, moderator = false, onArchivePost, onRestorePost, onDeletePost, onModeratePost, onEditProject, onDeleteProject, adminPreview = false, onBack = null, onCreativeChange }) {
   const location = useLocation();
   const [editingSection, setEditingSection] = useState('');
   const skills = Array.isArray(creative.skills) ? creative.skills.filter(Boolean) : [];
@@ -35,9 +35,9 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
       <main className="min-w-0">
         {isOwner && <Link to="/create" className="ll-composer-prompt"><span className="ll-composer-prompt__icon"><Plus size={20} /></span><span><strong>Create a post</strong><small>Share work, process, photography, or a reflection.</small></span><ArrowRight size={17} /></Link>}
         <section id="feed" className="ll-profile-section"><SectionHeading eyebrow="Personal wall" title="Published work and stories" />
-          {posts.length ? <div className="ll-feed-list">{posts.map((post) => <CreativePostCard key={post.id} post={post} creative={creative} owner={isOwner} onArchive={onArchivePost} onRestore={onRestorePost} onDelete={onDeletePost} />)}</div> : <div className="ll-profile-empty"><p>No posts published yet.</p>{isOwner && <Link to="/create"><Plus size={16} /> Create your first post</Link>}</div>}
+          {posts.length ? <div className="ll-feed-list">{posts.map((post) => <CreativePostCard key={post.id} post={post} creative={creative} owner={isOwner} moderator={moderator} onArchive={onArchivePost} onRestore={onRestorePost} onDelete={onDeletePost} onModerate={onModeratePost} />)}</div> : <div className="ll-profile-empty"><p>No posts published yet.</p>{isOwner && <Link to="/create"><Plus size={16} /> Create your first post</Link>}</div>}
         </section>
-        {projects.length > 0 && <section id="work" className="ll-profile-section"><SectionHeading eyebrow="Formal portfolio" title="Projects" /><div className="ll-profile-projects">{projects.map((project) => <ProfileProject key={project.id} project={project} linkState={publicLocationState(location, `creative-project-${project.id}`)} />)}</div></section>}
+        {(projects.length > 0 || isOwner) && <section id="work" className="ll-profile-section"><SectionHeading eyebrow="Formal portfolio" title="Projects" />{isOwner && <Link to="/admin/projects/new" className="ll-profile-add-work"><Plus size={16}/> Add project</Link>}<div className="ll-profile-projects">{projects.map((project) => <ProfileProject key={project.id} project={project} linkState={publicLocationState(location, `creative-project-${project.id}`)} canManage={isOwner && project.canEdit} onEdit={onEditProject} onDelete={onDeleteProject} />)}</div></section>}
       </main>
       <aside className="ll-profile-about" id="about">
         {(bio || isOwner) && <section><ProfileEditButton owner={isOwner} label="Edit biography" onClick={() => setEditingSection('about')} /><p className="ll-kicker">About</p><h2>Creative perspective</h2>{bio ? <p>{bio}</p> : <p className="ll-profile-placeholder">Add a professional biography.</p>}</section>}
@@ -57,8 +57,9 @@ function SectionHeading({ eyebrow, title }) { return <div className="ll-section-
 function ProfileEditButton({ owner, label, onClick }) { return owner ? <button type="button" className="ll-profile-section-edit" onClick={onClick} aria-label={label}><Edit3 size={15} /></button> : null; }
 function ProfessionalSection({ title, items, owner, onEdit }) { const values = Array.isArray(items) ? items.filter(Boolean) : []; if (!owner && !values.length) return null; return <section><ProfileEditButton owner={owner} label={`Edit ${title.toLowerCase()}`} onClick={onEdit} /><p className="ll-kicker">{title}</p>{values.length ? <ul>{values.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="ll-profile-placeholder">Add {title.toLowerCase()}.</p>}</section>; }
 function SocialLink({ item }) { const icons={facebook:Facebook,instagram:Instagram,linkedin:Linkedin,youtube:Youtube,twitter:Twitter,github:Github,dribbble:Dribbble,tiktok:Music2,email:Mail,website:Globe2}; const Icon=icons[item.platform]||Globe2; const external=!item.href.startsWith('mailto:'); return <a href={item.href} target={external?'_blank':undefined} rel={external?'noopener noreferrer':undefined} aria-label={`${item.label}${external?' (opens in a new tab)':''}`} title={item.label}><Icon size={17}/></a>; }
-function ProfileProject({project,linkState}) {
+function ProfileProject({project,linkState,canManage,onEdit,onDelete}) {
   const image=publicImageVariant(getPublicImageUrl(project.cover_image),'display');
   const roles=[...(project.credit_roles||[]),project.contribution_role,project.role].filter(Boolean);
-  return <article id={`creative-project-${project.id}`} className="ll-profile-project"><Link to={`/projects/${project.slug}`} state={linkState}>{image?<img src={image} alt="" loading="lazy" decoding="async"/>:<span className="ll-profile-project__fallback"/>}<span><small>{project.category}</small><strong>{project.title}</strong>{roles.length>0&&<em>{[...new Set(roles)].join(' · ')}</em>}</span><ArrowRight size={17}/></Link></article>;
+  const content=<>{image?<img src={image} alt="" loading="lazy" decoding="async"/>:<span className="ll-profile-project__fallback"/>}<span><small>{project.status === 'published' ? project.category : `${project.category} · ${project.status}`}</small><strong>{project.title}</strong>{roles.length>0&&<em>{[...new Set(roles)].join(' · ')}</em>}</span>{project.status==='published'&&<ArrowRight size={17}/>}</>;
+  return <article id={`creative-project-${project.id}`} className="ll-profile-project">{project.status==='published'?<Link to={`/projects/${project.slug}`} state={linkState}>{content}</Link>:<div className="ll-profile-project__draft">{content}</div>}{project.moderation_reason&&<p className="ll-moderation-note">Super Admin note: {project.moderation_reason}</p>}{canManage&&<div className="ll-profile-project-controls"><button type="button" onClick={()=>onEdit?.(project)}><Edit3 size={15}/> Edit</button><button type="button" className="is-danger" onClick={()=>onDelete?.(project)}><Trash2 size={15}/> Delete</button></div>}</article>;
 }

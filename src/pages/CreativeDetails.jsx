@@ -7,8 +7,9 @@ import { detailBackAction } from '../lib/navigationHistory';
 import { applyPublicMetadata } from '../lib/publicMetadata';
 import { getPublicImageUrl } from '../lib/storage';
 import { useAuthSession } from '../lib/authSession';
-import { archiveCreativePost, deleteCreativePost, loadOwnCreativePosts, loadPublicCreativePosts, restoreCreativePost } from '../lib/creativePosts';
+import { archiveCreativePost, deleteCreativePost, loadOwnCreativePosts, loadPublicCreativePosts, moderateCreativePost, restoreCreativePost } from '../lib/creativePosts';
 import { useAdminConfirmation } from '../components/admin/AdminDialog';
+import { deleteOwnedProject } from '../lib/deleteOwnedProject';
 
 export default function CreativeDetails() {
   const { session } = useAuthSession();
@@ -18,6 +19,7 @@ export default function CreativeDetails() {
   const [projects, setProjects] = useState([]);
   const [posts, setPosts] = useState([]);
   const [isOwner, setIsOwner] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
@@ -30,7 +32,7 @@ export default function CreativeDetails() {
       setCreative(null);
       setProjects([]);
       setPosts([]);
-      const { data, error: creativeError } = await supabase.from('creative_members').select('id, name, slug, role, short_bio, full_bio, profile_image_url, cover_image, skills, social_links, availability_status, location, professional_details').eq('slug', slug).eq('is_published', true).single();
+      const { data, error: creativeError } = await supabase.from('creative_members').select('id, name, slug, role, short_bio, full_bio, profile_image_url, profile_image_position, cover_image, cover_image_position, skills, social_links, availability_status, location, professional_details').eq('slug', slug).eq('is_published', true).single();
       if (!active) return;
       if (creativeError) {
         setError('Creative profile not found or not published yet.');
@@ -42,15 +44,16 @@ export default function CreativeDetails() {
       if (session?.user?.id) {
         const { data: account } = await supabase.from('admin_users').select('role,creative_member_id,status').eq('user_id', session.user.id).maybeSingle();
         ownsProfile = account?.role === 'creative' && account?.status === 'active' && account?.creative_member_id === data.id;
+        setIsModerator(account?.role === 'super_admin' && account?.status === 'active');
       }
       if (!active) return;
       setIsOwner(ownsProfile);
       const [{ data: links }, loadedPosts] = await Promise.all([
-        supabase.from('project_creatives').select('credit_roles, contribution_role, role, projects(id, title, slug, category, cover_image, status)').eq('creative_id', data.id).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false }),
+        supabase.from('project_creatives').select('credit_roles, contribution_role, role, is_primary, projects(id, title, slug, category, cover_image, status, owner_user_id, created_by, moderation_reason)').eq('creative_id', data.id).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false }),
         ownsProfile ? loadOwnCreativePosts() : loadPublicCreativePosts(data.id),
       ]);
       if (!active) return;
-      setProjects((links || []).map((link) => link.projects ? ({ ...link.projects, credit_roles: link.credit_roles, contribution_role: link.contribution_role, role: link.role }) : null).filter((project) => project?.status === 'published'));
+      setProjects((links || []).map((link) => link.projects ? ({ ...link.projects, credit_roles: link.credit_roles, contribution_role: link.contribution_role, role: link.role, canEdit: ownsProfile && (link.is_primary || link.projects.owner_user_id === session?.user?.id || link.projects.created_by === session?.user?.id) }) : null).filter((project) => project && (project.status === 'published' || project.canEdit)));
       setPosts(loadedPosts);
       setLoading(false);
     }
@@ -65,6 +68,16 @@ export default function CreativeDetails() {
       if (action === 'delete') await deleteCreativePost(post.id);
       setPosts(await loadOwnCreativePosts());
     } catch (reason) { setError(reason.message); }
+  }
+  async function moderatePost(post, action, reason) {
+    try { await moderateCreativePost(post.id, action, reason); setPosts((current) => current.filter((item) => item.id !== post.id)); }
+    catch (reasonValue) { setError(reasonValue.message); }
+  }
+  function confirmProjectDelete(project) {
+    requestConfirmation({ title: `Delete “${project.title}”?`, description: 'The project and its connected media will be removed. This cannot be undone.', confirmLabel: 'Delete project', destructive: true, onConfirm: async () => {
+      try { await deleteOwnedProject(project.id); setProjects((current) => current.filter((item) => item.id !== project.id)); }
+      catch (reason) { setError(reason.message || 'The project could not be deleted.'); }
+    }});
   }
   function confirmPostChange(post, action) {
     const deletingDraft = action === 'delete' && post.status === 'draft';
@@ -93,7 +106,7 @@ export default function CreativeDetails() {
 
   const goBack = () => { const action = detailBackAction(location.state, window.history.state?.idx, '/creatives'); if (action.delta) navigate(action.delta); else navigate(action.to); };
   return <article className="ll-profile-route">
-    <CreativeProfileView creative={creative} projects={projects} posts={posts} isOwner={isOwner} onBack={goBack} onCreativeChange={setCreative} onArchivePost={(post) => confirmPostChange(post, 'archive')} onRestorePost={(post) => confirmPostChange(post, 'restore')} onDeletePost={(post) => confirmPostChange(post, 'delete')} />
+    <CreativeProfileView creative={creative} projects={projects} posts={posts} isOwner={isOwner} moderator={isModerator} onBack={goBack} onCreativeChange={setCreative} onArchivePost={(post) => confirmPostChange(post, 'archive')} onRestorePost={(post) => confirmPostChange(post, 'restore')} onDeletePost={(post) => confirmPostChange(post, 'delete')} onModeratePost={moderatePost} onEditProject={(project)=>navigate(`/admin/projects/${project.id}/edit`)} onDeleteProject={confirmProjectDelete} />
     {confirmationDialog}
   </article>;
 }

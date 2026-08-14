@@ -1,7 +1,6 @@
 import { ArrowLeft, ChevronDown, ChevronRight, ExternalLink, Save, Search, Send, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
-import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
 import UnsavedChangesGuard from '../../components/admin/UnsavedChangesGuard.jsx';
 import { useAdminAccess } from '../../lib/adminAccess.jsx';
@@ -119,13 +118,17 @@ export default function WebsiteStudio() {
   }
   async function publish() { if (dirty) { setError('Save the draft before publishing.'); return; } if (!selected?.draft_data) { setError('There are no unpublished changes to publish.'); return; } await run('publish', () => publishWebsiteEntry(selected.entry_key)); }
   if (!['super_admin','owner','admin'].includes(role)) return <Navigate to="/admin/dashboard" replace />;
-  if (loading) return <AdminLayout><LoadingState label="Loading Website Studio" /></AdminLayout>;
+  const returnRoute = pageRoutes[sectionKey] || '/';
+  if (loading) return <main className="ll-site-editor-loading"><LoadingState label="Loading website editor" /></main>;
 
-  return <AdminLayout>
+  return <div className="ll-site-editor-layer">
+    <iframe className="ll-site-editor-preview" src={returnRoute} title="Live website preview" />
+    <div className="ll-site-editor-scrim" aria-hidden="true" />
+    <section className="ll-site-editor-panel" role="dialog" aria-modal="true" aria-label="Edit public website">
     <UnsavedChangesGuard dirty={dirty && !working} />
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.08] pb-5">
       <div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200">Website editor</p><h1 className="mt-2 text-3xl font-semibold text-white">Edit the public website</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Choose a page or shared setting. Save your changes, then publish when they are ready for visitors.</p></div>
-      <div className="flex flex-wrap gap-2"><Link to="/admin/dashboard" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.12] px-4 text-sm font-semibold text-white"><ArrowLeft size={16}/>Admin home</Link><Link to="/" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-amber-200 px-4 text-sm font-semibold text-zinc-950"><ExternalLink size={16}/>View live website</Link></div>
+      <div className="flex flex-wrap gap-2"><Link to={returnRoute} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.12] px-4 text-sm font-semibold text-white"><ArrowLeft size={16}/>Close editor</Link></div>
     </header>
     {error && <div role="alert" className="mb-4 border border-red-300/25 bg-red-300/[0.06] px-4 py-3 text-sm text-red-100">{error}</div>}
     {notice && <div role="status" className="mb-4 border border-emerald-300/25 bg-emerald-300/[0.06] px-4 py-3 text-sm text-emerald-100">{notice}</div>}
@@ -135,7 +138,8 @@ export default function WebsiteStudio() {
         <StudioContent sectionKey={sectionKey} selected={selected} form={form} fields={fields} config={config} state={state} dirty={dirty} working={working} uploading={uploading} uploadImage={uploadImage} updateField={updateField} save={save} publish={publish} discard={() => run('discard', () => discardWebsiteDraft(selected.entry_key))} />
       </>}
     </main>
-  </AdminLayout>;
+    </section>
+  </div>;
 }
 
 function SectionChooser({ navigation, entries, search, setSearch, onSelect }) {

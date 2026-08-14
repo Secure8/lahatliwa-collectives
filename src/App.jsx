@@ -16,6 +16,7 @@ import NotFound from './pages/NotFound';
 import { applyPublicMetadata } from './lib/publicMetadata';
 import BrandWordmark from './components/BrandWordmark';
 import { publicAppBarMode } from './lib/mobileAppShell';
+import PublicAdminBar from './components/PublicAdminBar';
 
 const Login = lazy(() => import('./pages/admin/Login'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
@@ -31,7 +32,6 @@ const StartProject = lazy(loadStartProject);
 const InquiryConfirmation = lazy(loadInquiryConfirmation);
 const Privacy = lazy(loadPrivacy);
 const CurrentWork = lazy(loadCurrentWork);
-const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
 const EditProject = lazy(() => import('./pages/admin/EditProject'));
@@ -102,6 +102,7 @@ function PublicSiteFrame() {
       <PublicScrollRestoration />
       <a href="#public-main-content" className="skip-link">Skip to main content</a>
       <Navbar />
+      <PublicAdminBar />
       {loading && <p className="sr-only" role="status">Refreshing website content</p>}
       {error && <p className="sr-only" role="alert">{error}</p>}
       <main id="public-main-content" tabIndex={-1} data-public-app-content data-app-bar-mode={appBarMode} className={`public-app-content public-app-content--${appBarMode} min-h-[60vh] overflow-x-hidden`}><PublicErrorBoundary key={publicRouteBoundaryKey(location)}><Suspense fallback={<div className="page-shell py-20"><LoadingState label="Loading page" /></div>}><Outlet /></Suspense></PublicErrorBoundary></main>
@@ -159,12 +160,12 @@ export default function App() {
         <Route path="/account" element={<AdminSuspense><AccountLanding /></AdminSuspense>} />
         <Route path="/create" element={<CreativeRouteGuard><CreativePostEditor create /></CreativeRouteGuard>} />
         <Route path="/posts/:id/edit" element={<CreativeRouteGuard><CreativePostEditor /></CreativeRouteGuard>} />
-        <Route path="/admin/dashboard" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><Dashboard /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/dashboard" element={<Navigate to="/" replace />} />
         <Route path="/admin/my-profile" element={<AdminSuspense><AdminRouteGuard allow={['creative']}><MyProfile /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/directory" element={<Navigate to="/creatives" replace />} />
         <Route path="/admin/projects" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><AdminProjects /></AdminRouteGuard></AdminSuspense>} />
-        <Route path="/admin/projects/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><NewProject /></AdminRouteGuard></AdminSuspense>} />
-        <Route path="/admin/projects/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><EditProject /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/projects/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin','creative']}><NewProject /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/projects/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin','creative']}><EditProject /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/creatives" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><AdminCreatives /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/creatives/new" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><CreativeEditor /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/creatives/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><CreativeEditor /></AdminRouteGuard></AdminSuspense>} />

@@ -5,8 +5,8 @@ import CreativeCard from '../components/CreativeCard';
 import CreativeFeed from '../components/CreativeFeed';
 import LoadingState from '../components/LoadingState';
 import { usePublicContent } from '../lib/contentApi';
-import { loadPublicCreativeFeed } from '../lib/creativePosts';
-import { fetchPublicProjectSummaries } from '../lib/publicProjectData';
+import { loadPublicCreativeFeed, moderateCreativePost } from '../lib/creativePosts';
+import { fetchPublicProjectSummaries, moderatePublicProject } from '../lib/publicProjectData';
 import { supabase } from '../lib/supabaseClient';
 import usePublicAccount from '../lib/usePublicAccount';
 
@@ -31,6 +31,23 @@ export default function Home() {
   }, []);
 
   const isCreative = account?.role === 'creative';
+  const isModerator = account?.role === 'super_admin';
+  async function moderatePost(post, action, reason) {
+    try {
+      await moderateCreativePost(post.id, action, reason);
+      setState((current) => ({ ...current, posts: current.posts.filter((item) => item.id !== post.id) }));
+    } catch (moderationError) {
+      setState((current) => ({ ...current, error: moderationError.message || 'The post could not be removed.' }));
+    }
+  }
+  async function moderateProject(project, reason) {
+    try {
+      await moderatePublicProject(project.id, reason);
+      setState((current) => ({ ...current, projects: current.projects.filter((item) => item.id !== project.id) }));
+    } catch (moderationError) {
+      setState((current) => ({ ...current, error: moderationError.message || 'The project could not be removed.' }));
+    }
+  }
   const structuredData = { '@context': 'https://schema.org', '@type': 'WebSite', name: content.displayName, url: 'https://www.lahatliwa.studio/', description: 'A professional creative network for discovering work, process, stories, and the people behind them.', publisher: { '@type': 'Organization', name: content.displayName } };
 
   return <div data-creative-network-home className="ll-network-home">
@@ -53,7 +70,7 @@ export default function Home() {
     <div className="ll-home-layout">
       <main className="min-w-0">
         {state.error && <p role="alert" className="ll-feed-error">{state.error}</p>}
-        {state.loading ? <LoadingState label="Loading the creative feed" /> : <CreativeFeed posts={state.posts} projects={state.projects} filter={filter} onFilterChange={setFilter} creativeOwner={isCreative} />}
+        {state.loading ? <LoadingState label="Loading the creative feed" /> : <CreativeFeed posts={state.posts} projects={state.projects} filter={filter} onFilterChange={setFilter} creativeOwner={isCreative} moderator={isModerator} onModeratePost={moderatePost} onModerateProject={moderateProject} />}
       </main>
       <aside className="ll-discovery-panel" aria-labelledby="discover-creatives-heading">
         <div className="ll-discovery-panel__heading"><p className="ll-kicker">People to discover</p><h2 id="discover-creatives-heading">Meet the Creatives</h2><p>Open a profile to see their wall, disciplines, and formal project work.</p></div>

@@ -12,12 +12,12 @@ export default function CreativeHero({ creative, socials, resources = [], render
   const disciplines = normalizeCreativeDisciplines(creative.skills).slice(0, CREATIVE_DISCIPLINE_MAX_COUNT);
   return <header className="ll-profile-header">
     <div className="ll-profile-cover">
-      {coverImage ? <SafeImage src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} /> : <div className="ll-profile-cover__fallback" aria-hidden="true" />}
+      {coverImage ? <SafeImage src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} style={{ objectPosition: creative.cover_image_position || '50% 50%' }} /> : <div className="ll-profile-cover__fallback" aria-hidden="true" />}
       {onBack && <button type="button" className="ll-profile-cover-back" onClick={onBack} aria-label="Back to Creatives" title="Back to Creatives"><ChevronLeft size={30} strokeWidth={2.2} /></button>}
       {onEdit && <button type="button" className="ll-profile-cover-edit" onClick={() => onEdit('media')}><Camera size={17} /> Change cover photo</button>}
     </div>
     <div className="ll-profile-identity">
-      {onEdit ? <button type="button" className="ll-profile-avatar is-editable" onClick={() => onEdit('media')} aria-label="Change profile photo">{profileImage ? <SafeImage src={profileImage} alt={`${creative.name} profile`} /> : <span>{creative.name?.slice(0, 1) || 'L'}</span>}<i><Camera size={18} /></i></button> : <div className="ll-profile-avatar">{profileImage ? <SafeImage src={profileImage} alt={`${creative.name} profile`} /> : <span>{creative.name?.slice(0, 1) || 'L'}</span>}</div>}
+      {onEdit ? <button type="button" className="ll-profile-avatar is-editable" onClick={() => onEdit('media')} aria-label="Change profile photo">{profileImage ? <SafeImage src={profileImage} alt={`${creative.name} profile`} style={{ objectPosition: creative.profile_image_position || '50% 50%' }} /> : <span>{creative.name?.slice(0, 1) || 'L'}</span>}<i><Camera size={18} /></i></button> : <div className="ll-profile-avatar">{profileImage ? <SafeImage src={profileImage} alt={`${creative.name} profile`} style={{ objectPosition: creative.profile_image_position || '50% 50%' }} /> : <span>{creative.name?.slice(0, 1) || 'L'}</span>}</div>}
       <div className="ll-profile-identity__copy">
         {onEdit && <button type="button" className="ll-profile-identity-edit" onClick={() => onEdit('overview')} aria-label="Edit profile introduction"><Edit3 size={15} /></button>}
         <p className="ll-kicker">Creative profile</p>

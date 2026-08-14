@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import AdminLayout from '../../components/admin/AdminLayout';
-import { AdminButton, AdminEmptyState, AdminNotice, AdminPageHeader } from '../../components/admin/AdminUI';
+import { useParams, Link } from 'react-router-dom';
+import { X } from 'lucide-react';
+import { AdminButton, AdminEmptyState, AdminNotice } from '../../components/admin/AdminUI';
 import ProjectForm from '../../components/admin/ProjectForm';
 import LoadingState from '../../components/LoadingState';
 import { supabase } from '../../lib/supabaseClient';
@@ -14,6 +14,7 @@ export default function EditProject() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { role, user, adminUser } = useAdminAccess();
+  const closeTo = role === 'creative' ? '/account' : '/';
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -27,15 +28,19 @@ export default function EditProject() {
   }, [id]);
 
   return (
-    <AdminLayout>
-      <AdminPageHeader eyebrow="Edit" title="Edit Project" description="Refine project details, gallery content, contributor assignments, and publishing settings." />
+    <div className="ll-work-editor-layer">
+      <Link to={closeTo} className="ll-work-editor-scrim" aria-label="Close project editor" />
+      <section className="ll-work-editor" role="dialog" aria-modal="true" aria-labelledby="edit-work-title">
+      <header><div><p className="ll-kicker">Edit work</p><h1 id="edit-work-title">{project?.title || 'Project'}</h1><p>Update the public project without leaving your wall.</p></div><Link to={closeTo} aria-label="Close"><X size={21}/></Link></header>
+      <div className="ll-work-editor-body">
       {loading && <LoadingState label="Loading project" />}
       {error && <AdminNotice>{error}</AdminNotice>}
       {!loading && !project && <AdminEmptyState title="Project not found" message="The requested project could not be loaded." action={<AdminButton to="/admin/projects">Back</AdminButton>} />}
       {project && (canEditProject(role, project, user?.id) || canManageAllProjects(role)
         ? <><ProjectForm initialProject={project} mode="edit" /><div className="mt-6"><ContributorRequestPanel project={project} creativeId={adminUser?.creative_member_id} canReview /></div></>
-        : <><AdminNotice tone="success" className="mb-5">You can view this project as a contributor. Editing and credit management require owner, editor, manager, or administrator access.</AdminNotice><ContributorRequestPanel project={project} creativeId={adminUser?.creative_member_id} /></>)}
-    </AdminLayout>
+        : <><AdminNotice tone="success" className="mb-5">You can view this project as a contributor. Editing and credit management require ownership or primary contributor access.</AdminNotice><ContributorRequestPanel project={project} creativeId={adminUser?.creative_member_id} /></>)}
+      </div></section>
+    </div>
   );
 }
 

@@ -15,6 +15,7 @@ function mapCredits(rows) {
       id: row.creative_members.id,
       name: row.creative_members.name,
       slug: row.creative_members.slug,
+      profileImageUrl: row.creative_members.profile_image_url,
       profileRole: row.creative_members.role,
       roles: row.credit_roles?.length ? row.credit_roles : [row.role || row.contribution_role || row.creative_members.role].filter(Boolean),
       isPrimary: row.is_primary === true,
@@ -37,13 +38,20 @@ export async function fetchPublicProjectSummaries({ workStatus = '' } = {}) {
   if (projectError) throw projectError;
   if (!projects?.length) { cache.set(key, { projects: [], at: Date.now() }); return []; }
 
-  let { data: links, error: linksError } = await supabase.from('project_creatives').select('project_id, role, contribution_role, credit_roles, is_primary, display_order, creative_members!project_creatives_creative_member_id_fkey(id, name, slug, role)').in('project_id', projects.map((project) => project.id)).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false });
+  let { data: links, error: linksError } = await supabase.from('project_creatives').select('project_id, role, contribution_role, credit_roles, is_primary, display_order, creative_members!project_creatives_creative_member_id_fkey(id, name, slug, role, profile_image_url)').in('project_id', projects.map((project) => project.id)).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false });
   if (linksError && /credit_roles/i.test(`${linksError.message || ''} ${linksError.details || ''}`)) {
-    ({ data: links, error: linksError } = await supabase.from('project_creatives').select('project_id, role, contribution_role, is_primary, display_order, creative_members!project_creatives_creative_member_id_fkey(id, name, slug, role)').in('project_id', projects.map((project) => project.id)).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false }));
+    ({ data: links, error: linksError } = await supabase.from('project_creatives').select('project_id, role, contribution_role, is_primary, display_order, creative_members!project_creatives_creative_member_id_fkey(id, name, slug, role, profile_image_url)').in('project_id', projects.map((project) => project.id)).order('is_primary', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false }));
   }
   if (linksError) throw linksError;
   const credits = mapCredits(links);
   const result = projects.map((project) => ({ ...project, credits: credits.get(project.id) || [] }));
   cache.set(key, { projects: result, at: Date.now() });
   return result;
+}
+
+export async function moderatePublicProject(projectId, reason) {
+  const { data, error } = await supabase.rpc('moderate_public_project', { p_project_id: projectId, p_reason: reason });
+  if (error) throw error;
+  cache.clear();
+  return data;
 }

@@ -695,6 +695,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
         reviewed_by: ['approve', 'reject', 'publish', 'archive'].includes(submitAction) ? user?.id : form.reviewed_by || null,
         reviewed_at: ['approve', 'reject', 'publish', 'archive'].includes(submitAction) ? now : form.reviewed_at || null,
         review_notes: form.review_notes || null,
+        ...(submitAction === 'publish' ? { moderation_reason: null, moderated_by: null, moderated_at: null } : {}),
         created_by: initialProject?.created_by || user?.id || null,
         owner_user_id: initialProject?.owner_user_id || user?.id || null,
         updated_by: user?.id || null,
@@ -785,7 +786,7 @@ export default function ProjectForm({ initialProject, mode = 'new' }) {
       if (mediaDraftRef.current.id && !initialProject?.id) await completePublicMediaDraft('project', mediaDraftRef.current.id);
       clearDraft();
       setDirty(false);
-      navigate('/admin/projects');
+      navigate(role === 'creative' ? '/account' : '/');
     } catch (saveError) {
       if (!projectRecordSaved && (uploadedSupabasePaths.length || uploadedManagedUrls.length)) {
         try {

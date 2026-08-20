@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyCreativePostInlineStyle, CREATIVE_POST_BLOCK_TYPES, CREATIVE_POST_MAX_IMAGES, creativePostExcerpt, creativePostHasContent, creativePostPlainText, emptyCreativePostDocument, normalizeCreativePostDocument } from './creativePosts.js';
+import { applyCreativePostInlineStyle, CREATIVE_POST_BLOCK_TYPES, CREATIVE_POST_MAX_IMAGES, creativePostExcerpt, creativePostHasContent, creativePostPlainText, emptyCreativePostDocument, moveCreativePostBlock, normalizeCreativePostDocument } from './creativePosts.js';
 
 test('Creative posts use a bounded structured document instead of HTML', () => {
   assert.deepEqual(CREATIVE_POST_BLOCK_TYPES, ['paragraph', 'heading', 'quote', 'bullet_list', 'numbered_list', 'divider', 'image_group', 'external_embed']);
@@ -12,14 +12,24 @@ test('Creative posts use a bounded structured document instead of HTML', () => {
 test('post normalization bounds images, marks, links, and list length', () => {
   const ids = Array.from({ length: 14 }, (_, index) => `media-${index}`);
   const document = normalizeCreativePostDocument({ version: 1, blocks: [
-    { id: 'copy', type: 'paragraph', content: [{ text: 'Hello', marks: ['bold', 'script', 'italic'], href: 'javascript:alert(1)' }] },
+    { id: 'copy', type: 'paragraph', content: [{ text: 'Hello', marks: ['bold', 'script', 'italic', 'underline'], href: 'javascript:alert(1)' }] },
     { id: 'gallery', type: 'image_group', mediaIds: ids },
     { id: 'list', type: 'bullet_list', items: Array.from({ length: 50 }, () => 'item') },
   ] });
-  assert.deepEqual(document.blocks[0].content[0].marks, ['bold', 'italic']);
+  assert.deepEqual(document.blocks[0].content[0].marks, ['bold', 'italic', 'underline']);
   assert.equal(document.blocks[0].content[0].href, undefined);
   assert.equal(document.blocks[1].mediaIds.length, CREATIVE_POST_MAX_IMAGES);
   assert.equal(document.blocks[2].items.length, 40);
+});
+
+test('content blocks can be reordered without changing their data', () => {
+  const document = normalizeCreativePostDocument({ version: 1, blocks: [
+    { id: 'first', type: 'paragraph', content: [{ text: 'First', marks: [] }] },
+    { id: 'second', type: 'heading', level: 3, content: [{ text: 'Second', marks: [] }] },
+  ] });
+  const moved = moveCreativePostBlock(document, 'second', -1);
+  assert.deepEqual(moved.blocks.map((block) => block.id), ['second', 'first']);
+  assert.equal(moved.blocks[0].level, 3);
 });
 
 test('plain text and excerpts are derived from blocks', () => {

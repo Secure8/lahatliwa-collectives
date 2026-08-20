@@ -1,16 +1,16 @@
-import { ArrowUp, ArrowDown, Bold, Check, Eye, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, MoreHorizontal, Plus, Quote, Send, Trash2, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Bold, Check, Eye, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, MoreHorizontal, Plus, Quote, Send, Trash2, Underline, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import CreativePostDocument from '../components/CreativePostDocument';
 import LoadingState from '../components/LoadingState';
-import { createCreativePostDraft, createPostBlock, creativePostHasContent, CREATIVE_POST_MAX_IMAGES, emptyCreativePostDocument, loadCreativePostForEdit, normalizeCreativePostDocument, publishCreativePost, removeCreativePostMedia, saveCreativePost, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
+import { createCreativePostDraft, createPostBlock, creativePostHasContent, CREATIVE_POST_MAX_IMAGES, emptyCreativePostDocument, loadCreativePostForEdit, moveCreativePostBlock, normalizeCreativePostDocument, publishCreativePost, removeCreativePostMedia, saveCreativePost, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
 import { useAdminAccess } from '../lib/adminAccess';
 import { supabase } from '../lib/supabaseClient';
 import { useAdminConfirmation } from '../components/admin/AdminDialog';
 
 const insertChoices = [
   ['heading', 'Heading', Heading2], ['quote', 'Quote', Quote], ['bullet_list', 'Bulleted list', List],
-  ['numbered_list', 'Numbered list', ListOrdered], ['divider', 'Divider', Minus], ['external_embed', 'External link', Link2],
+  ['numbered_list', 'Numbered list', ListOrdered], ['image', 'Image or gallery', ImagePlus], ['divider', 'Divider', Minus], ['external_embed', 'External link', Link2],
 ];
 
 export default function CreativePostEditor({ create = false }) {
@@ -30,6 +30,7 @@ export default function CreativePostEditor({ create = false }) {
   const [insertOpen, setInsertOpen] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState(null);
   const fileRef = useRef(null);
+  const uploadAfterIndexRef = useRef(null);
   const revisionRef = useRef(0);
   const savedRevisionRef = useRef(0);
   const savingRef = useRef(false);
@@ -111,12 +112,23 @@ export default function CreativePostEditor({ create = false }) {
   }, [loading, saveNow, status, document]);
 
   function updateBlock(index, patch) { markDirty((current) => ({ ...current, blocks: current.blocks.map((block, blockIndex) => blockIndex === index ? { ...block, ...patch } : block) })); }
+  function transformBlock(index, type, level) {
+    markDirty((current) => ({ ...current, blocks: current.blocks.map((block, blockIndex) => {
+      if (blockIndex !== index) return block;
+      if (type === 'bullet_list' || type === 'numbered_list') return { id: block.id, type, items: [block.content?.map((segment) => segment.text).join('') || block.items?.join(' ') || ''] };
+      const content = block.content || [{ text: block.items?.join('\n') || '', marks: [] }];
+      return { id: block.id, type, ...(type === 'heading' ? { level: level || 2 } : {}), content };
+    }) }));
+  }
+  function moveBlock(blockId, delta) { markDirty((current) => moveCreativePostBlock(current, blockId, delta)); }
   function insertBlock(type, afterIndex = (documentRef.current?.blocks.length || 1) - 1) {
+    if (type === 'image') { requestImages(afterIndex); setInsertOpen(false); return; }
     markDirty((current) => { const blocks = [...current.blocks]; blocks.splice(afterIndex + 1, 0, createPostBlock(type)); return { ...current, blocks }; });
     setInsertOpen(false);
   }
+  function requestImages(afterIndex = (documentRef.current?.blocks.length || 1) - 1) { uploadAfterIndexRef.current = afterIndex; fileRef.current?.click(); }
   function removeBlock(index) { markDirty((current) => ({ ...current, blocks: current.blocks.length === 1 ? [createPostBlock('paragraph')] : current.blocks.filter((_, blockIndex) => blockIndex !== index) })); }
-  function addParagraphAfter(index) { insertBlock('paragraph', index); window.setTimeout(() => document.querySelector(`[data-composer-block="${index + 1}"] textarea`)?.focus(), 0); }
+  function addParagraphAfter(index) { insertBlock('paragraph', index); window.setTimeout(() => globalThis.document.querySelector(`[data-composer-block="${index + 1}"] .ll-rich-text-editor`)?.focus(), 0); }
 
   async function publish() {
     setPublishing(true); setError('');
@@ -147,9 +159,11 @@ export default function CreativePostEditor({ create = false }) {
       setMedia((current) => [...current, ...added]);
       const nextDocument = (() => {
         const current = documentRef.current;
-        const galleryIndex = current.blocks.findIndex((block) => block.type === 'image_group');
-        if (galleryIndex >= 0) return { ...current, blocks: current.blocks.map((block, index) => index === galleryIndex ? { ...block, mediaIds: [...block.mediaIds, ...added.map((item) => item.id)] } : block) };
-        return { ...current, blocks: [...current.blocks, { ...createPostBlock('image_group'), mediaIds: added.map((item) => item.id) }, createPostBlock('paragraph')] };
+        const afterIndex = Number.isInteger(uploadAfterIndexRef.current) ? uploadAfterIndexRef.current : current.blocks.length - 1;
+        const blocks = [...current.blocks];
+        blocks.splice(afterIndex + 1, 0, { ...createPostBlock('image_group'), mediaIds: added.map((item) => item.id) });
+        if (afterIndex >= current.blocks.length - 1) blocks.push(createPostBlock('paragraph'));
+        return { ...current, blocks };
       })();
       documentRef.current = nextDocument; setDocument(nextDocument);
       revisionRef.current += 1; setStatus('saving');
@@ -159,7 +173,7 @@ export default function CreativePostEditor({ create = false }) {
       setSelectedMediaId(added[0]?.id || null);
       if (create) navigate(`/posts/${persisted.id}/edit`, { replace: true });
     } catch (reason) { setError(reason.message); }
-    finally { setUploading(false); }
+    finally { setUploading(false); uploadAfterIndexRef.current = null; }
   }
 
   async function updateImage(item, patch) {
@@ -198,10 +212,10 @@ export default function CreativePostEditor({ create = false }) {
       <header className="ll-composer-author">{creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}<div><strong>{creative?.name || 'Your Creative profile'}</strong><small>{post.status === 'published' ? 'Editing a published post' : 'New post'}</small></div></header>
       {error && <p className="ll-composer-error" role="alert">{error}</p>}
       {preview ? <section className="ll-composer-preview"><CreativePostDocument document={previewDocument} media={media} /></section> : <section className="ll-natural-canvas" aria-label="Post composition canvas">
-        {(document?.blocks || []).map((block, index) => <NaturalBlock key={block.id} block={block} index={index} media={media} onChange={(patch) => updateBlock(index, patch)} onEnter={() => addParagraphAfter(index)} onRemove={() => removeBlock(index)} onSelectMedia={setSelectedMediaId} />)}
+        {(document?.blocks || []).map((block, index) => <NaturalBlock key={block.id} block={block} index={index} count={document.blocks.length} media={media} onChange={(patch) => updateBlock(index, patch)} onTransform={(type, level) => transformBlock(index, type, level)} onEnter={() => addParagraphAfter(index)} onInsert={(type) => insertBlock(type, index)} onMove={(delta) => moveBlock(block.id, delta)} onRemove={() => removeBlock(index)} onSelectMedia={setSelectedMediaId} />)}
         <div className="ll-insert-row"><button type="button" onClick={() => setInsertOpen((value) => !value)} aria-expanded={insertOpen}><Plus size={18} /> Add to post</button>{insertOpen && <div className="ll-insert-menu">{insertChoices.map(([type, label, Icon]) => <button key={type} type="button" onClick={() => insertBlock(type)}><Icon size={17} /> {label}</button>)}</div>}</div>
       </section>}
-      {!preview && <div className="ll-composer-add-media"><input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={upload} className="sr-only" /><button type="button" onClick={() => fileRef.current?.click()} disabled={uploading || media.length >= CREATIVE_POST_MAX_IMAGES}><ImagePlus size={19} /><span>{uploading ? 'Uploading photos…' : 'Add photos'}</span><small>{media.length}/{CREATIVE_POST_MAX_IMAGES}</small></button><p>JPEG, PNG, or WebP. Add a short description before publishing.</p></div>}
+      {!preview && <div className="ll-composer-add-media"><input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={upload} className="sr-only" /><button type="button" onClick={() => requestImages()} disabled={uploading || media.length >= CREATIVE_POST_MAX_IMAGES}><ImagePlus size={19} /><span>{uploading ? 'Uploading photos…' : 'Insert photos at the end'}</span><small>{media.length}/{CREATIVE_POST_MAX_IMAGES}</small></button><p>Use the + between sections to place an image exactly where you want it. JPEG, PNG, or WebP.</p></div>}
     </div></div>
     </section>
     {selectedMedia && <ImageInspector item={selectedMedia} order={media.findIndex((item) => item.id === selectedMedia.id)} count={media.length} onClose={() => setSelectedMediaId(null)} onChange={(patch) => updateImage(selectedMedia, patch)} onMove={(delta) => moveImage(selectedMedia.id, delta)} onRemove={() => confirmImageRemoval(selectedMedia)} />}
@@ -209,7 +223,7 @@ export default function CreativePostEditor({ create = false }) {
   </main>;
 }
 
-function NaturalBlock({ block, index, media, onChange, onEnter, onRemove, onSelectMedia }) {
+function NaturalBlock({ block, index, count, media, onChange, onTransform, onEnter, onInsert, onMove, onRemove, onSelectMedia }) {
   const [focused, setFocused] = useState(false);
   const editorRef = useRef(null);
   const text = block.content?.map((segment) => segment.text).join('') || '';
@@ -228,20 +242,24 @@ function NaturalBlock({ block, index, media, onChange, onEnter, onRemove, onSele
     if (!/^https:\/\//i.test(href.trim())) { window.alert('Use a secure https:// link.'); return; }
     runFormat('createLink', href.trim());
   };
-  if (block.type === 'divider') return <div data-composer-block={index} className="ll-natural-divider"><hr /><button type="button" onClick={onRemove} aria-label="Remove divider"><X size={15} /></button></div>;
-  if (block.type === 'image_group') { const items = block.mediaIds.map((id) => media.find((item) => item.id === id)).filter(Boolean); return <div data-composer-block={index} className="ll-natural-gallery">{items.map((item, itemIndex) => <button key={item.id} type="button" onClick={() => onSelectMedia(item.id)} aria-label={`Edit photo ${itemIndex + 1}`}><img src={item.display_url || item.thumbnail_url} alt={item.alt_text || ''} /><span><MoreHorizontal size={18} /></span>{!item.alt_text && <small>Description needed</small>}</button>)}</div>; }
-  if (block.type === 'external_embed') return <div data-composer-block={index} className="ll-natural-link"><input value={block.label} onChange={(event) => onChange({ label: event.target.value })} placeholder="Give this link a title" /><input value={block.url} onChange={(event) => onChange({ url: event.target.value })} placeholder="https://…" /><button type="button" onClick={onRemove} aria-label="Remove link"><X size={16} /></button></div>;
-  if (block.type === 'bullet_list' || block.type === 'numbered_list') return <div data-composer-block={index} className="ll-natural-text is-list"><textarea rows={Math.max(2, block.items.length)} value={block.items.join('\n')} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onChange={(event) => onChange({ items: event.target.value.split('\n') })} placeholder="One thought per line…" />{focused && <ContextToolbar onRemove={onRemove} />}</div>;
-  return <div data-composer-block={index} className={`ll-natural-text is-${block.type}`}>
-    {focused && <ContextToolbar onBold={() => runFormat('bold')} onItalic={() => runFormat('italic')} onLink={setLink} onRemove={onRemove} />}
+  const controls = <BlockControls index={index} count={count} onMove={onMove} onRemove={onRemove} />;
+  const inserter = <InlineInserter onInsert={onInsert} />;
+  if (block.type === 'divider') return <div data-composer-block={index} className="ll-natural-block">{controls}<div className="ll-natural-divider"><hr /></div>{inserter}</div>;
+  if (block.type === 'image_group') { const items = block.mediaIds.map((id) => media.find((item) => item.id === id)).filter(Boolean); return <div data-composer-block={index} className="ll-natural-block">{controls}<div className="ll-natural-gallery">{items.map((item, itemIndex) => <button key={item.id} type="button" onClick={() => onSelectMedia(item.id)} aria-label={`Edit photo ${itemIndex + 1}`}><img src={item.display_url || item.thumbnail_url} alt={item.alt_text || ''} /><span><MoreHorizontal size={18} /></span>{!item.alt_text && <small>Description needed</small>}</button>)}</div>{inserter}</div>; }
+  if (block.type === 'external_embed') return <div data-composer-block={index} className="ll-natural-block">{controls}<div className="ll-natural-link"><input value={block.label} onChange={(event) => onChange({ label: event.target.value })} placeholder="Give this link a title" /><input value={block.url} onChange={(event) => onChange({ url: event.target.value })} placeholder="https://…" /></div>{inserter}</div>;
+  if (block.type === 'bullet_list' || block.type === 'numbered_list') return <div data-composer-block={index} className="ll-natural-block">{controls}<div className="ll-natural-text is-list"><textarea rows={Math.max(2, block.items.length)} value={block.items.join('\n')} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.parentElement.contains(event.relatedTarget)) setFocused(false); }} onChange={(event) => onChange({ items: event.target.value.split('\n') })} placeholder="One thought per line…" />{focused && <ContextToolbar block={block} onTransform={onTransform} />}</div>{inserter}</div>;
+  return <div data-composer-block={index} className={`ll-natural-text is-${block.type}${block.type === 'heading' ? ` is-heading-${block.level || 2}` : ''}`}>
+    {controls}
+    {focused && <ContextToolbar block={block} onTransform={onTransform} onBold={() => runFormat('bold')} onItalic={() => runFormat('italic')} onUnderline={() => runFormat('underline')} onLink={setLink} />}
     <RichTextField editorRef={editorRef} content={block.content} placeholder={index === 0 ? 'What are you creating, learning, or sharing?' : block.type === 'heading' ? 'Add a heading…' : block.type === 'quote' ? 'Add a meaningful quote…' : 'Keep writing…'} onChange={(content) => onChange({ content })} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.parentElement.contains(event.relatedTarget)) setFocused(false); }} onKeyDown={(event) => {
       const shortcut = (event.ctrlKey || event.metaKey) && !event.altKey;
       if (shortcut && event.key.toLowerCase() === 'b') { event.preventDefault(); runFormat('bold'); return; }
       if (shortcut && event.key.toLowerCase() === 'i') { event.preventDefault(); runFormat('italic'); return; }
+      if (shortcut && event.key.toLowerCase() === 'u') { event.preventDefault(); runFormat('underline'); return; }
       if (shortcut && event.key.toLowerCase() === 'k') { event.preventDefault(); setLink(); return; }
       if (event.key === 'Enter' && !event.shiftKey && block.type !== 'quote') { event.preventDefault(); onEnter(); }
       if (event.key === 'Backspace' && !text && index > 0) onRemove();
-    }} />
+    }} />{inserter}
   </div>;
 }
 
@@ -267,6 +285,7 @@ function writeRichTextSegments(root, content = []) {
     let node = globalThis.document.createTextNode(segment.text || '');
     if (segment.marks?.includes('bold')) { const strong = globalThis.document.createElement('strong'); strong.append(node); node = strong; }
     if (segment.marks?.includes('italic')) { const em = globalThis.document.createElement('em'); em.append(node); node = em; }
+    if (segment.marks?.includes('underline')) { const underline = globalThis.document.createElement('u'); underline.append(node); node = underline; }
     if (/^https:\/\//i.test(segment.href || '')) { const link = globalThis.document.createElement('a'); link.href = segment.href; link.append(node); node = link; }
     fragment.append(node);
   }
@@ -290,8 +309,10 @@ function readRichTextSegments(root) {
     const weight = Number.parseInt(node.style?.fontWeight || '', 10);
     const isBold = ['b', 'strong'].includes(tag) || node.style?.fontWeight === 'bold' || weight >= 600;
     const isItalic = ['i', 'em'].includes(tag) || node.style?.fontStyle === 'italic';
+    const isUnderline = tag === 'u' || node.style?.textDecorationLine?.includes('underline') || node.style?.textDecoration?.includes('underline');
     if (isBold && !nextMarks.includes('bold')) nextMarks.push('bold');
     if (isItalic && !nextMarks.includes('italic')) nextMarks.push('italic');
+    if (isUnderline && !nextMarks.includes('underline')) nextMarks.push('underline');
     const nextHref = tag === 'a' && /^https:\/\//i.test(node.getAttribute('href') || '') ? node.getAttribute('href') : href;
     node.childNodes.forEach((child) => visit(child, nextMarks, nextHref));
   };
@@ -299,7 +320,11 @@ function readRichTextSegments(root) {
   return segments.length ? segments : [{ text: '', marks: [] }];
 }
 
-function ContextToolbar({ onBold, onItalic, onLink, onRemove }) { return <div className="ll-context-toolbar" role="toolbar" aria-label="Text formatting"><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onBold} disabled={!onBold} aria-label="Bold selected text" title="Bold (Ctrl+B)"><Bold size={15} /></button><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onItalic} disabled={!onItalic} aria-label="Italicize selected text" title="Italic (Ctrl+I)"><Italic size={15} /></button><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onLink} disabled={!onLink} aria-label="Link selected text" title="Add link (Ctrl+K)"><Link2 size={15} /></button><span /><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onRemove} aria-label="Remove this section"><Trash2 size={15} /></button></div>; }
+function ContextToolbar({ block, onTransform, onBold, onItalic, onUnderline, onLink }) { return <div className="ll-context-toolbar" role="toolbar" aria-label="Text formatting"><select value={block.type === 'heading' ? `heading-${block.level || 2}` : block.type} onMouseDown={(event) => event.stopPropagation()} onChange={(event) => { const [type, level] = event.target.value.split('-'); onTransform(type, Number(level) || undefined); }} aria-label="Text style"><option value="paragraph">Text</option><option value="heading-2">Large heading</option><option value="heading-3">Small heading</option><option value="quote">Quote</option><option value="bullet_list">Bulleted list</option><option value="numbered_list">Numbered list</option></select><span /><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onBold} disabled={!onBold} aria-label="Bold selected text" title="Bold (Ctrl+B)"><Bold size={15} /></button><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onItalic} disabled={!onItalic} aria-label="Italicize selected text" title="Italic (Ctrl+I)"><Italic size={15} /></button><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onUnderline} disabled={!onUnderline} aria-label="Underline selected text" title="Underline (Ctrl+U)"><Underline size={15} /></button><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onLink} disabled={!onLink} aria-label="Link selected text" title="Add link (Ctrl+K)"><Link2 size={15} /></button></div>; }
+
+function BlockControls({ index, count, onMove, onRemove }) { return <div className="ll-block-controls" aria-label="Section controls"><button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label="Move section earlier" title="Move up"><ArrowUp size={14} /></button><button type="button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label="Move section later" title="Move down"><ArrowDown size={14} /></button><button type="button" onClick={onRemove} aria-label="Remove section" title="Delete section"><Trash2 size={14} /></button></div>; }
+
+function InlineInserter({ onInsert }) { const [open, setOpen] = useState(false); return <div className="ll-inline-inserter"><button type="button" onClick={() => setOpen((value) => !value)} aria-label="Insert content here" aria-expanded={open}><Plus size={15} /></button>{open && <div className="ll-inline-inserter__menu">{insertChoices.map(([type, label, Icon]) => <button key={type} type="button" onClick={() => { onInsert(type); setOpen(false); }}><Icon size={15} /><span>{label}</span></button>)}</div>}</div>; }
 
 function ImageInspector({ item, order, count, onClose, onChange, onMove, onRemove }) {
   const [alt, setAlt] = useState(item.alt_text || '');

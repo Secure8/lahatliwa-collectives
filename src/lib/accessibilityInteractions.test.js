@@ -180,11 +180,12 @@ test('admin navigation stays direct and avoids a hidden command layer', async ()
 });
 
 test('public join requests replace the legacy people-management dashboard', async () => {
-  const [layout, joinPage, reviewPage, migration] = await Promise.all([
+  const [layout, joinPage, reviewPage, migration, permissionMigration] = await Promise.all([
     source('../components/admin/AdminLayout.jsx'),
     source('../pages/JoinCreative.jsx'),
     source('../pages/admin/CreativeJoinRequests.jsx'),
     source('../../supabase/migrations/20260815010000_public_creative_join_requests.sql'),
+    source('../../supabase/migrations/20260815030000_creative_join_request_read_permission.sql'),
   ]);
   assert.match(layout, /Join requests/);
   assert.doesNotMatch(layout, /Accounts|Team Members|Add Member/);
@@ -196,4 +197,6 @@ test('public join requests replace the legacy people-management dashboard', asyn
   assert.match(reviewPage, /creative-join-requests-admin/);
   assert.match(reviewPage, /Refreshing…/);
   assert.match(migration, /create table if not exists public\.creative_join_requests/);
+  assert.match(permissionMigration, /grant select on public\.creative_join_requests to authenticated/);
+  assert.match(permissionMigration, /revoke all on public\.creative_join_requests from anon/);
 });

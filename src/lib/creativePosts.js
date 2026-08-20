@@ -23,7 +23,7 @@ export function emptyCreativePostDocument() {
 
 function cleanSegment(segment = {}) {
   const text = String(segment.text || '').slice(0, 10000);
-  const marks = [...new Set((Array.isArray(segment.marks) ? segment.marks : []).filter((mark) => ['bold', 'italic'].includes(mark)))];
+  const marks = [...new Set((Array.isArray(segment.marks) ? segment.marks : []).filter((mark) => ['bold', 'italic', 'underline'].includes(mark)))];
   const href = safeExternalUrl(segment.href);
   const secureHref = href.startsWith('https://') ? href : '';
   return { text, marks, ...(secureHref ? { href: secureHref } : {}) };
@@ -74,6 +74,16 @@ export function creativePostHasContent(document, media = []) {
 
 export function postMediaById(media = []) {
   return new Map((media || []).map((item) => [item.id, item]));
+}
+
+export function moveCreativePostBlock(document, blockId, delta) {
+  const normalized = normalizeCreativePostDocument(document);
+  const from = normalized.blocks.findIndex((block) => block.id === blockId);
+  const to = from + Number(delta || 0);
+  if (from < 0 || to < 0 || to >= normalized.blocks.length) return normalized;
+  const blocks = [...normalized.blocks];
+  [blocks[from], blocks[to]] = [blocks[to], blocks[from]];
+  return { ...normalized, blocks };
 }
 
 export function applyCreativePostInlineStyle(content = [], start = 0, end = 0, style = {}) {

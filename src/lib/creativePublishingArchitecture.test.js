@@ -75,8 +75,20 @@ test('post editor provides visible structured rich text with familiar shortcuts'
   assert.match(editor, /writeRichTextSegments/);
   assert.match(editor, /event\.key\.toLowerCase\(\) === 'b'/);
   assert.match(editor, /event\.key\.toLowerCase\(\) === 'i'/);
+  assert.match(editor, /event\.key\.toLowerCase\(\) === 'u'/);
   assert.match(editor, /event\.key\.toLowerCase\(\) === 'k'/);
   assert.match(editor, /title="Bold \(Ctrl\+B\)"/);
   assert.match(styles, /\.ll-rich-text-editor strong \{ font-weight: 750/);
+  assert.match(editor, /Image or gallery/);
+  assert.match(editor, /moveCreativePostBlock/);
+  assert.match(editor, /Insert photos at the end/);
   assert.doesNotMatch(editor, /dangerouslySetInnerHTML/);
+});
+
+test('underline remains structured and is accepted by the database validator', () => {
+  const client = source('src/lib/creativePosts.js');
+  const migration = source('supabase/migrations/20260815050000_creative_post_underline_mark.sql');
+  assert.match(client, /\['bold', 'italic', 'underline'\]/);
+  assert.match(migration, /not in \('bold','italic','underline'\)/);
+  assert.match(migration, /Raw HTML remains forbidden/);
 });

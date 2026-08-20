@@ -7,6 +7,7 @@ function RichText({ segments = [] }) {
     let node = segment.text;
     if (segment.marks?.includes('bold')) node = <strong>{node}</strong>;
     if (segment.marks?.includes('italic')) node = <em>{node}</em>;
+    if (segment.marks?.includes('underline')) node = <u>{node}</u>;
     const href = safeExternalUrl(segment.href);
     if (href) node = <a href={href} target="_blank" rel="noopener noreferrer" className="text-orange-200 underline decoration-orange-300/40 underline-offset-4 hover:decoration-orange-200">{node}</a>;
     return <span key={`${index}-${segment.text.slice(0, 16)}`}>{node}</span>;

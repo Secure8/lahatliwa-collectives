@@ -1,8 +1,10 @@
-import { ArrowUpRight, Image, Search } from 'lucide-react';
+import { ArrowUpRight, Image, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 import LoadingState from '../../components/LoadingState';
+import { deleteOwnedProject } from '../../lib/deleteOwnedProject';
 import { formatDate } from '../../lib/helpers';
 import { getPublicImageUrl } from '../../lib/storage';
 import { supabase } from '../../lib/supabaseClient';
@@ -20,6 +22,7 @@ export default function AdminProjects() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
 
   useEffect(() => {
     let active = true;
@@ -50,11 +53,25 @@ export default function AdminProjects() {
     });
   }, [filter, projects, search]);
 
+  function requestDelete(project) {
+    requestConfirmation({
+      title: `Delete “${project.title}”?`,
+      description: 'This permanently removes the project and queues its managed media for safe cleanup. The Creative account and profile are not affected.',
+      confirmLabel: 'Delete project',
+      destructive: true,
+      confirmationText: project.title,
+      onConfirm: async () => {
+        await deleteOwnedProject(project.id, 'Super Admin project moderation deletion');
+        setProjects((current) => current.filter((item) => item.id !== project.id));
+      },
+    });
+  }
+
   return <AdminLayout>
     <header className="ll-operations-intro">
       <p className="ll-kicker">Public work overview</p>
       <h2>Projects</h2>
-      <p>This is a read-only view of Creative work. Super Admin can review what is public, but cannot create, edit, or delete projects here.</p>
+      <p>Review Creative work and remove projects that should no longer appear on the platform. Every deletion is audited and includes safe media cleanup.</p>
     </header>
 
     <div className="ll-simple-toolbar">
@@ -81,10 +98,16 @@ export default function AdminProjects() {
           </span>
           {published && <ArrowUpRight size={18} aria-hidden="true"/>}
         </>;
-        return published
-          ? <Link key={project.id} to={`/projects/${project.slug}`} className="ll-project-review-list__item">{content}</Link>
-          : <div key={project.id} className="ll-project-review-list__item">{content}</div>;
+        return <article key={project.id} className="ll-project-review-list__row">
+          {published
+            ? <Link to={`/projects/${project.slug}`} className="ll-project-review-list__item">{content}</Link>
+            : <div className="ll-project-review-list__item">{content}</div>}
+          <button type="button" className="ll-project-review-list__delete" onClick={() => requestDelete(project)} aria-label={`Delete ${project.title}`}>
+            <Trash2 size={16}/><span>Delete</span>
+          </button>
+        </article>;
       })}
     </div> : <div className="ll-operations-empty"><strong>No projects match</strong><p>Try another search or filter.</p></div>}
+    {confirmationDialog}
   </AdminLayout>;
 }

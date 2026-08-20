@@ -84,14 +84,16 @@ test('derivative upload validation checks extension, MIME, exact size, and WebP 
   assert.equal(validR2DerivativeFile({ ...valid, signature: new Uint8Array(12) }), false);
 });
 
-test('project and profile permissions reject unrelated active accounts', () => {
+test('project and profile permissions allow Super Admin or the owning Creative only', () => {
   const project = { status: 'draft', owner_user_id: 'owner', created_by: 'creator' };
-  assert.equal(r2ProjectPermissionAllowed({ role: 'creative', userId: 'owner', project }), false);
+  assert.equal(r2ProjectPermissionAllowed({ role: 'creative', userId: 'owner', project }), true);
   assert.equal(r2ProjectPermissionAllowed({ role: 'editor', userId: 'other', project, accessLevel: 'editor' }), false);
   assert.equal(r2ProjectPermissionAllowed({ role: 'viewer', userId: 'other', project }), false);
   assert.equal(r2ProjectPermissionAllowed({ role: 'super_admin', userId: 'admin', project }), true);
   assert.equal(r2ProjectPermissionAllowed({ role: 'super_admin', userId: 'admin', project }, 'delete'), true);
-  assert.equal(r2ProjectPermissionAllowed({ role: 'super_admin', userId: 'admin', project: { ...project, status: 'published' } }, 'delete'), false);
+  assert.equal(r2ProjectPermissionAllowed({ role: 'super_admin', userId: 'admin', project: { ...project, status: 'published' } }, 'delete'), true);
+  assert.equal(r2ProjectPermissionAllowed({ role: 'creative', userId: 'owner', project: { ...project, status: 'published' } }, 'delete'), true);
+  assert.equal(r2ProjectPermissionAllowed({ role: 'creative', userId: 'other', project }, 'delete'), false);
   assert.equal(r2ProfilePermissionAllowed({ role: 'creative', creativeMemberId: PROFILE_ID, targetCreativeMemberId: PROFILE_ID }), true);
   assert.equal(r2ProfilePermissionAllowed({ role: 'creative', creativeMemberId: PROFILE_ID, targetCreativeMemberId: PROJECT_ID }), false);
 });

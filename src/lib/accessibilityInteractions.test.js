@@ -131,15 +131,18 @@ test('adjacent admin content holders keep a small visual separation', async () =
   assert.match(styles, /\.grid > \.admin-surface \+ \.admin-surface,[\s\S]*?\.flex > \.admin-surface \+ \.admin-surface[\s\S]*?margin-top:\s*0/);
 });
 
-test('Super Admin projects are a read-only public-work overview', async () => {
+test('Super Admin projects provide an audited moderation delete control', async () => {
   const [projects, styles] = await Promise.all([
     source('../pages/admin/AdminProjects.jsx'),
     source('../index.css'),
   ]);
-  assert.match(projects, /read-only view of Creative work/);
+  assert.match(projects, /Every deletion is audited/);
   assert.match(projects, /ll-project-review-list/);
-  assert.doesNotMatch(projects, /deleteProject|Delete project|AdminProjectCard/);
+  assert.match(projects, /deleteOwnedProject/);
+  assert.match(projects, /Delete project/);
+  assert.match(projects, /confirmationText: project\.title/);
   assert.match(styles, /\.ll-project-review-list__item/);
+  assert.match(styles, /\.ll-project-review-list__delete/);
 });
 
 test('admin search fields render one boundary with a single restrained focus state', async () => {

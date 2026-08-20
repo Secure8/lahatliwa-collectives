@@ -85,8 +85,10 @@ export function createR2ObjectKey(category, targetId, groupId, variant) {
  */
 export function r2ProjectPermissionAllowed({ role, userId, project, accessLevel = '' } = {}, mode = 'edit') {
   if (!project || !userId) return false;
-  if (mode === 'delete') return role === 'super_admin' && project.status !== 'published';
-  return role === 'super_admin';
+  if (role === 'super_admin') return true;
+  const ownsProject = role === 'creative' && (project.owner_user_id === userId || project.created_by === userId);
+  if (mode === 'delete') return ownsProject;
+  return ownsProject;
 }
 
 export function r2ProfilePermissionAllowed({ role, creativeMemberId, targetCreativeMemberId } = {}) {

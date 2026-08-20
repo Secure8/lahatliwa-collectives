@@ -248,5 +248,7 @@ export async function updateCreativePostMedia(id, patch) {
 export async function removeCreativePostMedia(media) {
   const { error } = await supabase.from('creative_post_media').delete().eq('id', media.id);
   if (error) throw postError(error, 'The image could not be removed.');
-  await requestManagedMediaDeletion(media.expanded_url || media.display_url).catch(() => null);
+  // The post reference is already gone. Managed cleanup can continue without
+  // making the editor wait for another network round trip.
+  void requestManagedMediaDeletion(media.expanded_url || media.display_url).catch(() => null);
 }

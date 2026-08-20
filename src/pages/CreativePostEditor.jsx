@@ -8,6 +8,19 @@ import { useAdminAccess } from '../lib/adminAccess';
 import { supabase } from '../lib/supabaseClient';
 import { useAdminConfirmation } from '../components/admin/AdminDialog';
 
+async function mapWithConcurrency(items, limit, task) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await task(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 const insertChoices = [
   ['heading', 'Heading', Heading2], ['quote', 'Quote', Quote], ['bullet_list', 'Bulleted list', List],
   ['numbered_list', 'Numbered list', ListOrdered], ['image', 'Image or gallery', ImagePlus], ['divider', 'Divider', Minus], ['external_embed', 'External link', Link2],
@@ -149,13 +162,16 @@ export default function CreativePostEditor({ create = false }) {
     setUploading(true); setError('');
     try {
       const persisted = await ensureDraft();
-      const added = [];
       const usedOrders = new Set(media.map((item) => item.display_order));
-      for (const file of files) {
+      const orders = files.map(() => {
         const nextOrder = Array.from({ length: CREATIVE_POST_MAX_IMAGES }, (_, index) => index).find((order) => !usedOrders.has(order));
         usedOrders.add(nextOrder);
-        added.push(await uploadCreativePostImage(file, { postId: persisted.id, order: nextOrder, altText: '' }));
-      }
+        return nextOrder;
+      });
+      // Two photos at a time is faster while remaining stable on mobile data.
+      const added = await mapWithConcurrency(files, 2, (file, index) => uploadCreativePostImage(file, {
+        postId: persisted.id, order: orders[index], altText: '',
+      }));
       setMedia((current) => [...current, ...added]);
       const nextDocument = (() => {
         const current = documentRef.current;

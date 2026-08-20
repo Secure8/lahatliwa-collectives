@@ -137,13 +137,13 @@ async function loadGroup(actor: any, groupId: string) {
 }
 
 async function queueGroupCleanup(actor: any, cfg: any, rows: any[], reason: string) {
-  for (const row of rows) {
+  await Promise.all(rows.map(async (row) => {
     const { error } = await actor.admin.from('storage_cleanup_jobs').insert({
       provider: R2_PROVIDER, bucket_name: cfg.bucketName, object_path: row.external_file_id,
       project_id: row.project_id || null, reason, created_by: actor.user.id,
     });
     if (error && error.code !== '23505') throw error;
-  }
+  }));
   await actor.admin.from('external_media_objects').update({ status: 'deleting', accounting_state: 'pending_cleanup',
     ...(reason.includes('replaced') ? { replaced_at: new Date().toISOString() } : {}), cleanup_status: 'pending', cleanup_error: null })
     .eq('media_group_id', rows[0].media_group_id).eq('provider', R2_PROVIDER);
@@ -298,24 +298,22 @@ Deno.serve(async (request) => {
     const category = rows[0].file_category;
     if (!await authorizeTarget(actor, category, rows[0].project_id, rows[0].creative_member_id, rows[0].editorial_post_id, rows[0].creative_post_id)) return fail('TARGET_NOT_AUTHORIZED', 'You no longer have permission to finalize this media.', 403, cors);
     try {
-      let actualBytes = 0;
-      for (const row of rows) {
+      const verifiedRows = await Promise.all(rows.map(async (row: any) => {
         const response = await signedR2Request(fetch, cfg, 'HEAD', row.external_file_id);
         const verifiedBytes = Number(response.headers.get('content-length') || 0);
         const valid = response.ok && verifiedBytes === Number(row.size_bytes)
           && String(response.headers.get('content-type') || '').split(';')[0].toLowerCase() === row.mime_type;
         if (!valid) throw Object.assign(new Error('R2 verification failed'), { code: 'R2_OBJECT_VERIFICATION_FAILED' });
-        actualBytes += verifiedBytes;
-        row.verifiedBytes = verifiedBytes;
-        row.verifiedEtag = String(response.headers.get('etag') || '').replace(/"/g, '');
-      }
-      for (const row of rows) {
+        return { ...row, verifiedBytes, verifiedEtag: String(response.headers.get('etag') || '').replace(/"/g, '') };
+      }));
+      const actualBytes = verifiedRows.reduce((sum: number, row: any) => sum + row.verifiedBytes, 0);
+      await Promise.all(verifiedRows.map(async (row: any) => {
         const { error } = await actor.admin.from('external_media_objects').update({ status: 'available', size_bytes: row.verifiedBytes,
           trusted_size_bytes: row.verifiedBytes, uploaded_bytes: row.verifiedBytes, checksum_algorithm: row.verifiedEtag ? 'etag' : null,
           checksum_value: row.verifiedEtag || null, verification_status: 'verified', last_verified_at: new Date().toISOString(),
           upload_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), cleanup_status: 'none', cleanup_error: null }).eq('id', row.id);
         if (error) throw Object.assign(new Error('Media finalization failed'), { code: 'MEDIA_FINALIZATION_FAILED' });
-      }
+      }));
       if (rows[0].reservation_id) await actor.admin.rpc('reconcile_storage_reservation', { p_reservation_id: rows[0].reservation_id, p_actual_bytes: actualBytes, p_success: true, p_error: null });
       const data = await loadGroup(actor, rows[0].media_group_id);
       if (!data?.length) throw Object.assign(new Error('Media finalization failed'), { code: 'MEDIA_FINALIZATION_FAILED' });

@@ -151,3 +151,18 @@ test('new public media is R2-only, keeps legacy rendering, and leaks no upload a
   assert.match(worker, /editorial_revisions/);
   assert.match(edge, /editorial_post_id/);
 });
+
+test('responsive media work runs concurrently without bypassing managed cleanup', () => {
+  const client = source('src/lib/r2Media.js');
+  const edge = source('supabase/functions/r2-media/index.ts');
+  const editor = source('src/pages/CreativePostEditor.jsx');
+  const posts = source('src/lib/creativePosts.js');
+  const storage = source('src/lib/storage.js');
+  assert.match(client, /Promise\.allSettled\(\(started\.upload\?\.uploads/);
+  assert.match(client, /if \(failedUpload\) throw failedUpload\.reason/);
+  assert.match(edge, /const verifiedRows = await Promise\.all/);
+  assert.match(edge, /Promise\.all\(verifiedRows\.map/);
+  assert.match(editor, /mapWithConcurrency\(files, 2/);
+  assert.match(posts, /void requestManagedMediaDeletion/);
+  assert.match(storage, /Promise\.allSettled\(managed\.map/);
+});

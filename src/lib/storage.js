@@ -114,5 +114,9 @@ export async function deleteImages(paths) {
     const { error } = await supabase.storage.from(BUCKET).remove(removable);
     if (error) throw error;
   }
-  for (const url of managed) await requestManagedMediaDeletion(url);
+  // Each managed URL only schedules provider cleanup, so independent images
+  // can be queued together instead of paying one network round trip per file.
+  const cleanupResults = await Promise.allSettled(managed.map((url) => requestManagedMediaDeletion(url)));
+  const failedCleanup = cleanupResults.find((result) => result.status === 'rejected');
+  if (failedCleanup) throw failedCleanup.reason;
 }

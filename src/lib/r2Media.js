@@ -40,7 +40,7 @@ export async function uploadManagedWebsiteImage(file, { category, projectId = ''
   });
   const groupId = started.upload?.groupId;
   try {
-    for (const upload of started.upload?.uploads || []) {
+    const uploadResults = await Promise.allSettled((started.upload?.uploads || []).map(async (upload) => {
       const derivative = derivatives.find((item) => item.variant === upload.variant);
       if (!derivative) throw new Error('A prepared image size is missing.');
       onStatus?.({ phase: 'uploading', message: `Uploading ${upload.variant} image…`, variant: upload.variant });
@@ -53,7 +53,9 @@ export async function uploadManagedWebsiteImage(file, { category, projectId = ''
         let context = null; try { context = await error?.context?.json(); } catch { context = null; }
         throw Object.assign(new Error(data?.message || context?.message || error?.message || 'A website image size could not be uploaded.'), { code: data?.code || context?.code || 'MEDIA_UPLOAD_FAILED' });
       }
-    }
+    }));
+    const failedUpload = uploadResults.find((result) => result.status === 'rejected');
+    if (failedUpload) throw failedUpload.reason;
     const finalized = await invoke({ action: 'finalize', groupId });
     uploadReceipts.set(finalized.media.primaryUrl, { groupId, media: finalized.media });
     return finalized.media;

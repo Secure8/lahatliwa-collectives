@@ -1,4 +1,4 @@
-export const BRAND_POSITIONING = 'Lahat Liwa Collectives is a professional creative social portfolio where Creatives publish work, process, writing, photography, and projects, and where viewers discover the people behind that work.';
+export const BRAND_POSITIONING = 'Lahat Liwa Collectives is a curated portfolio platform for discovering creative work from Aklan and the independent Creatives behind it.';
 
 export const CURRENT_WORK_COPY = Object.freeze({
   eyebrow: 'Current work',

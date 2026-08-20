@@ -12,8 +12,8 @@ export default function NotFound() {
           <Link to="/" className="inline-flex min-h-11 items-center gap-2 bg-[var(--site-accent)] px-5 text-sm font-semibold text-zinc-950 transition hover:bg-[var(--site-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
             <ArrowLeft size={17} aria-hidden="true" /> Return home
           </Link>
-          <Link to="/projects" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-5 text-sm font-semibold text-[var(--site-primary-text)] transition hover:border-[var(--site-accent-border)] hover:text-[var(--site-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
-            <FolderOpen size={17} aria-hidden="true" /> View projects
+          <Link to="/creatives" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-5 text-sm font-semibold text-[var(--site-primary-text)] transition hover:border-[var(--site-accent-border)] hover:text-[var(--site-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
+            <FolderOpen size={17} aria-hidden="true" /> Explore Creatives
           </Link>
         </div>
       </div>

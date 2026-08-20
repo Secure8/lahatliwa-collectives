@@ -43,7 +43,7 @@ export default function InquiryConfirmation() {
         <Summary label="Message type" value={confirmation.service || 'Open inquiry'} />
       </dl>
     </section>
-    <div className="mt-8 flex flex-wrap gap-5"><Link to="/work" className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">View current work <ArrowRight size={15} /></Link><Link to="/projects" className="inline-flex min-h-11 items-center border-b border-white/[0.15] text-sm text-zinc-300 hover:text-white">Completed portfolio</Link></div>
+    <div className="mt-8 flex flex-wrap gap-5"><Link to="/" className="inline-flex min-h-11 items-center gap-2 bg-orange-300 px-5 text-sm font-semibold text-zinc-950 hover:bg-orange-200">View the creative feed <ArrowRight size={15} /></Link><Link to="/creatives" className="inline-flex min-h-11 items-center border-b border-white/[0.15] text-sm text-zinc-300 hover:text-white">Explore Creatives</Link></div>
   </div>;
 }
 

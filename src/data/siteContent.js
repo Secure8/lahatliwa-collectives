@@ -11,7 +11,7 @@ export const defaultSiteContent = {
   heroImageUrl: '',
   heroImageAlt: 'Lahat Liwa Collectives hero portrait',
   showHeroPortrait: false,
-  footerText: 'A professional creative network for discovering work, process, stories, projects, and the people behind them.',
+  footerText: 'A curated home for creative work from Aklan and the people behind it.',
   primaryTextColor: '#f5f5f4',
   secondaryTextColor: '#d4d4d8',
   mutedTextColor: '#a1a1aa',
@@ -20,19 +20,19 @@ export const defaultSiteContent = {
   defaultBackgroundImageUrl: '',
   defaultBackgroundOverlayOpacity: 0.55,
   hero: {
-    eyebrow: 'LAHAT LIWA CREATIVE NETWORK',
-    title: 'Discover what Creatives are making now.',
+    eyebrow: 'CURATED CREATIVE WORK FROM AKLAN',
+    title: 'Discover work made with purpose.',
     description:
-      'Follow published work, photography, design, writing, project updates, and creative process from people across the network.',
+      'Explore selected photography, film, design, writing, and digital work from independent Creatives.',
     primaryCta: 'Explore Creatives',
     secondaryCta: 'Send an Inquiry',
   },
   about: {
     title: 'A professional home for creative work and the people behind it.',
     intro:
-      'Lahat Liwa is a professional creative social portfolio where Creatives publish work, process, writing, photography, and projects.',
+      'Lahat Liwa is a curated portfolio platform where Aklan Creatives present their work and professional practice.',
     journey:
-      'It gives every Creative a professional profile and living wall while giving viewers a clear path from discovery to professional inquiry.',
+      'Each Creative has a focused portfolio and a direct path for thoughtful professional inquiries.',
   },
   skills: [
     'Photography',

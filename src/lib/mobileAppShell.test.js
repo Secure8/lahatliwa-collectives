@@ -7,7 +7,13 @@ test('legacy app-bar helpers remain stable for routes that still use them', () =
   assert.equal(publicAppBarMode('/'), 'overlay');
   assert.equal(publicAppBarMode('/creatives/mara'), 'surface');
   assert.equal(publicDestinationIsActive('/projects/sample', '/projects'), true);
-  assert.equal(PUBLIC_PRIMARY_DESTINATIONS.length, 5);
+  assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS, [
+    ['Home', '/'],
+    ['Creatives', '/creatives'],
+    ['Start a project', '/inquiry'],
+    ['Contact', '/contact'],
+    ['Privacy', '/privacy'],
+  ]);
 });
 
 test('mobile app bar intent calculation remains jitter resistant', () => {
@@ -29,16 +35,19 @@ test('admin route title follows the most specific permitted route', () => {
   assert.equal(adminPageTitle('/admin/unknown', groups), 'Dashboard');
 });
 
-test('public and admin navigation drawers are modal, focus-managed, and theme-aware', async () => {
+test('admin operations remain focused while public destinations stay direct', async () => {
   const [navbar, admin, drawer, styles] = await Promise.all([
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
     readFile(new URL('./useModalDrawer.js', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
   ]);
-  for (const component of [navbar, admin]) { assert.match(component, /role="dialog"/); assert.match(component, /aria-modal="true"/); assert.match(component, /AppearanceMenuAction/); }
-  assert.match(navbar, /public-more-menu/);
-  assert.match(admin, /admin-navigation-drawer/);
+  assert.match(navbar, /AppearanceMenuAction/);
+  assert.doesNotMatch(navbar, /role="dialog"|public-more-menu|More pages/);
+  assert.match(navbar, /'Contact', '\/contact'/);
+  assert.match(navbar, /'Privacy', '\/privacy'/);
+  assert.match(admin, /ll-operations-window/);
+  assert.match(admin, /aria-label="Platform tools"/);
   assert.match(drawer, /event\.key === 'Escape'/);
   assert.match(drawer, /event\.key !== 'Tab'/);
   assert.match(styles, /\.ll-drawer-scrim/);
@@ -56,7 +65,7 @@ test('new mobile product shell stays intentional at phone and desktop breakpoint
   ]);
   assert.match(mobile, /ll-mobile-dock/);
   assert.match(navbar, /ll-public-header/);
-  assert.match(admin, /ll-admin-header/);
+  assert.match(admin, /ll-operations-window/);
   assert.doesNotMatch(admin, /lg:w-64|lg:ml-64/);
   assert.doesNotMatch(creative, /pointermove|data-creative-profile-back/);
   assert.match(styles, /@media \(max-width: 420px\)/);

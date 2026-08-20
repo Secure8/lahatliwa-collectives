@@ -4,32 +4,45 @@ import { readFile } from 'node:fs/promises';
 
 const source = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
-test('public mobile navigation is a five-destination professional network dock', async () => {
+test('public mobile navigation removes redundant Work and Portfolio destinations', async () => {
   const [component, navbar, app, styles] = await Promise.all([source('../components/MobileTopNavigation.jsx'), source('../components/Navbar.jsx'), source('../App.jsx'), source('../index.css')]);
   assert.match(component, /data-mobile-top-navigation/);
-  assert.match(component, /isCreative \? 'Create' : 'Portfolio'/);
+  assert.match(component, /\['Creatives', '\/creatives'/);
+  assert.match(component, /\['Start a project', '\/inquiry'/);
+  assert.doesNotMatch(component, /'Work', '\/work'|'Portfolio', '\/projects'|'Services', '\/services'/);
   assert.match(component, /aria-current=\{active\(href\) \? 'page'/);
   assert.match(component, /House/);
-  assert.match(component, /BriefcaseBusiness/);
   assert.match(component, /UsersRound/);
   assert.match(navbar, /<MobileTopNavigation \/>/);
   assert.doesNotMatch(app, /MobileBottomNavigation/);
-  assert.match(styles, /\.ll-mobile-dock[\s\S]*?grid-template-columns: repeat\(5/);
+  assert.match(component, /gridTemplateColumns: `repeat\(\$\{links\.length\}/);
   assert.match(styles, /@media \(max-width: 420px\)/);
 });
 
-test('desktop More navigation opens as an anchored floating menu instead of a right drawer', async () => {
-  const [navbar, styles] = await Promise.all([source('../components/Navbar.jsx'), source('../index.css')]);
-  assert.match(navbar, /ll-drawer-layer ll-public-menu-layer/);
-  assert.match(styles, /\.ll-public-menu-layer \.ll-public-drawer[\s\S]*?bottom: 4\.75rem;[\s\S]*?left: 5\.5rem/);
+test('public navigation exposes Contact and Privacy directly without a More menu', async () => {
+  const [navbar, mobile, styles] = await Promise.all([source('../components/Navbar.jsx'), source('../components/MobileTopNavigation.jsx'), source('../index.css')]);
+  assert.match(navbar, /navigation\.contactLabel \|\| 'Contact'/);
+  assert.match(navbar, /navigation\.privacyLabel \|\| 'Privacy'/);
+  assert.doesNotMatch(navbar, /More pages|public-more-menu|ll-public-menu-layer/);
+  assert.match(mobile, /\['Contact', '\/contact', Mail\]/);
+  assert.match(mobile, /\['Privacy', '\/privacy', ShieldCheck\]/);
   assert.match(styles, /\.ll-post-card\.has-open-menu \{ overflow: visible/);
+});
+
+test('moderation actions use compact icon controls with accessible labels', async () => {
+  const [moderation, styles] = await Promise.all([source('../pages/admin/AdminPostModeration.jsx'), source('../index.css')]);
+  assert.match(moderation, /role="toolbar"/);
+  assert.match(moderation, /MessageSquareWarning/);
+  assert.match(moderation, /data-action=\{action\}/);
+  assert.match(moderation, /aria-label=\{`\$\{label\}: \$\{hint\}`\}/);
+  assert.match(styles, /\.ll-moderation-actions button > span[\s\S]*?border-radius: 50%/);
 });
 
 test('mobile Home is a fluid feed with no artificial item limit', async () => {
   const [home, feed, styles, app] = await Promise.all([source('../pages/Home.jsx'), source('../components/CreativeFeed.jsx'), source('../index.css'), source('../App.jsx')]);
   assert.match(home, /data-creative-network-home/);
   assert.match(home, /loadPublicCreativeFeed/);
-  assert.match(home, /fetchPublicProjectSummaries\(\)/);
+  assert.doesNotMatch(home, /fetchPublicProjectSummaries\(\)/);
   assert.match(feed, /mergeCreativeFeed/);
   assert.match(feed, /CreativePostCard/);
   assert.doesNotMatch(home, /ActiveWorkHero|home-creatives-grid/);

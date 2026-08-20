@@ -128,13 +128,14 @@ test('Website Studio exposes a beginner single-column editor without a simulated
 test('Website Studio presents the requested sections and keeps shared values synchronized', () => {
   const footer = read('src/components/Footer.jsx');
   const navbar = read('src/components/Navbar.jsx');
-  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Feed', 'About', 'Work', 'Portfolio', 'Creatives', 'Contact & Services', 'Privacy Policy', 'Colors']);
+  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Feed', 'About', 'Creatives', 'Contact & Services', 'Privacy Policy', 'Colors']);
   assert.ok(!WEBSITE_STUDIO_SECTIONS.some(({ label }) => ['Footer', 'Search', 'Social links'].includes(label)));
   assert.match(footer, /content\.displayName/);
   assert.match(footer, /content\.tagline/);
   assert.match(footer, /content\.socialLinks/);
   assert.doesNotMatch(footer, /BrandLogo|content\.logoUrl/);
-  assert.match(navbar, /navigation\.servicesLabel \|\| 'Services'/);
+  assert.match(navbar, /'Discover', '\/discover'/);
+  assert.doesNotMatch(navbar, /navigation\.servicesLabel|navigation\.projectsLabel|navigation\.currentWorkLabel/);
   assert.doesNotMatch(footer, /footerText|footerContextLabel/);
   const content = websiteBundleToContent({
     'global.brand': { brandName: 'New Shared Brand', tagline: 'One shared tagline' },

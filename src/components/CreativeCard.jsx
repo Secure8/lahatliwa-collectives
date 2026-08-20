@@ -14,6 +14,7 @@ export default function CreativeCard({ creative, headingLevel = 'h3', compact = 
   const allSkills = Array.isArray(creative.skills) ? creative.skills : [];
   const skills = allSkills.slice(0, 4);
   const Heading = headingLevel;
+  const availability = { available: 'Available', limited: 'Limited availability', unavailable: 'Unavailable' }[creative.availability_status];
 
   if (compact) return <article id={`creative-${creative.id}`} className="ll-creative-mini">
     <Link to={`/creatives/${creative.slug}`} state={linkState} aria-label={`View ${creative.name}`}>
@@ -41,6 +42,7 @@ export default function CreativeCard({ creative, headingLevel = 'h3', compact = 
           <Heading className="line-clamp-2 min-h-7 text-xl font-medium leading-snug">{creative.name}</Heading>
           <ArrowUpRight className="mt-1 shrink-0 text-zinc-500 transition group-hover:text-[var(--site-accent)]" size={17} />
         </div>
+        {availability && <small className={`ll-card-availability is-${creative.availability_status}`}>{availability}</small>}
         <p className="site-secondary mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6">{creative.short_bio || ''}</p>
         <div className="mt-auto flex min-h-8 flex-wrap gap-x-3 gap-y-2 pt-5">
           {skills.length > 0 && (

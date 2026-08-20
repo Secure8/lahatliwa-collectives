@@ -11,7 +11,7 @@ import { PublicContentProvider, usePublicContent } from './lib/contentApi';
 import PublicScrollRestoration from './components/PublicScrollRestoration';
 import PublicErrorBoundary from './components/PublicErrorBoundary';
 import { publicRouteBoundaryKey } from './lib/navigationHistory';
-import { loadAbout, loadContact, loadCreativeDetails, loadCreatives, loadCurrentWork, loadInquiryConfirmation, loadPrivacy, loadProjectDetails, loadProjects, loadServices, loadStartProject } from './lib/publicRoutePreload';
+import { loadContact, loadCreativeDetails, loadCreatives, loadInquiryConfirmation, loadPrivacy, loadProjectDetails, loadStartProject } from './lib/publicRoutePreload';
 import NotFound from './pages/NotFound';
 import { applyPublicMetadata } from './lib/publicMetadata';
 import { publicAppBarMode } from './lib/mobileAppShell';
@@ -21,17 +21,13 @@ const Login = lazy(() => import('./pages/admin/Login'));
 const JoinCreative = lazy(() => import('./pages/JoinCreative'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
-const About = lazy(loadAbout);
-const Projects = lazy(loadProjects);
 const ProjectDetails = lazy(loadProjectDetails);
-const Services = lazy(loadServices);
 const Contact = lazy(loadContact);
 const Creatives = lazy(loadCreatives);
 const CreativeDetails = lazy(loadCreativeDetails);
 const StartProject = lazy(loadStartProject);
 const InquiryConfirmation = lazy(loadInquiryConfirmation);
 const Privacy = lazy(loadPrivacy);
-const CurrentWork = lazy(loadCurrentWork);
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
 const EditProject = lazy(() => import('./pages/admin/EditProject'));
@@ -42,7 +38,9 @@ const CreativePostDetails = lazy(() => import('./pages/CreativePostDetails'));
 const CreativePostEditor = lazy(() => import('./pages/CreativePostEditor'));
 const AccountLanding = lazy(() => import('./pages/AccountLanding'));
 const AdminPostModeration = lazy(() => import('./pages/admin/AdminPostModeration'));
+const AdminTaxonomy = lazy(() => import('./pages/admin/AdminTaxonomy'));
 const CreativeNotifications = lazy(() => import('./pages/CreativeNotifications'));
+const Discover = lazy(() => import('./pages/Discover'));
 
 function LegacyWebsiteEditorRedirect() {
   const { pageKey = '' } = useParams();
@@ -51,12 +49,9 @@ function LegacyWebsiteEditorRedirect() {
 }
 
 const routeMetadata = {
-  '/': ['Creative Feed | Lahat Liwa Collectives', 'Discover published work, process, photography, writing, and formal projects from Creatives across Lahat Liwa.'],
-  '/work': ['Current Work | Lahat Liwa Collectives', 'Follow public progress from active client projects, social content, events, and ongoing productions.'],
-  '/about': ['About | Lahat Liwa Collectives', 'Learn how Lahat Liwa shares current work, preserves completed projects, credits contributors, and welcomes open inquiries.'],
-  '/projects': ['Portfolio | Lahat Liwa Collectives', 'Explore completed projects, visible outcomes, and credited contributions across creative, digital, social, and community work.'],
-  '/services': ['Work With Us | Lahat Liwa Collectives', 'Describe your goal, idea, problem, collaboration, or opportunity without choosing from a fixed service list.'],
+  '/': ['Selected Work | Lahat Liwa Collectives', 'Discover curated photography, film, design, writing, and digital work by Creatives across Aklan.'],
   '/creatives': ['Creatives | Lahat Liwa Collectives', 'Discover published creative profiles, skills, portfolio work, and credited project contributions.'],
+  '/discover': ['Discover Creative Work | Lahat Liwa Collectives', 'Browse curated Creative work from Aklan by discipline, specialty, industry, and keyword.'],
   '/start-a-project': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/inquiry': ['Send an Inquiry | Lahat Liwa Collectives', 'Share your requirements, context, timeline, and creative preference for review before availability or arrangements are confirmed.'],
   '/contact': ['Contact | Lahat Liwa Collectives', 'Start a project inquiry, collaboration conversation, profile or credit question, opportunity, or general conversation.'],
@@ -112,7 +107,7 @@ function PublicSiteFrame() {
 function PublicLayout() {
   const location = useLocation();
   const { pathname } = location;
-  const contentArea = pathname === '/' ? 'home' : pathname === '/work' ? 'explore' : pathname === '/creatives' ? 'creatives' : pathname === '/about' ? 'about' : pathname.startsWith('/services') ? 'services' : pathname === '/contact' ? 'contact' : 'shared';
+  const contentArea = pathname === '/' ? 'home' : pathname === '/creatives' ? 'creatives' : pathname === '/contact' ? 'contact' : 'shared';
   const pageKeys = useMemo(() => contentArea === 'home' ? ['home', 'services'] : contentArea === 'creatives' ? ['home'] : contentArea === 'shared' ? [] : [contentArea], [contentArea]);
   return (
     <PublicContentProvider pageKeys={pageKeys}>
@@ -134,21 +129,24 @@ export default function App() {
     <><Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/projects" element={<Projects />} />
+        <Route path="/about" element={<Navigate to="/" replace />} />
+        <Route path="/projects" element={<Navigate to="/" replace />} />
         <Route path="/projects/:slug" element={<ProjectDetails />} />
-        <Route path="/work" element={<CurrentWork />} />
-        <Route path="/services" element={<Services />} />
+        <Route path="/work" element={<Navigate to="/" replace />} />
+        <Route path="/services" element={<Navigate to="/inquiry" replace />} />
         <Route path="/creatives" element={<Creatives />} />
+        <Route path="/discover" element={<Discover />} />
         <Route path="/creatives/:slug" element={<CreativeDetails />} />
         <Route path="/posts/:slug" element={<CreativePostDetails />} />
+        <Route path="/work/:slug" element={<CreativePostDetails />} />
         <Route path="/notifications" element={<CreativeRouteGuard><CreativeNotifications /></CreativeRouteGuard>} />
         <Route path="/start-a-project" element={<StartProject />} />
         <Route path="/inquiry" element={<StartProject />} />
         <Route path="/inquiry/confirmation/:reference" element={<InquiryConfirmation />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<Privacy />} />
-        {['/explore','/journal','/journal/:slug','/events','/events/:slug','/places','/places/:slug','/activities','/activities/:slug','/local-products','/local-products/:slug'].map((path) => <Route key={path} path={path} element={<Navigate to="/work" replace />} />)}
+        <Route path="/explore" element={<Navigate to="/discover" replace />} />
+        {['/journal','/journal/:slug','/events','/events/:slug','/places','/places/:slug','/activities','/activities/:slug','/local-products','/local-products/:slug'].map((path) => <Route key={path} path={path} element={<Navigate to="/" replace />} />)}
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/set-password" element={<AdminSuspense><SetPassword /></AdminSuspense>} />
@@ -172,6 +170,7 @@ export default function App() {
         <Route path="/admin/website" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><WebsiteStudio /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/inquiries" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><AdminInquiries /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/moderation" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><AdminPostModeration /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/taxonomy" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><AdminTaxonomy /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/team" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><CreativeJoinRequests /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/settings" element={<Navigate to="/admin/website?section=global.appearance" replace />} />
         <Route path="/admin/content" element={<Navigate to="/admin/website" replace />} />

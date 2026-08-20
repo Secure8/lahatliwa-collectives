@@ -20,8 +20,8 @@ test('public positioning serves clients and published creatives without agency c
   const creatives = source('pages/Creatives.jsx');
   const footer = source('components/Footer.jsx');
 
-  assert.match(home, /Discover what Creatives are making now/i);
-  assert.match(home, /Creative feed/i);
+  assert.match(home, /Work worth discovering/i);
+  assert.match(home, /Selected work/i);
   assert.match(about, /content\.displayName.*rooted in Aklan/i);
   assert.match(about, /does not automatically mean employment/i);
   assert.match(about, /Built from Aklan/i);
@@ -46,7 +46,7 @@ test('service branches stay distinct and inquiry copy frames creative selection 
   }
 });
 
-test('public project and profile copy emphasizes publication and contributor credit', () => {
+test('legacy project compatibility and Creative profiles preserve attribution and direct inquiry', () => {
   const projects = source('pages/Projects.jsx');
   const details = source('pages/ProjectDetails.jsx');
   const profile = source('components/CreativeProfileView.jsx');
@@ -54,7 +54,8 @@ test('public project and profile copy emphasizes publication and contributor cre
   assert.match(projects, /project portfolio/);
   assert.match(details, /Published a formal project/);
   assert.match(details, /Credited contributors/);
-  assert.match(profile, /Connect with \{creative\.name\.split/);
+  assert.match(profile, /Work with \{creative\.name\}/);
+  assert.match(profile, /Direct inquiry/);
 });
 
 test('public brand names remain CMS-driven and custom logo behavior stays separate', () => {

@@ -54,7 +54,7 @@ test('unknown routes retain the public shell and provide accessible recovery lin
   assert.match(app, /<Route path="\*" element=\{<NotFound \/>\} \/>/);
   assert.match(notFound, /<h1 id="not-found-heading"/);
   assert.match(notFound, /<Link to="\/"/);
-  assert.match(notFound, /<Link to="\/projects"/);
+  assert.match(notFound, /<Link to="\/creatives"/);
 });
 
 test('stale lazy-route chunks recover once while genuine render failures keep a useful fallback', () => {
@@ -136,8 +136,8 @@ test('shared interaction treatments expose persistent focus, active, and disclos
   const services = readFileSync(resolve(root, 'src/pages/Services.jsx'), 'utf8');
   assert.match(styles, /:where\(a\[href\], button, input, textarea, select, summary\):focus-visible/);
   assert.match(styles, /\.interactive-tab\[aria-selected="true"\]/);
-  assert.match(navbar, /aria-expanded=\{open\}/);
-  assert.match(navbar, /aria-controls="public-more-menu"/);
+  assert.doesNotMatch(navbar, /More pages|public-more-menu/);
+  assert.match(navbar, /className="ll-signout-action" aria-label="Sign out"/);
   assert.match(adminLayout, /aria-label="Platform tools"/);
   assert.match(inquiries, /ChevronDown/);
   assert.match(inquiries, /group-open:rotate-180/);

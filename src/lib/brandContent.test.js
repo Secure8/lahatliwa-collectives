@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BRAND_POSITIONING, CURRENT_WORK_COPY, brandAlignedWebsiteBundle, currentWorkPageCopy } from './brandContent.js';
 
-test('brand positioning states the creative-network purpose clearly', () => {
-  for (const phrase of ['professional creative social portfolio', 'Creatives publish work', 'process', 'photography', 'viewers discover']) {
+test('brand positioning states the curated portfolio purpose clearly', () => {
+  for (const phrase of ['curated portfolio platform', 'creative work', 'Aklan', 'independent Creatives']) {
     assert.match(BRAND_POSITIONING, new RegExp(phrase, 'i'));
   }
 });

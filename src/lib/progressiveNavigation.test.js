@@ -9,8 +9,8 @@ test('open inquiry removes forced service and specialist selection', async () =>
   ]);
 
   assert.match(form, /branch: 'general', serviceKey: 'general-inquiry'/);
-  assert.match(form, /aria-label="Open inquiry form"/);
+  assert.match(form, /aria-label=\{platformInquiry \? 'Platform contact form' : 'Creative inquiry form'\}/);
   assert.doesNotMatch(form, /selectService|selectRecipient|data-flow-step/);
-  assert.match(services, /not a predefined category/);
+  assert.match(form, /What kind of work is this about/);
   assert.doesNotMatch(services, /Available services|Ask about/);
 });

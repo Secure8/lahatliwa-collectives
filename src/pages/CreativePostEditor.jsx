@@ -7,6 +7,7 @@ import { createCreativePostDraft, createPostBlock, creativePostHasContent, CREAT
 import { useAdminAccess } from '../lib/adminAccess';
 import { supabase } from '../lib/supabaseClient';
 import { useAdminConfirmation } from '../components/admin/AdminDialog';
+import { groupWorkTaxonomy, loadWorkTaxonomy, normalizeWorkMetadata, saveWorkMetadata } from '../lib/workTaxonomy';
 
 async function mapWithConcurrency(items, limit, task) {
   const results = new Array(items.length);
@@ -34,6 +35,9 @@ export default function CreativePostEditor({ create = false }) {
   const [document, setDocument] = useState(null);
   const [media, setMedia] = useState([]);
   const [creative, setCreative] = useState(null);
+  const [metadata, setMetadata] = useState({ title: '', summary: '', work_year: new Date().getFullYear(), external_url: '', tags: '' });
+  const [taxonomy, setTaxonomy] = useState([]);
+  const [termIds, setTermIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('saved');
   const [publishing, setPublishing] = useState(false);
@@ -49,6 +53,8 @@ export default function CreativePostEditor({ create = false }) {
   const savingRef = useRef(false);
   const postRef = useRef(null);
   const documentRef = useRef(null);
+  const metadataRef = useRef(metadata);
+  const termIdsRef = useRef(termIds);
   const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
 
   useEffect(() => {
@@ -67,6 +73,10 @@ export default function CreativePostEditor({ create = false }) {
         setPost(loaded); postRef.current = loaded;
         setDocument(normalized); documentRef.current = normalized;
         setMedia(loaded.creative_post_media || []);
+        const nextMetadata = { title: loaded.title || '', summary: loaded.summary || '', work_year: loaded.work_year || new Date().getFullYear(), external_url: loaded.external_url || '', tags: (loaded.tags || []).join(', ') };
+        setMetadata(nextMetadata); metadataRef.current = nextMetadata;
+        const nextTermIds = (loaded.creative_post_taxonomy || []).map((row) => row.term_id);
+        setTermIds(nextTermIds); termIdsRef.current = nextTermIds;
         if (create) setStatus('not_saved');
       } catch (reason) { if (active) setError(reason.message); }
       finally { if (active) setLoading(false); }
@@ -80,6 +90,8 @@ export default function CreativePostEditor({ create = false }) {
     supabase.from('creative_members').select('name,slug,profile_image_url').eq('id', adminUser.creative_member_id).single().then(({ data }) => setCreative(data));
   }, [adminUser?.creative_member_id]);
 
+  useEffect(() => { let active = true; loadWorkTaxonomy().then((items) => { if (active) setTaxonomy(items); }).catch(() => null); return () => { active = false; }; }, []);
+
   const markDirty = useCallback((updater) => {
     setDocument((current) => {
       const next = typeof updater === 'function' ? updater(current) : updater;
@@ -90,6 +102,15 @@ export default function CreativePostEditor({ create = false }) {
     });
   }, []);
 
+  const updateMetadata = (key, value) => {
+    const next = { ...metadataRef.current, [key]: value };
+    metadataRef.current = next; setMetadata(next); revisionRef.current += 1; setStatus('unsaved');
+  };
+  const toggleTerm = (termId) => {
+    const next = termIdsRef.current.includes(termId) ? termIdsRef.current.filter((idValue) => idValue !== termId) : [...termIdsRef.current, termId];
+    termIdsRef.current = next; setTermIds(next); revisionRef.current += 1; setStatus('unsaved');
+  };
+
   const ensureDraft = useCallback(async () => {
     if (postRef.current?.id) return postRef.current;
     const created = await createCreativePostDraft();
@@ -99,7 +120,7 @@ export default function CreativePostEditor({ create = false }) {
 
   const saveNow = useCallback(async () => {
     if (!documentRef.current || savingRef.current || savedRevisionRef.current === revisionRef.current) return postRef.current?.id ? postRef.current : null;
-    if (!creativePostHasContent(documentRef.current, media)) {
+    if (!creativePostHasContent(documentRef.current, media) && !metadataRef.current.title.trim()) {
       savedRevisionRef.current = revisionRef.current;
       setStatus('not_saved');
       return null;
@@ -109,7 +130,8 @@ export default function CreativePostEditor({ create = false }) {
     try {
       const persisted = await ensureDraft();
       const saved = await saveCreativePost(persisted, documentRef.current);
-      postRef.current = { ...postRef.current, ...saved }; setPost(postRef.current);
+      const withMetadata = await saveWorkMetadata(saved.id, metadataRef.current, termIdsRef.current);
+      postRef.current = { ...postRef.current, ...saved, ...withMetadata }; setPost(postRef.current);
       savedRevisionRef.current = savingRevision;
       setStatus(savedRevisionRef.current === revisionRef.current ? 'saved' : 'unsaved');
       if (create) navigate(`/posts/${saved.id}/edit`, { replace: true });
@@ -146,11 +168,12 @@ export default function CreativePostEditor({ create = false }) {
   async function publish() {
     setPublishing(true); setError('');
     try {
+      if (!metadataRef.current.title.trim()) throw new Error('Add a clear title before publishing this work.');
       if (!creativePostHasContent(documentRef.current, media)) throw new Error('Add some text or at least one photo before publishing.');
       const saved = await saveNow();
       if (!saved) throw new Error('Wait for the draft to finish saving, then try again.');
       const published = await publishCreativePost(saved.id);
-      navigate(`/posts/${published.slug}`);
+      navigate(`/work/${published.slug}`);
     } catch (reason) { setError(reason.message); }
     finally { setPublishing(false); }
   }
@@ -184,7 +207,8 @@ export default function CreativePostEditor({ create = false }) {
       documentRef.current = nextDocument; setDocument(nextDocument);
       revisionRef.current += 1; setStatus('saving');
       const saved = await saveCreativePost(persisted, nextDocument);
-      postRef.current = { ...persisted, ...saved }; setPost(postRef.current);
+      const withMetadata = await saveWorkMetadata(saved.id, metadataRef.current, termIdsRef.current);
+      postRef.current = { ...persisted, ...saved, ...withMetadata }; setPost(postRef.current);
       savedRevisionRef.current = revisionRef.current; setStatus('saved');
       setSelectedMediaId(added[0]?.id || null);
       if (create) navigate(`/posts/${persisted.id}/edit`, { replace: true });
@@ -209,6 +233,7 @@ export default function CreativePostEditor({ create = false }) {
 
   const previewDocument = useMemo(() => normalizeCreativePostDocument(document), [document]);
   const selectedMedia = media.find((item) => item.id === selectedMediaId);
+  const groupedTaxonomy = groupWorkTaxonomy(taxonomy);
   if (loading) return <main className="ll-composer-loading"><LoadingState label="Preparing your post" /></main>;
   if (error && !post) return <main className="ll-composer-loading"><p>{error}</p></main>;
 
@@ -217,15 +242,16 @@ export default function CreativePostEditor({ create = false }) {
 
   return <main className="ll-composer-page ll-composer-modal-layer">
     <button type="button" className="ll-composer-modal-scrim" onClick={closeComposer} aria-label="Close post composer" />
-    <section className="ll-composer-modal" role="dialog" aria-modal="true" aria-label={create ? 'Create a post' : 'Edit post'}>
+    <section className="ll-composer-modal" role="dialog" aria-modal="true" aria-label={create ? 'Add work' : 'Edit work'}>
     <header className="ll-composer-header">
       <button type="button" onClick={closeComposer} className="ll-composer-close"><X size={18} /><span>Close</span></button>
       <div className="ll-save-state" role="status">{status === 'saving' ? 'Saving…' : status === 'saved' ? <><Check size={14} /> Saved</> : status === 'not_saved' ? 'Start writing to save' : status === 'error' ? 'Save interrupted' : 'Unsaved changes'}</div>
       <div><button type="button" onClick={() => setPreview((value) => !value)} className="ll-icon-action" aria-label={preview ? 'Return to editing' : 'Preview post'}><Eye size={18} /></button><button type="button" onClick={publish} disabled={publishing || uploading} className="ll-primary-action"><Send size={16} /> {publishing ? 'Publishing…' : 'Publish'}</button></div>
     </header>
 
-    <div className="ll-composer-modal-body"><div className="ll-composer-shell">
-      <header className="ll-composer-author">{creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}<div><strong>{creative?.name || 'Your Creative profile'}</strong><small>{post.status === 'published' ? 'Editing a published post' : 'New post'}</small></div></header>
+      <div className="ll-composer-modal-body"><div className="ll-composer-shell">
+      <header className="ll-composer-author">{creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}<div><strong>{creative?.name || 'Your Creative profile'}</strong><small>{post.status === 'published' ? 'Editing published work' : 'New work'}</small></div></header>
+      <section className="ll-work-details-editor" aria-labelledby="work-details-heading"><div><p className="ll-kicker">Portfolio details</p><h2 id="work-details-heading">Describe this work</h2></div><label className="is-wide"><span>Title</span><input value={metadata.title} maxLength={140} onChange={(event) => updateMetadata('title', event.target.value)} placeholder="Give the work a clear title"/></label><label className="is-wide"><span>Short summary</span><textarea rows={2} value={metadata.summary} maxLength={320} onChange={(event) => updateMetadata('summary', event.target.value)} placeholder="What should a visitor understand first?"/></label><label><span>Year</span><input type="number" min="1900" max="2200" value={metadata.work_year || ''} onChange={(event) => updateMetadata('work_year', event.target.value)}/></label><label><span>Tags</span><input value={metadata.tags} onChange={(event) => updateMetadata('tags', event.target.value)} placeholder="Aklan, portrait, festival"/></label><label className="is-wide"><span>External link</span><input type="url" value={metadata.external_url} onChange={(event) => updateMetadata('external_url', event.target.value)} placeholder="https://…"/></label><div className="ll-work-taxonomy is-wide">{['discipline','specialty','industry'].map((kind) => <fieldset key={kind}><legend>{kind}</legend><div>{(groupedTaxonomy[kind] || []).map((term) => <button key={term.id} type="button" aria-pressed={termIds.includes(term.id)} onClick={() => toggleTerm(term.id)}>{term.name}</button>)}</div></fieldset>)}</div></section>
       {error && <p className="ll-composer-error" role="alert">{error}</p>}
       {preview ? <section className="ll-composer-preview"><CreativePostDocument document={previewDocument} media={media} /></section> : <section className="ll-natural-canvas" aria-label="Post composition canvas">
         {(document?.blocks || []).map((block, index) => <NaturalBlock key={block.id} block={block} index={index} count={document.blocks.length} media={media} onChange={(patch) => updateBlock(index, patch)} onTransform={(type, level) => transformBlock(index, type, level)} onEnter={() => addParagraphAfter(index)} onInsert={(type) => insertBlock(type, index)} onMove={(delta) => moveBlock(block.id, delta)} onRemove={() => removeBlock(index)} onSelectMedia={setSelectedMediaId} />)}

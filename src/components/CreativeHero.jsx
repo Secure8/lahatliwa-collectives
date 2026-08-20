@@ -10,6 +10,7 @@ export default function CreativeHero({ creative, socials, resources = [], render
   const profileImage = publicImageVariant(getPublicImageUrl(creative.profile_image_url), 'display');
   const coverImage = publicImageVariant(getPublicImageUrl(creative.cover_image), 'expanded');
   const disciplines = normalizeCreativeDisciplines(creative.skills).slice(0, CREATIVE_DISCIPLINE_MAX_COUNT);
+  const availabilityLabel = { available: 'Available for work', limited: 'Limited availability', unavailable: 'Not currently available' }[creative.availability_status] || creative.availability_status;
   return <header className="ll-profile-header">
     <div className="ll-profile-cover">
       {coverImage ? <SafeImage src={coverImage} alt={`${creative.name} cover`} loading={adminPreview ? 'lazy' : 'eager'} style={{ objectPosition: creative.cover_image_position || '50% 50%' }} /> : <div className="ll-profile-cover__fallback" aria-hidden="true" />}
@@ -27,7 +28,7 @@ export default function CreativeHero({ creative, socials, resources = [], render
         {creative.short_bio && <p className="ll-profile-intro">{creative.short_bio}</p>}
         <div className="ll-profile-meta">
           {creative.location && <span><MapPin size={15} /> {creative.location}</span>}
-          {creative.availability_status && <span className="is-available"><i /> {creative.availability_status}</span>}
+          {creative.availability_status && <span className={`is-available is-${creative.availability_status}`}><i /> {availabilityLabel}</span>}
         </div>
       </div>
       <div className="ll-profile-actions">{actions || (!adminPreview && <Link to={`/inquiry?creative=${encodeURIComponent(creative.slug)}`} className="ll-primary-action">Ask about working together <ArrowRight size={16} /></Link>)}<div className="ll-profile-socials">{socials.map(renderSocial)}</div></div>

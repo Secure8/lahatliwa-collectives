@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAdminConfirmation } from '../../components/admin/AdminDialog';
 import LoadingState from '../../components/LoadingState';
+import IconLabelAction from '../../components/IconLabelAction';
 import { deleteOwnedProject } from '../../lib/deleteOwnedProject';
 import { formatDate } from '../../lib/helpers';
 import { getPublicImageUrl } from '../../lib/storage';
@@ -102,9 +103,7 @@ export default function AdminProjects() {
           {published
             ? <Link to={`/projects/${project.slug}`} className="ll-project-review-list__item">{content}</Link>
             : <div className="ll-project-review-list__item">{content}</div>}
-          <button type="button" className="ll-project-review-list__delete" onClick={() => requestDelete(project)} aria-label={`Delete ${project.title}`}>
-            <Trash2 size={16}/><span>Delete</span>
-          </button>
+          <IconLabelAction className="ll-project-review-list__delete" icon={<Trash2 size={16}/>} label="Delete" tone="danger" onClick={() => requestDelete(project)} aria-label={`Delete ${project.title}`}/>
         </article>;
       })}
     </div> : <div className="ll-operations-empty"><strong>No projects match</strong><p>Try another search or filter.</p></div>}

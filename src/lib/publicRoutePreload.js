@@ -1,21 +1,14 @@
-export const loadAbout = () => import('../pages/About');
-export const loadProjects = () => import('../pages/Projects');
-export const loadCurrentWork = () => import('../pages/CurrentWork');
 export const loadProjectDetails = () => import('../pages/ProjectDetails');
-export const loadServices = () => import('../pages/Services');
 export const loadContact = () => import('../pages/Contact');
 export const loadCreatives = () => import('../pages/Creatives');
 export const loadCreativeDetails = () => import('../pages/CreativeDetails');
 export const loadStartProject = () => import('../pages/StartProject');
 export const loadInquiryConfirmation = () => import('../pages/InquiryConfirmation');
 export const loadPrivacy = () => import('../pages/Privacy');
+export const loadDiscover = () => import('../pages/Discover');
 
 const publicRouteLoaders = {
-  '/about': loadAbout,
-  '/projects': loadProjects,
-  '/work': loadCurrentWork,
   '/projects/:slug': loadProjectDetails,
-  '/services': loadServices,
   '/contact': loadContact,
   '/creatives': loadCreatives,
   '/creatives/:slug': loadCreativeDetails,
@@ -23,6 +16,7 @@ const publicRouteLoaders = {
   '/inquiry': loadStartProject,
   '/inquiry/confirmation/:reference': loadInquiryConfirmation,
   '/privacy': loadPrivacy,
+  '/discover': loadDiscover,
 };
 
 export function preloadPublicRoute(route) {

@@ -5,6 +5,7 @@ import { cleanupReplacedProfileWebsiteMedia, uploadProfileWebsiteMedia } from '.
 import { socialLinksFromText } from '../lib/socialLinks';
 import { supabase } from '../lib/supabaseClient';
 import { CREATIVE_PROFILE_TEMPLATES, normalizeCreativeProfileTemplate } from '../lib/creativeProfileTemplates';
+import { groupWorkTaxonomy, loadMemberTermIds, loadWorkTaxonomy, saveMemberTaxonomy, WORK_AVAILABILITY } from '../lib/workTaxonomy';
 
 const sections = [
   ['overview', 'Overview'],
@@ -36,11 +37,21 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState('');
   const [pendingMedia, setPendingMedia] = useState(null);
+  const [taxonomy, setTaxonomy] = useState([]);
+  const [termIds, setTermIds] = useState([]);
   const [error, setError] = useState('');
   const profileInput = useRef(null);
   const coverInput = useRef(null);
 
   useEffect(() => setSection(initialSection), [initialSection]);
+  useEffect(() => {
+    let active = true;
+    Promise.all([loadWorkTaxonomy(), loadMemberTermIds(creative.id)]).then(([terms, selected]) => {
+      if (!active) return;
+      setTaxonomy(terms); setTermIds(selected);
+    }).catch((reason) => { if (active) setError(reason.message); });
+    return () => { active = false; };
+  }, [creative.id]);
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     const closeOnEscape = (event) => {
@@ -74,8 +85,10 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
       }, updated_at: new Date().toISOString(),
     };
     const { data, error: saveError } = await supabase.from('creative_members').update(payload).eq('id', creative.id).select('*').single();
+    if (saveError) { setSaving(false); setError(saveError.message); return; }
+    try { await saveMemberTaxonomy(creative.id, termIds); }
+    catch (reason) { setSaving(false); setError(reason.message); return; }
     setSaving(false);
-    if (saveError) { setError(saveError.message); return; }
     onSaved?.(data); onClose();
   }
 
@@ -114,12 +127,12 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
       <header><div><p className="ll-kicker">Edit on your wall</p><h2>Profile details</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={21} /></button></header>
       <nav aria-label="Profile editor sections">{sections.map(([key, label]) => <button key={key} type="button" aria-pressed={section === key} onClick={() => setSection(key)}>{label}</button>)}</nav>
       <form onSubmit={save}>
-        {section === 'overview' && <div className="ll-profile-editor-fields"><ProfileField label="Display name" value={form.name} onChange={(value) => update('name', value)} /><ProfileField label="Professional title" value={form.role} onChange={(value) => update('role', value)} /><ProfileField label="Location" value={form.location} onChange={(value) => update('location', value)} placeholder="Kalibo, Aklan" /><ProfileField label="Availability" value={form.availability_status} onChange={(value) => update('availability_status', value)} placeholder="Available for selected projects" /><ProfileTextarea label="Short bio" value={form.short_bio} onChange={(value) => update('short_bio', value)} maxLength={CREATIVE_SHORT_BIO_MAX_LENGTH} hint={`${form.short_bio.length}/${CREATIVE_SHORT_BIO_MAX_LENGTH}`} /><ProfileTextarea label="Disciplines" value={form.skills} onChange={(value) => update('skills', value)} hint={`One per line. Up to ${CREATIVE_DISCIPLINE_MAX_COUNT}, ${CREATIVE_DISCIPLINE_MAX_LENGTH} characters each.`} /></div>}
+        {section === 'overview' && <div className="ll-profile-editor-fields"><ProfileField label="Display name" value={form.name} onChange={(value) => update('name', value)} /><ProfileField label="Professional title" value={form.role} onChange={(value) => update('role', value)} /><ProfileField label="Location" value={form.location} onChange={(value) => update('location', value)} placeholder="Kalibo, Aklan" /><label><span>Availability</span><select value={form.availability_status || 'available'} onChange={(event) => update('availability_status', event.target.value)}>{WORK_AVAILABILITY.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><ProfileTextarea label="Short bio" value={form.short_bio} onChange={(value) => update('short_bio', value)} maxLength={CREATIVE_SHORT_BIO_MAX_LENGTH} hint={`${form.short_bio.length}/${CREATIVE_SHORT_BIO_MAX_LENGTH}`} /><ProfileTextarea label="Disciplines" value={form.skills} onChange={(value) => update('skills', value)} hint={`One per line. Up to ${CREATIVE_DISCIPLINE_MAX_COUNT}, ${CREATIVE_DISCIPLINE_MAX_LENGTH} characters each.`} /><TaxonomyPicker terms={taxonomy} selected={termIds} onChange={setTermIds}/></div>}
         {section === 'about' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Full biography" value={form.full_bio} onChange={(value) => update('full_bio', value)} rows={9} hint="Tell clients about your perspective, background, and approach." /></div>}
         {section === 'professional' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Experience" value={form.experience} onChange={(value) => update('experience', value)} hint="One role or professional milestone per line." /><ProfileTextarea label="Education" value={form.education} onChange={(value) => update('education', value)} hint="One school, course, or qualification per line." /><ProfileTextarea label="Achievements" value={form.achievements} onChange={(value) => update('achievements', value)} hint="One award, recognition, or meaningful achievement per line." /></div>}
         {section === 'links' && <div className="ll-profile-editor-fields"><ProfileTextarea label="Professional and social links" value={form.social_links} onChange={(value) => update('social_links', value)} rows={8} hint="One per line, for example Instagram: https://instagram.com/yourname" /></div>}
         {section === 'media' && <div className="ll-profile-media-choices"><input ref={profileInput} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={(event) => prepareMedia('profile', event.target.files?.[0])} /><input ref={coverInput} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={(event) => prepareMedia('cover', event.target.files?.[0])} /><button type="button" onClick={() => profileInput.current?.click()} disabled={Boolean(uploading)}><Camera size={21} /><span><strong>{uploading === 'profile' ? 'Uploading…' : 'Choose profile photo'}</strong><small>Position it before saving.</small></span></button><button type="button" onClick={() => coverInput.current?.click()} disabled={Boolean(uploading)}><Camera size={21} /><span><strong>{uploading === 'cover' ? 'Uploading…' : 'Choose cover photo'}</strong><small>Position it before saving.</small></span></button></div>}
-        {section === 'design' && <div className="ll-template-picker"><div className="ll-template-picker__intro"><LayoutTemplate size={21}/><div><strong>Choose your profile style</strong><p>Your posts, projects, biography, and contact details stay synced when you switch designs.</p></div></div>{CREATIVE_PROFILE_TEMPLATES.map((template) => <button key={template.key} type="button" className={`ll-template-option is-${template.key}${form.profile_template === template.key ? ' is-selected' : ''}`} onClick={() => update('profile_template', template.key)}><span className="ll-template-option__preview" aria-hidden="true"><i/><i/><i/><i/></span><span><strong>{template.name}</strong><small>{template.description}</small></span>{form.profile_template === template.key && <Check size={18}/>}</button>)}</div>}
+        {section === 'design' && <div className="ll-template-picker"><div className="ll-template-picker__intro"><LayoutTemplate size={21}/><div><strong>Choose your portfolio style</strong><p>Your identity, work, biography, and contact details stay synced when you switch presentation.</p></div></div>{CREATIVE_PROFILE_TEMPLATES.map((template) => <button key={template.key} type="button" className={`ll-template-option is-${template.key}${form.profile_template === template.key ? ' is-selected' : ''}`} onClick={() => update('profile_template', template.key)}><span className="ll-template-option__preview" aria-hidden="true"><i/><i/><i/><i/></span><span><strong>{template.name}</strong><small>{template.description}</small></span>{form.profile_template === template.key && <Check size={18}/>}</button>)}</div>}
         {error && <p className="ll-profile-editor-error" role="alert">{error}</p>}
         {section !== 'media' && <footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" className="ll-primary-action" disabled={saving}><Save size={16} /> {saving ? 'Saving…' : section === 'design' ? 'Use this template' : 'Save changes'}</button></footer>}
       </form>
@@ -130,3 +143,8 @@ export default function CreativeInlineProfileEditor({ creative, initialSection =
 
 function ProfileField({ label, value, onChange, placeholder }) { return <label><span>{label}</span><input value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} /></label>; }
 function ProfileTextarea({ label, value, onChange, rows = 5, hint, maxLength }) { return <label><span>{label}</span><textarea rows={rows} value={value} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} />{hint && <small>{hint}</small>}</label>; }
+function TaxonomyPicker({ terms, selected, onChange }) {
+  const groups = groupWorkTaxonomy(terms);
+  const toggle = (id) => onChange(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
+  return <fieldset className="ll-profile-taxonomy"><legend>Portfolio categories</legend><small>Use the same categories that help visitors discover your Work.</small>{Object.entries(groups).map(([kind, items]) => <div key={kind}><strong>{kind}</strong><div>{items.map((term) => <button key={term.id} type="button" aria-pressed={selected.includes(term.id)} onClick={() => toggle(term.id)}>{term.name}</button>)}</div></div>)}</fieldset>;
+}

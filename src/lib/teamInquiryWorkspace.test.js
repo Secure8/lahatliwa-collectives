@@ -65,10 +65,10 @@ test('protected inquiry endpoint allowlists actions and bounds every accepted pa
 });
 
 test('unread state is independent per member and initialized for every active Team member', async () => {
-  const [sql, , layout] = await files;
+  const [sql, ui] = await files;
   assert.match(sql, /primary key \(inquiry_id, team_member_id\)/i);
   assert.match(sql, /insert into public\.inquiry_read_receipts[\s\S]*from public\.admin_users member/i);
-  assert.match(layout, /inquiry_read_receipts[\s\S]*team_member_id[\s\S]*is_unread/i);
+  assert.match(ui, /inquiry_read_receipts[\s\S]*unreadForInquiry/i);
   assert.equal(unreadForInquiry([{ inquiry_id: 'i', team_member_id: 'a', is_unread: true }, { inquiry_id: 'i', team_member_id: 'b', is_unread: false }], 'i', 'a'), true);
   assert.equal(unreadForInquiry([{ inquiry_id: 'i', team_member_id: 'a', is_unread: true }, { inquiry_id: 'i', team_member_id: 'b', is_unread: false }], 'i', 'b'), false);
 });
@@ -106,11 +106,10 @@ test('assignment notifications use direct delivery with administrative fallback 
 });
 
 test('dashboard uses authoritative refresh with cleaned-up Realtime subscriptions and mobile-safe widths', async () => {
-  const [, ui, layout] = await files;
+  const [, ui] = await files;
   assert.match(ui, /postgres_changes/);
   assert.match(ui, /supabase\.removeChannel\(channel\)/);
-  assert.match(layout, /supabase\.removeChannel\(channel\)/);
-  assert.match(ui, /overflow-x-hidden/);
+  assert.match(ui, /supabase\.removeChannel\(channel\)/);
   assert.doesNotMatch(ui, /w-screen|min-w-screen/);
 });
 
@@ -118,8 +117,8 @@ test('inquiry filters use uniform responsive controls without a sideways button 
   const [, ui] = await files;
   assert.deepEqual(WORKFLOW_VIEWS.map(([, label]) => label), ['All', 'General', 'Mine', 'Open', 'Awaiting', 'Accepted', 'In Progress', 'Completed', 'Closed']);
   assert.match(ui, /data-inquiry-filter-panel/);
-  assert.match(ui, /grid-cols-3 gap-2 xl:grid-cols-9/);
-  assert.match(ui, /h-12 w-full rounded-md/);
+  assert.match(ui, /ll-inquiry-view/);
+  assert.match(ui, /ll-archive-toggle/);
   assert.match(ui, /aria-pressed=\{showArchived\}/);
   assert.doesNotMatch(ui, /public-filter-scroll|overflow-x-auto/);
 });

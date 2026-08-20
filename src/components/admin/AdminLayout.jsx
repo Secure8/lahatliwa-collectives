@@ -1,4 +1,4 @@
-import { Bell, FolderKanban, ShieldCheck, UsersRound, X } from 'lucide-react';
+import { Bell, FolderKanban, ShieldCheck, Tags, UsersRound, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAccess } from '../../lib/adminAccess';
@@ -9,6 +9,7 @@ const operations = [
   ['Projects', '/admin/projects', FolderKanban],
   ['Inquiries', '/admin/inquiries', Bell],
   ['Moderation', '/admin/moderation', ShieldCheck],
+  ['Taxonomy', '/admin/taxonomy', Tags],
   ['Join requests', '/admin/team', UsersRound],
 ];
 

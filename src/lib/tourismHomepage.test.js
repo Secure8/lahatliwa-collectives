@@ -24,20 +24,20 @@ test('project lifecycle fails closed to the completed portfolio', () => {
   assert.equal(projectWorkStatus('unexpected'), 'completed');
 });
 
-test('homepage is a global creative feed while Work retains active project updates', () => {
+test('homepage is the canonical curated Work surface while legacy routes remain compatible', () => {
   const home = read('src/pages/Home.jsx');
   const work = read('src/pages/CurrentWork.jsx');
   const app = read('src/App.jsx');
   assert.match(home, /data-creative-network-home/);
   assert.match(home, /loadPublicCreativeFeed\(\{ limit: 36 \}\)/);
-  assert.match(home, /fetchPublicProjectSummaries\(\)/);
+  assert.doesNotMatch(home, /fetchPublicProjectSummaries\(\)/);
   assert.match(home, /<CreativeFeed/);
-  assert.match(home, /People to discover/);
+  assert.match(home, /People behind the work/);
   assert.doesNotMatch(home, /ActiveWorkHero|activeProjects/);
   assert.match(work, /normalizeProjectUpdates/);
   assert.match(work, /Event coverage/);
-  assert.match(app, /path="\/work" element=\{<CurrentWork \/>\}/);
-  assert.match(app, /Navigate to="\/work"/);
+  assert.match(app, /path="\/work" element=\{<Navigate to="\/" replace \/>\}/);
+  assert.match(app, /path="\/work\/:slug" element=\{<CreativePostDetails \/>\}/);
   assert.doesNotMatch(home, /ExploreAklanHero|DestinationsFeed|homepageTourismEnabled/);
 });
 

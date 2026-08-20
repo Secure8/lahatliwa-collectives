@@ -1,13 +1,15 @@
 export const CREATIVE_PROFILE_TEMPLATES = Object.freeze([
-  { key: 'social', name: 'Social', description: 'The familiar wall layout with a cover, profile photo, posts, and details.' },
-  { key: 'showcase', name: 'Showcase', description: 'A bold introduction with larger identity and selected portfolio work.' },
-  { key: 'gallery', name: 'Gallery', description: 'An image-led portfolio for photographers, filmmakers, and visual artists.' },
-  { key: 'editorial', name: 'Editorial', description: 'A story-first profile with generous type and a magazine-like rhythm.' },
+  { key: 'editorial', name: 'Editorial', description: 'Story-led typography with a measured, magazine-like rhythm.' },
+  { key: 'minimal', name: 'Minimal', description: 'Quiet typography, generous space, and work without visual noise.' },
+  { key: 'showcase', name: 'Showcase', description: 'Large visual moments for image-led portfolios and signature projects.' },
+  { key: 'studio', name: 'Studio', description: 'A balanced professional portfolio with identity, work, and details.' },
+  { key: 'archive', name: 'Archive', description: 'A structured, information-rich index for a growing body of work.' },
 ]);
 
 export const CREATIVE_PROFILE_TEMPLATE_KEYS = CREATIVE_PROFILE_TEMPLATES.map((template) => template.key);
 
 export function normalizeCreativeProfileTemplate(value) {
   const key = String(value || '').trim().toLowerCase();
-  return CREATIVE_PROFILE_TEMPLATE_KEYS.includes(key) ? key : 'social';
+  const legacy = { social: 'studio', gallery: 'showcase' }[key];
+  return CREATIVE_PROFILE_TEMPLATE_KEYS.includes(key) ? key : legacy || 'studio';
 }

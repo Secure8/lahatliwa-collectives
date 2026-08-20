@@ -9,6 +9,7 @@ import { isResourceLink } from '../lib/profileResources';
 import { publicImageVariant } from '../lib/publicImages';
 import CreativePostCard from './CreativePostCard';
 import CreativeInlineProfileEditor from './CreativeInlineProfileEditor';
+import IconLabelAction from './IconLabelAction';
 import { normalizeCreativeProfileTemplate } from '../lib/creativeProfileTemplates';
 
 export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, moderator = false, onArchivePost, onRestorePost, onDeletePost, onModeratePost, onEditProject, onDeleteProject, adminPreview = false, onBack = null, onCreativeChange }) {
@@ -21,25 +22,24 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
   const bio = creative.full_bio || creative.short_bio;
   const professional = creative.professional_details && typeof creative.professional_details === 'object' ? creative.professional_details : {};
   const profileTemplate = normalizeCreativeProfileTemplate(creative.profile_template);
-  const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Create post</Link><button type="button" className="ll-secondary-action" onClick={() => setEditingSection('overview')}><Edit3 size={16} /> Edit details</button></> : null;
+  const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Add work</Link><button type="button" className="ll-secondary-action" onClick={() => setEditingSection('overview')}><Edit3 size={16} /> Edit profile</button></> : null;
   return <article className={`ll-profile-page ll-profile-template--${profileTemplate}`} data-profile-template={profileTemplate}>
     {adminPreview && <p className="ll-preview-label">Admin preview</p>}
     <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} actions={ownerActions} onBack={onBack} onEdit={isOwner && !adminPreview ? setEditingSection : null} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
     {!adminPreview && <nav className="ll-profile-tabs" aria-label="Profile sections">
-      <a href="#feed">Posts <span>{posts.filter((post) => post.status === 'published').length || ''}</span></a>
-      {projects.length > 0 && <a href="#work">Projects <span>{projects.length}</span></a>}
+      <a href="#work">Work <span>{posts.filter((post) => post.status === 'published').length + projects.length || ''}</span></a>
       {bio && <a href="#about">About</a>}
       <a href="#contact">Contact</a>
     </nav>}
 
     {!adminPreview && <div className="ll-profile-layout">
       <main className="min-w-0">
-        {isOwner && <Link to="/create" className="ll-composer-prompt"><span className="ll-composer-prompt__icon"><Plus size={20} /></span><span><strong>Create a post</strong><small>Share work, process, photography, or a reflection.</small></span><ArrowRight size={17} /></Link>}
-        <section id="feed" className="ll-profile-section"><SectionHeading eyebrow="Personal wall" title="Published work and stories" />
-          {posts.length ? <div className="ll-feed-list">{posts.map((post) => <CreativePostCard key={post.id} post={post} creative={creative} owner={isOwner} moderator={moderator} onArchive={onArchivePost} onRestore={onRestorePost} onDelete={onDeletePost} onModerate={onModeratePost} />)}</div> : <div className="ll-profile-empty"><p>No posts published yet.</p>{isOwner && <Link to="/create"><Plus size={16} /> Create your first post</Link>}</div>}
+        {isOwner && <Link to="/create" className="ll-composer-prompt"><span className="ll-composer-prompt__icon"><Plus size={20} /></span><span><strong>Add work</strong><small>Publish a project, visual story, essay, or process.</small></span><ArrowRight size={17} /></Link>}
+        <section id="work" className="ll-profile-section"><SectionHeading eyebrow="Portfolio" title="Selected work" />
+          {posts.length ? <div className="ll-feed-list">{posts.map((post) => <CreativePostCard key={post.id} post={post} creative={creative} owner={isOwner} moderator={moderator} onArchive={onArchivePost} onRestore={onRestorePost} onDelete={onDeletePost} onModerate={onModeratePost} />)}</div> : projects.length === 0 && <div className="ll-profile-empty"><p>No work published yet.</p>{isOwner && <Link to="/create"><Plus size={16} /> Add your first work</Link>}</div>}
+          {projects.length > 0 && <div className="ll-profile-projects ll-legacy-work-list">{projects.map((project) => <ProfileProject key={project.id} project={project} linkState={publicLocationState(location, `creative-project-${project.id}`)} canManage={isOwner && project.canEdit} onEdit={onEditProject} onDelete={onDeleteProject} />)}</div>}
         </section>
-        {(projects.length > 0 || isOwner) && <section id="work" className="ll-profile-section"><SectionHeading eyebrow="Formal portfolio" title="Projects" />{isOwner && <Link to="/admin/projects/new" className="ll-profile-add-work"><Plus size={16}/> Add project</Link>}<div className="ll-profile-projects">{projects.map((project) => <ProfileProject key={project.id} project={project} linkState={publicLocationState(location, `creative-project-${project.id}`)} canManage={isOwner && project.canEdit} onEdit={onEditProject} onDelete={onDeleteProject} />)}</div></section>}
       </main>
       <aside className="ll-profile-about" id="about">
         {(bio || isOwner) && <section><ProfileEditButton owner={isOwner} label="Edit biography" onClick={() => setEditingSection('about')} /><p className="ll-kicker">About</p><h2>Creative perspective</h2>{bio ? <p>{bio}</p> : <p className="ll-profile-placeholder">Add a professional biography.</p>}</section>}
@@ -50,7 +50,7 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
       </aside>
     </div>}
 
-    {!adminPreview && <footer id="contact" className="ll-profile-contact"><div><p className="ll-kicker">Professional inquiry</p><h2>Interested in this Creative's work?</h2><p>Send a private inquiry directly to {creative.name}. Only this Creative and the Super Admin can view it.</p></div><Link to={`/inquiry?creative=${encodeURIComponent(creative.slug)}`} className="ll-primary-action">Connect with {creative.name.split(' ')[0]} <ArrowRight size={16} /></Link></footer>}
+    {!adminPreview && <footer id="contact" className="ll-profile-contact"><div><p className="ll-kicker">Direct inquiry</p><h2>Work with {creative.name}.</h2><p>Your inquiry goes directly to this Creative and remains private.</p></div><Link to={`/inquiry?creative=${encodeURIComponent(creative.slug)}`} className="ll-primary-action">Start an inquiry <ArrowRight size={16} /></Link></footer>}
     {editingSection && <CreativeInlineProfileEditor creative={creative} initialSection={editingSection} onClose={() => setEditingSection('')} onSaved={onCreativeChange} />}
   </article>;
 }
@@ -63,5 +63,5 @@ function ProfileProject({project,linkState,canManage,onEdit,onDelete}) {
   const image=publicImageVariant(getPublicImageUrl(project.cover_image),'display');
   const roles=[...(project.credit_roles||[]),project.contribution_role,project.role].filter(Boolean);
   const content=<>{image?<img src={image} alt="" loading="lazy" decoding="async"/>:<span className="ll-profile-project__fallback"/>}<span><small>{project.status === 'published' ? project.category : `${project.category} · ${project.status}`}</small><strong>{project.title}</strong>{roles.length>0&&<em>{[...new Set(roles)].join(' · ')}</em>}</span>{project.status==='published'&&<ArrowRight size={17}/>}</>;
-  return <article id={`creative-project-${project.id}`} className="ll-profile-project">{project.status==='published'?<Link to={`/projects/${project.slug}`} state={linkState}>{content}</Link>:<div className="ll-profile-project__draft">{content}</div>}{project.moderation_reason&&<p className="ll-moderation-note">Super Admin note: {project.moderation_reason}</p>}{canManage&&<div className="ll-profile-project-controls"><button type="button" onClick={()=>onEdit?.(project)}><Edit3 size={15}/> Edit</button><button type="button" className="is-danger" onClick={()=>onDelete?.(project)}><Trash2 size={15}/> Delete</button></div>}</article>;
+  return <article id={`creative-project-${project.id}`} className="ll-profile-project">{project.status==='published'?<Link to={`/projects/${project.slug}`} state={linkState}>{content}</Link>:<div className="ll-profile-project__draft">{content}</div>}{project.moderation_reason&&<p className="ll-moderation-note">Super Admin note: {project.moderation_reason}</p>}{canManage&&<div className="ll-profile-project-controls"><IconLabelAction icon={<Edit3 size={15}/>} label="Edit" onClick={()=>onEdit?.(project)}/><IconLabelAction icon={<Trash2 size={15}/>} label="Delete" tone="danger" onClick={()=>onDelete?.(project)}/></div>}</article>;
 }

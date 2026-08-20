@@ -2,6 +2,7 @@ import { Check, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import LoadingState from '../../components/LoadingState';
+import IconLabelAction from '../../components/IconLabelAction';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function CreativeJoinRequests() {
@@ -46,12 +47,12 @@ export default function CreativeJoinRequests() {
   }
 
   return <AdminLayout>
-    <header className="ll-operations-intro ll-operations-intro--action"><div><p className="ll-kicker">Creative access</p><h2>Join requests</h2><p>People request access publicly. Approving creates a private Creative profile and emails the applicant an account invitation.</p></div><button type="button" onClick={() => load({ quiet: true })} disabled={refreshing}><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''}/> {refreshing ? 'Refreshing…' : 'Refresh'}</button></header>
+    <header className="ll-operations-intro ll-operations-intro--action"><div><p className="ll-kicker">Creative access</p><h2>Join requests</h2><p>People request access publicly. Approving creates a private Creative profile and emails the applicant an account invitation.</p></div><IconLabelAction icon={<RefreshCw size={16} className={refreshing ? 'animate-spin' : ''}/>} label={refreshing ? 'Refreshing…' : 'Refresh'} onClick={() => load({ quiet: true })} disabled={refreshing}/></header>
     {error && <p className="ll-form-error" role="alert">{error}</p>}
     {loading ? <LoadingState label="Loading join requests"/> : <div className="ll-request-list">
       {requests.map((request) => <article key={request.id} className="ll-request-card">
         <div><h3>{request.name}</h3><p>{request.email}</p>{request.message && <p>{request.message}</p>}{request.portfolio_url && <a href={request.portfolio_url} target="_blank" rel="noreferrer">View portfolio <ExternalLink size={14}/></a>}</div>
-        <div className="ll-request-card__status"><span data-status={request.status}>{request.status}</span>{request.status === 'pending' && <div><button disabled={busy===request.id} onClick={()=>review(request,'approved')}><Check size={15}/> Approve</button><button disabled={busy===request.id} onClick={()=>review(request,'rejected')}><X size={15}/> Decline</button></div>}</div>
+        <div className="ll-request-card__status"><span data-status={request.status}>{request.status}</span>{request.status === 'pending' && <div><IconLabelAction disabled={busy===request.id} icon={<Check size={15}/>} label="Approve" tone="primary" onClick={()=>review(request,'approved')}/><IconLabelAction disabled={busy===request.id} icon={<X size={15}/>} label="Decline" tone="danger" onClick={()=>review(request,'rejected')}/></div>}</div>
       </article>)}
       {!requests.length && <p className="ll-operations-empty">No join requests yet.</p>}
     </div>}

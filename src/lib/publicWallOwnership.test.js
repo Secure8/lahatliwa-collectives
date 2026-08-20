@@ -9,7 +9,7 @@ test('Creative owners manage published posts and primary projects from their wal
   const profile = read('src/components/CreativeProfileView.jsx');
   const app = read('src/App.jsx');
   const migration = read('supabase/migrations/20260815010000_public_creative_join_requests.sql');
-  assert.match(card, /Delete post/);
+  assert.match(card, /Delete work/);
   assert.match(profile, /onEditProject/);
   assert.match(profile, /onDeleteProject/);
   assert.match(app, /allow=\{\['creative'\]\}><EditProject/);
@@ -26,7 +26,7 @@ test('Super Admin moderates public work without receiving Creative edit controls
   assert.match(card, /moderator && !owner/);
   assert.match(card, /Remove with note/);
   assert.match(home, /moderateCreativePost/);
-  assert.match(home, /moderatePublicProject/);
+  assert.doesNotMatch(home, /moderatePublicProject/);
   assert.match(inlineEdit, /ll-inline-admin-edit/);
   assert.doesNotMatch(inlineEdit, />\s*Edit this page\s*</);
   assert.match(studio, /ll-site-editor-preview/);
@@ -47,13 +47,13 @@ test('Super Admin receives a desktop authoring toolbar and every platform index 
   assert.match(services, /page\.servicesBody/);
 });
 
-test('profile templates preserve Social as default while offering opt-in layouts', () => {
+test('profile templates offer five portfolio presentations with Studio as default', () => {
   const editor = read('src/components/CreativeInlineProfileEditor.jsx');
   const profile = read('src/components/CreativeProfileView.jsx');
-  const migration = read('supabase/migrations/20260814240000_creative_templates_and_private_inquiries.sql');
-  assert.match(editor, /Choose your profile style/);
+  const migration = read('supabase/migrations/20260821090000_curated_work_discovery.sql');
+  assert.match(editor, /Choose your portfolio style/);
   assert.match(profile, /ll-profile-template--/);
-  assert.match(migration, /default 'social'/);
+  assert.match(migration, /'editorial','minimal','showcase','studio','archive'/);
 });
 
 test('Creative inquiries are private, targeted, and create notifications', () => {

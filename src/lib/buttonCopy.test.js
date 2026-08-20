@@ -30,8 +30,8 @@ test('visible action labels stay concise across public and admin screens', async
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     assert.doesNotMatch(source, new RegExp(`(?:>|/>)\\s*${escaped}\\s*<`, 'i'), `Verbose action label remains: ${label}`);
   }
-  assert.match(source, />Inquire\s*</);
-  assert.match(source, />View\s*</);
+  assert.match(source, /Start an inquiry/);
+  assert.match(source, /View work/);
   assert.match(source, />Complete\s*</);
   assert.match(source, />Refresh\s*</);
   assert.match(source, />Delete permanently\s*</);

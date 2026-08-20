@@ -132,14 +132,14 @@ export async function createCreativePostDraft() {
 }
 
 export async function loadCreativePostForEdit(id) {
-  const { data, error } = await supabase.from('creative_posts').select('*,creative_post_media(*)').eq('id', id).single();
+  const { data, error } = await supabase.from('creative_posts').select('*,creative_post_media(*),creative_post_taxonomy(term_id,creative_taxonomy_terms(id,kind,name,slug))').eq('id', id).single();
   if (error) throw postError(error, 'This post could not be opened.');
   return { ...data, creative_post_media: [...(data.creative_post_media || [])].sort((a, b) => a.display_order - b.display_order) };
 }
 
 export async function loadPublicCreativePosts(creativeMemberId) {
   const { data, error } = await supabase.from('creative_posts')
-    .select('id,creative_member_id,slug,document,status,visibility,moderation_status,published_at,updated_at,creative_post_media(*)')
+    .select('id,creative_member_id,slug,title,summary,work_year,external_url,tags,is_featured,document,status,visibility,moderation_status,published_at,updated_at,creative_post_media(*),creative_post_taxonomy(term_id,creative_taxonomy_terms(id,kind,name,slug))')
     .eq('creative_member_id', creativeMemberId).eq('status', 'published').eq('visibility', 'public').eq('moderation_status', 'clear')
     .order('published_at', { ascending: false });
   if (error) throw postError(error, 'Creative posts could not be loaded.');
@@ -149,7 +149,7 @@ export async function loadPublicCreativePosts(creativeMemberId) {
 export async function loadPublicCreativeFeed({ limit = 30 } = {}) {
   const safeLimit = Math.max(1, Math.min(Number(limit) || 30, 60));
   const { data, error } = await supabase.from('creative_posts')
-    .select('id,creative_member_id,slug,document,status,visibility,moderation_status,published_at,updated_at,creative_post_media(*),creative_members(id,name,slug,role,short_bio,profile_image_url)')
+    .select('id,creative_member_id,slug,title,summary,work_year,external_url,tags,is_featured,document,status,visibility,moderation_status,published_at,updated_at,creative_post_media(*),creative_post_taxonomy(term_id,creative_taxonomy_terms(id,kind,name,slug)),creative_members(id,name,slug,role,short_bio,profile_image_url,availability_status)')
     .eq('status', 'published').eq('visibility', 'public').eq('moderation_status', 'clear')
     .order('published_at', { ascending: false }).limit(safeLimit);
   if (error) throw postError(error, 'The creative feed could not be loaded.');
@@ -161,7 +161,7 @@ export async function loadPublicCreativeFeed({ limit = 30 } = {}) {
 
 export async function loadOwnCreativePosts() {
   const { data, error } = await supabase.from('creative_posts')
-    .select('id,creative_member_id,slug,document,status,visibility,moderation_status,moderation_reason,published_at,updated_at,creative_post_media(*)')
+    .select('id,creative_member_id,slug,title,summary,work_year,external_url,tags,is_featured,document,status,visibility,moderation_status,moderation_reason,published_at,updated_at,creative_post_media(*),creative_post_taxonomy(term_id,creative_taxonomy_terms(id,kind,name,slug))')
     .order('updated_at', { ascending: false });
   if (error) throw postError(error, 'Your posts could not be loaded.');
   return (data || []).map((post) => ({ ...post, creative_post_media: [...(post.creative_post_media || [])].sort((a, b) => a.display_order - b.display_order) }));
@@ -169,7 +169,7 @@ export async function loadOwnCreativePosts() {
 
 export async function loadPublicCreativePost(slug) {
   const { data, error } = await supabase.from('creative_posts')
-    .select('id,creative_member_id,slug,document,status,visibility,moderation_status,published_at,updated_at,creative_post_media(*),creative_members(id,name,slug,role,profile_image_url)')
+    .select('id,creative_member_id,slug,title,summary,work_year,external_url,tags,is_featured,document,status,visibility,moderation_status,published_at,updated_at,creative_post_media(*),creative_post_taxonomy(term_id,creative_taxonomy_terms(id,kind,name,slug)),creative_members(id,name,slug,role,profile_image_url,availability_status)')
     .eq('slug', slug).eq('status', 'published').eq('visibility', 'public').eq('moderation_status', 'clear').single();
   if (error) throw postError(error, 'Post not found or no longer public.');
   return { ...data, creative_post_media: [...(data.creative_post_media || [])].sort((a, b) => a.display_order - b.display_order) };

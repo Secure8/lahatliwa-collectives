@@ -21,8 +21,8 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(hero, /availability_status/);
   assert.match(profile, /isOwner && !adminPreview/);
   assert.match(profile, /to="\/create"/);
-  assert.match(profile, /Edit details/);
-  assert.match(profile, /id="feed"/);
+  assert.match(profile, /Edit profile/);
+  assert.match(profile, /id="work"/);
   assert.match(profile, /CreativePostCard/);
   assert.match(route, /account\?\.role === 'creative'/);
   assert.match(styles, /\.ll-profile-cover[\s\S]*?aspect-ratio: 16\/6/);
@@ -115,12 +115,12 @@ test('profile owners edit their wall in place, including professional details an
   assert.match(styles, /width: min\(42rem, calc\(100vw - 2\.5rem\)\)/);
 });
 
-test('profile wall separates posts, formal projects, about details, and professional inquiry', async () => {
+test('profile portfolio combines Work and keeps about details and direct inquiry', async () => {
   const profile = await source('../components/CreativeProfileView.jsx');
-  assert.match(profile, /Personal wall/);
-  assert.match(profile, /Formal portfolio/);
+  assert.match(profile, /Selected work/);
+  assert.match(profile, /Portfolio/);
   assert.match(profile, /ll-profile-about/);
-  assert.match(profile, /Interested in this Creative's work\?/);
-  assert.match(profile, /Ask about working together/);
-  assert.doesNotMatch(profile, /Admin preview[\s\S]*?Create post/);
+  assert.match(profile, /Work with \{creative\.name\}/);
+  assert.match(profile, /Start an inquiry/);
+  assert.match(profile, /const ownerActions = isOwner && !adminPreview/);
 });

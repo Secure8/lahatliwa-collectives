@@ -23,7 +23,8 @@ export default function CreativePostCard({ post, creative, owner = false, modera
     return () => window.removeEventListener('pointerdown', close);
   }, [menuOpen]);
 
-  return <article className={`ll-post-card${menuOpen ? ' has-open-menu' : ''}`}>
+  const terms = (post.creative_post_taxonomy || []).map((row) => row.creative_taxonomy_terms).filter(Boolean);
+  return <article className={`ll-post-card ll-work-card${menuOpen ? ' has-open-menu' : ''}`}>
     <header className="ll-post-card__header">
       <Link to={creative?.slug ? `/creatives/${creative.slug}` : '#'} className="ll-author-link">
         {creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}
@@ -31,17 +32,18 @@ export default function CreativePostCard({ post, creative, owner = false, modera
       </Link>
       {(owner || moderator) && <div ref={menuRef} className="ll-context-menu"><button type="button" onClick={() => setMenuOpen((value) => !value)} aria-expanded={menuOpen} aria-label="Post options"><Ellipsis size={20} /></button>{menuOpen && <div role="menu">
         {owner && <>
-        {post.status !== 'archived' && <Link role="menuitem" to={`/posts/${post.id}/edit`}><Edit3 size={16} /> Edit post</Link>}
+        {post.status !== 'archived' && <Link role="menuitem" to={`/posts/${post.id}/edit`}><Edit3 size={16} /> Edit work</Link>}
         {post.status === 'archived' ? <button role="menuitem" type="button" onClick={() => { setMenuOpen(false); onRestore?.(post); }}><RotateCcw size={16} /> Restore draft</button> : <button role="menuitem" type="button" onClick={() => { setMenuOpen(false); onArchive?.(post); }}><Archive size={16} /> Archive</button>}
-        <button role="menuitem" type="button" className="is-danger" onClick={() => { setMenuOpen(false); onDelete?.(post); }}><Trash2 size={16} /> {post.status === 'draft' ? 'Delete draft' : 'Delete post'}</button>
+        <button role="menuitem" type="button" className="is-danger" onClick={() => { setMenuOpen(false); onDelete?.(post); }}><Trash2 size={16} /> {post.status === 'draft' ? 'Delete draft' : 'Delete work'}</button>
         </>}
         {moderator && !owner && <button role="menuitem" type="button" className="is-danger" onClick={() => { setMenuOpen(false); setModerationOpen(true); }}><ShieldAlert size={16} /> Remove from public</button>}
       </div>}</div>}
     </header>
+    {(post.title || post.summary || terms.length || post.work_year) && <div className="ll-work-card__intro">{post.work_year && <small>{post.work_year}</small>}{post.title && <h2>{post.title}</h2>}{post.summary && <p>{post.summary}</p>}{terms.length > 0 && <ul>{terms.slice(0,5).map((term) => <li key={term.id}>{term.name}</li>)}</ul>}</div>}
     <div className="ll-post-card__body"><CreativePostDocument document={post.document} media={post.creative_post_media} compact={feed} /></div>
     {post.status === 'published' && <footer className="ll-post-card__actions">
       <Link to={`/inquiry?creative=${encodeURIComponent(creative?.slug || '')}&work=${encodeURIComponent(post.slug || post.id)}`}><MessageCircle size={17} /> Ask about this work</Link>
-      <Link to={`/posts/${post.slug}`}><span>Open post</span><ArrowUpRight size={17} /></Link>
+      <Link to={`/work/${post.slug}`}><span>View work</span><ArrowUpRight size={17} /></Link>
     </footer>}
     {post.moderation_reason && <p className="ll-moderation-note">Moderation note: {post.moderation_reason}</p>}
     {moderationOpen && <div className="ll-moderation-dialog" role="dialog" aria-modal="true" aria-label="Remove post from public"><button type="button" className="ll-moderation-dialog__scrim" onClick={() => setModerationOpen(false)} aria-label="Close"/><section><header><div><p className="ll-kicker">Super Admin moderation</p><h3>Remove this post?</h3></div><button type="button" onClick={() => setModerationOpen(false)} aria-label="Close"><X size={19}/></button></header><p>The Creative keeps ownership. Explain what needs attention before the post can return.</p><textarea rows={4} value={moderationNote} onChange={(event) => setModerationNote(event.target.value)} placeholder="Add a clear note (at least 8 characters)"/><footer><button type="button" onClick={() => setModerationOpen(false)}>Cancel</button><button type="button" className="is-danger" disabled={moderationNote.trim().length < 8} onClick={() => { onModerate?.(post, 'remove', moderationNote.trim()); setModerationOpen(false); }}>Remove with note</button></footer></section></div>}

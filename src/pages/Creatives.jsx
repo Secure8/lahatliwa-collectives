@@ -18,7 +18,7 @@ export default function Creatives() {
     async function loadCreatives() {
       const { data, error: creativeError } = await supabase
         .from('creative_members')
-        .select('id, name, slug, role, short_bio, profile_image_url, skills, is_featured, display_order, created_at')
+        .select('id, name, slug, role, short_bio, profile_image_url, skills, availability_status, is_featured, display_order, created_at')
         .eq('is_published', true)
         .order('is_featured', { ascending: false })
         .order('display_order', { ascending: true, nullsFirst: false })
@@ -35,7 +35,7 @@ export default function Creatives() {
 
   return (
     <div className="page-shell py-12 sm:py-16">
-      <header className="ll-directory-intro"><PublicInlineEditButton section="page.creatives" label="Edit Creative network introduction" /><p className="ll-kicker">{page.directoryEyebrow || 'Creative network'}</p><h1>{page.directoryTitle || 'Discover the people behind the work.'}</h1><p>{page.directoryDescription || `Explore professional profiles, published posts, disciplines, and formal project contributions across ${content.displayName}.`}</p></header>
+      <header className="ll-directory-intro"><PublicInlineEditButton section="page.creatives" label="Edit Creatives introduction" /><p className="ll-kicker">{page.directoryEyebrow || 'Aklan Creatives'}</p><h1>{page.directoryTitle || 'Meet the people behind the work.'}</h1><p>{page.directoryDescription || `Browse distinct portfolios, disciplines, availability, and direct inquiry paths across ${content.displayName}.`}</p></header>
       <div className="pt-12">
       {loading && <LoadingState label="Loading creatives" />}
       {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}

@@ -43,8 +43,9 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(navbar, /aria-label=\{`\$\{content\.displayName\} home`\}/);
   assert.match(navbar, /content\.logoUrl \? <BrandLogo src=\{content\.logoUrl\} alt=\{content\.logoAlt\}/);
   assert.match(navbar, /<BrandWordmark name=\{content\.displayName\} variant="compact" mobileVariant="mobile-compact"/);
-  assert.match(navbar, /aria-controls="public-more-menu"/);
-  assert.match(navbar, /id="public-more-menu"/);
+  assert.match(navbar, /navigation\.contactLabel \|\| 'Contact'/);
+  assert.match(navbar, /navigation\.privacyLabel \|\| 'Privacy'/);
+  assert.doesNotMatch(navbar, /public-more-menu|More pages/);
   assert.match(footer, /<BrandWordmark name=\{content\.displayName\} variant="footer" to="\/"/);
   assert.doesNotMatch(adminLayout, /BrandWordmark/);
   assert.match(adminLayout, /Platform tools[\s\S]*?Super Admin/);

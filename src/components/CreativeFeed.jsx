@@ -1,4 +1,4 @@
-import { ArrowRight, BriefcaseBusiness, Ellipsis, Image as ImageIcon, LayoutGrid, Newspaper, PenLine, ShieldAlert, X } from 'lucide-react';
+import { ArrowRight, Ellipsis, Image as ImageIcon, PenLine, ShieldAlert, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import CreativePostCard from './CreativePostCard';
@@ -17,19 +17,16 @@ export function mergeCreativeFeed(posts = [], projects = []) {
 }
 
 export default function CreativeFeed({ posts = [], projects = [], filter = 'all', onFilterChange, creativeOwner = false, moderator = false, onModeratePost, onModerateProject }) {
-  const items = mergeCreativeFeed(posts, projects).filter((item) => filter === 'all' || (filter === 'posts' ? item.kind === 'post' : item.kind === 'project'));
+  const items = mergeCreativeFeed(posts, projects);
   return <section aria-labelledby="creative-feed-heading" className="ll-feed-shell">
     <div className="ll-feed-heading">
-      <div><p className="ll-kicker"><Newspaper size={14} /> Latest from the network</p><h2 id="creative-feed-heading">Creative feed</h2></div>
-      <div className="ll-feed-filters" role="group" aria-label="Filter feed">
-        {[['all', 'All', LayoutGrid], ['posts', 'Posts', PenLine], ['projects', 'Projects', BriefcaseBusiness]].map(([value, label, Icon]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => onFilterChange?.(value)}><Icon size={15} /> {label}</button>)}
-      </div>
+      <div><p className="ll-kicker">Curated from Aklan</p><h2 id="creative-feed-heading">Selected work</h2></div>
     </div>
     {creativeOwner && <Link to="/create" className="ll-composer-prompt"><span className="ll-composer-prompt__icon"><PenLine size={19} /></span><span><strong>Share something you made</strong><small>Write, add photos, or document your process.</small></span><ArrowRight size={18} /></Link>}
     {items.length ? <div className="ll-feed-list">{items.map((item) => item.kind === 'post'
       ? <CreativePostCard key={item.id} post={item.post} creative={item.post.creative_members} moderator={moderator} onModerate={onModeratePost} feed />
       : <ProjectFeedItem key={item.id} project={item.project} moderator={moderator} onModerate={onModerateProject} />)}</div>
-      : <EmptyState title="The feed is ready for its first story" message="Published Creative posts and formal projects will appear here in chronological order." />}
+      : <EmptyState title="Work will appear here soon" message="Published Creative work will be selected for this space." />}
   </section>;
 }
 

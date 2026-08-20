@@ -34,7 +34,7 @@ test('login and recovery resolve both personas through the shared account router
   assert.match(login, /navigate\('\/account', \{ replace: true \}\)/);
   assert.match(forgot, /Navigate to="\/account" replace/);
   assert.match(landing, /role === 'super_admin'[\s\S]*Navigate to="\/"/);
-  assert.match(landing, /profile\.slug[\s\S]*Navigate to=\{`\/creatives\/\$\{profile\.slug\}`\}/);
+  assert.match(landing, /profile\.slug[\s\S]*CreativeWorkspace/);
   assert.match(landing, /Account needs attention/);
 });
 
@@ -77,8 +77,7 @@ test('the final interface layer is flat and uses the standard icon library', () 
   assert.match(css, /backdrop-filter: none/);
   assert.match(css, /box-shadow: none !important/);
   assert.match(css, /transform: none !important/);
-  assert.match(feed, /Newspaper/);
-  assert.match(feed, /LayoutGrid/);
+  assert.match(feed, /Selected work/);
   assert.doesNotMatch(feed, /Sparkles|Wand|Bot/);
   assert.doesNotMatch(layout, /AdminCommandPalette/);
 });

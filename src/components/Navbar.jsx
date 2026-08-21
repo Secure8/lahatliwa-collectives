@@ -1,4 +1,4 @@
-import { Bell, Compass, Handshake, House, LogIn, LogOut, Mail, PenLine, ShieldCheck, UserRound, UsersRound } from 'lucide-react';
+import { Bell, Compass, Handshake, House, LogIn, LogOut, Mail, PenLine, UserRound, UsersRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -25,7 +25,6 @@ export default function Navbar() {
     [navigation.creativesLabel || 'Creatives', '/creatives', UsersRound],
     ['Start a project', '/inquiry', Handshake],
     [navigation.contactLabel || 'Contact', '/contact', Mail],
-    [navigation.privacyLabel || 'Privacy', '/privacy', ShieldCheck],
   ];
 
   useEffect(() => {
@@ -46,7 +45,7 @@ export default function Navbar() {
         </Link>
         <div className="ll-public-nav__links">{primaryLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} title={label} aria-label={label} onPointerEnter={() => preloadPublicRoute(href)} onFocus={() => preloadPublicRoute(href)} className={({ isActive }) => clsx(isActive && 'is-active')}><Icon size={20} /><span>{label}</span></NavLink>)}</div>
         <div className="ll-public-nav__account">
-          <AppearanceMenuAction iconOnly className="ll-icon-action" />
+          <AppearanceMenuAction iconOnly className="ll-theme-switch" />
           {isCreative && <Link to="/notifications" className="ll-notification-action" aria-label={unreadCount ? `${unreadCount} unread notifications` : 'Notifications'} title="Notifications"><Bell size={19}/>{unreadCount > 0 && <b>{unreadCount > 99 ? '99+' : unreadCount}</b>}</Link>}
           {isCreative && <Link to="/create" className="ll-create-action"><PenLine size={16} /><span>Create</span></Link>}
           {authorized ? <Link to="/account" className="ll-account-action" aria-label={isCreative ? `Open ${creative?.name || 'your'} profile` : 'Open platform overview'}>

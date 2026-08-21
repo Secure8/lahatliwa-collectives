@@ -3389,3 +3389,76 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   .ll-icon-label-action > span,
   .ll-public-menu-layer .ll-public-drawer > nav :where(a, button) { animation: none; transition: none; }
 }
+
+/* Modern controls: softly rounded actions and a true light/dark switch. */
+.ll-theme-switch {
+  display: inline-grid;
+  width: 3.7rem;
+  min-width: 3.7rem;
+  height: 2.15rem;
+  min-height: 2.15rem;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0;
+  color: var(--theme-text-secondary);
+}
+.ll-theme-switch__track {
+  display: flex;
+  width: 3.45rem;
+  height: 1.9rem;
+  align-items: center;
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 999px;
+  background: var(--theme-secondary-surface);
+  padding: .18rem;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.ll-theme-switch__knob {
+  display: grid;
+  width: 1.42rem;
+  height: 1.42rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--theme-text-primary);
+  color: var(--theme-page-background);
+  transform: translateX(0);
+  transition: transform 180ms cubic-bezier(.2,0,0,1), background-color 160ms ease, color 160ms ease;
+}
+.ll-theme-switch[data-theme-current="dark"] .ll-theme-switch__track,
+.theme-toggle[data-theme-current="dark"] .ll-theme-switch__track { border-color: var(--site-accent-border); background: color-mix(in srgb,var(--site-accent) 58%,#253122); }
+.ll-theme-switch[data-theme-current="dark"] .ll-theme-switch__knob,
+.theme-toggle[data-theme-current="dark"] .ll-theme-switch__knob { transform: translateX(1.48rem); }
+.ll-theme-switch:hover .ll-theme-switch__track { border-color: var(--site-accent); }
+.ll-theme-switch:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.theme-toggle { width: 4rem; border: 0; border-radius: 999px; background: transparent; }
+
+:where(.site-button, .public-button, .creative-editor-button, .ll-primary-action, .ll-secondary-action, .ll-create-action, .ll-account-action, .ll-auth-submit, .ll-signout-action, .ll-drawer-signout, [data-admin-control], .ll-moderation-dialog footer button, .ll-image-positioner footer > button:first-child, .ll-image-inspector__actions button, .ll-studio-commandbar button, .ll-studio-commandbar a) {
+  border-radius: .8rem;
+}
+
+.ll-post-card__actions,
+.ll-project-post__actions { gap: .5rem; padding: .55rem; }
+.ll-post-card__actions a,
+.ll-project-post__actions a {
+  min-height: 2.75rem;
+  justify-content: center;
+  border: 1px solid var(--theme-border-strong);
+  border-radius: .8rem;
+  background: var(--theme-secondary-surface);
+  padding: .55rem .8rem;
+  color: var(--theme-text-primary);
+}
+.ll-post-card__actions a:first-child,
+.ll-project-post__actions a:first-child { justify-content: center; }
+.ll-post-card__actions a:hover,
+.ll-project-post__actions a:hover { border-color: var(--site-accent-border); background: var(--theme-hover-surface); }
+
+@media (min-width: 1180px) {
+  .ll-public-nav__account > .ll-theme-switch { width: 3.7rem; min-height: 2.15rem; padding: 0; }
+}
+
+@media (max-width: 639px) {
+  .ll-post-card__actions a:last-child span { display: inline; }
+}

@@ -12,7 +12,6 @@ test('legacy app-bar helpers remain stable for routes that still use them', () =
     ['Creatives', '/creatives'],
     ['Start a project', '/inquiry'],
     ['Contact', '/contact'],
-    ['Privacy', '/privacy'],
   ]);
 });
 
@@ -45,7 +44,7 @@ test('admin operations remain focused while public destinations stay direct', as
   assert.match(navbar, /AppearanceMenuAction/);
   assert.doesNotMatch(navbar, /role="dialog"|public-more-menu|More pages/);
   assert.match(navbar, /'Contact', '\/contact'/);
-  assert.match(navbar, /'Privacy', '\/privacy'/);
+  assert.doesNotMatch(navbar, /'Privacy', '\/privacy'|ShieldCheck/);
   assert.match(admin, /ll-operations-window/);
   assert.match(admin, /aria-label="Platform tools"/);
   assert.match(drawer, /event\.key === 'Escape'/);

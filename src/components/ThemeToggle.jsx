@@ -56,6 +56,7 @@ export default function ThemeToggle() {
       className={clsx('theme-toggle theme-toggle--global', scrollHidden && 'theme-toggle--scroll-hidden')}
       aria-label={label}
       title={label}
+      data-theme-current={resolvedTheme}
       data-scroll-hidden={scrollHidden ? 'true' : 'false'}
       onFocus={(event) => controllerRef.current?.onFocus(event.currentTarget.matches(':focus-visible'))}
       onBlur={() => controllerRef.current?.onBlur()}
@@ -63,7 +64,7 @@ export default function ThemeToggle() {
       onPointerLeave={() => controllerRef.current?.onPointerLeave()}
       onClick={changeTheme}
     >
-      <ThemeModeIcon mode={nextTheme} size={19} className="theme-toggle__icon" />
+      <span className="ll-theme-switch__track" aria-hidden="true"><span className="ll-theme-switch__knob"><ThemeModeIcon mode={nextTheme} size={13} className="theme-toggle__icon" /></span></span>
     </button>
   );
 }

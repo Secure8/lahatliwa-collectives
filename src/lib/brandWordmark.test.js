@@ -44,7 +44,8 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(navbar, /content\.logoUrl \? <BrandLogo src=\{content\.logoUrl\} alt=\{content\.logoAlt\}/);
   assert.match(navbar, /<BrandWordmark name=\{content\.displayName\} variant="compact" mobileVariant="mobile-compact"/);
   assert.match(navbar, /navigation\.contactLabel \|\| 'Contact'/);
-  assert.match(navbar, /navigation\.privacyLabel \|\| 'Privacy'/);
+  assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
+  assert.match(footer, /to="\/privacy"/);
   assert.doesNotMatch(navbar, /public-more-menu|More pages/);
   assert.match(footer, /<BrandWordmark name=\{content\.displayName\} variant="footer" to="\/"/);
   assert.doesNotMatch(adminLayout, /BrandWordmark/);

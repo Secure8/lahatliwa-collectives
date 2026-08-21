@@ -15,8 +15,8 @@ export default function AppearanceMenuAction({ className = '', iconOnly = false,
   }
 
   return (
-    <button {...props} type="button" className={className} onClick={changeTheme} aria-label={label} title={iconOnly ? label : undefined}>
-      <ThemeModeIcon mode={nextTheme} size={18} />
+    <button {...props} type="button" className={className} data-theme-current={resolvedTheme} onClick={changeTheme} aria-label={label} title={iconOnly ? label : undefined}>
+      {iconOnly ? <span className="ll-theme-switch__track" aria-hidden="true"><span className="ll-theme-switch__knob"><ThemeModeIcon mode={nextTheme} size={13}/></span></span> : <ThemeModeIcon mode={nextTheme} size={18} />}
       {!iconOnly && <span>{label}</span>}
     </button>
   );

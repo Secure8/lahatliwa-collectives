@@ -17,11 +17,23 @@ test('icon and label actions expose a readable label and visual tone', () => {
   assert.match(iconAction, /<small>\{label\}<\/small>/);
 });
 
-test('public navigation keeps secondary pages direct and Sign out accessible', () => {
+test('public navigation keeps Contact direct, Privacy in the footer, and Sign out accessible', () => {
   const navbar = readFileSync(new URL('../components/Navbar.jsx', import.meta.url), 'utf8');
+  const mobile = readFileSync(new URL('../components/MobileTopNavigation.jsx', import.meta.url), 'utf8');
+  const footer = readFileSync(new URL('../components/Footer.jsx', import.meta.url), 'utf8');
   assert.match(navbar, /navigation\.contactLabel \|\| 'Contact'/);
-  assert.match(navbar, /navigation\.privacyLabel \|\| 'Privacy'/);
+  assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
+  assert.doesNotMatch(mobile, /ShieldCheck|\/privacy/);
+  assert.match(footer, /to="\/privacy"/);
   assert.doesNotMatch(navbar, /More pages|public-more-menu|ll-public-menu-action/);
   assert.match(navbar, /<LogOut size=\{19\}/);
   assert.match(navbar, />Sign out<\/span>/);
+});
+
+test('theme and rectangular actions use the modern shared shapes', () => {
+  const appearance = readFileSync(new URL('../components/AppearanceMenuAction.jsx', import.meta.url), 'utf8');
+  assert.match(appearance, /ll-theme-switch__track/);
+  assert.match(css, /\.ll-theme-switch__knob/);
+  assert.match(css, /\.ll-post-card__actions a/);
+  assert.match(css, /border-radius: \.8rem/);
 });

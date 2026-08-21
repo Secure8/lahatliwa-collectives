@@ -1,4 +1,4 @@
-import { Compass, Handshake, House, Mail, PenLine, ShieldCheck, UsersRound } from 'lucide-react';
+import { Compass, Handshake, House, Mail, PenLine, UsersRound } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import usePublicAccount from '../lib/usePublicAccount';
@@ -14,7 +14,6 @@ export default function MobileTopNavigation() {
     ...(isCreative ? [['Create', '/create', PenLine]] : []),
     ['Start a project', '/inquiry', Handshake],
     ['Contact', '/contact', Mail],
-    ['Privacy', '/privacy', ShieldCheck],
   ];
   const active = (href) => href === '/' ? location.pathname === '/' : location.pathname === href || location.pathname.startsWith(`${href}/`);
   return <nav data-mobile-top-navigation className="ll-mobile-dock" aria-label="Primary mobile navigation" style={{ gridTemplateColumns: `repeat(${links.length}, minmax(0, 1fr))` }}>

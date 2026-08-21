@@ -10,7 +10,6 @@ export const PUBLIC_PRIMARY_DESTINATIONS = [
   ['Creatives', '/creatives'],
   ['Start a project', '/inquiry'],
   ['Contact', '/contact'],
-  ['Privacy', '/privacy'],
 ];
 
 export function publicAppBarMode(pathname = '/') {

@@ -12,6 +12,8 @@ import MobileTopNavigation from './MobileTopNavigation';
 import { supabase } from '../lib/supabaseClient';
 import { publicNavigationItems } from '../lib/publicNavigation';
 
+const defaultHeaderLogo = '/brand/liwa-standalone-v2.png';
+
 export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
@@ -36,7 +38,7 @@ export default function Navbar() {
     <header className="ll-public-header">
       <nav className="ll-public-nav" aria-label="Primary navigation">
         <Link to={brandTarget} className={clsx('ll-brand-link', account?.role === 'super_admin' && 'is-admin-editable')} aria-label={account?.role === 'super_admin' ? 'Edit logo and branding' : `${content.displayName} home`} title={account?.role === 'super_admin' ? 'Edit logo and branding' : undefined}>
-          {content.logoUrl ? <BrandLogo src={content.logoUrl} alt={content.logoAlt} /> : <span className="ll-brand-mark">{content.initials}</span>}
+          {(content.headerLogoUrl || content.logoUrl || defaultHeaderLogo) ? <BrandLogo src={content.headerLogoUrl || content.logoUrl || defaultHeaderLogo} alt={content.headerLogoAlt || content.logoAlt || 'Liwa Collectives symbol'} /> : <span className="ll-brand-mark">{content.initials}</span>}
           <BrandWordmark name={content.displayName} variant="compact" mobileVariant="mobile-compact" />
         </Link>
         <div className="ll-public-nav__links">{primaryLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} title={label} aria-label={label} onPointerEnter={() => preloadPublicRoute(href)} onFocus={() => preloadPublicRoute(href)} className={({ isActive }) => clsx(isActive && 'is-active')}><Icon size={20} /><span>{label}</span></NavLink>)}</div>

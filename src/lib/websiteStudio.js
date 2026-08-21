@@ -7,7 +7,9 @@ export const WEBSITE_CACHE_KEYS = ['hevv-public-content-cache-v3', 'hevv-public-
 export const WEBSITE_STUDIO_SECTIONS = [
   { group: 'Website Studio', label: 'Overview', key: 'overview' },
   { group: 'Shared across the website', label: 'Branding', key: 'global.brand', fields: [
-    ['brandName', 'Brand name', 'text'], ['tagline', 'Tagline', 'textarea'], ['logoUrl', 'Brand logo', 'image'], ['logoAlt', 'Logo description', 'text'],
+    ['brandName', 'Brand name', 'text'], ['tagline', 'Tagline', 'textarea'],
+    ['headerLogoUrl', 'Navbar standalone logo', 'image'], ['headerLogoAlt', 'Navbar logo description', 'text'],
+    ['footerLogoUrl', 'Footer full logo', 'image'], ['footerLogoAlt', 'Footer logo description', 'text'],
   ] },
   { group: 'Shared across the website', label: 'Navbar', key: 'global.navigation', fields: [
     ['homeLabel', 'Home label', 'text'], ['homeIcon', 'Home icon', 'icon'],
@@ -75,7 +77,7 @@ export function resolveWebsiteOverride(sharedValue, overrideValue) {
 }
 
 export function websiteImpact(entryKey) {
-  if (entryKey === 'global.brand') return ['Navbar', 'Footer', 'page wording', 'browser metadata', 'login'];
+  if (entryKey === 'global.brand') return ['Navbar logo', 'Footer logo', 'page wording', 'browser metadata', 'login'];
   if (entryKey === 'global.navigation') return ['Public header', 'mobile navigation'];
   if (entryKey === 'global.appearance') return ['All public pages', 'light mode', 'dark mode'];
   if (entryKey === 'page.inquiries') return ['Contact', 'inquiry page', 'Footer contact links'];
@@ -147,7 +149,11 @@ export function websiteBundleToContent(bundle = {}) {
   const socialLinks = [['Facebook',contact.facebookUrl || search.facebookUrl],['Instagram',contact.instagramUrl || search.instagramUrl],['LinkedIn',contact.linkedInUrl || search.linkedInUrl],['YouTube',contact.youTubeUrl || search.youTubeUrl],['TikTok',contact.tikTokUrl || search.tikTokUrl],['GitHub',contact.githubUrl || search.githubUrl]].filter(([,href]) => href).map(([label,href]) => ({ label, href }));
   const navigation = alignedBundle['global.navigation'] || {};
   return {
-    displayName: brand.brandName || '', legalName: brand.brandName || '', branchName: brand.branchName || 'Liwa Digital', tagline: brand.tagline || '', logoUrl: brand.logoUrl || '', logoAlt: brand.logoAlt || '', heroImageUrl: brand.heroImageUrl || '', heroImageAlt: brand.heroImageAlt || '', email: contact.contactEmail || brand.contactEmail || '',
+    displayName: brand.brandName || '', legalName: brand.brandName || '', branchName: brand.branchName || 'Liwa Digital', tagline: brand.tagline || '',
+    logoUrl: brand.headerLogoUrl || brand.logoUrl || '', logoAlt: brand.headerLogoAlt || brand.logoAlt || '',
+    headerLogoUrl: brand.headerLogoUrl || brand.logoUrl || '', headerLogoAlt: brand.headerLogoAlt || brand.logoAlt || '',
+    footerLogoUrl: brand.footerLogoUrl || brand.logoUrl || '', footerLogoAlt: brand.footerLogoAlt || brand.logoAlt || '',
+    heroImageUrl: brand.heroImageUrl || '', heroImageAlt: brand.heroImageAlt || '', email: contact.contactEmail || brand.contactEmail || '',
     footerText: footer.footerText || '', footerContextLabel: footer.contextLabel || '', privacyLabel: navigation.privacyLabel || footer.privacyLabel || 'Privacy Policy',
     primaryTextColor: appearance.primaryTextColor || '', secondaryTextColor: appearance.secondaryTextColor || '', mutedTextColor: appearance.mutedTextColor || '', accentColor: appearance.accentColor || '', dividerLineColor: appearance.dividerLineColor || '',
     ...(socialLinks.length ? { socialLinks } : {}),

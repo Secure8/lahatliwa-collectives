@@ -27,6 +27,7 @@ test('collective hero and admin preview use the shared overlay style without a t
   assert.match(collectiveHero, /className="hero-background-overlay absolute inset-0" style=\{background\.overlayStyle\}/);
   assert.match(settings, /className="hero-background-overlay absolute inset-0" style=\{background\.overlayStyle\}/);
   assert.doesNotMatch(collectiveHero, /className="absolute inset-0 bg-zinc-950" style=\{\{ opacity:/);
-  assert.match(css, /--hero-overlay-color: #253122/);
+  assert.match(css, /--hero-overlay-color: #09090b/);
+  assert.match(css, /:root\[data-theme="light"\][\s\S]*?--hero-overlay-color: #2b2622/);
   assert.doesNotMatch(css, /\.hero-background-overlay[\s\S]*?background(?:-color)?:\s*(?:white|#fff)/i);
 });

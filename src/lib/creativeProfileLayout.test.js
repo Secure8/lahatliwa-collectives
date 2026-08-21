@@ -16,12 +16,13 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(hero, /creative\.short_bio/);
   assert.match(hero, /ll-profile-professional-title/);
   assert.doesNotMatch(hero, /<span>Disciplines<\/span>/);
-  assert.match(hero, /<ul className="ll-profile-disciplines" aria-label="Creative disciplines">/);
+  assert.match(hero, /as="ul" className="ll-profile-disciplines" aria-label="Creative disciplines"/);
   assert.match(hero, /<li key=\{discipline\}>\{discipline\}<\/li>/);
   assert.match(hero, /availability_status/);
   assert.match(profile, /isOwner && !adminPreview/);
   assert.match(profile, /to="\/create"/);
-  assert.match(profile, /Edit profile/);
+  assert.match(profile, /Portfolio style/);
+  assert.match(profile, /CreativeInlineField/);
   assert.match(profile, /id="work"/);
   assert.match(profile, /CreativePostCard/);
   assert.match(route, /account\?\.role === 'creative'/);
@@ -101,6 +102,7 @@ test('profile owners edit their wall in place, including professional details an
     source('../index.css'),
   ]);
   assert.match(profile, /CreativeInlineProfileEditor/);
+  assert.match(profile, /CreativeInlineField/);
   assert.match(profile, /ProfessionalSection title="Education"/);
   assert.match(profile, /ProfessionalSection title="Achievements"/);
   assert.doesNotMatch(profile, /to="\/admin\/my-profile"/);
@@ -113,6 +115,23 @@ test('profile owners edit their wall in place, including professional details an
   assert.match(route, /location, professional_details/);
   assert.match(styles, /\.ll-profile-editor-layer \{ place-items: center; padding: 1\.25rem; \}/);
   assert.match(styles, /width: min\(42rem, calc\(100vw - 2\.5rem\)\)/);
+});
+
+test('profile templates show desktop and mobile previews and share responsive layout rules', async () => {
+  const [editor, styles, inlineField] = await Promise.all([
+    source('../components/CreativeInlineProfileEditor.jsx'),
+    source('../index.css'),
+    source('../components/CreativeInlineField.jsx'),
+  ]);
+  assert.match(editor, /TemplatePreview/);
+  assert.match(editor, /ll-template-device is-desktop/);
+  assert.match(editor, /ll-template-device is-mobile/);
+  for (const template of ['editorial', 'minimal', 'showcase', 'studio', 'archive']) {
+    assert.match(styles, new RegExp(`ll-profile-template--${template}`));
+  }
+  assert.match(styles, /@media \(max-width: 899px\)[\s\S]*?ll-profile-page\[class\*="ll-profile-template--"\]/);
+  assert.match(inlineField, /ll-creative-inline-popover/);
+  assert.match(inlineField, /supabase\.from\('creative_members'\)\.update/);
 });
 
 test('profile portfolio combines Work and keeps about details and direct inquiry', async () => {

@@ -67,7 +67,7 @@ test('public brand names remain CMS-driven and custom logo behavior stays separa
   assert.match(collectiveHero, /content\.displayName/);
   assert.match(about, /content\.displayName/);
   assert.match(creatives, /content\.displayName/);
-  assert.match(footer, /content\.logoUrl \|\| defaultFooterLogo/);
+  assert.match(footer, /content\.footerLogoUrl \|\| defaultFooterLogo/);
   assert.match(footer, /content\.displayName \|\| 'Liwa Collectives'/);
   assert.match(source('components/BrandLogo.jsx'), /src=\{src\}/);
 });

@@ -22,7 +22,7 @@ export default function Footer() {
       <div className="page-shell grid gap-10 py-12 md:grid-cols-[1.4fr_1fr] md:py-14">
         <div>
           <Link className="ll-footer-logo" to="/" aria-label={`${content.displayName || 'Liwa Collectives'} home`}>
-            <img src={content.logoUrl || defaultFooterLogo} alt={content.logoAlt || `${content.displayName || 'Liwa Collectives'} logo`} loading="lazy" decoding="async" />
+            <img src={content.footerLogoUrl || defaultFooterLogo} alt={content.footerLogoAlt || `${content.displayName || 'Liwa Collectives'} full logo`} loading="lazy" decoding="async" />
           </Link>
           <p className="mt-3 text-sm font-medium text-[var(--site-brand-accent)]">{content.tagline}</p>
         </div>

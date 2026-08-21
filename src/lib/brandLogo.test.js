@@ -29,7 +29,9 @@ test('custom logos use one shared component without changing header structures',
   ]);
 
   assert.match(navbar, /brandTarget[\s\S]*?Edit logo and branding[\s\S]*?`\$\{content\.displayName\} home`/);
-  assert.match(navbar, /content\.logoUrl \? <BrandLogo src=\{content\.logoUrl\} alt=\{content\.logoAlt\}/);
+  assert.match(navbar, /content\.headerLogoUrl \|\| content\.logoUrl \|\| defaultHeaderLogo/);
+  assert.match(navbar, /content\.headerLogoAlt \|\| content\.logoAlt/);
+  assert.match(navbar, /\/brand\/liwa-standalone-v2\.png/);
   assert.match(navbar, /publicNavigationItems\(navigation\)/);
   assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
   assert.doesNotMatch(navbar, /public-more-menu|More pages/);

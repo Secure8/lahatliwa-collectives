@@ -1,4 +1,4 @@
-import { ArrowRight, Dribbble, Edit3, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, PenLine, Plus, Trash2, Twitter, Youtube } from 'lucide-react';
+import { ArrowRight, Dribbble, Edit3, Facebook, Github, Globe2, Instagram, LayoutTemplate, Linkedin, Mail, Music2, PenLine, Plus, Trash2, Twitter, Youtube } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import CreativeHero from './CreativeHero';
@@ -11,6 +11,7 @@ import CreativePostCard from './CreativePostCard';
 import CreativeInlineProfileEditor from './CreativeInlineProfileEditor';
 import IconLabelAction from './IconLabelAction';
 import { normalizeCreativeProfileTemplate } from '../lib/creativeProfileTemplates';
+import CreativeInlineField from './CreativeInlineField';
 
 export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, moderator = false, onArchivePost, onRestorePost, onDeletePost, onModeratePost, onEditProject, onDeleteProject, adminPreview = false, onBack = null, onCreativeChange }) {
   const location = useLocation();
@@ -22,10 +23,10 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
   const bio = creative.full_bio || creative.short_bio;
   const professional = creative.professional_details && typeof creative.professional_details === 'object' ? creative.professional_details : {};
   const profileTemplate = normalizeCreativeProfileTemplate(creative.profile_template);
-  const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Add work</Link><button type="button" className="ll-secondary-action" onClick={() => setEditingSection('overview')}><Edit3 size={16} /> Edit profile</button></> : null;
+  const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Add work</Link><button type="button" className="ll-secondary-action" onClick={() => setEditingSection('design')}><LayoutTemplate size={16} /> Portfolio style</button></> : null;
   return <article className={`ll-profile-page ll-profile-template--${profileTemplate}`} data-profile-template={profileTemplate}>
     {adminPreview && <p className="ll-preview-label">Admin preview</p>}
-    <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} actions={ownerActions} onBack={onBack} onEdit={isOwner && !adminPreview ? setEditingSection : null} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
+    <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} actions={ownerActions} onBack={onBack} onEdit={isOwner && !adminPreview ? setEditingSection : null} onSaved={onCreativeChange} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
     {!adminPreview && <nav className="ll-profile-tabs" aria-label="Profile sections">
       <a href="#work">Work <span>{posts.filter((post) => post.status === 'published').length + projects.length || ''}</span></a>
@@ -42,11 +43,11 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
         </section>
       </main>
       <aside className="ll-profile-about" id="about">
-        {(bio || isOwner) && <section><ProfileEditButton owner={isOwner} label="Edit biography" onClick={() => setEditingSection('about')} /><p className="ll-kicker">About</p><h2>Creative perspective</h2>{bio ? <p>{bio}</p> : <p className="ll-profile-placeholder">Add a professional biography.</p>}</section>}
-        {(skills.length > 0 || isOwner) && <section><ProfileEditButton owner={isOwner} label="Edit disciplines" onClick={() => setEditingSection('overview')} /><p className="ll-kicker">Disciplines</p>{skills.length ? <ul>{skills.map((skill) => <li key={skill}>{skill}</li>)}</ul> : <p className="ll-profile-placeholder">Add your creative disciplines.</p>}</section>}
-        <ProfessionalSection title="Experience" items={professional.experience} owner={isOwner} onEdit={() => setEditingSection('professional')} />
-        <ProfessionalSection title="Education" items={professional.education} owner={isOwner} onEdit={() => setEditingSection('professional')} />
-        <ProfessionalSection title="Achievements" items={professional.achievements} owner={isOwner} onEdit={() => setEditingSection('professional')} />
+        {(bio || isOwner) && <section><p className="ll-kicker">About</p><h2>Creative perspective</h2><CreativeInlineField creative={creative} owner={isOwner} field="full_bio" value={bio || ''} label="Edit professional biography" type="textarea" as="p" className={!bio ? 'll-profile-placeholder' : ''} onSaved={onCreativeChange}>{bio || 'Add a professional biography.'}</CreativeInlineField></section>}
+        {(skills.length > 0 || isOwner) && <section><p className="ll-kicker">Disciplines</p><CreativeInlineField creative={creative} owner={isOwner} field="skills" value={skills} label="Edit disciplines" type="list" as="ul" onSaved={onCreativeChange}>{skills.length ? skills.map((skill) => <li key={skill}>{skill}</li>) : <li className="ll-profile-placeholder">Add your creative disciplines.</li>}</CreativeInlineField></section>}
+        <ProfessionalSection title="Experience" items={professional.experience} owner={isOwner} creative={creative} onSaved={onCreativeChange} />
+        <ProfessionalSection title="Education" items={professional.education} owner={isOwner} creative={creative} onSaved={onCreativeChange} />
+        <ProfessionalSection title="Achievements" items={professional.achievements} owner={isOwner} creative={creative} onSaved={onCreativeChange} />
       </aside>
     </div>}
 
@@ -56,8 +57,7 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
 }
 
 function SectionHeading({ eyebrow, title }) { return <div className="ll-section-heading"><p className="ll-kicker">{eyebrow}</p><h2>{title}</h2></div>; }
-function ProfileEditButton({ owner, label, onClick }) { return owner ? <button type="button" className="ll-profile-section-edit" onClick={onClick} aria-label={label}><Edit3 size={15} /></button> : null; }
-function ProfessionalSection({ title, items, owner, onEdit }) { const values = Array.isArray(items) ? items.filter(Boolean) : []; if (!owner && !values.length) return null; return <section><ProfileEditButton owner={owner} label={`Edit ${title.toLowerCase()}`} onClick={onEdit} /><p className="ll-kicker">{title}</p>{values.length ? <ul>{values.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="ll-profile-placeholder">Add {title.toLowerCase()}.</p>}</section>; }
+function ProfessionalSection({ title, items, owner, creative, onSaved }) { const values = Array.isArray(items) ? items.filter(Boolean) : []; if (!owner && !values.length) return null; const key = title.toLowerCase(); return <section><p className="ll-kicker">{title}</p><CreativeInlineField creative={creative} owner={owner} field={`professional_details.${key}`} value={values} label={`Edit ${key}`} type="list" as="ul" onSaved={onSaved}>{values.length ? values.map((item) => <li key={item}>{item}</li>) : <li className="ll-profile-placeholder">Add {key}.</li>}</CreativeInlineField></section>; }
 function SocialLink({ item }) { const icons={facebook:Facebook,instagram:Instagram,linkedin:Linkedin,youtube:Youtube,twitter:Twitter,github:Github,dribbble:Dribbble,tiktok:Music2,email:Mail,website:Globe2}; const Icon=icons[item.platform]||Globe2; const external=!item.href.startsWith('mailto:'); return <a href={item.href} target={external?'_blank':undefined} rel={external?'noopener noreferrer':undefined} aria-label={`${item.label}${external?' (opens in a new tab)':''}`} title={item.label}><Icon size={17}/></a>; }
 function ProfileProject({project,linkState,canManage,onEdit,onDelete}) {
   const image=publicImageVariant(getPublicImageUrl(project.cover_image),'display');

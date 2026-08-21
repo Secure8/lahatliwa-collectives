@@ -134,8 +134,10 @@ test('Website Studio presents the requested sections and keeps shared values syn
   assert.match(footer, /content\.displayName/);
   assert.match(footer, /content\.tagline/);
   assert.match(footer, /content\.socialLinks/);
-  assert.match(footer, /content\.logoUrl \|\| defaultFooterLogo/);
+  assert.match(footer, /content\.footerLogoUrl \|\| defaultFooterLogo/);
   assert.match(footer, /\/brand\/liwa-collectives-v2\.png/);
+  assert.match(navbar, /content\.headerLogoUrl \|\| content\.logoUrl \|\| defaultHeaderLogo/);
+  assert.match(navbar, /\/brand\/liwa-standalone-v2\.png/);
   assert.match(navigation, /'Discover', '\/discover'/);
   assert.doesNotMatch(navbar, /navigation\.servicesLabel|navigation\.projectsLabel|navigation\.currentWorkLabel/);
   assert.doesNotMatch(footer, /footerText|footerContextLabel/);
@@ -151,6 +153,24 @@ test('Website Studio presents the requested sections and keeps shared values syn
   assert.equal(content.email, 'hello@example.com');
   assert.equal(content.privacyLabel, 'Data & Privacy');
   assert.deepEqual(content.socialLinks, [{ label: 'Facebook', href: 'https://facebook.com/example' }]);
+});
+
+test('navbar and footer logos are independent synchronized brand placements', () => {
+  const content = websiteBundleToContent({
+    'global.brand': {
+      brandName: 'Liwa',
+      headerLogoUrl: '/header-symbol.png',
+      headerLogoAlt: 'Header symbol',
+      footerLogoUrl: '/footer-wordmark.png',
+      footerLogoAlt: 'Footer wordmark',
+    },
+  });
+  assert.equal(content.headerLogoUrl, '/header-symbol.png');
+  assert.equal(content.footerLogoUrl, '/footer-wordmark.png');
+  assert.notEqual(content.headerLogoUrl, content.footerLogoUrl);
+  const migration = read('supabase/migrations/20260821140000_separate_brand_logo_placements.sql');
+  assert.match(migration, /headerLogoUrl/);
+  assert.match(migration, /footerLogoUrl/);
 });
 
 test('Website Studio sync migration preserves custom values and adds Privacy and shared Contact data', () => {

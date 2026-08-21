@@ -2556,7 +2556,7 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   .ll-feed-intro { width: calc(100% - 1rem); padding: 1rem 0; }
   .ll-feed-intro h1 { font-size: 1.65rem; }
   .ll-feed-intro__copy > p:last-child { font-size: .86rem; }
-  .ll-footer-lockup { width: min(24rem, calc(100vw - 2rem)); }
+  .ll-footer-lockup { width: 100%; }
   .ll-footer-logo { min-height: 7.5rem; }
   .ll-footer-logo img { width: min(100%, 20rem); max-height: 10rem; }
   .ll-footer-tagline { margin-top: .8rem; text-align: center; }

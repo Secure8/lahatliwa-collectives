@@ -32,7 +32,7 @@ export default function CreativeDetails() {
       setCreative(null);
       setProjects([]);
       setPosts([]);
-      const { data, error: creativeError } = await supabase.from('creative_members').select('id, name, slug, role, short_bio, full_bio, profile_image_url, profile_image_position, cover_image, cover_image_position, skills, social_links, availability_status, location, professional_details, profile_template').eq('slug', slug).eq('is_published', true).single();
+      const { data, error: creativeError } = await supabase.from('creative_members').select('id, name, slug, role, short_bio, full_bio, profile_image_url, profile_image_position, cover_image, cover_image_position, skills, social_links, availability_status, location, professional_details').eq('slug', slug).eq('is_published', true).single();
       if (!active) return;
       if (creativeError) {
         setError('Creative profile not found or not published yet.');

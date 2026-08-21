@@ -30,7 +30,8 @@ test('public navigation keeps Contact and Privacy in the footer and Sign out acc
   assert.match(footer, /to="\/inquiry\?kind=platform"/);
   assert.doesNotMatch(navbar, /More pages|public-more-menu|ll-public-menu-action/);
   assert.match(navbar, /<LogOut size=\{19\}/);
-  assert.match(navbar, />Sign out<\/span>/);
+  assert.match(navbar, /className="ll-signout-action" aria-label="Sign out" title="Sign out"/);
+  assert.match(navbar, /ll-account-action--creative/);
 });
 
 test('theme and rectangular actions use the modern shared shapes', () => {

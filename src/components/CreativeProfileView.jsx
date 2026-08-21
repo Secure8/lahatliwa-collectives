@@ -1,4 +1,4 @@
-import { ArrowRight, Dribbble, Edit3, Facebook, Github, Globe2, Instagram, LayoutTemplate, Linkedin, Mail, Music2, PenLine, Plus, Trash2, Twitter, Youtube } from 'lucide-react';
+import { ArrowRight, Dribbble, Edit3, Facebook, Github, Globe2, Instagram, Linkedin, Mail, Music2, PenLine, Plus, Trash2, Twitter, Youtube } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import CreativeHero from './CreativeHero';
@@ -10,7 +10,6 @@ import { publicImageVariant } from '../lib/publicImages';
 import CreativePostCard from './CreativePostCard';
 import CreativeInlineProfileEditor from './CreativeInlineProfileEditor';
 import IconLabelAction from './IconLabelAction';
-import { normalizeCreativeProfileTemplate } from '../lib/creativeProfileTemplates';
 import CreativeInlineField from './CreativeInlineField';
 
 export default function CreativeProfileView({ creative, projects = [], posts = [], isOwner = false, moderator = false, onArchivePost, onRestorePost, onDeletePost, onModeratePost, onEditProject, onDeleteProject, adminPreview = false, onBack = null, onCreativeChange }) {
@@ -26,9 +25,8 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
   const tools = Object.prototype.hasOwnProperty.call(professional, 'tools')
     ? (Array.isArray(professional.tools) ? professional.tools.filter(Boolean) : [])
     : legacyTools;
-  const profileTemplate = normalizeCreativeProfileTemplate(creative.profile_template);
-  const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Add work</Link><button type="button" className="ll-secondary-action" onClick={() => setEditingSection('design')}><LayoutTemplate size={16} /> Portfolio style</button></> : null;
-  return <article className={`ll-profile-page ll-profile-template--${profileTemplate}`} data-profile-template={profileTemplate}>
+  const ownerActions = isOwner && !adminPreview ? <Link to="/create" className="ll-primary-action"><PenLine size={17} /> Add work</Link> : null;
+  return <article className="ll-profile-page ll-profile-template--studio" data-profile-template="studio">
     {adminPreview && <p className="ll-preview-label">Admin preview</p>}
     <CreativeHero creative={creative} socials={socials} tools={tools} adminPreview={adminPreview} actions={ownerActions} onBack={onBack} onEdit={isOwner && !adminPreview ? setEditingSection : null} onSaved={onCreativeChange} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 

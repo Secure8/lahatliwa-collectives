@@ -21,7 +21,8 @@ test('Creative profile is a professional wall with cover, avatar, identity, and 
   assert.match(hero, /availability_status/);
   assert.match(profile, /isOwner && !adminPreview/);
   assert.match(profile, /to="\/create"/);
-  assert.match(profile, /Portfolio style/);
+  assert.match(profile, /data-profile-template="studio"/);
+  assert.doesNotMatch(profile, /Portfolio style|LayoutTemplate|normalizeCreativeProfileTemplate/);
   assert.match(profile, /CreativeInlineField/);
   assert.match(profile, /id="work"/);
   assert.match(profile, /CreativePostCard/);
@@ -117,19 +118,15 @@ test('profile owners edit their wall in place, including professional details an
   assert.match(styles, /width: min\(42rem, calc\(100vw - 2\.5rem\)\)/);
 });
 
-test('profile templates show desktop and mobile previews and share responsive layout rules', async () => {
+test('Creative profiles use one responsive Studio presentation without template controls', async () => {
   const [editor, styles, inlineField] = await Promise.all([
     source('../components/CreativeInlineProfileEditor.jsx'),
     source('../index.css'),
     source('../components/CreativeInlineField.jsx'),
   ]);
-  assert.match(editor, /TemplatePreview/);
-  assert.match(editor, /ll-template-device is-desktop/);
-  assert.match(editor, /ll-template-device is-mobile/);
-  for (const template of ['editorial', 'minimal', 'showcase', 'studio', 'archive']) {
-    assert.match(styles, new RegExp(`ll-profile-template--${template}`));
-  }
-  assert.match(styles, /@media \(max-width: 899px\)[\s\S]*?ll-profile-page\[class\*="ll-profile-template--"\]/);
+  assert.doesNotMatch(editor, /TemplatePreview|Choose your portfolio style|profile_template|ll-template-option/);
+  assert.match(styles, /ll-profile-template--studio/);
+  assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.ll-profile-cover \{ aspect-ratio: 16 \/ 6; \}/);
   assert.match(inlineField, /ll-creative-inline-popover/);
   assert.match(inlineField, /supabase\.from\('creative_members'\)\.update/);
 });

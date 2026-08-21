@@ -49,13 +49,12 @@ test('Super Admin receives a focused desktop authoring toolbar and inline page e
   assert.match(services, /page\.servicesBody/);
 });
 
-test('profile templates offer five portfolio presentations with Studio as default', () => {
+test('Creative profiles use the default Studio presentation without template controls', () => {
   const editor = read('src/components/CreativeInlineProfileEditor.jsx');
   const profile = read('src/components/CreativeProfileView.jsx');
-  const migration = read('supabase/migrations/20260821090000_curated_work_discovery.sql');
-  assert.match(editor, /Choose your portfolio style/);
-  assert.match(profile, /ll-profile-template--/);
-  assert.match(migration, /'editorial','minimal','showcase','studio','archive'/);
+  assert.doesNotMatch(editor, /Choose your portfolio style|TemplatePreview|profile_template/);
+  assert.match(profile, /data-profile-template="studio"/);
+  assert.doesNotMatch(profile, /Portfolio style|normalizeCreativeProfileTemplate/);
 });
 
 test('Creative inquiries are private, targeted, and create notifications', () => {

@@ -41,12 +41,14 @@ test('primary public pages use the wide viewport canvas instead of a narrow fixe
   assert.match(styles, /\.ll-profile-route \{[\s\S]*?width: 100%;/);
 });
 
-test('five Creative portfolio templates are presentation layers over shared data', () => {
-  const templates = read('src/lib/creativeProfileTemplates.js');
+test('Creative profiles use the stable Studio presentation over shared data', () => {
   const profile = read('src/components/CreativeProfileView.jsx');
-  for (const key of ['editorial', 'minimal', 'showcase', 'studio', 'archive']) assert.match(templates, new RegExp(`key: '${key}'`));
+  const editor = read('src/components/CreativeInlineProfileEditor.jsx');
+  assert.match(profile, /data-profile-template="studio"/);
   assert.match(profile, /Selected work/);
   assert.match(profile, /Direct inquiry/);
+  assert.doesNotMatch(profile, /Portfolio style|normalizeCreativeProfileTemplate/);
+  assert.doesNotMatch(editor, /Choose your portfolio style|TemplatePreview|profile_template/);
   assert.doesNotMatch(profile, /Followers|Following|Like count|Reaction/);
 });
 

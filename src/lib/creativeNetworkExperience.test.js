@@ -25,7 +25,8 @@ test('Creative profiles behave as portfolios with owner-only controls', () => {
   assert.match(profile, /Selected work/);
   assert.match(profile, /isOwner && !adminPreview/);
   assert.match(profile, /Add work/);
-  assert.match(profile, /Portfolio style/);
+  assert.match(profile, /data-profile-template="studio"/);
+  assert.doesNotMatch(profile, /Portfolio style|LayoutTemplate|normalizeCreativeProfileTemplate/);
   assert.match(profile, /CreativeInlineField/);
   assert.match(profile, /Direct inquiry/);
   assert.match(account, /Navigate to=\{`\/creatives\/\$\{profile\.slug\}`\} replace/);

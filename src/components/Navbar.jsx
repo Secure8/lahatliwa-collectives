@@ -47,7 +47,7 @@ export default function Navbar() {
           <AppearanceMenuAction iconOnly className="ll-theme-switch" />
           {isCreative && <Link to="/notifications" className="ll-notification-action" aria-label={unreadCount ? `${unreadCount} unread notifications` : 'Notifications'} title="Notifications"><Bell size={19}/>{unreadCount > 0 && <b>{unreadCount > 99 ? '99+' : unreadCount}</b>}</Link>}
           {isCreative && <Link to="/create" className="ll-create-action"><PenLine size={16} /><span>Create</span></Link>}
-          {authorized ? <Link to={accountTarget} className="ll-account-action" aria-label={isCreative ? `Open ${creative?.name || 'your'} profile` : 'Open public editing view'}>
+          {authorized ? <Link to={accountTarget} className={clsx('ll-account-action', isCreative && 'll-account-action--creative')} aria-label={isCreative ? `Open ${creative?.name || 'your'} profile` : 'Open public editing view'}>
             {(creative?.profile_image_url || account?.avatar_url) ? <img src={creative?.profile_image_url || account.avatar_url} alt="" /> : <UserRound size={18} />}
             <span>{isCreative ? 'My profile' : 'Admin'}</span>
           </Link> : authenticated ? <Link to="/account" className="ll-account-action"><UserRound size={18} /><span>Account</span></Link> : <Link to="/admin/login" className="ll-account-action"><LogIn size={17} /><span>Sign in</span></Link>}

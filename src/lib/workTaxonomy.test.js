@@ -18,10 +18,10 @@ test('taxonomy is reusable and availability has three clear states', () => {
 
 test('taxonomy choices use clean wrapping text options instead of capsules', () => {
   const css = readFileSync(new URL('../index.css', import.meta.url), 'utf8');
-  assert.match(css, /\.ll-work-taxonomy fieldset \{ display: grid; grid-template-columns:/);
-  assert.match(css, /\.ll-work-taxonomy fieldset > div,[\s\S]*?flex-wrap: wrap;/);
+  assert.match(css, /\.ll-work-taxonomy-row \{ display: grid; grid-template-columns: 9rem minmax\(0, 1fr\)/);
+  assert.match(css, /\.ll-work-taxonomy-row > div,[\s\S]*?flex-wrap: wrap;/);
   assert.match(css, /\.ll-work-taxonomy button,[\s\S]*?border: 0; border-radius: 0; background: transparent;/);
   assert.doesNotMatch(css, /overflow-x: auto; border: 1px solid var\(--theme-border\); border-radius: \.75rem/);
   assert.match(css, /button\[aria-pressed="true"\]::after/);
-  assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.ll-work-taxonomy fieldset/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.ll-work-taxonomy-row/);
 });

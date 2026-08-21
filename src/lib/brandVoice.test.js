@@ -16,12 +16,13 @@ test('the approved tagline remains exact in the public defaults', () => {
 
 test('public positioning serves clients and published creatives without agency claims', () => {
   const home = source('pages/Home.jsx');
+  const feed = source('components/CreativeFeed.jsx');
   const about = source('pages/About.jsx');
   const creatives = source('pages/Creatives.jsx');
   const footer = source('components/Footer.jsx');
 
   assert.match(home, /Work worth discovering/i);
-  assert.match(home, /Selected work/i);
+  assert.match(feed, /Selected work/i);
   assert.match(about, /content\.displayName.*rooted in Aklan/i);
   assert.match(about, /does not automatically mean employment/i);
   assert.match(about, /Built from Aklan/i);

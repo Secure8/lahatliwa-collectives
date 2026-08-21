@@ -24,6 +24,23 @@ test('Discover native dropdown options remain readable in both themes', () => {
   assert.match(styles, /:root\[data-theme="light"\] \.ll-discover-filters select option,[\s\S]*?background-color: #fff; color: #050505;/);
 });
 
+test('Home uses one Creative directory strip and gives the work feed the full content width', () => {
+  const home = read('src/pages/Home.jsx');
+  const styles = read('src/index.css');
+  assert.match(home, /className="ll-creative-strip"/);
+  assert.doesNotMatch(home, /CreativeCard|ll-discovery-panel|Meet the Creatives/);
+  assert.match(styles, /\.ll-home-layout \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+});
+
+test('primary public pages use the wide viewport canvas instead of a narrow fixed container', () => {
+  const styles = read('src/index.css');
+  assert.match(styles, /--ll-public-content-inset: clamp\(1\.5rem, 3vw, 3\.5rem\)/);
+  for (const selector of ['.page-shell', '.ll-feed-intro', '.ll-creative-strip', '.ll-home-layout', '.ll-profile-route']) {
+    assert.match(styles, new RegExp(selector.replace('.', '\\\.') + '[\\s\\S]*?width: calc\\(100% - var\\(--ll-public-content-inset\\)\\)'));
+  }
+  assert.match(styles, /\.ll-profile-route \{[\s\S]*?width: 100%;/);
+});
+
 test('five Creative portfolio templates are presentation layers over shared data', () => {
   const templates = read('src/lib/creativeProfileTemplates.js');
   const profile = read('src/components/CreativeProfileView.jsx');

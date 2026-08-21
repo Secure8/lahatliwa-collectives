@@ -1,7 +1,6 @@
 import { ArrowRight, PenLine, UsersRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import CreativeCard from '../components/CreativeCard';
 import CreativeFeed from '../components/CreativeFeed';
 import LoadingState from '../components/LoadingState';
 import { usePublicContent } from '../lib/contentApi';
@@ -66,15 +65,6 @@ export default function Home() {
         {state.error && <p role="alert" className="ll-feed-error">{state.error}</p>}
         {state.loading ? <LoadingState label="Loading Creative work" /> : <CreativeFeed posts={state.posts} creativeOwner={isCreative} moderator={isModerator} onModeratePost={moderatePost} copy={page} editableSection="page.home" />}
       </main>
-      <aside className="ll-discovery-panel" aria-labelledby="discover-creatives-heading">
-        <div className="ll-discovery-panel__heading">
-          <InlineWebsiteText as="p" className="ll-kicker" section="page.home" field="creativesEyebrow" value={page.creativesEyebrow || 'People behind the work'} label="Edit Creatives eyebrow" />
-          <InlineWebsiteText as="h2" id="discover-creatives-heading" section="page.home" field="creativesTitle" value={page.creativesTitle || 'Meet the Creatives'} label="Edit Creatives heading" />
-          <InlineWebsiteText as="p" section="page.home" field="creativesDescription" type="textarea" value={page.creativesDescription || 'Open a portfolio to see selected work and availability.'} label="Edit Creatives description" />
-        </div>
-        <div className="ll-discovery-list">{state.creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} compact />)}</div>
-        <Link to="/creatives" className="ll-text-action">View all Creatives <ArrowRight size={16} /></Link>
-      </aside>
     </div>
   </div>;
 }

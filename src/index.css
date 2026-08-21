@@ -586,10 +586,12 @@ summary::-webkit-details-marker {
 .ll-work-details-editor label { display: grid; gap: .45rem; color: var(--theme-text-secondary); font-size: .78rem; font-weight: 650; }
 .ll-work-details-editor :where(input,textarea) { width: 100%; border: 1px solid var(--theme-border); border-radius: .65rem; background: var(--theme-input-bg); padding: .75rem .85rem; color: var(--theme-text-primary); }
 .ll-work-taxonomy { display: grid; gap: 0; border-block: 1px solid var(--theme-border); }
-.ll-work-taxonomy fieldset { display: grid; grid-template-columns: minmax(7rem, .22fr) minmax(0, 1fr); align-items: center; gap: 1rem; border: 0; border-bottom: 1px solid var(--theme-border); padding: .8rem 0; }
-.ll-work-taxonomy fieldset:last-child { border-bottom: 0; }
-.ll-work-taxonomy legend { margin: 0; color: var(--theme-text-muted); font-size: .68rem; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
-.ll-work-taxonomy fieldset > div,
+.ll-work-taxonomy > header { display: flex; align-items: baseline; gap: .65rem; border-bottom: 1px solid var(--theme-border); padding: .8rem 0; }
+.ll-work-taxonomy > header strong { color: var(--theme-text-primary); font-size: .88rem; }
+.ll-work-taxonomy > header small { color: var(--theme-text-muted); font-size: .7rem; }
+.ll-work-taxonomy-row { display: grid; grid-template-columns: 9rem minmax(0, 1fr); align-items: center; gap: 1rem; min-width: 0; padding: .45rem 0; }
+.ll-work-taxonomy-row > strong { color: var(--theme-text-muted); font-size: .68rem; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+.ll-work-taxonomy-row > div,
 .ll-profile-taxonomy > div > div,
 .ll-inquiry-taxonomy > div > span { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.2rem; min-width: 0; }
 .ll-work-taxonomy button,
@@ -613,7 +615,7 @@ summary::-webkit-details-marker {
 .ll-inquiry-taxonomy legend small { margin-left: .35rem; color: var(--theme-text-muted); font-weight: 500; }
 
 @media (max-width: 640px) {
-  .ll-work-taxonomy fieldset,
+  .ll-work-taxonomy-row,
   .ll-profile-taxonomy > div,
   .ll-inquiry-taxonomy > div { grid-template-columns: minmax(0, 1fr); gap: .45rem; }
 }
@@ -2547,8 +2549,7 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 
 @media (min-width: 900px) {
   .ll-feed-intro { flex-direction: row; align-items: end; justify-content: space-between; }
-  .ll-home-layout { grid-template-columns: minmax(0, 630px) minmax(16rem, 1fr); gap: 3.5rem; }
-  .ll-discovery-panel { position: sticky; top: 5rem; }
+  .ll-home-layout { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (min-width: 1180px) {
@@ -3836,4 +3837,32 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   .ll-login-card { margin-block: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-bottom)); padding: 4.5rem 1.2rem 1.5rem; }
   .ll-login-heading__icon { width: 3.6rem; height: 3.6rem; }
   .ll-login-card .ll-auth-links { display: grid; justify-items: center; }
+}
+
+/* Wide public canvas: use the viewport while retaining a small edge-safe gutter. */
+:root {
+  --ll-public-content-inset: clamp(1.5rem, 3vw, 3.5rem);
+}
+
+.page-shell,
+.ll-feed-intro,
+.ll-creative-strip,
+.ll-home-layout,
+.ll-profile-route {
+  width: calc(100% - var(--ll-public-content-inset));
+  max-width: none;
+}
+
+@media (max-width: 639px) {
+  :root {
+    --ll-public-content-inset: 1rem;
+  }
+
+  .ll-creative-strip {
+    width: 100%;
+  }
+
+  .ll-profile-route {
+    width: 100%;
+  }
 }

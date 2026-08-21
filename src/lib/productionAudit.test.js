@@ -75,7 +75,10 @@ test('production headers permit brand fonts and cache fingerprinted build assets
   const cacheControl = assetHeaders.find(({ key }) => key === 'Cache-Control')?.value ?? '';
 
   assert.match(contentSecurityPolicy, /style-src[^;]*https:\/\/fonts\.googleapis\.com/);
+  assert.match(contentSecurityPolicy, /style-src[^;]*https:\/\/use\.typekit\.net/);
+  assert.match(contentSecurityPolicy, /style-src[^;]*https:\/\/p\.typekit\.net/);
   assert.match(contentSecurityPolicy, /font-src[^;]*https:\/\/fonts\.gstatic\.com/);
+  assert.match(contentSecurityPolicy, /font-src[^;]*https:\/\/use\.typekit\.net/);
   assert.match(contentSecurityPolicy, /object-src 'none'/);
   assert.match(contentSecurityPolicy, /frame-ancestors 'none'/);
   const scriptPolicy = contentSecurityPolicy.split(';').find((directive) => directive.trim().startsWith('script-src')) ?? '';

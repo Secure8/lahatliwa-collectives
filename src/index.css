@@ -3884,6 +3884,7 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   max-width: 18ch;
   margin-top: .75rem;
   font-size: var(--ll-public-heading-size);
+  font-weight: 650;
   line-height: 1.02;
   letter-spacing: -.04em;
   text-wrap: balance;

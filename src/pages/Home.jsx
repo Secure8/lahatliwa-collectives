@@ -2,6 +2,7 @@ import { ArrowRight, PenLine, UsersRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CreativeFeed from '../components/CreativeFeed';
+import InquiryRail from '../components/InquiryRail';
 import LoadingState from '../components/LoadingState';
 import { usePublicContent } from '../lib/contentApi';
 import { loadPublicCreativeFeed, moderateCreativePost } from '../lib/creativePosts';
@@ -65,6 +66,9 @@ export default function Home() {
         {state.error && <p role="alert" className="ll-feed-error">{state.error}</p>}
         {state.loading ? <LoadingState label="Loading Creative work" /> : <CreativeFeed posts={state.posts} creativeOwner={isCreative} moderator={isModerator} onModeratePost={moderatePost} copy={page} editableSection="page.home" />}
       </main>
+      <aside className="ll-public-inquiry-layout__rail ll-public-inquiry-layout__rail--home">
+        <InquiryRail />
+      </aside>
     </div>
   </div>;
 }

@@ -40,7 +40,7 @@ export default function Navbar() {
       <nav className="ll-public-nav" aria-label="Primary navigation">
         <Link to={brandTarget} className={clsx('ll-brand-link', account?.role === 'super_admin' && 'is-admin-editable')} aria-label={account?.role === 'super_admin' ? 'Edit logo and branding' : `${content.displayName} home`} title={account?.role === 'super_admin' ? 'Edit logo and branding' : undefined}>
           {(content.headerLogoUrl || content.logoUrl || defaultHeaderLogo) ? <BrandLogo src={content.headerLogoUrl || content.logoUrl || defaultHeaderLogo} alt={content.headerLogoAlt || content.logoAlt || 'Liwa Collectives symbol'} /> : <span className="ll-brand-mark">{content.initials}</span>}
-          <BrandWordmark name={content.displayName} variant="compact" mobileVariant="mobile-compact" />
+          <BrandWordmark name={content.displayName} variant="compact" mobileVariant="mobile-compact" className="ll-mobile-brand-name" />
         </Link>
         <div className="ll-public-nav__links">{primaryLinks.map(([label, href, Icon]) => <NavLink key={href} to={href} title={label} aria-label={label} onPointerEnter={() => preloadPublicRoute(href)} onFocus={() => preloadPublicRoute(href)} className={({ isActive }) => clsx(isActive && 'is-active')}><Icon size={20} /><span>{label}</span></NavLink>)}</div>
         <div className="ll-public-nav__account">

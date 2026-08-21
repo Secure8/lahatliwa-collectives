@@ -2553,6 +2553,10 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 }
 
 @media (max-width: 639px) {
+  .ll-public-nav { width: calc(100% - 1rem); gap: .65rem; }
+  .ll-brand-link { gap: .5rem; }
+  .ll-mobile-brand-name { max-width: none; font-family: "eco", "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, sans-serif; font-size: .9rem; font-weight: 400; letter-spacing: .01em; }
+  .ll-public-nav__account { gap: .15rem; }
   .ll-feed-intro { width: calc(100% - 1rem); padding: 1rem 0; }
   .ll-feed-intro h1 { font-size: 1.65rem; }
   .ll-feed-intro__copy > p:last-child { font-size: .86rem; }
@@ -2569,6 +2573,10 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   .ll-creative-strip img, .ll-creative-strip a > span { width: 3.35rem; height: 3.35rem; }
   .ll-feed-list { gap: 1.15rem; }
   .ll-project-feed-item { padding-right: .5rem; padding-left: .5rem; }
+}
+
+@media (max-width: 359px) {
+  .ll-mobile-brand-name { font-size: .72rem; }
 }
 
 /* Floating public menus and profile editing */

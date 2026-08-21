@@ -1,7 +1,8 @@
 import { Facebook, Github, Globe, Instagram, Linkedin, Mail, Music2, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePublicContent } from '../lib/contentApi';
-import BrandWordmark from './BrandWordmark';
+
+const defaultFooterLogo = '/brand/liwa-collectives-v2.png';
 
 const socialIconMap = {
   Facebook,
@@ -20,7 +21,9 @@ export default function Footer() {
     <footer className="public-footer mt-28 border-t border-[var(--site-accent-border)]">
       <div className="page-shell grid gap-10 py-12 md:grid-cols-[1.4fr_1fr] md:py-14">
         <div>
-          <BrandWordmark name={content.displayName} variant="footer" to="/" className="inline-flex min-h-11 items-center" />
+          <Link className="ll-footer-logo" to="/" aria-label={`${content.displayName || 'Liwa Collectives'} home`}>
+            <img src={content.logoUrl || defaultFooterLogo} alt={content.logoAlt || `${content.displayName || 'Liwa Collectives'} logo`} loading="lazy" decoding="async" />
+          </Link>
           <p className="mt-3 text-sm font-medium text-[var(--site-brand-accent)]">{content.tagline}</p>
         </div>
         <div className="flex flex-wrap items-start gap-3 md:justify-end">

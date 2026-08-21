@@ -134,7 +134,8 @@ test('Website Studio presents the requested sections and keeps shared values syn
   assert.match(footer, /content\.displayName/);
   assert.match(footer, /content\.tagline/);
   assert.match(footer, /content\.socialLinks/);
-  assert.doesNotMatch(footer, /BrandLogo|content\.logoUrl/);
+  assert.match(footer, /content\.logoUrl \|\| defaultFooterLogo/);
+  assert.match(footer, /\/brand\/liwa-collectives-v2\.png/);
   assert.match(navigation, /'Discover', '\/discover'/);
   assert.doesNotMatch(navbar, /navigation\.servicesLabel|navigation\.projectsLabel|navigation\.currentWorkLabel/);
   assert.doesNotMatch(footer, /footerText|footerContextLabel/);

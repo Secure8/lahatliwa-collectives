@@ -47,7 +47,8 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
   assert.match(footer, /to="\/privacy"/);
   assert.doesNotMatch(navbar, /public-more-menu|More pages/);
-  assert.match(footer, /<BrandWordmark name=\{content\.displayName\} variant="footer" to="\/"/);
+  assert.match(footer, /className="ll-footer-logo"/);
+  assert.match(footer, /content\.logoUrl \|\| defaultFooterLogo/);
   assert.doesNotMatch(adminLayout, /BrandWordmark/);
   assert.match(adminLayout, /Platform tools[\s\S]*?Super Admin/);
   assert.doesNotMatch(login, /BrandWordmark|Lahat Liwa Collectives|Welcome back/);
@@ -60,7 +61,7 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(projectDetails, /ll-project-detail__author/);
   assert.match(collectiveHero, /isBrandWordmarkText\(heroTitle, content\.displayName, \[defaultSiteContent\.displayName, defaultSiteContent\.legalName\]\)/);
   assert.match(css, /color: var\(--brand-wordmark-fill\)/);
-  assert.match(css, /var\(--brand-wordmark-accent, var\(--site-brand-accent, #f6d58b\)\)/);
+  assert.match(css, /var\(--brand-wordmark-accent, var\(--site-brand-accent, #f3a257\)\)/);
   assert.match(css, /\[data-theme="light"\] \.brand-wordmark/);
   assert.match(component, /variant = 'standard'/);
   assert.match(component, /mobileVariant && `brand-wordmark--\$\{mobileVariant\}`/);
@@ -70,7 +71,7 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(css, /\.brand-wordmark--auth \{[\s\S]*?font-family: "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, system-ui, sans-serif;[\s\S]*?font-weight: 600/);
   assert.match(css, /@media \(min-width: 768px\) \{[\s\S]*?\.brand-wordmark--hero,[\s\S]*?\.brand-wordmark--auth \{[\s\S]*?font-family: "Rubik 80s Fade", "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, system-ui, sans-serif;[\s\S]*?font-weight: 400/);
   assert.match(css, /\.brand-wordmark--compact \{[\s\S]*?font-size: 0\.96rem/);
-  assert.match(css, /\.brand-wordmark--footer \{[\s\S]*?font-size: clamp\(1\.15rem, 2\.3vw, 1\.45rem\)/);
+  assert.match(css, /\.ll-footer-logo img \{[\s\S]*?object-fit: contain/);
   assert.match(css, /@media \(max-width: 639px\) \{[\s\S]*?\.brand-wordmark--mobile-compact \{[\s\S]*?font-size: 0\.84rem/);
   assert.match(css, /\.brand-wordmark--mobile-compact\.brand-wordmark--very-long \{[\s\S]*?font-size: 0\.8rem/);
   assert.match(css, /body \{[\s\S]*?min-width: 0;/);

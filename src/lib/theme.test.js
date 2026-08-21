@@ -144,9 +144,9 @@ test('provider, one global toggle, startup, and rapid-change contracts stay shar
   assert.match(css, /--theme-page-background/);
   assert.match(collectiveHero, /backgroundColor: content\.accentColor/);
   assert.match(contentApi, /'--site-brand-accent': content\.accentColor \|\| defaultSiteContent\.accentColor/);
-  assert.match(css, /\[data-theme="light"\] \.theme-content-root[\s\S]*?--site-accent: var\(--site-brand-accent, #f6d58b\)/);
-  assert.match(css, /--site-accent-text: color-mix\(in srgb, var\(--site-brand-accent, #f6d58b\) 72%, black\)/);
-  assert.match(css, /:root \{[\s\S]*?--site-accent-hover: #ffe5a8;[\s\S]*?--site-accent-text: #f6d58b;/);
+  assert.match(css, /\[data-theme="light"\] \.theme-content-root[\s\S]*?--site-accent: var\(--site-brand-accent, #f3a257\)/);
+  assert.match(css, /--site-accent-text: color-mix\(in srgb, var\(--site-brand-accent, #f3a257\) 72%, #253122\)/);
+  assert.match(css, /:root \{[\s\S]*?--site-accent-hover: #f7b472;[\s\S]*?--site-accent-text: #f3a257;/);
   assert.match(css, /\.theme-toggle[\s\S]*?position: fixed;[\s\S]*?left: max\(0\.75rem, env\(safe-area-inset-left\)\);[\s\S]*?bottom: calc\(0\.75rem \+ env\(safe-area-inset-bottom\)\);/);
   assert.match(css, /\.theme-toggle--scroll-hidden[\s\S]*?pointer-events: none;[\s\S]*?opacity: 0;/);
   assert.match(css, /prefers-reduced-motion: reduce/);

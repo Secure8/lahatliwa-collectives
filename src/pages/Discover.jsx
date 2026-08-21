@@ -5,12 +5,16 @@ import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
 import { loadPublicCreativeFeed } from '../lib/creativePosts';
 import { groupWorkTaxonomy, loadWorkTaxonomy } from '../lib/workTaxonomy';
+import { usePublicContent } from '../lib/contentApi';
+import InlineWebsiteText from '../components/InlineWebsiteText';
 
 function postTerms(post) {
   return (post.creative_post_taxonomy || []).map((row) => row.creative_taxonomy_terms).filter(Boolean);
 }
 
 export default function Discover() {
+  const { content } = usePublicContent([]);
+  const page = content.websitePages?.discover || {};
   const [state, setState] = useState({ loading: true, works: [], terms: [], error: '' });
   const [filters, setFilters] = useState({ keyword: '', discipline: '', specialty: '', industry: '' });
   useEffect(() => {
@@ -30,7 +34,11 @@ export default function Discover() {
   const update = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
 
   return <div className="ll-discover-page page-shell">
-    <header className="ll-discover-intro"><p className="ll-kicker">Discover</p><h1>Find Creative work from Aklan.</h1><p>Browse selected work by discipline, specialty, industry, or the idea you have in mind.</p></header>
+    <header className="ll-discover-intro">
+      <InlineWebsiteText as="p" className="ll-kicker" section="page.discover" field="eyebrow" value={page.eyebrow || 'Discover'} label="Edit Discover eyebrow" />
+      <InlineWebsiteText as="h1" section="page.discover" field="title" value={page.title || 'Find Creative work from Aklan.'} label="Edit Discover heading" />
+      <InlineWebsiteText as="p" section="page.discover" field="description" type="textarea" value={page.description || 'Browse selected work by discipline, specialty, industry, or the idea you have in mind.'} label="Edit Discover description" />
+    </header>
     <section className="ll-discover-filters" aria-label="Filter Creative work">
       <label className="ll-discover-search"><Search size={17}/><span className="sr-only">Search work</span><input type="search" value={filters.keyword} onChange={(event) => update('keyword', event.target.value)} placeholder="Search work, skills, or Creatives"/></label>
       <div><SlidersHorizontal size={16}/>{['discipline','specialty','industry'].map((kind) => <label key={kind}><span className="sr-only">{kind}</span><select value={filters[kind]} onChange={(event) => update(kind, event.target.value)}><option value="">All {kind === 'industry' ? 'industries' : `${kind}s`}</option>{(grouped[kind] || []).map((term) => <option key={term.id} value={term.slug}>{term.name}</option>)}</select></label>)}</div>

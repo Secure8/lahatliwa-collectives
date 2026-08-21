@@ -38,3 +38,24 @@ test('mobile creation is a separate floating action and no longer a dock destina
   assert.match(styles, /\.ll-mobile-create-fab/);
   assert.match(styles, /bottom: calc\(4\.35rem \+ env\(safe-area-inset-bottom\)\)/);
 });
+
+test('Super Admin edits public wording in an anchored field without leaving the page', () => {
+  const editor = read('components/InlineWebsiteText.jsx');
+  const home = read('pages/Home.jsx');
+  const discover = read('pages/Discover.jsx');
+  const header = read('components/PublicPageHeader.jsx');
+  const styles = read('index.css');
+  const migration = read('../supabase/migrations/20260821120000_inline_public_text_editing.sql');
+  assert.match(editor, /createPortal/);
+  assert.match(editor, /getBoundingClientRect/);
+  assert.match(editor, /saveWebsiteDraft/);
+  assert.match(editor, /publishWebsiteEntry/);
+  assert.doesNotMatch(editor, /admin\/website|useNavigate|<Link/);
+  assert.match(home, /field="heroEyebrow"/);
+  assert.match(home, /field="heroTitle"/);
+  assert.match(home, /field="heroDescription"/);
+  assert.match(discover, /section="page\.discover"/);
+  assert.match(header, /InlineWebsiteText/);
+  assert.match(styles, /\.ll-live-edit-popover/);
+  assert.match(migration, /'page\.discover'/);
+});

@@ -2654,6 +2654,28 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 .public-page-header, .ll-feed-intro { position: relative; }
 .ll-inline-admin-edit { position: absolute; z-index: 3; top: 0; right: 0; display: grid; width: 2.6rem; height: 2.6rem; place-items: center; border: 1px solid var(--theme-border-strong); border-radius: 50%; background: var(--theme-secondary-surface); color: var(--theme-text-secondary); text-decoration: none; }
 .ll-inline-admin-edit:hover { border-color: var(--site-accent-border); color: var(--site-accent-text); }
+
+/* Super Admin edits public wording directly where it appears. */
+.ll-live-edit-text { position: relative; border-radius: .28rem; cursor: text; outline: 1px dashed transparent; outline-offset: .24rem; transition: outline-color .16s ease, background-color .16s ease; }
+.ll-live-edit-text:hover,
+.ll-live-edit-text:focus-visible,
+.ll-live-edit-text.is-editing { background: color-mix(in srgb,var(--theme-primary-action) 8%,transparent); outline-color: color-mix(in srgb,var(--theme-primary-action) 58%,transparent); }
+.ll-live-edit-text:focus-visible { outline-style: solid; }
+.ll-live-edit-popover { position: fixed; z-index: 220; color: var(--theme-text-primary); }
+.ll-live-edit-popover > form { overflow: hidden; border: 1px solid var(--theme-border-strong); border-radius: .85rem; background: var(--theme-modal-surface); box-shadow: 0 18px 52px rgb(0 0 0 / .34); }
+.ll-live-edit-popover header { display: flex; min-height: 2.65rem; align-items: center; justify-content: space-between; gap: .75rem; border-bottom: 1px solid var(--theme-border); padding: .5rem .55rem .5rem .8rem; }
+.ll-live-edit-popover header span { display: inline-flex; min-width: 0; align-items: center; gap: .45rem; overflow: hidden; color: var(--theme-text-secondary); font-size: .74rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.ll-live-edit-popover header button { display: grid; width: 2rem; height: 2rem; flex: none; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--theme-text-muted); }
+.ll-live-edit-popover header button:hover { background: var(--theme-secondary-surface); color: var(--theme-text-primary); }
+.ll-live-edit-popover input,
+.ll-live-edit-popover textarea { display: block; width: calc(100% - 1.2rem); margin: .65rem; border: 1px solid var(--theme-border-strong); border-radius: .55rem; background: var(--theme-primary-surface); padding: .7rem .75rem; color: var(--theme-text-primary); font: inherit; font-size: .88rem; line-height: 1.5; outline: 0; resize: vertical; }
+.ll-live-edit-popover input:focus,
+.ll-live-edit-popover textarea:focus { border-color: var(--site-accent-border); box-shadow: 0 0 0 2px color-mix(in srgb,var(--theme-primary-action) 14%,transparent); }
+.ll-live-edit-popover [role="alert"] { margin: 0 .7rem .55rem; color: #ef4444; font-size: .73rem; line-height: 1.35; }
+.ll-live-edit-popover footer { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; border-top: 1px solid var(--theme-border); padding: .55rem .65rem; }
+.ll-live-edit-popover footer button { display: inline-flex; min-height: 2.15rem; align-items: center; justify-content: center; gap: .35rem; border: 1px solid var(--theme-border-strong); border-radius: 999px; background: transparent; padding: 0 .8rem; color: var(--theme-text-secondary); font-size: .74rem; font-weight: 700; }
+.ll-live-edit-popover footer button.is-primary { border-color: var(--theme-primary-action); background: var(--theme-primary-action); color: var(--theme-primary-action-text); }
+.ll-live-edit-popover button:disabled { cursor: wait; opacity: .55; }
 .ll-notification-action, .ll-signout-action { position: relative; display: inline-flex; min-height: 2.6rem; align-items: center; justify-content: center; gap: .4rem; border: 0; border-radius: .55rem; background: transparent; padding: .55rem; color: var(--theme-text-secondary); text-decoration: none; }
 .ll-notification-action:hover, .ll-signout-action:hover { background: var(--theme-hover-surface); color: var(--theme-text-primary); }
 .ll-notification-action b { position: absolute; top: .15rem; right: -.05rem; min-width: 1.05rem; border: 2px solid var(--theme-navigation-surface); border-radius: 999px; background: #ef4444; padding: .08rem .22rem; color: white; font-size: .55rem; line-height: .8rem; text-align: center; }

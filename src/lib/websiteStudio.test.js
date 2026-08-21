@@ -129,7 +129,7 @@ test('Website Studio presents the requested sections and keeps shared values syn
   const footer = read('src/components/Footer.jsx');
   const navbar = read('src/components/Navbar.jsx');
   const navigation = read('src/lib/publicNavigation.js');
-  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Feed', 'About', 'Creatives', 'Contact & Services', 'Privacy Policy', 'Colors']);
+  assert.deepEqual(WEBSITE_STUDIO_SECTIONS.map(({ label }) => label), ['Overview', 'Branding', 'Navbar', 'Feed', 'Discover', 'About', 'Creatives', 'Contact & Services', 'Privacy Policy', 'Colors']);
   assert.ok(!WEBSITE_STUDIO_SECTIONS.some(({ label }) => ['Footer', 'Search', 'Social links'].includes(label)));
   assert.match(footer, /content\.displayName/);
   assert.match(footer, /content\.tagline/);

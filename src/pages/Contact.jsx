@@ -2,6 +2,7 @@ import { ArrowRight, Facebook, Github, Globe, Instagram, Linkedin, Mail, Music2,
 import { Link } from 'react-router-dom';
 import { usePublicContent } from '../lib/contentApi';
 import PublicPageHeader from '../components/PublicPageHeader';
+import InlineWebsiteText from '../components/InlineWebsiteText';
 
 const socialIconMap = {
   Facebook,
@@ -21,10 +22,10 @@ export default function Contact() {
 
   return (
     <div className="page-shell py-20">
-      <PublicPageHeader eyebrow="Contact" title={page.heading || content.contactPage.heading} description={page.description || content.contactPage.description} accentColor={content.contactPage.accentColor || content.accentColor} titleColor={content.contactPage.headingColor || content.primaryTextColor} bodyColor={content.contactPage.bodyTextColor || content.secondaryTextColor} />
+      <PublicPageHeader eyebrow={page.eyebrow || 'Contact'} title={page.heading || content.contactPage.heading} description={page.description || content.contactPage.description} accentColor={content.contactPage.accentColor || content.accentColor} titleColor={content.contactPage.headingColor || content.primaryTextColor} bodyColor={content.contactPage.bodyTextColor || content.secondaryTextColor} edit={{ section: 'page.inquiries', eyebrowField: 'eyebrow', titleField: 'heading', descriptionField: 'description' }} />
       <section className="grid gap-12 pt-10 lg:grid-cols-[1fr_0.72fr] lg:pt-12">
         <div>
-          <p className="max-w-lg text-sm leading-7 text-[var(--site-secondary-text)]">{page.contactIntro || 'Contact the people behind Lahat Liwa about the platform, profile or credit questions, partnerships, or general concerns. To hire a Creative, open that Creative’s profile instead.'}</p>
+          <InlineWebsiteText as="p" className="max-w-lg text-sm leading-7 text-[var(--site-secondary-text)]" section="page.inquiries" field="contactIntro" type="textarea" value={page.contactIntro || 'Contact the people behind Lahat Liwa about the platform, profile or credit questions, partnerships, or general concerns. To hire a Creative, open that Creative’s profile instead.'} label="Edit contact introduction" />
           <div className="mt-7 flex flex-wrap gap-4"><Link to="/inquiry?kind=platform" className="public-button public-button--primary">Message Lahat Liwa <ArrowRight size={17} /></Link>{hasEmail && <a href={`mailto:${content.email}`} className="public-button public-button--secondary"><Mail size={17} /> {page.ctaText || content.contactPage.ctaText}</a>}</div>
           {content.contactPage.notes && <p className="mt-5 max-w-xl text-sm leading-6 text-zinc-500">{content.contactPage.notes}</p>}
         </div>

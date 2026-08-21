@@ -1,5 +1,6 @@
 import PublicPageHeader, { AccentEyebrow } from '../components/PublicPageHeader';
 import { usePublicContent } from '../lib/contentApi';
+import InlineWebsiteText from '../components/InlineWebsiteText';
 
 const defaultPolicySections = [
   {
@@ -55,34 +56,31 @@ export default function Privacy() {
         eyebrow={page.eyebrow || 'Legal'}
         title={page.title || 'Privacy Policy'}
         description={page.description || `How ${content.displayName} collects, uses, stores, and protects information.`}
+        edit={{ section: 'page.privacy', eyebrowField: 'eyebrow', titleField: 'title', descriptionField: 'description' }}
       />
 
       <div className="grid gap-10 py-12 md:grid-cols-[0.32fr_1fr] md:py-16">
         <aside>
           <AccentEyebrow>Effective date</AccentEyebrow>
-          <p className="mt-4 text-sm text-[var(--site-secondary-text)]">{page.effectiveDate || 'August 13, 2026'}</p>
+          <InlineWebsiteText as="p" className="mt-4 text-sm text-[var(--site-secondary-text)]" section="page.privacy" field="effectiveDate" value={page.effectiveDate || 'August 13, 2026'} label="Edit effective date" />
         </aside>
         <div className="max-w-3xl space-y-12 border-l border-white/[0.09] pl-5 sm:pl-7">
           <section>
-            <h2 className="text-2xl font-medium text-[var(--site-primary-text)]">{page.overviewTitle || 'Overview'}</h2>
-            <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--site-secondary-text)]">
-              <Paragraphs text={overview} />
-            </div>
+            <InlineWebsiteText as="h2" className="text-2xl font-medium text-[var(--site-primary-text)]" section="page.privacy" field="overviewTitle" value={page.overviewTitle || 'Overview'} label="Edit overview heading" />
+            <InlineWebsiteText as="div" className="mt-4 space-y-4 text-sm leading-7 text-[var(--site-secondary-text)]" section="page.privacy" field="overviewBody" type="textarea" value={overview} label="Edit overview"><Paragraphs text={overview} /></InlineWebsiteText>
           </section>
 
           {defaultPolicySections.map((section) => (
             <section key={section.title} className="major-border-top pt-10">
-              <h2 className="text-2xl font-medium text-[var(--site-primary-text)]">{page[section.titleKey] || section.title}</h2>
-              <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--site-secondary-text)] [&_a]:text-[var(--site-accent-text)] [&_a]:underline [&_a]:underline-offset-4 [&_code]:rounded [&_code]:bg-white/[0.06] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[var(--site-primary-text)]">
-                <Paragraphs text={page[section.bodyKey] || section.body} />
-              </div>
+              <InlineWebsiteText as="h2" className="text-2xl font-medium text-[var(--site-primary-text)]" section="page.privacy" field={section.titleKey} value={page[section.titleKey] || section.title} label={`Edit ${section.title} heading`} />
+              <InlineWebsiteText as="div" className="mt-4 space-y-4 text-sm leading-7 text-[var(--site-secondary-text)] [&_a]:text-[var(--site-accent-text)] [&_a]:underline [&_a]:underline-offset-4 [&_code]:rounded [&_code]:bg-white/[0.06] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[var(--site-primary-text)]" section="page.privacy" field={section.bodyKey} type="textarea" value={page[section.bodyKey] || section.body} label={`Edit ${section.title}`}><Paragraphs text={page[section.bodyKey] || section.body} /></InlineWebsiteText>
             </section>
           ))}
 
           <section className="major-border-top pt-10">
             <AccentEyebrow>Contact</AccentEyebrow>
-            <h2 className="mt-4 text-2xl font-medium text-[var(--site-primary-text)]">{page.contactTitle || 'Privacy questions or requests'}</h2>
-            <p className="mt-4 text-sm leading-7 text-[var(--site-secondary-text)]">{page.contactBody || 'Email us with privacy questions, access requests, corrections, or deletion requests.'} <a className="text-[var(--site-accent-text)] underline underline-offset-4" href={`mailto:${contactEmail}`}>{contactEmail}</a>.</p>
+            <InlineWebsiteText as="h2" className="mt-4 text-2xl font-medium text-[var(--site-primary-text)]" section="page.privacy" field="contactTitle" value={page.contactTitle || 'Privacy questions or requests'} label="Edit privacy contact heading" />
+            <p className="mt-4 text-sm leading-7 text-[var(--site-secondary-text)]"><InlineWebsiteText section="page.privacy" field="contactBody" type="textarea" value={page.contactBody || 'Email us with privacy questions, access requests, corrections, or deletion requests.'} label="Edit privacy contact description" /> <a className="text-[var(--site-accent-text)] underline underline-offset-4" href={`mailto:${contactEmail}`}>{contactEmail}</a>.</p>
           </section>
         </div>
       </div>

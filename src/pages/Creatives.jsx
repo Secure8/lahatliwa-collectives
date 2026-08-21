@@ -4,7 +4,7 @@ import EmptyState from '../components/EmptyState';
 import LoadingState from '../components/LoadingState';
 import { usePublicContent } from '../lib/contentApi';
 import { supabase } from '../lib/supabaseClient';
-import PublicInlineEditButton from '../components/PublicInlineEditButton';
+import InlineWebsiteText from '../components/InlineWebsiteText';
 
 export default function Creatives() {
   const [creatives, setCreatives] = useState([]);
@@ -35,7 +35,11 @@ export default function Creatives() {
 
   return (
     <div className="page-shell py-12 sm:py-16">
-      <header className="ll-directory-intro"><PublicInlineEditButton section="page.creatives" label="Edit Creatives introduction" /><p className="ll-kicker">{page.directoryEyebrow || 'Aklan Creatives'}</p><h1>{page.directoryTitle || 'Meet the people behind the work.'}</h1><p>{page.directoryDescription || `Browse distinct portfolios, disciplines, availability, and direct inquiry paths across ${content.displayName}.`}</p></header>
+      <header className="ll-directory-intro">
+        <InlineWebsiteText as="p" className="ll-kicker" section="page.creatives" field="directoryEyebrow" value={page.directoryEyebrow || 'Aklan Creatives'} label="Edit directory eyebrow" />
+        <InlineWebsiteText as="h1" section="page.creatives" field="directoryTitle" value={page.directoryTitle || 'Meet the people behind the work.'} label="Edit directory heading" />
+        <InlineWebsiteText as="p" section="page.creatives" field="directoryDescription" type="textarea" value={page.directoryDescription || `Browse distinct portfolios, disciplines, availability, and direct inquiry paths across ${content.displayName}.`} label="Edit directory description" />
+      </header>
       <div className="pt-12">
       {loading && <LoadingState label="Loading creatives" />}
       {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}

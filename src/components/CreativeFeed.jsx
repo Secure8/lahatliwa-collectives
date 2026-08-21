@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import CreativePostCard from './CreativePostCard';
 import EmptyState from './EmptyState';
 import ProjectFeedCard from './ProjectFeedCard';
+import InlineWebsiteText from './InlineWebsiteText';
 
 function publishedTime(item) {
   return new Date(item.kind === 'post' ? item.post.published_at || item.post.updated_at : item.project.project_date || item.project.created_at).getTime();
@@ -16,11 +17,14 @@ export function mergeCreativeFeed(posts = [], projects = []) {
   ].sort((a, b) => publishedTime(b) - publishedTime(a));
 }
 
-export default function CreativeFeed({ posts = [], projects = [], filter = 'all', onFilterChange, creativeOwner = false, moderator = false, onModeratePost, onModerateProject }) {
+export default function CreativeFeed({ posts = [], projects = [], filter = 'all', onFilterChange, creativeOwner = false, moderator = false, onModeratePost, onModerateProject, copy = {}, editableSection = '' }) {
   const items = mergeCreativeFeed(posts, projects);
   return <section aria-labelledby="creative-feed-heading" className="ll-feed-shell">
     <div className="ll-feed-heading">
-      <div><p className="ll-kicker">Curated from Aklan</p><h2 id="creative-feed-heading">Selected work</h2></div>
+      <div>
+        <InlineWebsiteText as="p" className="ll-kicker" section={editableSection} field="workEyebrow" value={copy.workEyebrow || 'Curated from Aklan'} label="Edit work eyebrow" />
+        <InlineWebsiteText as="h2" id="creative-feed-heading" section={editableSection} field="workTitle" value={copy.workTitle || 'Selected work'} label="Edit work heading" />
+      </div>
     </div>
     {creativeOwner && <Link to="/create" className="ll-composer-prompt"><span className="ll-composer-prompt__icon"><PenLine size={19} /></span><span><strong>Share something you made</strong><small>Write, add photos, or document your process.</small></span><ArrowRight size={18} /></Link>}
     {items.length ? <div className="ll-feed-list">{items.map((item) => item.kind === 'post'

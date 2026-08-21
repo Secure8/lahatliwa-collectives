@@ -8,7 +8,7 @@ import { usePublicContent } from '../lib/contentApi';
 import { loadPublicCreativeFeed, moderateCreativePost } from '../lib/creativePosts';
 import { supabase } from '../lib/supabaseClient';
 import usePublicAccount from '../lib/usePublicAccount';
-import PublicInlineEditButton from '../components/PublicInlineEditButton';
+import InlineWebsiteText from '../components/InlineWebsiteText';
 
 export default function Home() {
   const { content } = usePublicContent(['home']);
@@ -43,8 +43,11 @@ export default function Home() {
   return <div data-creative-network-home className="ll-network-home">
     <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
     <section className="ll-feed-intro">
-      <PublicInlineEditButton section="page.home" label="Edit home introduction" />
-      <div className="ll-feed-intro__copy"><p className="ll-kicker">{page.heroEyebrow || 'Curated Creative work from Aklan'}</p><h1>{page.heroTitle || 'Work worth discovering.'}</h1><p>{page.heroDescription || 'Explore selected photography, film, design, writing, and digital work—then connect directly with the Creative behind it.'}</p></div>
+      <div className="ll-feed-intro__copy">
+        <InlineWebsiteText as="p" className="ll-kicker" section="page.home" field="heroEyebrow" value={page.heroEyebrow || 'Curated Creative work from Aklan'} label="Edit feed eyebrow" />
+        <InlineWebsiteText as="h1" section="page.home" field="heroTitle" value={page.heroTitle || 'Work worth discovering.'} label="Edit feed heading" />
+        <InlineWebsiteText as="p" section="page.home" field="heroDescription" type="textarea" value={page.heroDescription || 'Explore selected photography, film, design, writing, and digital work—then connect directly with the Creative behind it.'} label="Edit feed introduction" />
+      </div>
       <div className="ll-feed-intro__actions">
         {isCreative ? <Link to="/create" className="ll-primary-action ll-mobile-redundant-create"><PenLine size={17} /> Add work</Link> : <Link to="/creatives" className="ll-primary-action"><UsersRound size={17} /> Explore Creatives</Link>}
         <Link to="/inquiry" className="ll-text-action">Work with us <ArrowRight size={16} /></Link>
@@ -61,10 +64,14 @@ export default function Home() {
     <div className="ll-home-layout">
       <main className="min-w-0">
         {state.error && <p role="alert" className="ll-feed-error">{state.error}</p>}
-        {state.loading ? <LoadingState label="Loading Creative work" /> : <CreativeFeed posts={state.posts} creativeOwner={isCreative} moderator={isModerator} onModeratePost={moderatePost} />}
+        {state.loading ? <LoadingState label="Loading Creative work" /> : <CreativeFeed posts={state.posts} creativeOwner={isCreative} moderator={isModerator} onModeratePost={moderatePost} copy={page} editableSection="page.home" />}
       </main>
       <aside className="ll-discovery-panel" aria-labelledby="discover-creatives-heading">
-        <div className="ll-discovery-panel__heading"><p className="ll-kicker">People behind the work</p><h2 id="discover-creatives-heading">Meet the Creatives</h2><p>Open a portfolio to see selected work and availability.</p></div>
+        <div className="ll-discovery-panel__heading">
+          <InlineWebsiteText as="p" className="ll-kicker" section="page.home" field="creativesEyebrow" value={page.creativesEyebrow || 'People behind the work'} label="Edit Creatives eyebrow" />
+          <InlineWebsiteText as="h2" id="discover-creatives-heading" section="page.home" field="creativesTitle" value={page.creativesTitle || 'Meet the Creatives'} label="Edit Creatives heading" />
+          <InlineWebsiteText as="p" section="page.home" field="creativesDescription" type="textarea" value={page.creativesDescription || 'Open a portfolio to see selected work and availability.'} label="Edit Creatives description" />
+        </div>
         <div className="ll-discovery-list">{state.creatives.map((creative) => <CreativeCard key={creative.id} creative={creative} compact />)}</div>
         <Link to="/creatives" className="ll-text-action">View all Creatives <ArrowRight size={16} /></Link>
       </aside>

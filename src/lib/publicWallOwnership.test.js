@@ -34,14 +34,16 @@ test('Super Admin moderates public work without receiving Creative edit controls
   assert.doesNotMatch(studio, /<AdminLayout>/);
 });
 
-test('Super Admin receives a desktop authoring toolbar and every platform index has an editor target', () => {
+test('Super Admin receives a focused desktop authoring toolbar and inline page edit targets', () => {
   const app = read('src/App.jsx');
   const toolbar = read('src/components/PublicAdminToolbar.jsx');
   const projects = read('src/pages/Projects.jsx');
   const creatives = read('src/pages/Creatives.jsx');
   const services = read('src/pages/Services.jsx');
   assert.match(app, /<PublicAdminToolbar \/>/);
-  for (const section of ['page.home', 'page.explore', 'page.projects', 'page.creatives', 'page.about', 'page.inquiries', 'page.privacy', 'global.brand', 'global.navigation', 'global.appearance']) assert.match(toolbar, new RegExp(section.replace('.', '\\.')));
+  for (const section of ['page.inquiries', 'global.brand', 'global.navigation', 'global.appearance']) assert.match(toolbar, new RegExp(section.replace('.', '\\.')));
+  assert.doesNotMatch(toolbar, /Page text|\/admin\/projects|\/admin\/inquiries|\/admin\/moderation|\/admin\/team/);
+  assert.match(toolbar, /\/admin\/dashboard/);
   assert.match(projects, /section="page\.projects"/);
   assert.match(creatives, /section="page\.creatives"/);
   assert.match(services, /page\.servicesBody/);

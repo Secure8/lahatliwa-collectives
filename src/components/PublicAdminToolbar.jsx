@@ -1,4 +1,4 @@
-import { Bell, Contact, FolderKanban, Menu, Palette, PanelTop, Settings2, ShieldCheck, Type, UsersRound } from 'lucide-react';
+import { Contact, Menu, MoreHorizontal, Palette, PanelTop, Settings2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import usePublicAccount from '../lib/usePublicAccount';
 
@@ -17,22 +17,16 @@ export default function PublicAdminToolbar() {
   const { pathname } = useLocation();
   const { account } = usePublicAccount();
   if (account?.role !== 'super_admin') return null;
-  const [section, label] = pageSection(pathname);
+  const [, label] = pageSection(pathname);
   const editor = (target) => `/admin/website?section=${target}`;
   return <aside className="ll-admin-authoring-toolbar" aria-label="Website editing toolbar">
     <div className="ll-admin-authoring-toolbar__context"><Settings2 size={16}/><span><small>Editing</small><strong>{label}</strong></span></div>
     <nav aria-label="Website editing tools">
-      {section && <Link to={editor(section)}><Type size={16}/><span>Page text</span></Link>}
       <Link to={editor('global.brand')}><PanelTop size={16}/><span>Branding</span></Link>
       <Link to={editor('global.navigation')}><Menu size={16}/><span>Navigation</span></Link>
       <Link to={editor('global.appearance')}><Palette size={16}/><span>Colors</span></Link>
       <Link to={editor('page.inquiries')}><Contact size={16}/><span>Contact</span></Link>
     </nav>
-    <div className="ll-admin-authoring-toolbar__operations" aria-label="Platform operations">
-      <Link to="/admin/projects"><FolderKanban size={16}/><span>Projects</span></Link>
-      <Link to="/admin/inquiries"><Bell size={16}/><span>Inquiries</span></Link>
-      <Link to="/admin/moderation"><ShieldCheck size={16}/><span>Moderation</span></Link>
-      <Link to="/admin/team" className="ll-admin-authoring-toolbar__team"><UsersRound size={16}/><span>Join requests</span></Link>
-    </div>
+    <Link to="/admin/dashboard" className="ll-admin-authoring-toolbar__platform" aria-label="Open Platform tools" title="Platform tools"><MoreHorizontal size={20}/><span className="sr-only">Platform tools</span></Link>
   </aside>;
 }

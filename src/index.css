@@ -2809,6 +2809,21 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 .ll-admin-authoring-toolbar a:hover { background: var(--theme-hover-surface); color: var(--theme-text-primary); }
 .ll-admin-authoring-toolbar__team { border: 1px solid var(--theme-border-strong); }
 .ll-admin-authoring-toolbar__operations { display: flex; align-items: center; gap: .15rem; border-left: 1px solid var(--theme-border); padding-left: .35rem; }
+.ll-admin-authoring-toolbar__platform {
+  display: grid !important;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem !important;
+  place-items: center;
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 50% !important;
+  padding: 0 !important;
+}
+.ll-brand-link.is-admin-editable { cursor: pointer; }
+.ll-brand-link.is-admin-editable:hover { color: var(--site-accent-text); }
+.ll-brand-link.is-admin-editable :where(img,.ll-brand-mark) { outline: 1px dashed transparent; outline-offset: .28rem; transition: outline-color 120ms ease; }
+.ll-brand-link.is-admin-editable:hover :where(img,.ll-brand-mark) { outline-color: var(--site-accent); }
 
 /* Small, public-style utility windows replace the retired CMS shell. */
 .ll-operations-page { min-height: 100dvh; padding: clamp(1rem,3vw,2.5rem); background: var(--theme-page-background); color: var(--theme-text-primary); }
@@ -2823,6 +2838,10 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 .ll-operations-window__nav a { display: inline-flex; min-height: 2.4rem; flex: 0 0 auto; align-items: center; gap: .4rem; border-radius: 999px; padding: .45rem .75rem; color: var(--theme-text-muted); font-size: .76rem; font-weight: 700; text-decoration: none; }
 .ll-operations-window__nav a:hover,.ll-operations-window__nav a.is-active { background: var(--theme-hover-surface); color: var(--theme-text-primary); }
 .ll-operations-window__body { width: 100%; margin-top: .75rem; border: 1px solid var(--theme-border); border-radius: 1rem; background: var(--theme-surface); padding: clamp(1.15rem,3vw,2rem); }
+.ll-platform-tools-intro { display: grid; min-height: 22rem; place-items: start; align-content: center; max-width: 38rem; margin: auto; }
+.ll-platform-tools-intro h2 { margin: .6rem 0 0; font-size: clamp(1.8rem,4vw,3rem); line-height: 1.05; letter-spacing: -.035em; }
+.ll-platform-tools-intro > p:not(.ll-kicker) { margin: 1rem 0 0; color: var(--theme-text-muted); line-height: 1.7; }
+.ll-platform-tools-intro > span { display: inline-flex; align-items: center; gap: .45rem; margin-top: 1.5rem; color: var(--site-accent-text); font-size: .78rem; font-weight: 700; }
 .ll-operations-intro { max-width: 44rem; margin-bottom: 1.5rem; }
 .ll-operations-intro h2 { margin: .35rem 0; font-size: clamp(1.5rem,3vw,2.25rem); }
 .ll-operations-intro > p:last-child { color: var(--theme-text-muted); line-height: 1.65; }
@@ -3461,6 +3480,40 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 
 @media (max-width: 639px) {
   .ll-post-card__actions a:last-child span { display: inline; }
+}
+
+/* Mobile creation stays available without consuming or covering a dock destination. */
+.ll-mobile-create-fab { display: none; }
+@media (max-width: 767px) {
+  .ll-mobile-dock a small {
+    display: block;
+    width: 100%;
+    height: .72rem;
+    overflow: hidden;
+    font-size: clamp(.48rem, 2.25vw, .6rem);
+    line-height: .72rem;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ll-mobile-create-fab {
+    position: fixed;
+    right: .9rem;
+    bottom: calc(4.35rem + env(safe-area-inset-bottom));
+    z-index: 56;
+    display: grid;
+    width: 3.25rem;
+    height: 3.25rem;
+    place-items: center;
+    border: 1px solid var(--site-accent-border);
+    border-radius: 50%;
+    background: var(--site-accent);
+    color: var(--theme-primary-action-text);
+    box-shadow: 0 .65rem 1.8rem color-mix(in srgb, var(--theme-shadow) 65%, transparent);
+  }
+  .ll-mobile-create-fab:hover,
+  .ll-mobile-create-fab:focus-visible { background: color-mix(in srgb, var(--site-accent) 88%, white); }
+  .ll-mobile-create-fab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 }
 
 /* Dedicated V2 login composition. Authentication behavior remains unchanged. */

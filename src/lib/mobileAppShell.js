@@ -8,7 +8,7 @@ export const MOBILE_APP_BAR_SHOW_TRANSITION_DURATION = 180;
 export const PUBLIC_PRIMARY_DESTINATIONS = [
   ['Home', '/'],
   ['Creatives', '/creatives'],
-  ['Start a project', '/inquiry'],
+  ['Collab', '/inquiry'],
   ['Contact', '/contact'],
 ];
 

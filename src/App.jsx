@@ -41,6 +41,7 @@ const AdminPostModeration = lazy(() => import('./pages/admin/AdminPostModeration
 const AdminTaxonomy = lazy(() => import('./pages/admin/AdminTaxonomy'));
 const CreativeNotifications = lazy(() => import('./pages/CreativeNotifications'));
 const Discover = lazy(() => import('./pages/Discover'));
+const PlatformTools = lazy(() => import('./pages/admin/PlatformTools'));
 
 function LegacyWebsiteEditorRedirect() {
   const { pageKey = '' } = useParams();
@@ -158,7 +159,7 @@ export default function App() {
         <Route path="/account" element={<AdminSuspense><AccountLanding /></AdminSuspense>} />
         <Route path="/create" element={<CreativeRouteGuard><CreativePostEditor create /></CreativeRouteGuard>} />
         <Route path="/posts/:id/edit" element={<CreativeRouteGuard><CreativePostEditor /></CreativeRouteGuard>} />
-        <Route path="/admin/dashboard" element={<Navigate to="/" replace />} />
+        <Route path="/admin/dashboard" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><PlatformTools /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/my-profile" element={<Navigate to="/account" replace />} />
         <Route path="/admin/directory" element={<Navigate to="/creatives" replace />} />
         <Route path="/admin/projects" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><AdminProjects /></AdminRouteGuard></AdminSuspense>} />

@@ -40,10 +40,10 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(component, /usePublicContent\(\[\]\)/);
   assert.doesNotMatch(component, /Lahat Liwa/);
   assert.match(navbar, /<nav/);
-  assert.match(navbar, /aria-label=\{`\$\{content\.displayName\} home`\}/);
+  assert.match(navbar, /Edit logo and branding[\s\S]*?`\$\{content\.displayName\} home`/);
   assert.match(navbar, /content\.logoUrl \? <BrandLogo src=\{content\.logoUrl\} alt=\{content\.logoAlt\}/);
   assert.match(navbar, /<BrandWordmark name=\{content\.displayName\} variant="compact" mobileVariant="mobile-compact"/);
-  assert.match(navbar, /navigation\.contactLabel \|\| 'Contact'/);
+  assert.match(navbar, /publicNavigationItems\(navigation\)/);
   assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
   assert.match(footer, /to="\/privacy"/);
   assert.doesNotMatch(navbar, /public-more-menu|More pages/);

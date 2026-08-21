@@ -22,7 +22,7 @@ test('application separates Creative publishing and Super Admin maintenance', ()
   const access = source('src/lib/adminAccess.jsx');
   const login = source('src/pages/admin/Login.jsx');
   assert.match(app, /path="\/create"[\s\S]*CreativeRouteGuard/);
-  assert.match(app, /path="\/admin\/dashboard" element=\{<Navigate to="\/" replace/);
+  assert.match(app, /path="\/admin\/dashboard"[\s\S]*?<PlatformTools \/>/);
   assert.match(app, /path="\/admin\/my-profile"[\s\S]*allow=\{\['creative'\]\}/);
   assert.deepEqual([...access.matchAll(/export const roles = \[([^\]]+)\]/g)].length, 1);
   assert.match(access, /roles = \['super_admin', 'creative'\]/);

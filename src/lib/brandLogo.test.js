@@ -28,9 +28,9 @@ test('custom logos use one shared component without changing header structures',
     readFile(new URL('../components/BrandWordmark.jsx', import.meta.url), 'utf8'),
   ]);
 
-  assert.match(navbar, /<Link to="\/"[\s\S]*?aria-label=\{`\$\{content\.displayName\} home`\}/);
+  assert.match(navbar, /brandTarget[\s\S]*?Edit logo and branding[\s\S]*?`\$\{content\.displayName\} home`/);
   assert.match(navbar, /content\.logoUrl \? <BrandLogo src=\{content\.logoUrl\} alt=\{content\.logoAlt\}/);
-  assert.match(navbar, /navigation\.contactLabel \|\| 'Contact'/);
+  assert.match(navbar, /publicNavigationItems\(navigation\)/);
   assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
   assert.doesNotMatch(navbar, /public-more-menu|More pages/);
   assert.doesNotMatch(adminLayout, /BrandLogo|ll-admin-brand/);

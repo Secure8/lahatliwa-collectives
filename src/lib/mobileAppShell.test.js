@@ -10,7 +10,7 @@ test('legacy app-bar helpers remain stable for routes that still use them', () =
   assert.deepEqual(PUBLIC_PRIMARY_DESTINATIONS, [
     ['Home', '/'],
     ['Creatives', '/creatives'],
-    ['Start a project', '/inquiry'],
+    ['Collab', '/inquiry'],
     ['Contact', '/contact'],
   ]);
 });
@@ -35,15 +35,16 @@ test('admin route title follows the most specific permitted route', () => {
 });
 
 test('admin operations remain focused while public destinations stay direct', async () => {
-  const [navbar, admin, drawer, styles] = await Promise.all([
+  const [navbar, navigation, admin, drawer, styles] = await Promise.all([
     readFile(new URL('../components/Navbar.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('./publicNavigation.js', import.meta.url), 'utf8'),
     readFile(new URL('../components/admin/AdminLayout.jsx', import.meta.url), 'utf8'),
     readFile(new URL('./useModalDrawer.js', import.meta.url), 'utf8'),
     readFile(new URL('../index.css', import.meta.url), 'utf8'),
   ]);
   assert.match(navbar, /AppearanceMenuAction/);
   assert.doesNotMatch(navbar, /role="dialog"|public-more-menu|More pages/);
-  assert.match(navbar, /'Contact', '\/contact'/);
+  assert.match(navigation, /'Contact', '\/contact'/);
   assert.doesNotMatch(navbar, /'Privacy', '\/privacy'|ShieldCheck/);
   assert.match(admin, /ll-operations-window/);
   assert.match(admin, /aria-label="Platform tools"/);

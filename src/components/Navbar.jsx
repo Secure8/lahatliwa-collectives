@@ -1,4 +1,4 @@
-import { Bell, Compass, Handshake, House, LogIn, LogOut, Mail, PenLine, UserRound, UsersRound } from 'lucide-react';
+import { Bell, LogIn, LogOut, PenLine, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -10,6 +10,7 @@ import BrandWordmark from './BrandWordmark';
 import AppearanceMenuAction from './AppearanceMenuAction';
 import MobileTopNavigation from './MobileTopNavigation';
 import { supabase } from '../lib/supabaseClient';
+import { publicNavigationItems } from '../lib/publicNavigation';
 
 export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -19,13 +20,8 @@ export default function Navbar() {
   const navigation = content.websiteNavigation || {};
   const isCreative = account?.role === 'creative';
   const creative = account?.creative_members;
-  const primaryLinks = [
-    [navigation.homeLabel || 'Feed', '/', House],
-    ['Discover', '/discover', Compass],
-    [navigation.creativesLabel || 'Creatives', '/creatives', UsersRound],
-    ['Start a project', '/inquiry', Handshake],
-    [navigation.contactLabel || 'Contact', '/contact', Mail],
-  ];
+  const primaryLinks = publicNavigationItems(navigation);
+  const brandTarget = account?.role === 'super_admin' ? '/admin/website?section=global.brand' : '/';
 
   useEffect(() => {
     if (!isCreative || !account?.creative_member_id) { setUnreadCount(0); return; }
@@ -39,7 +35,7 @@ export default function Navbar() {
   return <>
     <header className="ll-public-header">
       <nav className="ll-public-nav" aria-label="Primary navigation">
-        <Link to="/" className="ll-brand-link" aria-label={`${content.displayName} home`}>
+        <Link to={brandTarget} className={clsx('ll-brand-link', account?.role === 'super_admin' && 'is-admin-editable')} aria-label={account?.role === 'super_admin' ? 'Edit logo and branding' : `${content.displayName} home`} title={account?.role === 'super_admin' ? 'Edit logo and branding' : undefined}>
           {content.logoUrl ? <BrandLogo src={content.logoUrl} alt={content.logoAlt} /> : <span className="ll-brand-mark">{content.initials}</span>}
           <BrandWordmark name={content.displayName} variant="compact" mobileVariant="mobile-compact" />
         </Link>

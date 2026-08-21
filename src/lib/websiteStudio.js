@@ -10,7 +10,12 @@ export const WEBSITE_STUDIO_SECTIONS = [
     ['brandName', 'Brand name', 'text'], ['tagline', 'Tagline', 'textarea'], ['logoUrl', 'Brand logo', 'image'], ['logoAlt', 'Logo description', 'text'],
   ] },
   { group: 'Shared across the website', label: 'Navbar', key: 'global.navigation', fields: [
-    ['homeLabel', 'Home', 'text'], ['creativesLabel', 'Creatives', 'text'], ['contactLabel', 'Contact', 'text'], ['privacyLabel', 'Privacy', 'text'], ['showCreatives', 'Show Creatives', 'boolean'], ['showContact', 'Show Contact', 'boolean'],
+    ['homeLabel', 'Home label', 'text'], ['homeIcon', 'Home icon', 'icon'],
+    ['discoverLabel', 'Discover label', 'text'], ['discoverIcon', 'Discover icon', 'icon'],
+    ['creativesLabel', 'Creatives label', 'text'], ['creativesIcon', 'Creatives icon', 'icon'],
+    ['inquiryLabel', 'Collaboration label', 'text'], ['inquiryIcon', 'Collaboration icon', 'icon'],
+    ['contactLabel', 'Contact label', 'text'], ['contactIcon', 'Contact icon', 'icon'],
+    ['showCreatives', 'Show Creatives', 'boolean'], ['showContact', 'Show Contact', 'boolean'],
   ] },
   { group: 'Public pages', label: 'Feed', key: 'page.home', preview: '/', fields: [['heroEyebrow','Feed eyebrow','text'],['heroTitle','Feed heading','textarea'],['heroDescription','Feed introduction','textarea']] },
   { group: 'Public pages', label: 'About', key: 'page.about', preview: '/about', fields: [['eyebrow','Page eyebrow','text'],['title','Page heading','textarea'],['intro','Introduction','textarea'],['purposeEyebrow','Purpose eyebrow','text'],['purposeTitle','Purpose heading','text'],['journey','Purpose description','textarea'],['findEyebrow','Content overview eyebrow','text'],['findTitle','Content overview heading','text'],['workTitle','Current work card title','text'],['workDescription','Current work card description','textarea'],['portfolioTitle','Portfolio card title','text'],['portfolioDescription','Portfolio card description','textarea'],['creativesTitle','Creative profiles card title','text'],['creativesDescription','Creative profiles card description','textarea'],['inquiriesTitle','Open inquiries card title','text'],['inquiriesDescription','Open inquiries card description','textarea'],['collaborationEyebrow','Collaboration eyebrow','text'],['collaborationTitle','Collaboration heading','text'],['collaborationDescription','Collaboration description','textarea'],['collaborationNote','Collaboration clarification','textarea'],['directionEyebrow','Direction eyebrow','text'],['directionTitle','Direction heading','textarea'],['directionDescription','Direction description','textarea']] },

@@ -5,14 +5,15 @@ import { readFile } from 'node:fs/promises';
 const source = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
 test('public mobile navigation removes redundant Work and Portfolio destinations', async () => {
-  const [component, navbar, app, styles] = await Promise.all([source('../components/MobileTopNavigation.jsx'), source('../components/Navbar.jsx'), source('../App.jsx'), source('../index.css')]);
+  const [component, navigation, navbar, app, styles] = await Promise.all([source('../components/MobileTopNavigation.jsx'), source('./publicNavigation.js'), source('../components/Navbar.jsx'), source('../App.jsx'), source('../index.css')]);
   assert.match(component, /data-mobile-top-navigation/);
-  assert.match(component, /\['Creatives', '\/creatives'/);
-  assert.match(component, /\['Start a project', '\/inquiry'/);
-  assert.doesNotMatch(component, /'Work', '\/work'|'Portfolio', '\/projects'|'Services', '\/services'/);
+  assert.match(navigation, /'Creatives', '\/creatives'/);
+  assert.match(navigation, /'Collab', '\/inquiry'/);
+  assert.doesNotMatch(navigation, /'Work', '\/work'|'Portfolio', '\/projects'|'Services', '\/services'/);
   assert.match(component, /aria-current=\{active\(href\) \? 'page'/);
-  assert.match(component, /House/);
-  assert.match(component, /UsersRound/);
+  assert.match(navigation, /House/);
+  assert.match(navigation, /UsersRound/);
+  assert.match(component, /ll-mobile-create-fab/);
   assert.match(navbar, /<MobileTopNavigation \/>/);
   assert.doesNotMatch(app, /MobileBottomNavigation/);
   assert.match(component, /gridTemplateColumns: `repeat\(\$\{links\.length\}/);
@@ -20,11 +21,11 @@ test('public mobile navigation removes redundant Work and Portfolio destinations
 });
 
 test('public navigation exposes Contact directly and keeps Privacy out of navigation', async () => {
-  const [navbar, mobile, styles] = await Promise.all([source('../components/Navbar.jsx'), source('../components/MobileTopNavigation.jsx'), source('../index.css')]);
-  assert.match(navbar, /navigation\.contactLabel \|\| 'Contact'/);
+  const [navbar, mobile, navigation, styles] = await Promise.all([source('../components/Navbar.jsx'), source('../components/MobileTopNavigation.jsx'), source('./publicNavigation.js'), source('../index.css')]);
+  assert.match(navigation, /navigation\.contactLabel \|\| 'Contact'/);
   assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
   assert.doesNotMatch(navbar, /More pages|public-more-menu|ll-public-menu-layer/);
-  assert.match(mobile, /\['Contact', '\/contact', Mail\]/);
+  assert.match(navigation, /'Contact', '\/contact'/);
   assert.doesNotMatch(mobile, /ShieldCheck|\/privacy/);
   assert.match(styles, /\.ll-post-card\.has-open-menu \{ overflow: visible/);
 });

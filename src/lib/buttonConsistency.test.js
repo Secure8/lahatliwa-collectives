@@ -20,8 +20,9 @@ test('icon and label actions expose a readable label and visual tone', () => {
 test('public navigation keeps Contact direct, Privacy in the footer, and Sign out accessible', () => {
   const navbar = readFileSync(new URL('../components/Navbar.jsx', import.meta.url), 'utf8');
   const mobile = readFileSync(new URL('../components/MobileTopNavigation.jsx', import.meta.url), 'utf8');
+  const navigation = readFileSync(new URL('./publicNavigation.js', import.meta.url), 'utf8');
   const footer = readFileSync(new URL('../components/Footer.jsx', import.meta.url), 'utf8');
-  assert.match(navbar, /navigation\.contactLabel \|\| 'Contact'/);
+  assert.match(navigation, /navigation\.contactLabel \|\| 'Contact'/);
   assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
   assert.doesNotMatch(mobile, /ShieldCheck|\/privacy/);
   assert.match(footer, /to="\/privacy"/);

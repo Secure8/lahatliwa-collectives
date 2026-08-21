@@ -3866,3 +3866,60 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
     width: 100%;
   }
 }
+
+/* Balanced public headings and appropriately sized calls to action. */
+:root {
+  --ll-public-heading-size: clamp(2.5rem, 4.5vw, 4.5rem);
+}
+
+.ll-feed-intro,
+.ll-discover-page,
+.page-shell:has(> .public-page-header) {
+  padding-top: clamp(2.75rem, 5vw, 4.5rem);
+}
+
+.ll-feed-intro h1,
+.ll-discover-intro h1,
+.public-page-header h1 {
+  max-width: 18ch;
+  margin-top: .75rem;
+  font-size: var(--ll-public-heading-size);
+  line-height: 1.02;
+  letter-spacing: -.04em;
+  text-wrap: balance;
+}
+
+.ll-feed-intro__copy > p:last-child,
+.ll-discover-intro > p:last-child,
+.public-page-header h1 + p {
+  max-width: 48rem;
+  margin-top: 1rem;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.ll-composer-prompt {
+  width: min(100%, 40rem);
+}
+
+.ll-inquiry-submit {
+  width: fit-content;
+  min-width: 11rem;
+  justify-self: start;
+}
+
+@media (max-width: 639px) {
+  :root {
+    --ll-public-heading-size: clamp(2.15rem, 10vw, 3rem);
+  }
+
+  .ll-feed-intro,
+  .ll-discover-page,
+  .page-shell:has(> .public-page-header) {
+    padding-top: 2rem;
+  }
+
+  .ll-inquiry-submit {
+    width: 100%;
+  }
+}

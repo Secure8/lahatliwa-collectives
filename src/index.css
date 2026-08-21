@@ -565,7 +565,12 @@ summary::-webkit-details-marker {
 .ll-discover-search { display: flex; align-items: center; gap: .7rem; max-width: 44rem; border-bottom: 1px solid var(--theme-border-strong); padding: .65rem 0; }
 .ll-discover-search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--theme-text-primary); }
 .ll-discover-filters > div { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; }
-.ll-discover-filters select { min-height: 2.65rem; border: 1px solid var(--theme-border); border-radius: .7rem; background: var(--theme-surface); padding: 0 2.2rem 0 .8rem; color: var(--theme-text-primary); }
+.ll-discover-filters select { min-height: 2.65rem; border: 1px solid var(--theme-border); border-radius: .7rem; background: var(--theme-primary-surface); padding: 0 2.2rem 0 .8rem; color: var(--theme-text-primary); color-scheme: dark; }
+.ll-discover-filters select option,
+.ll-discover-filters select optgroup { background-color: #18181b; color: #f7f7f4; }
+:root[data-theme="light"] .ll-discover-filters select { color-scheme: light; }
+:root[data-theme="light"] .ll-discover-filters select option,
+:root[data-theme="light"] .ll-discover-filters select optgroup { background-color: #fff; color: #050505; }
 .ll-discover-results { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: clamp(2rem, 5vw, 5rem) clamp(1rem, 3vw, 2.5rem); padding-top: clamp(2.5rem, 6vw, 5rem); }
 .ll-discover-results .ll-work-card:nth-child(3n + 1) { grid-column: 1 / -1; max-width: 64rem; }
 .ll-work-card__intro { display: grid; gap: .65rem; padding: 1rem clamp(1rem, 3vw, 1.6rem) 1.15rem; }

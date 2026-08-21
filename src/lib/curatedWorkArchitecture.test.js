@@ -17,6 +17,13 @@ test('Discover uses canonical Creative Work with shared taxonomy filters', () =>
   assert.match(taxonomy, /creative_member_taxonomy/);
 });
 
+test('Discover native dropdown options remain readable in both themes', () => {
+  const styles = read('src/index.css');
+  assert.match(styles, /\.ll-discover-filters select \{[^}]*color-scheme: dark;/);
+  assert.match(styles, /\.ll-discover-filters select option,[\s\S]*?background-color: #18181b; color: #f7f7f4;/);
+  assert.match(styles, /:root\[data-theme="light"\] \.ll-discover-filters select option,[\s\S]*?background-color: #fff; color: #050505;/);
+});
+
 test('five Creative portfolio templates are presentation layers over shared data', () => {
   const templates = read('src/lib/creativeProfileTemplates.js');
   const profile = read('src/components/CreativeProfileView.jsx');

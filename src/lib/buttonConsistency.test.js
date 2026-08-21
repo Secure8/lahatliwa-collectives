@@ -17,15 +17,17 @@ test('icon and label actions expose a readable label and visual tone', () => {
   assert.match(iconAction, /<small>\{label\}<\/small>/);
 });
 
-test('public navigation keeps Contact direct, Privacy in the footer, and Sign out accessible', () => {
+test('public navigation keeps Contact and Privacy in the footer and Sign out accessible', () => {
   const navbar = readFileSync(new URL('../components/Navbar.jsx', import.meta.url), 'utf8');
   const mobile = readFileSync(new URL('../components/MobileTopNavigation.jsx', import.meta.url), 'utf8');
   const navigation = readFileSync(new URL('./publicNavigation.js', import.meta.url), 'utf8');
   const footer = readFileSync(new URL('../components/Footer.jsx', import.meta.url), 'utf8');
-  assert.match(navigation, /navigation\.contactLabel \|\| 'Contact'/);
+  assert.doesNotMatch(navigation, /navigation\.contactLabel|\/contact|Mail/);
   assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
   assert.doesNotMatch(mobile, /ShieldCheck|\/privacy/);
   assert.match(footer, /to="\/privacy"/);
+  assert.match(footer, /Message Lahat Liwa/);
+  assert.match(footer, /to="\/inquiry\?kind=platform"/);
   assert.doesNotMatch(navbar, /More pages|public-more-menu|ll-public-menu-action/);
   assert.match(navbar, /<LogOut size=\{19\}/);
   assert.match(navbar, />Sign out<\/span>/);

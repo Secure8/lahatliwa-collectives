@@ -1,12 +1,12 @@
-import { AlertCircle, Bell, BriefcaseBusiness, Image, LogOut, Settings, UserRound } from 'lucide-react';
+import { AlertCircle, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
-import BrandWordmark from '../components/BrandWordmark';
-import LoadingState from '../components/LoadingState';
+import { Navigate } from 'react-router-dom';
 import { useAdminAccess } from '../lib/adminAccess';
 import { supabase } from '../lib/supabaseClient';
+import BrandWordmark from './BrandWordmark';
+import LoadingState from './LoadingState';
 
-export default function AccountLanding() {
+export default function AccountRedirect() {
   const { role, adminUser } = useAdminAccess();
   const [profile, setProfile] = useState({ loading: role === 'creative', slug: '', error: '' });
 
@@ -29,19 +29,8 @@ export default function AccountLanding() {
 
   if (profile.loading) return <main className="ll-auth-page"><LoadingState label="Opening your Creative profile" /></main>;
   if (role === 'super_admin') return <Navigate to="/" replace />;
-  if (profile.slug) return <CreativeWorkspace slug={profile.slug} name={adminUser?.display_name || 'Creative'} />;
+  if (profile.slug) return <Navigate to={`/creatives/${profile.slug}`} replace />;
   return <AccountIssue message={profile.error || 'This account does not have a supported platform role.'} />;
-}
-
-function CreativeWorkspace({ slug, name }) {
-  const items = [
-    ['Profile', 'Your public identity and portfolio presentation.', `/creatives/${slug}`, UserRound],
-    ['Work', 'Add new work or continue editing drafts.', '/create', BriefcaseBusiness],
-    ['Inquiries', 'Private client messages sent directly to you.', '/notifications', Bell],
-    ['Media', 'Manage profile and cover images from your profile.', `/creatives/${slug}`, Image],
-    ['Settings', 'Update availability, links, and portfolio template.', `/creatives/${slug}`, Settings],
-  ];
-  return <main className="ll-creative-workspace page-shell"><header><p className="ll-kicker">Creative workspace</p><h1>{name}</h1><p>Keep your portfolio, work, and inquiries in one clear place.</p></header><nav aria-label="Creative workspace">{items.map(([label, description, href, Icon]) => <Link key={label} to={href}><Icon size={20}/><span><strong>{label}</strong><small>{description}</small></span></Link>)}</nav></main>;
 }
 
 function AccountIssue({ message }) {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { defaultSiteContent, SITE_TAGLINE } from '../data/siteContent.js';
@@ -72,13 +72,15 @@ test('public brand names remain CMS-driven and custom logo behavior stays separa
   assert.match(source('components/BrandLogo.jsx'), /src=\{src\}/);
 });
 
-test('contact and confirmation copy explain the correct next step', () => {
-  const contact = source('pages/Contact.jsx');
+test('footer contact and confirmation copy explain the correct next step', () => {
+  const footer = source('components/Footer.jsx');
+  const app = source('App.jsx');
   const confirmation = source('pages/InquiryConfirmation.jsx');
 
-  assert.match(contact, /Contact the people behind Lahat Liwa/);
-  assert.match(contact, /To hire a Creative, open that Creative’s profile instead/);
-  assert.match(contact, /profile or credit question/i);
+  assert.match(footer, /Message Lahat Liwa/);
+  assert.match(footer, /\/inquiry\?kind=platform/);
+  assert.match(app, /path="\/contact" element=\{<Navigate to="\/inquiry\?kind=platform" replace \/>\}/);
+  assert.equal(existsSync(resolve(root, 'pages/Contact.jsx')), false);
   assert.match(confirmation, /identify the right next step/i);
   assert.match(confirmation, /does not confirm availability, scope, schedule, pricing, booking/i);
 });

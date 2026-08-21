@@ -29,12 +29,13 @@ test('protected routes separate Creative publishing from Super Admin operations'
 test('login and recovery resolve both personas through the shared account router', () => {
   const login = read('src/pages/admin/Login.jsx');
   const forgot = read('src/pages/ForgotPassword.jsx');
-  const landing = read('src/pages/AccountLanding.jsx');
+  const landing = read('src/components/AccountRedirect.jsx');
   assert.match(login, /Navigate to="\/account" replace/);
   assert.match(login, /navigate\('\/account', \{ replace: true \}\)/);
   assert.match(forgot, /Navigate to="\/account" replace/);
   assert.match(landing, /role === 'super_admin'[\s\S]*Navigate to="\/"/);
-  assert.match(landing, /profile\.slug[\s\S]*CreativeWorkspace/);
+  assert.match(landing, /profile\.slug[\s\S]*Navigate to=\{`\/creatives\/\$\{profile\.slug\}`\} replace/);
+  assert.doesNotMatch(landing, /CreativeWorkspace|Creative workspace/);
   assert.match(landing, /Account needs attention/);
 });
 

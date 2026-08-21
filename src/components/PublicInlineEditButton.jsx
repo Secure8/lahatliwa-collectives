@@ -8,7 +8,7 @@ const sectionForPath = (pathname) => {
   if (pathname === '/work') return 'page.explore';
   if (pathname === '/projects') return 'page.projects';
   if (pathname === '/creatives') return 'page.creatives';
-  if (pathname === '/contact' || pathname === '/services') return 'page.inquiries';
+  if (pathname === '/inquiry' || pathname === '/services') return 'page.inquiries';
   if (pathname === '/privacy') return 'page.privacy';
   return 'overview';
 };

@@ -12,7 +12,7 @@ import {
 import { uploadSiteAsset } from '../../lib/contentApi.js';
 import { PUBLIC_NAVIGATION_ICON_OPTIONS } from '../../lib/publicNavigation.js';
 
-const pageRoutes = { 'page.home': '/', 'page.explore': '/work', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.about': '/about', 'page.inquiries': '/contact', 'page.privacy': '/privacy' };
+const pageRoutes = { 'page.home': '/', 'page.explore': '/work', 'page.creatives': '/creatives', 'page.projects': '/projects', 'page.about': '/about', 'page.inquiries': '/inquiry', 'page.privacy': '/privacy' };
 const pageGroupOrder = ['Shared across the website', 'Public pages'];
 const pageGroupDescriptions = {
   'Shared across the website': 'Edit a value once and every connected area updates together.',
@@ -38,7 +38,7 @@ function studioPlacement(key, entryType = '') {
   if (key === 'page.creatives') return ['Public pages', 'Creative directory descriptions'];
   if (key === 'page.projects') return ['Public pages', 'Portfolio introduction'];
   if (key === 'page.about') return ['Public pages', 'About page content and information cards'];
-  if (key === 'page.inquiries') return ['Public pages', 'Contact details, social links, and inquiry wording'];
+  if (key === 'page.inquiries') return ['Shared content', 'Footer contact, social links, and inquiry wording'];
   if (key === 'page.privacy') return ['Public pages', 'Privacy Policy headings, sections, and effective date'];
   return ['Public pages', 'Public website content'];
 }
@@ -169,7 +169,7 @@ function StudioContent(props) {
     {sectionKey === 'global.appearance' && <AppearanceGuide/>}
     {sectionKey === 'page.home' && <div className="mt-6 border-l-2 border-sky-300/35 pl-4"><h3 className="text-sm font-semibold text-white">The feed stays connected automatically</h3><p className="mt-1 text-sm leading-6 text-zinc-400">Published Creative posts, project media, names, and profile photos flow into Home automatically. This section edits only the feed introduction.</p></div>}
     {sectionKey === 'global.brand' && <div className="mt-6 border-l-2 border-amber-200/40 pl-4"><h3 className="text-sm font-semibold text-white">One identity, two logo placements</h3><p className="mt-1 text-sm leading-6 text-zinc-400">The navbar uses a compact standalone symbol. The footer uses the complete wordmark. Each image can be replaced independently.</p></div>}
-    {sectionKey === 'page.inquiries' && <div className="mt-6 border-l-2 border-emerald-300/35 pl-4"><h3 className="text-sm font-semibold text-white">Contact details are shared</h3><p className="mt-1 text-sm leading-6 text-zinc-400">Email and social links appear on Contact and automatically flow into the footer.</p></div>}
+    {sectionKey === 'page.inquiries' && <div className="mt-6 border-l-2 border-emerald-300/35 pl-4"><h3 className="text-sm font-semibold text-white">Contact lives in the footer</h3><p className="mt-1 text-sm leading-6 text-zinc-400">The message action, email, and social links stay available across every public page. Inquiry wording appears in the collaboration form.</p></div>}
     <section className="mt-6"><h3 className="text-base font-semibold text-white">Editable content</h3><p className="mt-1 text-sm text-zinc-500">Use plain, visitor-friendly wording. Every field below has one clear destination.</p><div className="mt-5 grid gap-5 sm:grid-cols-2">{commonFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} uploading={uploading === key} onUpload={(file) => uploadImage(key,file)} onChange={(value) => updateField(key,value,type)}/>)}</div></section>
     {advancedFields.length > 0 && <details className="group mt-8 border-t border-white/[0.08] pt-5"><summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-200">Advanced settings<ChevronDown size={17} className="transition-transform group-open:rotate-180"/></summary><p className="mt-1 text-sm text-zinc-500">Visibility, links, search details, media references, and display order.</p><div className="mt-5 grid gap-5 sm:grid-cols-2">{advancedFields.map(([key,label,type]) => <StudioField key={key} fieldKey={key} label={label} type={type} value={form[key]} onChange={(value) => updateField(key,value,type)}/>)}</div></details>}
     <p className="ll-studio-save-hint"><strong>Save draft</strong> keeps changes private. <strong>Publish live</strong> updates the public website.</p>

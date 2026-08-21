@@ -4,7 +4,7 @@ import { homeCtaPath } from './homeCta.js';
 
 test('home hero CTA labels preserve their announced legacy destinations', () => {
   assert.equal(homeCtaPath('View Projects', '/inquiry'), '/projects');
-  assert.equal(homeCtaPath('Contact Us', '/projects'), '/contact');
+  assert.equal(homeCtaPath('Contact Us', '/projects'), '/inquiry?kind=platform');
   assert.equal(homeCtaPath('Send an Inquiry', '/projects'), '/inquiry');
   assert.equal(homeCtaPath('Explore Published Work', '/inquiry'), '/projects');
 });

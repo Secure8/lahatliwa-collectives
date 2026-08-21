@@ -20,12 +20,11 @@ test('public mobile navigation removes redundant Work and Portfolio destinations
   assert.match(styles, /@media \(max-width: 420px\)/);
 });
 
-test('public navigation exposes Contact directly and keeps Privacy out of navigation', async () => {
+test('public navigation leaves Contact and Privacy in the footer', async () => {
   const [navbar, mobile, navigation, styles] = await Promise.all([source('../components/Navbar.jsx'), source('../components/MobileTopNavigation.jsx'), source('./publicNavigation.js'), source('../index.css')]);
-  assert.match(navigation, /navigation\.contactLabel \|\| 'Contact'/);
+  assert.doesNotMatch(navigation, /navigation\.contactLabel|\/contact|Mail/);
   assert.doesNotMatch(navbar, /navigation\.privacyLabel|ShieldCheck|\/privacy/);
   assert.doesNotMatch(navbar, /More pages|public-more-menu|ll-public-menu-layer/);
-  assert.match(navigation, /'Contact', '\/contact'/);
   assert.doesNotMatch(mobile, /ShieldCheck|\/privacy/);
   assert.match(styles, /\.ll-post-card\.has-open-menu \{ overflow: visible/);
 });

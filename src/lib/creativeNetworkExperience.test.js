@@ -20,7 +20,7 @@ test('Home is a curated Work surface, not a social or tourism feed', () => {
 
 test('Creative profiles behave as portfolios with owner-only controls', () => {
   const profile = read('src/components/CreativeProfileView.jsx');
-  const account = read('src/pages/AccountLanding.jsx');
+  const account = read('src/components/AccountRedirect.jsx');
   assert.match(profile, /Portfolio/);
   assert.match(profile, /Selected work/);
   assert.match(profile, /isOwner && !adminPreview/);
@@ -28,7 +28,8 @@ test('Creative profiles behave as portfolios with owner-only controls', () => {
   assert.match(profile, /Portfolio style/);
   assert.match(profile, /CreativeInlineField/);
   assert.match(profile, /Direct inquiry/);
-  assert.match(account, /CreativeWorkspace/);
+  assert.match(account, /Navigate to=\{`\/creatives\/\$\{profile\.slug\}`\} replace/);
+  assert.doesNotMatch(account, /Creative workspace|Keep your portfolio/);
 });
 
 test('post composition hides CMS structure behind a natural autosaving canvas', () => {

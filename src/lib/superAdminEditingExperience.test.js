@@ -25,7 +25,8 @@ test('brand and navigation controls edit directly from the public experience', (
   const navigation = read('lib/publicNavigation.js');
   assert.match(navbar, /Edit logo and branding/);
   assert.match(navbar, /section=global\.brand/);
-  for (const field of ['homeIcon', 'discoverIcon', 'creativesIcon', 'inquiryIcon', 'contactIcon']) assert.match(studio, new RegExp(field));
+  for (const field of ['homeIcon', 'discoverIcon', 'creativesIcon', 'inquiryIcon']) assert.match(studio, new RegExp(field));
+  assert.doesNotMatch(studio, /contactIcon|showContact/);
   assert.match(navigation, /publicNavigationItems/);
   assert.match(navigation, /navigation\.inquiryLabel \|\| 'Collab'/);
 });

@@ -27,7 +27,7 @@ const pageMeta = {
   },
   contact: {
     title: 'Edit Contact Page',
-    publicPath: '/contact',
+    publicPath: '/inquiry',
     helper: 'Update the Contact page heading, description, CTA text, notes, and theme colors.',
   },
 };

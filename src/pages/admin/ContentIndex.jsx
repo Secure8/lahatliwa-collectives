@@ -32,7 +32,7 @@ const pages = [
     title: 'Contact',
     description: 'Contact page heading, description, CTA label, notes, and theme colors.',
     editorPath: '/admin/content/contact',
-    publicPath: '/contact',
+    publicPath: '/inquiry',
   },
 ];
 

@@ -8,7 +8,7 @@ const pageSection = (pathname) => {
   if (pathname === '/projects') return ['page.projects', 'Portfolio'];
   if (pathname === '/creatives') return ['page.creatives', 'Creative network'];
   if (pathname === '/about') return ['page.about', 'About'];
-  if (pathname === '/services' || pathname === '/contact') return ['page.inquiries', 'Contact'];
+  if (pathname === '/services' || pathname === '/inquiry') return ['page.inquiries', 'Inquiry'];
   if (pathname === '/privacy') return ['page.privacy', 'Privacy'];
   return ['', 'Public view'];
 };
@@ -25,7 +25,7 @@ export default function PublicAdminToolbar() {
       <Link to={editor('global.brand')}><PanelTop size={16}/><span>Branding</span></Link>
       <Link to={editor('global.navigation')}><Menu size={16}/><span>Navigation</span></Link>
       <Link to={editor('global.appearance')}><Palette size={16}/><span>Colors</span></Link>
-      <Link to={editor('page.inquiries')}><Contact size={16}/><span>Contact</span></Link>
+      <Link to={editor('page.inquiries')}><Contact size={16}/><span>Footer contact</span></Link>
     </nav>
     <Link to="/admin/dashboard" className="ll-admin-authoring-toolbar__platform" aria-label="Open Platform tools" title="Platform tools"><MoreHorizontal size={20}/><span className="sr-only">Platform tools</span></Link>
   </aside>;

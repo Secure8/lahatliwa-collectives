@@ -1,11 +1,10 @@
-import { Compass, Handshake, House, Mail, UsersRound } from 'lucide-react';
+import { Compass, Handshake, House, UsersRound } from 'lucide-react';
 
 export const PUBLIC_NAVIGATION_ICON_OPTIONS = [
   ['home', 'Home', House],
   ['discover', 'Discover', Compass],
   ['creatives', 'Creatives', UsersRound],
   ['collab', 'Collab', Handshake],
-  ['contact', 'Contact', Mail],
 ];
 
 const iconByKey = Object.fromEntries(PUBLIC_NAVIGATION_ICON_OPTIONS.map(([key, , Icon]) => [key, Icon]));
@@ -20,6 +19,5 @@ export function publicNavigationItems(navigation = {}) {
     [navigation.discoverLabel || 'Discover', '/discover', publicNavigationIcon(navigation.discoverIcon, 'discover')],
     [navigation.creativesLabel || 'Creatives', '/creatives', publicNavigationIcon(navigation.creativesIcon, 'creatives')],
     [navigation.inquiryLabel || 'Collab', '/inquiry', publicNavigationIcon(navigation.inquiryIcon, 'collab')],
-    [navigation.contactLabel || 'Contact', '/contact', publicNavigationIcon(navigation.contactIcon, 'contact')],
   ];
 }

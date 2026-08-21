@@ -1,5 +1,5 @@
 const KNOWN_HOME_CTA_PATHS = new Map([
-  ['contact us', '/contact'],
+  ['contact us', '/inquiry?kind=platform'],
   ['explore published work', '/projects'],
   ['send an inquiry', '/inquiry'],
   ['send inquiry', '/inquiry'],

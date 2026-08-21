@@ -51,6 +51,7 @@ export default function CreativePostEditor({ create = false }) {
   const revisionRef = useRef(0);
   const savedRevisionRef = useRef(0);
   const savingRef = useRef(false);
+  const savePromiseRef = useRef(null);
   const postRef = useRef(null);
   const documentRef = useRef(null);
   const metadataRef = useRef(metadata);
@@ -119,25 +120,38 @@ export default function CreativePostEditor({ create = false }) {
   }, []);
 
   const saveNow = useCallback(async () => {
-    if (!documentRef.current || savingRef.current || savedRevisionRef.current === revisionRef.current) return postRef.current?.id ? postRef.current : null;
+    if (savingRef.current) return savePromiseRef.current;
+    if (!documentRef.current || savedRevisionRef.current === revisionRef.current) return postRef.current?.id ? postRef.current : null;
     if (!creativePostHasContent(documentRef.current, media) && !metadataRef.current.title.trim()) {
       savedRevisionRef.current = revisionRef.current;
       setStatus('not_saved');
       return null;
     }
     const savingRevision = revisionRef.current;
+    const savingDocument = documentRef.current;
+    const savingMetadata = metadataRef.current;
+    const savingTermIds = [...termIdsRef.current];
     savingRef.current = true; setStatus('saving'); setError('');
-    try {
-      const persisted = await ensureDraft();
-      const saved = await saveCreativePost(persisted, documentRef.current);
-      const withMetadata = await saveWorkMetadata(saved.id, metadataRef.current, termIdsRef.current);
-      postRef.current = { ...postRef.current, ...saved, ...withMetadata }; setPost(postRef.current);
-      savedRevisionRef.current = savingRevision;
-      setStatus(savedRevisionRef.current === revisionRef.current ? 'saved' : 'unsaved');
-      if (create) navigate(`/posts/${saved.id}/edit`, { replace: true });
-      return postRef.current;
-    } catch (reason) { setError(reason.message); setStatus('error'); return null; }
-    finally { savingRef.current = false; }
+    const operation = (async () => {
+      try {
+        const persisted = await ensureDraft();
+        const withMetadata = await saveWorkMetadata(persisted.id, savingMetadata, savingTermIds);
+        const saved = await saveCreativePost({ ...persisted, ...withMetadata }, savingDocument);
+        postRef.current = { ...postRef.current, ...withMetadata, ...saved }; setPost(postRef.current);
+        savedRevisionRef.current = savingRevision;
+        setStatus(savedRevisionRef.current === revisionRef.current ? 'saved' : 'unsaved');
+        if (create) navigate(`/posts/${saved.id}/edit`, { replace: true });
+        return postRef.current;
+      } catch (reason) {
+        console.error('[CreativePostEditor] Save failed', reason);
+        setError('Your changes could not be saved. Your work is still here; try again.');
+        setStatus('error');
+        return null;
+      }
+    })();
+    savePromiseRef.current = operation;
+    try { return await operation; }
+    finally { savingRef.current = false; savePromiseRef.current = null; }
   }, [create, ensureDraft, media, navigate]);
 
   useEffect(() => {
@@ -205,14 +219,10 @@ export default function CreativePostEditor({ create = false }) {
         return { ...current, blocks };
       })();
       documentRef.current = nextDocument; setDocument(nextDocument);
-      revisionRef.current += 1; setStatus('saving');
-      const saved = await saveCreativePost(persisted, nextDocument);
-      const withMetadata = await saveWorkMetadata(saved.id, metadataRef.current, termIdsRef.current);
-      postRef.current = { ...persisted, ...saved, ...withMetadata }; setPost(postRef.current);
-      savedRevisionRef.current = revisionRef.current; setStatus('saved');
+      revisionRef.current += 1; setStatus('unsaved');
+      await saveNow();
       setSelectedMediaId(added[0]?.id || null);
-      if (create) navigate(`/posts/${persisted.id}/edit`, { replace: true });
-    } catch (reason) { setError(reason.message); }
+    } catch (reason) { console.error('[CreativePostEditor] Image upload failed', reason); setError(reason.message || 'The image could not be added.'); setStatus('error'); }
     finally { setUploading(false); uploadAfterIndexRef.current = null; }
   }
 
@@ -251,7 +261,7 @@ export default function CreativePostEditor({ create = false }) {
 
       <div className="ll-composer-modal-body"><div className="ll-composer-shell">
       <header className="ll-composer-author">{creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}<div><strong>{creative?.name || 'Your Creative profile'}</strong><small>{post.status === 'published' ? 'Editing published work' : 'New work'}</small></div></header>
-      <section className="ll-work-details-editor" aria-labelledby="work-details-heading"><div><p className="ll-kicker">Portfolio details</p><h2 id="work-details-heading">Describe this work</h2></div><label className="is-wide"><span>Title</span><input value={metadata.title} maxLength={140} onChange={(event) => updateMetadata('title', event.target.value)} placeholder="Give the work a clear title"/></label><label className="is-wide"><span>Short summary</span><textarea rows={2} value={metadata.summary} maxLength={320} onChange={(event) => updateMetadata('summary', event.target.value)} placeholder="What should a visitor understand first?"/></label><label><span>Year</span><input type="number" min="1900" max="2200" value={metadata.work_year || ''} onChange={(event) => updateMetadata('work_year', event.target.value)}/></label><label><span>Tags</span><input value={metadata.tags} onChange={(event) => updateMetadata('tags', event.target.value)} placeholder="Aklan, portrait, festival"/></label><label className="is-wide"><span>External link</span><input type="url" value={metadata.external_url} onChange={(event) => updateMetadata('external_url', event.target.value)} placeholder="https://…"/></label><div className="ll-work-taxonomy is-wide" aria-labelledby="work-taxonomy-heading"><header><strong id="work-taxonomy-heading">What kind of work is this about?</strong><small>Optional</small></header>{['discipline','specialty','industry'].map((kind) => <div className="ll-work-taxonomy-row" key={kind} role="group" aria-label={kind}><strong>{kind}</strong><div>{(groupedTaxonomy[kind] || []).map((term) => <button key={term.id} type="button" aria-pressed={termIds.includes(term.id)} onClick={() => toggleTerm(term.id)}>{term.name}</button>)}</div></div>)}</div></section>
+      <section className="ll-work-details-editor" aria-labelledby="work-details-heading"><div><p className="ll-kicker">Portfolio details</p><h2 id="work-details-heading">Describe this work</h2></div><label className="is-wide"><span>Title</span><input value={metadata.title} maxLength={140} onChange={(event) => updateMetadata('title', event.target.value)} placeholder="Give the work a clear title"/></label><label className="is-wide"><span>Short summary</span><textarea rows={2} value={metadata.summary} maxLength={320} onChange={(event) => updateMetadata('summary', event.target.value)} placeholder="What should a visitor understand first?"/></label><label><span>Year</span><input type="number" min="1900" max="2200" value={metadata.work_year || ''} onChange={(event) => updateMetadata('work_year', event.target.value)}/></label><label><span>Tags</span><input value={metadata.tags} onChange={(event) => updateMetadata('tags', event.target.value)} placeholder="Aklan, portrait, festival"/></label><label className="is-wide"><span>External link</span><input type="url" value={metadata.external_url} onChange={(event) => updateMetadata('external_url', event.target.value)} placeholder="https://…"/></label><fieldset className="ll-work-taxonomy is-wide"><legend>What kind of work is this about? <small>Select all that apply · Optional</small></legend>{['discipline','specialty','industry'].map((kind) => <fieldset className="ll-work-taxonomy-group" key={kind}><legend>{kind}</legend><div className="ll-work-taxonomy-options">{(groupedTaxonomy[kind] || []).map((term) => { const inputId = `work-taxonomy-${kind}-${term.id}`; return <label className="ll-work-taxonomy-option" key={term.id} htmlFor={inputId}><input id={inputId} type="checkbox" checked={termIds.includes(term.id)} onChange={() => toggleTerm(term.id)} /><span>{term.name}</span></label>; })}</div></fieldset>)}</fieldset></section>
       {error && <p className="ll-composer-error" role="alert">{error}</p>}
       {preview ? <section className="ll-composer-preview"><CreativePostDocument document={previewDocument} media={media} /></section> : <section className="ll-natural-canvas" aria-label="Post composition canvas">
         {(document?.blocks || []).map((block, index) => <NaturalBlock key={block.id} block={block} index={index} count={document.blocks.length} media={media} onChange={(patch) => updateBlock(index, patch)} onTransform={(type, level) => transformBlock(index, type, level)} onEnter={() => addParagraphAfter(index)} onInsert={(type) => insertBlock(type, index)} onMove={(delta) => moveBlock(block.id, delta)} onRemove={() => removeBlock(index)} onSelectMedia={setSelectedMediaId} />)}

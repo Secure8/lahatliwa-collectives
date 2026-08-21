@@ -17,6 +17,12 @@ test('V1 migration reduces authenticated personas and enforces owned posts', () 
   assert.match(sql, /CREATIVE_POST_IMAGE_DESCRIPTION_REQUIRED/);
 });
 
+test('authenticated Creative post writes can execute the document validator without opening anonymous writes', () => {
+  const sql = source('supabase/migrations/20260821150000_creative_post_document_function_permissions.sql');
+  assert.match(sql, /grant execute on function private\.valid_creative_post_document\(jsonb\)\s+to authenticated/);
+  assert.doesNotMatch(sql, /to public|to anon|service_role/);
+});
+
 test('application separates Creative publishing and Super Admin maintenance', () => {
   const app = source('src/App.jsx');
   const access = source('src/lib/adminAccess.jsx');
@@ -51,6 +57,18 @@ test('empty composers stay local and owned drafts can be deleted directly', () =
   const wallMigration = source('supabase/migrations/20260814230000_public_wall_permissions_and_image_position.sql');
   assert.doesNotMatch(wallMigration, /CREATIVE_POST_ARCHIVE_REQUIRED/);
   assert.match(wallMigration, /using\(private\.owns_creative_post\(auth\.uid\(\),id\)\)/);
+});
+
+test('image insertion uses the shared autosave path and preserves retryable failures', () => {
+  const editor = source('src/pages/CreativePostEditor.jsx');
+  assert.match(editor, /const savePromiseRef = useRef\(null\)/);
+  assert.match(editor, /if \(savingRef\.current\) return savePromiseRef\.current/);
+  assert.match(editor, /const savingDocument = documentRef\.current/);
+  assert.match(editor, /const savingMetadata = metadataRef\.current/);
+  assert.match(editor, /console\.error\('\[CreativePostEditor\] Save failed'/);
+  assert.match(editor, /Your changes could not be saved\. Your work is still here; try again\./);
+  assert.match(editor, /revisionRef\.current \+= 1; setStatus\('unsaved'\);[\s\S]*?await saveNow\(\)/);
+  assert.doesNotMatch(editor, /const saved = await saveCreativePost\(persisted, nextDocument\)/);
 });
 
 test('post and project creation open in focused floating workspaces', () => {

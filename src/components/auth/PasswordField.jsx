@@ -2,19 +2,20 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useId, useState } from 'react';
 import { FieldError } from '../FieldFeedback';
 
-export default function PasswordField({ label, value, onChange, autoComplete, minLength, disabled = false, error = '', inputRef }) {
+export default function PasswordField({ label, value, onChange, autoComplete, minLength, disabled = false, error = '', inputRef, className = '', inputClassName = '', leadingIcon = null }) {
   const [visible, setVisible] = useState(false);
   const generatedId = useId();
   const inputId = `password-${generatedId}`;
   const errorId = `${inputId}-error`;
   return (
-    <label className="grid gap-2 text-sm text-zinc-300" htmlFor={inputId}>
+    <label className={`grid gap-2 text-sm text-zinc-300 ${className}`.trim()} htmlFor={inputId}>
       <span>{label}</span>
       <span className="relative block">
+        {leadingIcon && <span className="ll-password-field__leading" aria-hidden="true">{leadingIcon}</span>}
         <input
           ref={inputRef}
           id={inputId}
-          className="w-full rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 pr-12 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20 aria-[invalid=true]:border-red-300/60 aria-[invalid=true]:focus:ring-red-300/20"
+          className={`w-full rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 pr-12 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20 aria-[invalid=true]:border-red-300/60 aria-[invalid=true]:focus:ring-red-300/20 ${leadingIcon ? 'll-password-field__input--with-icon' : ''} ${inputClassName}`.trim()}
           type={visible ? 'text' : 'password'}
           value={value}
           onChange={(event) => onChange(event.target.value)}

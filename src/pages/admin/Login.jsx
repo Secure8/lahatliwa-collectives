@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, LockKeyhole, Mail, UserRound } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
@@ -163,40 +163,45 @@ export default function Login() {
   }
 
   return (
-    <main className="ll-auth-page">
-      <section className="ll-auth-card">
-        <Link to="/" className="ll-auth-back fine-link">
+    <main className="ll-auth-page ll-login-page">
+      <section className="ll-auth-card ll-login-card">
+        <Link to="/" className="ll-auth-back ll-login-back">
           <ArrowLeft size={16} /> Back
         </Link>
-        <form onSubmit={handleSubmit} className="ll-auth-form">
-          <div className="ll-auth-heading">
-            <div>
-              <h1 className="text-2xl font-semibold text-white">{currentCopy.title}</h1>
-              <p className="mt-1 text-sm leading-6 text-zinc-400">{currentCopy.description}</p>
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="ll-auth-form ll-login-form">
+          <header className="ll-login-heading">
+            <span className="ll-login-heading__icon" aria-hidden="true"><UserRound size={29} strokeWidth={1.5} /></span>
+            <p className="ll-login-eyebrow">Member access</p>
+            <h1>{currentCopy.title}</h1>
+            <p>{currentCopy.description}</p>
+          </header>
 
-          <label className="mt-6 grid gap-2 text-sm text-zinc-300" htmlFor="team-email">
+          <div className="ll-login-fields">
+          <label className="ll-login-field" htmlFor="team-email">
               <span>Email</span>
-              <input
-                ref={emailRef}
-                id="team-email"
-                className="rounded-md border border-white/[0.14] bg-white/[0.035] px-3 py-3 text-white outline-none transition placeholder:text-zinc-600 hover:border-amber-200/25 focus:border-amber-200/60 focus:ring-2 focus:ring-amber-200/20 aria-[invalid=true]:border-red-300/60 aria-[invalid=true]:focus:ring-red-300/20"
-                type="email"
-                value={email}
-                onChange={(event) => { setEmail(event.target.value); setFieldErrors((current) => ({ ...current, email: '' })); setActionError(''); }}
-                required
-                autoComplete="email"
-                disabled={loading}
-                aria-invalid={Boolean(fieldErrors.email)}
-                aria-describedby={fieldErrors.email ? 'team-email-error' : undefined}
-              />
+              <span className="ll-login-control">
+                <Mail size={18} aria-hidden="true" />
+                <input
+                  ref={emailRef}
+                  id="team-email"
+                  className="ll-login-input"
+                  type="email"
+                  value={email}
+                  onChange={(event) => { setEmail(event.target.value); setFieldErrors((current) => ({ ...current, email: '' })); setActionError(''); }}
+                  required
+                  autoComplete="email"
+                  disabled={loading}
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={fieldErrors.email ? 'team-email-error' : undefined}
+                />
+              </span>
               <FieldError id="team-email-error">{fieldErrors.email}</FieldError>
           </label>
 
-          <div className="mt-4"><PasswordField inputRef={passwordRef} label={passwordLabel} value={password} onChange={(value) => { setPassword(value); setFieldErrors((current) => ({ ...current, password: '' })); setActionError(''); }} error={fieldErrors.password} minLength={isSetup ? 8 : undefined} autoComplete={isSetup ? 'new-password' : 'current-password'} disabled={loading} /></div>
+          <PasswordField className="ll-login-field" inputClassName="ll-login-input" leadingIcon={<LockKeyhole size={18} />} inputRef={passwordRef} label={passwordLabel} value={password} onChange={(value) => { setPassword(value); setFieldErrors((current) => ({ ...current, password: '' })); setActionError(''); }} error={fieldErrors.password} minLength={isSetup ? 8 : undefined} autoComplete={isSetup ? 'new-password' : 'current-password'} disabled={loading} />
 
-          {isSetup && <div className="mt-4"><PasswordField inputRef={confirmRef} label="Confirm password" value={confirmPassword} onChange={(value) => { setConfirmPassword(value); setFieldErrors((current) => ({ ...current, confirmPassword: '' })); setActionError(''); }} error={fieldErrors.confirmPassword} minLength={8} autoComplete="new-password" disabled={loading} /></div>}
+          {isSetup && <PasswordField className="ll-login-field" inputClassName="ll-login-input" leadingIcon={<LockKeyhole size={18} />} inputRef={confirmRef} label="Confirm password" value={confirmPassword} onChange={(value) => { setConfirmPassword(value); setFieldErrors((current) => ({ ...current, confirmPassword: '' })); setActionError(''); }} error={fieldErrors.confirmPassword} minLength={8} autoComplete="new-password" disabled={loading} />}
+          </div>
 
           {isSetup && (
             <p className="mt-4 text-xs leading-5 text-zinc-500">
@@ -207,26 +212,26 @@ export default function Login() {
           {notice && <div className="mt-5 flex gap-3 rounded-md bg-emerald-300/10 p-3 text-sm leading-6 text-emerald-100 ring-1 ring-emerald-300/20" role="status"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /><span>{notice}</span></div>}
           <ActionFeedback error={actionError} className="mt-5" />
 
-          <button disabled={loading} className="ll-primary-action ll-auth-submit">
-            <ShieldCheck size={17} /> {submitLabel}
+          <button disabled={loading} className="ll-primary-action ll-auth-submit ll-login-submit">
+            <span>{submitLabel}</span><ArrowRight size={18} />
           </button>
 
           <div className="ll-auth-links">
             {mode !== 'login' && (
-              <button type="button" onClick={() => switchMode('login')} className="fine-link min-h-10 text-left text-zinc-300 transition hover:text-amber-100">
+              <button type="button" onClick={() => switchMode('login')}>
                 Sign in
               </button>
             )}
             {mode === 'login' && (
               <>
-                <Link to="/join" className="fine-link min-h-10 content-center text-left text-zinc-300 transition hover:text-amber-100">Request to join</Link>
-                <button type="button" onClick={() => switchMode('setup')} className="fine-link min-h-10 text-left text-zinc-300 transition hover:text-amber-100">
+                <Link to="/join">Request to join</Link>
+                <button type="button" onClick={() => switchMode('setup')}>
                   Set up an approved account
                 </button>
-                <Link to="/forgot-password" className="fine-link min-h-10 content-center text-left text-zinc-400 transition hover:text-amber-100">Forgot password?</Link>
+                <Link to="/forgot-password">Forgot password?</Link>
               </>
             )}
-            {mode === 'setup' && <Link to="/forgot-password" className="fine-link min-h-10 content-center text-left text-zinc-400 transition hover:text-amber-100">Forgot password?</Link>}
+            {mode === 'setup' && <Link to="/forgot-password">Forgot password?</Link>}
           </div>
         </form>
       </section>

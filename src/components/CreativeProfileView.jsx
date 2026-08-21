@@ -5,7 +5,7 @@ import CreativeHero from './CreativeHero';
 import { getPublicImageUrl } from '../lib/storage';
 import { socialLinkMeta } from '../lib/socialLinks';
 import { publicLocationState } from '../lib/navigationHistory';
-import { isResourceLink } from '../lib/profileResources';
+import { isResourceLink, resourceMeta } from '../lib/profileResources';
 import { publicImageVariant } from '../lib/publicImages';
 import CreativePostCard from './CreativePostCard';
 import CreativeInlineProfileEditor from './CreativeInlineProfileEditor';
@@ -22,11 +22,15 @@ export default function CreativeProfileView({ creative, projects = [], posts = [
   const socials = allLinks.filter((item) => !isResourceLink(item)).map(socialLinkMeta).filter((item) => item.href);
   const bio = creative.full_bio || creative.short_bio;
   const professional = creative.professional_details && typeof creative.professional_details === 'object' ? creative.professional_details : {};
+  const legacyTools = resources.map(resourceMeta).map((item) => item.name).filter(Boolean);
+  const tools = Object.prototype.hasOwnProperty.call(professional, 'tools')
+    ? (Array.isArray(professional.tools) ? professional.tools.filter(Boolean) : [])
+    : legacyTools;
   const profileTemplate = normalizeCreativeProfileTemplate(creative.profile_template);
   const ownerActions = isOwner && !adminPreview ? <><Link to="/create" className="ll-primary-action"><PenLine size={17} /> Add work</Link><button type="button" className="ll-secondary-action" onClick={() => setEditingSection('design')}><LayoutTemplate size={16} /> Portfolio style</button></> : null;
   return <article className={`ll-profile-page ll-profile-template--${profileTemplate}`} data-profile-template={profileTemplate}>
     {adminPreview && <p className="ll-preview-label">Admin preview</p>}
-    <CreativeHero creative={creative} socials={socials} resources={resources} adminPreview={adminPreview} actions={ownerActions} onBack={onBack} onEdit={isOwner && !adminPreview ? setEditingSection : null} onSaved={onCreativeChange} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
+    <CreativeHero creative={creative} socials={socials} tools={tools} adminPreview={adminPreview} actions={ownerActions} onBack={onBack} onEdit={isOwner && !adminPreview ? setEditingSection : null} onSaved={onCreativeChange} renderSocial={(item) => <SocialLink key={`${item.label}-${item.href}`} item={item} />} />
 
     {!adminPreview && <nav className="ll-profile-tabs" aria-label="Profile sections">
       <a href="#work">Work <span>{posts.filter((post) => post.status === 'published').length + projects.length || ''}</span></a>

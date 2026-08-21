@@ -72,7 +72,8 @@ test('shared wordmark keeps CMS branding, logo support, and accessible placement
   assert.match(css, /@media \(min-width: 768px\) \{[\s\S]*?\.brand-wordmark--hero,[\s\S]*?\.brand-wordmark--auth \{[\s\S]*?font-family: "Rubik 80s Fade", "Chakra Petch", "Trebuchet MS", "Arial Narrow", Arial, ui-sans-serif, system-ui, sans-serif;[\s\S]*?font-weight: 400/);
   assert.match(css, /\.brand-wordmark--compact \{[\s\S]*?font-size: 0\.96rem/);
   assert.match(css, /\.ll-footer-logo img \{[\s\S]*?object-fit: contain/);
-  assert.match(css, /\.ll-footer-lockup \{[\s\S]*?width: min\(24rem, 82vw\)/);
+  assert.match(css, /\.ll-footer-lockup \{[\s\S]*?display: grid;[\s\S]*?width: min\(24rem, 82vw\);[\s\S]*?justify-items: center/);
+  assert.match(css, /\.ll-footer-logo \{[\s\S]*?justify-content: center/);
   assert.match(css, /\.ll-footer-tagline \{[\s\S]*?color: var\(--theme-text-muted\)[\s\S]*?text-align: center/);
   assert.match(css, /@media \(max-width: 639px\) \{[\s\S]*?\.brand-wordmark--mobile-compact \{[\s\S]*?font-size: 0\.84rem/);
   assert.match(css, /\.brand-wordmark--mobile-compact\.brand-wordmark--very-long \{[\s\S]*?font-size: 0\.8rem/);

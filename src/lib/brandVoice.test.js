@@ -84,3 +84,11 @@ test('footer contact and confirmation copy explain the correct next step', () =>
   assert.match(confirmation, /identify the right next step/i);
   assert.match(confirmation, /does not confirm availability, scope, schedule, pricing, booking/i);
 });
+
+test('public page eyebrows use the current muted text-only label style', () => {
+  const header = source('components/PublicPageHeader.jsx');
+
+  assert.match(header, /className="accent-eyebrow[^"']*text-\[var\(--theme-text-muted\)\]/);
+  assert.doesNotMatch(header, /rounded-full bg-current/);
+  assert.doesNotMatch(header, /--accent-eyebrow-configured/);
+});

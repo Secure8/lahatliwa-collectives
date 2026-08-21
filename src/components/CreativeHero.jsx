@@ -3,11 +3,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPublicImageUrl } from '../lib/storage';
 import { publicImageVariant } from '../lib/publicImages';
-import { resourceMeta } from '../lib/profileResources';
 import { CREATIVE_DISCIPLINE_MAX_COUNT, normalizeCreativeDisciplines } from '../lib/creativeProfile';
 import CreativeInlineField from './CreativeInlineField';
 
-export default function CreativeHero({ creative, socials, resources = [], renderSocial, adminPreview = false, actions = null, onBack = null, onEdit = null, onSaved = null }) {
+export default function CreativeHero({ creative, socials, tools = [], renderSocial, adminPreview = false, actions = null, onBack = null, onEdit = null, onSaved = null }) {
   const profileImage = publicImageVariant(getPublicImageUrl(creative.profile_image_url), 'display');
   const coverImage = publicImageVariant(getPublicImageUrl(creative.cover_image), 'expanded');
   const disciplines = normalizeCreativeDisciplines(creative.skills).slice(0, CREATIVE_DISCIPLINE_MAX_COUNT);
@@ -33,7 +32,7 @@ export default function CreativeHero({ creative, socials, resources = [], render
       </div>
       <div className="ll-profile-actions">{actions || (!adminPreview && <Link to={`/inquiry?creative=${encodeURIComponent(creative.slug)}`} className="ll-primary-action">Ask about working together <ArrowRight size={16} /></Link>)}<div className="ll-profile-socials">{socials.map(renderSocial)}</div></div>
     </div>
-    {resources.length > 0 && <div className="ll-profile-resources" aria-label="Creative tools and resources">{resources.slice(0, 10).map((resource) => <ResourceLink key={`${resource.name}-${resource.url}`} resource={resource} />)}</div>}
+    {(tools.length > 0 || onEdit) && <section className="ll-profile-tools" aria-label="Creative tools"><strong>Tools</strong><CreativeInlineField creative={creative} owner={Boolean(onEdit)} field="professional_details.tools" value={tools} label="Edit tools" type="list" as="ul" onSaved={onSaved}>{tools.length ? tools.slice(0, 12).map((tool) => <li key={tool}>{tool}</li>) : <li>Add the tools you use</li>}</CreativeInlineField></section>}
   </header>;
 }
 
@@ -41,11 +40,4 @@ function SafeImage({ ...props }) {
   const [failed, setFailed] = useState(false);
   if (failed) return null;
   return <img {...props} onError={() => setFailed(true)} />;
-}
-
-function ResourceLink({ resource }) {
-  const meta = resourceMeta(resource);
-  const [failed, setFailed] = useState(false);
-  if (!meta.href) return null;
-  return <a href={meta.href} target="_blank" rel="noopener noreferrer" aria-label={`${meta.name} (opens in a new tab)`} title={meta.name}>{meta.icon && !failed ? <img src={meta.icon} alt="" onError={() => setFailed(true)} /> : <span>{meta.name.slice(0, 2)}</span>}<small>{meta.name}</small></a>;
 }

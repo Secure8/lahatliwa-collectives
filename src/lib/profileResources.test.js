@@ -27,3 +27,18 @@ test('profile inquiry actions target the selected Creative', async () => {
   assert.match(inquiry, /searchParams\.get\('creative'\)/);
   assert.match(inquiry, /Who would you like to contact/);
 });
+
+test('profile tools are editable text and remain separate from social links', async () => {
+  const [hero, profile, editor, css] = await Promise.all([
+    readFile(new URL('../components/CreativeHero.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/CreativeProfileView.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../components/CreativeInlineProfileEditor.jsx', import.meta.url), 'utf8'),
+    readFile(new URL('../index.css', import.meta.url), 'utf8'),
+  ]);
+  assert.match(hero, /field="professional_details\.tools"[\s\S]*?type="list"/);
+  assert.match(hero, /className="ll-profile-tools"/);
+  assert.doesNotMatch(hero, /ResourceLink|opens in a new tab/);
+  assert.match(profile, /legacyTools[\s\S]*?professional\.tools/);
+  assert.match(editor, /label="Social links"/);
+  assert.match(css, /\.ll-profile-tools ul \{[\s\S]*?flex-wrap: wrap/);
+});

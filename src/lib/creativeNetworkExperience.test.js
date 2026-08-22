@@ -64,6 +64,9 @@ test('adaptive media and lightbox provide modern accessible gallery behavior', (
   assert.doesNotMatch(styles, /\.ll-natural-gallery button \{[^}]*aspect-ratio:/);
   assert.match(styles, /\.ll-adaptive-gallery button \{[^}]*width: fit-content;[^}]*max-width: 100%;[^}]*background: transparent/);
   assert.match(styles, /\.ll-natural-gallery button \{[^}]*width: fit-content;[^}]*max-width: 100%;[^}]*background: transparent/);
+  assert.match(styles, /\.ll-adaptive-gallery--2 \{[^}]*grid-template-columns: repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.ll-natural-gallery--2 \{[^}]*grid-template-columns: repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.ll-adaptive-gallery--4, \.ll-adaptive-gallery--5 \{[^}]*grid-template-columns: repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
 });
 

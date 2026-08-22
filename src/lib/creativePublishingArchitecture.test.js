@@ -32,6 +32,16 @@ test('Creative post links use structural HTTPS validation', () => {
   assert.match(sql, /private\.valid_creative_post_https_url\(segment->>'href'\)/);
 });
 
+test('Creative post image descriptions are optional while grouped media stays intact', () => {
+  const sql = source('supabase/migrations/20260822230000_optional_creative_post_image_descriptions.sql');
+  const editor = source('src/pages/CreativePostEditor.jsx');
+  assert.match(sql, /create or replace function api_internal\.publish_creative_post/);
+  assert.doesNotMatch(sql, /CREATIVE_POST_IMAGE_DESCRIPTION_REQUIRED|length\(btrim\(alt_text\)\)/);
+  assert.match(editor, /ll-natural-gallery--\$\{Math\.min\(items\.length, 5\)\}/);
+  assert.match(editor, /Image description <em>Optional<\/em>/);
+  assert.doesNotMatch(editor, /Description needed/);
+});
+
 test('application separates Creative publishing and Super Admin maintenance', () => {
   const app = source('src/App.jsx');
   const access = source('src/lib/adminAccess.jsx');

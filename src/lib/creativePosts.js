@@ -132,7 +132,6 @@ function postError(error, fallback) {
   if (/MEDIA_REFERENCES_INVALID|MEDIA_INVALID/.test(raw)) return new Error('One or more post images are unavailable. Remove them or upload them again.');
   if (/CREATIVE_POST_DOCUMENT_INVALID/.test(raw)) return new Error('One section contains unsupported formatting or an invalid link. Remove that formatting and try again.');
   if (/CREATIVE_POST_TAXONOMY_INVALID/.test(raw)) return new Error('One selected work category is no longer available. Reopen the categories and try again.');
-  if (/IMAGE_DESCRIPTION_REQUIRED/.test(raw)) return new Error('Describe every image before publishing so the post is accessible.');
   if (/ARCHIVE_REQUIRED/.test(raw)) return new Error('Archive this post before deleting it.');
   if (/NOT_AUTHORIZED|permission|row-level security/i.test(raw)) return new Error('You can only manage posts that belong to your Creative profile.');
   return new Error(fallback || error?.message || 'The post action could not be completed.');

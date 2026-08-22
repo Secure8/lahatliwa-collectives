@@ -1203,7 +1203,25 @@ html.admin-mode :where(a, button, img, article),
 
 .ll-profile-route, .ll-post-route { width: min(1120px, calc(100% - 1.25rem)); margin: auto; padding: 1rem 0 5rem; }
 .ll-profile-route { padding-top: 0; }
-.ll-post-route { max-width: 760px; }
+.ll-post-route { max-width: 960px; }
+.ll-work-route .ll-post-card__header,
+.ll-work-route .ll-work-card__intro,
+.ll-work-route .ll-post-card__actions,
+.ll-work-route .ll-moderation-note,
+.ll-work-route .ll-post-document > :not(.ll-adaptive-gallery) {
+  width: min(100%, 760px);
+  margin-right: auto;
+  margin-left: auto;
+}
+.ll-work-route > .ll-back-action {
+  margin-left: max(0px, calc((100% - 760px) / 2));
+}
+.ll-work-route .ll-post-card__body { padding-right: 0; padding-left: 0; }
+.ll-work-route .ll-adaptive-gallery {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+}
 .ll-back-action { display: inline-flex; min-height: 2.75rem; align-items: center; gap: .45rem; border: 0; background: transparent; padding: .4rem; color: var(--theme-text-muted); font-size: .78rem; font-weight: 650; text-decoration: none; }
 .ll-back-action:hover { color: var(--site-accent-text); }
 .ll-profile-page { overflow: hidden; border: 1px solid var(--theme-border); border-radius: 1.15rem; background: var(--theme-primary-surface); }

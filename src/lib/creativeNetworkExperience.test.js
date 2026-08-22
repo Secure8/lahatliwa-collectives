@@ -58,6 +58,10 @@ test('adaptive media and lightbox provide modern accessible gallery behavior', (
   assert.match(gallery, /event\.key === 'Escape'/);
   assert.match(gallery, /event\.key === 'Tab'/);
   assert.match(gallery, /touchStart/);
+  assert.match(styles, /\.ll-adaptive-gallery img \{[^}]*width: auto;[^}]*max-width: 100%;[^}]*height: auto;[^}]*object-fit: contain/);
+  assert.match(styles, /\.ll-natural-gallery img \{[^}]*width: auto;[^}]*max-width: 100%;[^}]*height: auto;[^}]*object-fit: contain/);
+  assert.doesNotMatch(styles, /\.ll-adaptive-gallery img \{[^}]*object-fit: cover/);
+  assert.doesNotMatch(styles, /\.ll-natural-gallery button \{[^}]*aspect-ratio:/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
 });
 

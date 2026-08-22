@@ -24,7 +24,9 @@ export default function PublicPageHeader({ eyebrow, title, description, titleCol
   };
   return (
     <header className={`public-page-header ll-page-hero ${backgroundImage ? 'has-background' : ''} ${showCredit ? 'has-credit' : ''}`} style={{ '--public-header-title': titleColor, '--public-header-body': bodyColor }}>
-      <div className={`ll-page-hero__media ${backgroundImage ? '' : 'is-placeholder'}`} style={backgroundImage ? { backgroundImage: `url("${String(backgroundImage).replaceAll('"', '%22')}")`, backgroundPosition } : undefined} aria-hidden="true" />
+      <div className={`ll-page-hero__media ${backgroundImage ? '' : 'is-placeholder'}`} aria-hidden="true">
+        {backgroundImage && <img src={backgroundImage} alt="" style={{ objectPosition: backgroundPosition }} />}
+      </div>
       <div className="ll-page-hero__overlay" aria-hidden="true" />
       <div className={`ll-page-hero__inner ${aside ? 'has-aside' : ''}`}>
         <div className="ll-page-hero__copy">

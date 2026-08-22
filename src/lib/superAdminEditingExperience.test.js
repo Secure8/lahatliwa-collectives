@@ -75,11 +75,13 @@ test('public page covers share one responsive header and publish independently i
   assert.match(header, /InlineWebsiteImage/);
   assert.match(header, /ll-page-hero__credit/);
   assert.match(header, /creditField/);
+  assert.match(header, /<img src=\{backgroundImage\}/);
   assert.match(imageEditor, /page-covers/);
   assert.match(imageEditor, /saveWebsiteDraft/);
   assert.match(imageEditor, /publishWebsiteEntry/);
   assert.match(styles, /\.ll-page-hero/);
   assert.match(styles, /min-height: clamp\(22rem, 35vw, 30rem\)/);
-  assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.ll-page-hero__media \{[^}]*background-size: 100% auto/);
+  assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.ll-page-hero\.has-background \.ll-page-hero__media \{[^}]*position: relative/);
+  assert.match(styles, /\.ll-page-hero\.has-background \.ll-page-hero__media img \{[^}]*height: auto;[^}]*object-fit: contain/);
   assert.match(styles, /\.ll-page-hero h1 \{[^}]*font-size: clamp\(1\.85rem, 8\.3vw, 2\.65rem\)/);
 });

@@ -7,7 +7,7 @@ import { usePublicContent } from '../lib/contentApi';
 import { loadPublicCreativeFeed, moderateCreativePost } from '../lib/creativePosts';
 import { supabase } from '../lib/supabaseClient';
 import usePublicAccount from '../lib/usePublicAccount';
-import InlineWebsiteText from '../components/InlineWebsiteText';
+import PublicPageHeader from '../components/PublicPageHeader';
 
 export default function Home() {
   const { content } = usePublicContent(['home']);
@@ -41,17 +41,18 @@ export default function Home() {
 
   return <div data-creative-network-home className="ll-network-home">
     <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-    <section className="ll-feed-intro">
-      <div className="ll-feed-intro__copy">
-        <InlineWebsiteText as="p" className="ll-kicker" section="page.home" field="heroEyebrow" value={page.heroEyebrow || 'Curated Creative work from Aklan'} label="Edit feed eyebrow" />
-        <InlineWebsiteText as="h1" section="page.home" field="heroTitle" value={page.heroTitle || 'Work worth discovering.'} label="Edit feed heading" />
-        <InlineWebsiteText as="p" section="page.home" field="heroDescription" type="textarea" value={page.heroDescription || 'Explore selected photography, film, design, writing, and digital work—then connect directly with the Creative behind it.'} label="Edit feed introduction" />
-      </div>
-      <div className="ll-feed-intro__actions">
+    <PublicPageHeader
+      eyebrow={page.heroEyebrow || 'Curated Creative work from Aklan'}
+      title={page.heroTitle || 'Work worth discovering.'}
+      description={page.heroDescription || 'Explore selected photography, film, design, writing, and digital work—then connect directly with the Creative behind it.'}
+      backgroundImage={page.heroBackgroundImageUrl}
+      backgroundPosition={page.heroBackgroundPosition || 'center'}
+      edit={{ section: 'page.home', eyebrowField: 'heroEyebrow', titleField: 'heroTitle', descriptionField: 'heroDescription', backgroundField: 'heroBackgroundImageUrl' }}
+      aside={<div className="ll-feed-intro__actions">
         {isCreative ? <Link to="/create" className="ll-primary-action ll-mobile-redundant-create"><PenLine size={17} /> Add work</Link> : <Link to="/creatives" className="ll-primary-action"><UsersRound size={17} /> Explore Creatives</Link>}
         <Link to="/inquiry" className="ll-text-action">Work with us <ArrowRight size={16} /></Link>
-      </div>
-    </section>
+      </div>}
+    />
 
     {!state.loading && state.creatives.length > 0 && <nav className="ll-creative-strip" aria-label="Featured Creatives">
       {state.creatives.map((creative) => <Link key={creative.id} to={`/creatives/${creative.slug}`} title={creative.name}>

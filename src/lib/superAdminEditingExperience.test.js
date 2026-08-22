@@ -52,11 +52,29 @@ test('Super Admin edits public wording in an anchored field without leaving the 
   assert.match(editor, /saveWebsiteDraft/);
   assert.match(editor, /publishWebsiteEntry/);
   assert.doesNotMatch(editor, /admin\/website|useNavigate|<Link/);
-  assert.match(home, /field="heroEyebrow"/);
-  assert.match(home, /field="heroTitle"/);
-  assert.match(home, /field="heroDescription"/);
-  assert.match(discover, /section="page\.discover"/);
+  assert.match(home, /eyebrowField: 'heroEyebrow'/);
+  assert.match(home, /titleField: 'heroTitle'/);
+  assert.match(home, /descriptionField: 'heroDescription'/);
+  assert.match(discover, /section: 'page\.discover'/);
   assert.match(header, /InlineWebsiteText/);
   assert.match(styles, /\.ll-live-edit-popover/);
   assert.match(migration, /'page\.discover'/);
+});
+
+test('public page covers share one responsive header and publish independently in place', () => {
+  const imageEditor = read('components/InlineWebsiteImage.jsx');
+  const header = read('components/PublicPageHeader.jsx');
+  const studio = read('lib/websiteStudio.js');
+  const styles = read('index.css');
+  for (const section of ['page.home', 'page.discover', 'page.creatives', 'page.inquiries', 'page.about', 'page.privacy']) {
+    assert.match(studio, new RegExp(section.replace('.', '\\.')));
+  }
+  assert.match(studio, /heroBackgroundImageUrl/);
+  assert.match(header, /ll-page-hero/);
+  assert.match(header, /InlineWebsiteImage/);
+  assert.match(imageEditor, /page-covers/);
+  assert.match(imageEditor, /saveWebsiteDraft/);
+  assert.match(imageEditor, /publishWebsiteEntry/);
+  assert.match(styles, /\.ll-page-hero/);
+  assert.match(styles, /min-height: clamp\(22rem, 35vw, 30rem\)/);
 });

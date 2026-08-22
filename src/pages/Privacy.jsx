@@ -51,12 +51,14 @@ export default function Privacy() {
   const overview = page.overviewBody || `${content.displayName} ("Lahat Liwa," "we," "us," or "our") operates lahatliwa.studio, an Aklan-based creative work platform. This policy explains our data practices for visitors, people who send inquiries, published contributors, and authorized administrators.\n\nBy using the site, you acknowledge the practices described here. If you do not agree, please do not provide personal information.`;
 
   return (
-    <div className="page-shell py-20">
+    <div className="page-shell">
       <PublicPageHeader
         eyebrow={page.eyebrow || 'Legal'}
         title={page.title || 'Privacy Policy'}
         description={page.description || `How ${content.displayName} collects, uses, stores, and protects information.`}
-        edit={{ section: 'page.privacy', eyebrowField: 'eyebrow', titleField: 'title', descriptionField: 'description' }}
+        backgroundImage={page.heroBackgroundImageUrl}
+        backgroundPosition={page.heroBackgroundPosition || 'center'}
+        edit={{ section: 'page.privacy', eyebrowField: 'eyebrow', titleField: 'title', descriptionField: 'description', backgroundField: 'heroBackgroundImageUrl' }}
       />
 
       <div className="grid gap-10 py-12 md:grid-cols-[0.32fr_1fr] md:py-16">

@@ -7,7 +7,8 @@ const creatives = readFileSync(new URL('../pages/Creatives.jsx', import.meta.url
 
 test('the Creatives route opens a focused professional directory rather than a campaign hero', () => {
   assert.match(app, /pathname === '\/creatives' \? 'creatives'/);
-  assert.match(creatives, /ll-directory-intro/);
+  assert.match(creatives, /PublicPageHeader/);
+  assert.match(creatives, /backgroundField: 'heroBackgroundImageUrl'/);
   assert.match(creatives, /Aklan Creatives/);
   assert.match(creatives, /distinct portfolios/);
   assert.doesNotMatch(creatives, /CollectiveHero/);

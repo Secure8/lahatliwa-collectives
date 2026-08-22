@@ -1,5 +1,6 @@
 import { createElement } from 'react';
 import InlineWebsiteText from './InlineWebsiteText';
+import InlineWebsiteImage from './InlineWebsiteImage';
 
 export function AccentEyebrow({ children }) {
   return (
@@ -9,7 +10,7 @@ export function AccentEyebrow({ children }) {
   );
 }
 
-export default function PublicPageHeader({ eyebrow, title, description, titleColor, bodyColor, aside, edit }) {
+export default function PublicPageHeader({ eyebrow, title, description, titleColor, bodyColor, aside, edit, backgroundImage = '', backgroundPosition = 'center' }) {
   const editable = (field, value, options = {}) => {
     const { as = 'span', ...elementProps } = options;
     return edit?.section && edit?.[field]
@@ -17,15 +18,18 @@ export default function PublicPageHeader({ eyebrow, title, description, titleCol
       : createElement(as, elementProps, value);
   };
   return (
-    <header className="public-page-header pb-10 sm:pb-12" style={{ '--public-header-title': titleColor, '--public-header-body': bodyColor }}>
-      <div className={`grid gap-8 ${aside ? 'lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-end' : ''}`}>
-        <div className="max-w-3xl">
+    <header className={`public-page-header ll-page-hero ${backgroundImage ? 'has-background' : ''}`} style={{ '--public-header-title': titleColor, '--public-header-body': bodyColor }}>
+      <div className={`ll-page-hero__media ${backgroundImage ? '' : 'is-placeholder'}`} style={backgroundImage ? { backgroundImage: `url("${String(backgroundImage).replaceAll('"', '%22')}")`, backgroundPosition } : undefined} aria-hidden="true" />
+      <div className="ll-page-hero__overlay" aria-hidden="true" />
+      <div className={`ll-page-hero__inner ${aside ? 'has-aside' : ''}`}>
+        <div className="ll-page-hero__copy">
           <AccentEyebrow>{editable('eyebrowField', eyebrow, { as: 'span', label: 'Edit eyebrow' })}</AccentEyebrow>
-          {editable('titleField', title, { as: 'h1', label: 'Edit heading', className: 'mt-5 text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-5xl', style: { color: 'var(--public-header-title, var(--site-primary-text))' } })}
-          {description && editable('descriptionField', description, { as: 'p', type: 'textarea', label: 'Edit description', className: 'mt-5 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8', style: { color: 'var(--public-header-body, var(--site-secondary-text))' } })}
+          {editable('titleField', title, { as: 'h1', label: 'Edit heading', style: { color: 'var(--public-header-title, var(--site-primary-text))' } })}
+          {description && editable('descriptionField', description, { as: 'p', type: 'textarea', label: 'Edit description', style: { color: 'var(--public-header-body, var(--site-secondary-text))' } })}
         </div>
-        {aside && <div className="border-l border-[var(--site-accent-border)] pl-5">{aside}</div>}
+        {aside && <div className="ll-page-hero__aside">{aside}</div>}
       </div>
+      {edit?.section && edit?.backgroundField && <InlineWebsiteImage section={edit.section} field={edit.backgroundField} value={backgroundImage} label={`${eyebrow || 'page'} cover image`} />}
     </header>
   );
 }

@@ -21,11 +21,22 @@ export function emptyCreativePostDocument() {
   return { version: 1, blocks: [createPostBlock('paragraph')] };
 }
 
+export function normalizeCreativePostLink(value) {
+  const candidate = String(value || '').trim();
+  const href = safeExternalUrl(
+    candidate && !/^[a-z][a-z\d+.-]*:/i.test(candidate) && !candidate.startsWith('//')
+      ? `https://${candidate}`
+      : candidate,
+  );
+  if (!href.startsWith('https://')) return '';
+  const encoded = href.replaceAll("'", '%27').replaceAll('"', '%22');
+  return /^https:\/\/[^\s<>"']{1,2000}$/.test(encoded) ? encoded : '';
+}
+
 function cleanSegment(segment = {}) {
   const text = String(segment.text || '').slice(0, 10000);
   const marks = [...new Set((Array.isArray(segment.marks) ? segment.marks : []).filter((mark) => ['bold', 'italic', 'underline'].includes(mark)))];
-  const href = safeExternalUrl(segment.href);
-  const secureHref = href.startsWith('https://') ? href : '';
+  const secureHref = normalizeCreativePostLink(segment.href);
   return { text, marks, ...(secureHref ? { href: secureHref } : {}) };
 }
 
@@ -41,7 +52,7 @@ export function normalizeCreativePostDocument(value) {
     };
     if (type === 'bullet_list' || type === 'numbered_list') return { id, type, items: (Array.isArray(block.items) ? block.items : ['']).slice(0, 40).map((item) => String(item || '').slice(0, 2000)) };
     if (type === 'image_group') return { id, type, mediaIds: [...new Set((Array.isArray(block.mediaIds) ? block.mediaIds : []).map(String))].slice(0, CREATIVE_POST_MAX_IMAGES) };
-    if (type === 'external_embed') { const url = safeExternalUrl(block.url); return { id, type, url: url.startsWith('https://') ? url : '', label: String(block.label || '').slice(0, 160) }; }
+    if (type === 'external_embed') return { id, type, url: normalizeCreativePostLink(block.url), label: String(block.label || '').slice(0, 160) };
     return { id, type: 'divider' };
   });
   return { version: 1, blocks: blocks.length ? blocks : [createPostBlock('paragraph')] };
@@ -107,7 +118,7 @@ export function applyCreativePostInlineStyle(content = [], start = 0, end = 0, s
     if (localStart > 0) result.push({ ...segment, text: segment.text.slice(0, localStart) });
     const middle = { ...segment, text: segment.text.slice(localStart, localEnd) };
     if (style.mark) middle.marks = removeMark ? middle.marks.filter((mark) => mark !== style.mark) : [...new Set([...middle.marks, style.mark])];
-    if ('href' in style) { const href = safeExternalUrl(style.href); if (href.startsWith('https://')) middle.href = href; else delete middle.href; }
+    if ('href' in style) { const href = normalizeCreativePostLink(style.href); if (href) middle.href = href; else delete middle.href; }
     result.push(middle);
     if (localEnd < segment.text.length) result.push({ ...segment, text: segment.text.slice(localEnd) });
   }
@@ -119,6 +130,8 @@ function postError(error, fallback) {
   if (/CREATIVE_POST_CONFLICT/.test(raw)) return new Error('This post changed in another tab. Reload it before saving again.');
   if (/MEDIA_LIMIT/.test(raw)) return new Error('Choose no more than 10 images for one post.');
   if (/MEDIA_REFERENCES_INVALID|MEDIA_INVALID/.test(raw)) return new Error('One or more post images are unavailable. Remove them or upload them again.');
+  if (/CREATIVE_POST_DOCUMENT_INVALID/.test(raw)) return new Error('One section contains unsupported formatting or an invalid link. Remove that formatting and try again.');
+  if (/CREATIVE_POST_TAXONOMY_INVALID/.test(raw)) return new Error('One selected work category is no longer available. Reopen the categories and try again.');
   if (/IMAGE_DESCRIPTION_REQUIRED/.test(raw)) return new Error('Describe every image before publishing so the post is accessible.');
   if (/ARCHIVE_REQUIRED/.test(raw)) return new Error('Archive this post before deleting it.');
   if (/NOT_AUTHORIZED|permission|row-level security/i.test(raw)) return new Error('You can only manage posts that belong to your Creative profile.');
@@ -192,6 +205,24 @@ export async function moderateCreativePost(postId, action, reason) {
 export async function saveCreativePost(post, document) {
   const normalized = normalizeCreativePostDocument(document);
   const { data, error } = await supabase.rpc('save_creative_post', { p_post_id: post.id, p_document: normalized, p_expected_updated_at: post.updated_at });
+  if (error) throw postError(error, 'Your post could not be saved.');
+  return data;
+}
+
+export async function saveCreativePostEditor(post, document, metadata = {}, termIds = []) {
+  const normalizedDocument = normalizeCreativePostDocument(document);
+  const uniqueTermIds = [...new Set((termIds || []).filter(Boolean))];
+  const { data, error } = await supabase.rpc('save_creative_post_editor', {
+    p_post_id: post.id,
+    p_document: normalizedDocument,
+    p_expected_updated_at: post.updated_at,
+    p_title: metadata.title || null,
+    p_summary: metadata.summary || null,
+    p_work_year: metadata.work_year || null,
+    p_external_url: metadata.external_url || null,
+    p_tags: metadata.tags || [],
+    p_term_ids: uniqueTermIds,
+  });
   if (error) throw postError(error, 'Your post could not be saved.');
   return data;
 }

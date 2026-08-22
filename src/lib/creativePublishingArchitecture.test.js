@@ -62,9 +62,10 @@ test('empty composers stay local and owned drafts can be deleted directly', () =
 test('image insertion uses the shared autosave path and preserves retryable failures', () => {
   const editor = source('src/pages/CreativePostEditor.jsx');
   assert.match(editor, /const savePromiseRef = useRef\(null\)/);
-  assert.match(editor, /if \(savingRef\.current\) return savePromiseRef\.current/);
+  assert.match(editor, /if \(savingRef\.current\)[\s\S]*await savePromiseRef\.current/);
   assert.match(editor, /const savingDocument = documentRef\.current/);
-  assert.match(editor, /const savingMetadata = metadataRef\.current/);
+  assert.match(editor, /const savingMetadata = normalizeWorkMetadata\(metadataRef\.current\)/);
+  assert.match(editor, /saveCreativePostEditor\(persisted, savingDocument, savingMetadata, savingTermIds\)/);
   assert.match(editor, /console\.error\('\[CreativePostEditor\] Save failed'/);
   assert.match(editor, /Your changes could not be saved\. Your work is still here; try again\./);
   assert.match(editor, /revisionRef\.current \+= 1; setStatus\('unsaved'\);[\s\S]*?await saveNow\(\)/);
@@ -99,8 +100,23 @@ test('post editor provides visible structured rich text with familiar shortcuts'
   assert.match(styles, /\.ll-rich-text-editor strong \{ font-weight: 750/);
   assert.match(editor, /Image or gallery/);
   assert.match(editor, /moveCreativePostBlock/);
+  assert.match(editor, /getRichTextSelectionOffsets/);
+  assert.match(editor, /applyCreativePostInlineStyle/);
+  assert.match(editor, /normalizeCreativePostLink/);
   assert.match(editor, /Insert photos at the end/);
+  assert.doesNotMatch(editor, /execCommand/);
   assert.doesNotMatch(editor, /dangerouslySetInnerHTML/);
+});
+
+test('editor autosave commits document, metadata, and taxonomy atomically', () => {
+  const migration = source('supabase/migrations/20260822193000_creative_post_editor_save_pipeline.sql');
+  assert.match(migration, /create or replace function public\.save_creative_post_editor/);
+  assert.match(migration, /for update/);
+  assert.match(migration, /private\.valid_creative_post_document\(p_document\)/);
+  assert.match(migration, /insert into public\.creative_post_revisions/);
+  assert.match(migration, /update public\.creative_posts[\s\S]*title =/);
+  assert.match(migration, /delete from public\.creative_post_taxonomy/);
+  assert.match(migration, /grant execute[\s\S]*to authenticated/);
 });
 
 test('underline remains structured and is accepted by the database validator', () => {

@@ -4,11 +4,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import CreativePostDocument from '../components/CreativePostDocument';
 import LoadingState from '../components/LoadingState';
 import WorkTaxonomyDropdowns from '../components/WorkTaxonomyDropdowns';
-import { createCreativePostDraft, createPostBlock, creativePostHasContent, CREATIVE_POST_MAX_IMAGES, emptyCreativePostDocument, loadCreativePostForEdit, moveCreativePostBlock, normalizeCreativePostDocument, publishCreativePost, removeCreativePostMedia, saveCreativePost, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
+import { applyCreativePostInlineStyle, createCreativePostDraft, createPostBlock, creativePostHasContent, CREATIVE_POST_MAX_IMAGES, emptyCreativePostDocument, loadCreativePostForEdit, moveCreativePostBlock, normalizeCreativePostDocument, normalizeCreativePostLink, publishCreativePost, removeCreativePostMedia, saveCreativePostEditor, updateCreativePostMedia, uploadCreativePostImage } from '../lib/creativePosts';
 import { useAdminAccess } from '../lib/adminAccess';
 import { supabase } from '../lib/supabaseClient';
 import { useAdminConfirmation } from '../components/admin/AdminDialog';
-import { loadWorkTaxonomy, normalizeWorkMetadata, saveWorkMetadata } from '../lib/workTaxonomy';
+import { loadWorkTaxonomy, normalizeWorkMetadata } from '../lib/workTaxonomy';
 
 async function mapWithConcurrency(items, limit, task) {
   const results = new Array(items.length);
@@ -121,7 +121,11 @@ export default function CreativePostEditor({ create = false }) {
   }, []);
 
   const saveNow = useCallback(async () => {
-    if (savingRef.current) return savePromiseRef.current;
+    if (savingRef.current) {
+      const inFlightResult = await savePromiseRef.current;
+      if (inFlightResult && savedRevisionRef.current !== revisionRef.current) return saveNow();
+      return inFlightResult;
+    }
     if (!documentRef.current || savedRevisionRef.current === revisionRef.current) return postRef.current?.id ? postRef.current : null;
     if (!creativePostHasContent(documentRef.current, media) && !metadataRef.current.title.trim()) {
       savedRevisionRef.current = revisionRef.current;
@@ -130,29 +134,32 @@ export default function CreativePostEditor({ create = false }) {
     }
     const savingRevision = revisionRef.current;
     const savingDocument = documentRef.current;
-    const savingMetadata = metadataRef.current;
+    const savingMetadata = normalizeWorkMetadata(metadataRef.current);
     const savingTermIds = [...termIdsRef.current];
     savingRef.current = true; setStatus('saving'); setError('');
     const operation = (async () => {
       try {
         const persisted = await ensureDraft();
-        const withMetadata = await saveWorkMetadata(persisted.id, savingMetadata, savingTermIds);
-        const saved = await saveCreativePost({ ...persisted, ...withMetadata }, savingDocument);
-        postRef.current = { ...postRef.current, ...withMetadata, ...saved }; setPost(postRef.current);
+        const saved = await saveCreativePostEditor(persisted, savingDocument, savingMetadata, savingTermIds);
+        postRef.current = { ...postRef.current, ...saved }; setPost(postRef.current);
         savedRevisionRef.current = savingRevision;
         setStatus(savedRevisionRef.current === revisionRef.current ? 'saved' : 'unsaved');
         if (create) navigate(`/posts/${saved.id}/edit`, { replace: true });
         return postRef.current;
       } catch (reason) {
         console.error('[CreativePostEditor] Save failed', reason);
-        setError('Your changes could not be saved. Your work is still here; try again.');
+        setError(reason.message || 'Your changes could not be saved. Your work is still here; try again.');
         setStatus('error');
         return null;
+      } finally {
+        savingRef.current = false;
+        savePromiseRef.current = null;
       }
     })();
     savePromiseRef.current = operation;
-    try { return await operation; }
-    finally { savingRef.current = false; savePromiseRef.current = null; }
+    const result = await operation;
+    if (result && savedRevisionRef.current !== revisionRef.current) return saveNow();
+    return result;
   }, [create, ensureDraft, media, navigate]);
 
   useEffect(() => {
@@ -229,7 +236,11 @@ export default function CreativePostEditor({ create = false }) {
 
   async function updateImage(item, patch) {
     setMedia((current) => current.map((entry) => entry.id === item.id ? { ...entry, ...patch } : entry));
-    try { await updateCreativePostMedia(item.id, patch); } catch (reason) { setError(reason.message); }
+    try { await updateCreativePostMedia(item.id, patch); }
+    catch (reason) {
+      setMedia((current) => current.map((entry) => entry.id === item.id ? item : entry));
+      setError(reason.message);
+    }
   }
   async function removeImage(item) {
     try {
@@ -248,7 +259,13 @@ export default function CreativePostEditor({ create = false }) {
   if (error && !post) return <main className="ll-composer-loading"><p>{error}</p></main>;
 
   const exitPath = creative?.slug ? `/creatives/${creative.slug}` : '/account';
-  const closeComposer = async () => { await saveNow(); navigate(exitPath); };
+  const closeComposer = async () => {
+    const requiresSave = savedRevisionRef.current !== revisionRef.current
+      && (creativePostHasContent(documentRef.current, media) || metadataRef.current.title.trim());
+    const saved = await saveNow();
+    if (requiresSave && !saved) return;
+    navigate(exitPath);
+  };
 
   return <main className="ll-composer-page ll-composer-modal-layer">
     <button type="button" className="ll-composer-modal-scrim" onClick={closeComposer} aria-label="Close post composer" />
@@ -279,20 +296,26 @@ function NaturalBlock({ block, index, count, media, onChange, onTransform, onEnt
   const [focused, setFocused] = useState(false);
   const editorRef = useRef(null);
   const text = block.content?.map((segment) => segment.text).join('') || '';
-  const runFormat = (command, value = null) => {
+  const runFormat = (style, savedSelection = null) => {
     const field = editorRef.current;
-    const selection = globalThis.getSelection?.();
-    if (!field || !selection || selection.isCollapsed || !field.contains(selection.anchorNode)) return;
-    globalThis.document.execCommand('styleWithCSS', false, false);
-    globalThis.document.execCommand(command, false, value);
-    onChange({ content: readRichTextSegments(field) });
-    field.focus();
+    const selection = savedSelection || getRichTextSelectionOffsets(field);
+    if (!field || !selection) return;
+    const content = applyCreativePostInlineStyle(block.content, selection.start, selection.end, style);
+    onChange({ content });
+    globalThis.requestAnimationFrame(() => {
+      field.focus();
+      restoreRichTextSelection(field, selection.start, selection.end);
+    });
   };
   const setLink = () => {
-    const href = window.prompt('Paste a secure https:// link', 'https://');
+    const selection = getRichTextSelectionOffsets(editorRef.current);
+    if (!selection) { window.alert('Select the text you want to link first.'); return; }
+    const href = window.prompt('Paste a link, or leave blank to remove it', 'https://');
     if (href === null) return;
-    if (!/^https:\/\//i.test(href.trim())) { window.alert('Use a secure https:// link.'); return; }
-    runFormat('createLink', href.trim());
+    if (!href.trim()) { runFormat({ href: '' }, selection); return; }
+    const normalizedHref = normalizeCreativePostLink(href);
+    if (!normalizedHref) { window.alert('Use a secure https:// link.'); return; }
+    runFormat({ href: normalizedHref }, selection);
   };
   const controls = <BlockControls index={index} count={count} onMove={onMove} onRemove={onRemove} />;
   const inserter = <InlineInserter onInsert={onInsert} />;
@@ -302,12 +325,12 @@ function NaturalBlock({ block, index, count, media, onChange, onTransform, onEnt
   if (block.type === 'bullet_list' || block.type === 'numbered_list') return <div data-composer-block={index} className="ll-natural-block">{controls}<div className="ll-natural-text is-list"><textarea rows={Math.max(2, block.items.length)} value={block.items.join('\n')} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.parentElement.contains(event.relatedTarget)) setFocused(false); }} onChange={(event) => onChange({ items: event.target.value.split('\n') })} placeholder="One thought per line…" />{focused && <ContextToolbar block={block} onTransform={onTransform} />}</div>{inserter}</div>;
   return <div data-composer-block={index} className={`ll-natural-text is-${block.type}${block.type === 'heading' ? ` is-heading-${block.level || 2}` : ''}`}>
     {controls}
-    {focused && <ContextToolbar block={block} onTransform={onTransform} onBold={() => runFormat('bold')} onItalic={() => runFormat('italic')} onUnderline={() => runFormat('underline')} onLink={setLink} />}
+    {focused && <ContextToolbar block={block} onTransform={onTransform} onBold={() => runFormat({ mark: 'bold' })} onItalic={() => runFormat({ mark: 'italic' })} onUnderline={() => runFormat({ mark: 'underline' })} onLink={setLink} />}
     <RichTextField editorRef={editorRef} content={block.content} placeholder={index === 0 ? 'What are you creating, learning, or sharing?' : block.type === 'heading' ? 'Add a heading…' : block.type === 'quote' ? 'Add a meaningful quote…' : 'Keep writing…'} onChange={(content) => onChange({ content })} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.parentElement.contains(event.relatedTarget)) setFocused(false); }} onKeyDown={(event) => {
       const shortcut = (event.ctrlKey || event.metaKey) && !event.altKey;
-      if (shortcut && event.key.toLowerCase() === 'b') { event.preventDefault(); runFormat('bold'); return; }
-      if (shortcut && event.key.toLowerCase() === 'i') { event.preventDefault(); runFormat('italic'); return; }
-      if (shortcut && event.key.toLowerCase() === 'u') { event.preventDefault(); runFormat('underline'); return; }
+      if (shortcut && event.key.toLowerCase() === 'b') { event.preventDefault(); runFormat({ mark: 'bold' }); return; }
+      if (shortcut && event.key.toLowerCase() === 'i') { event.preventDefault(); runFormat({ mark: 'italic' }); return; }
+      if (shortcut && event.key.toLowerCase() === 'u') { event.preventDefault(); runFormat({ mark: 'underline' }); return; }
       if (shortcut && event.key.toLowerCase() === 'k') { event.preventDefault(); setLink(); return; }
       if (event.key === 'Enter' && !event.shiftKey && block.type !== 'quote') { event.preventDefault(); onEnter(); }
       if (event.key === 'Backspace' && !text && index > 0) onRemove();
@@ -327,7 +350,60 @@ function RichTextField({ editorRef, content, placeholder, onChange, onFocus, onB
     localSignature.current = JSON.stringify(next);
     onChange(next);
   };
-  return <div ref={editorRef} className="ll-rich-text-editor" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" data-placeholder={placeholder} onInput={emit} onFocus={onFocus} onBlur={onBlur} onKeyDown={onKeyDown} onPaste={(event) => { event.preventDefault(); globalThis.document.execCommand('insertText', false, event.clipboardData.getData('text/plain')); }} />;
+  return <div ref={editorRef} className="ll-rich-text-editor" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" data-placeholder={placeholder} onInput={emit} onFocus={onFocus} onBlur={onBlur} onKeyDown={onKeyDown} onPaste={(event) => { event.preventDefault(); insertPlainTextAtSelection(editorRef.current, event.clipboardData.getData('text/plain')); emit(); }} />;
+}
+
+function getRichTextSelectionOffsets(root) {
+  const selection = globalThis.getSelection?.();
+  if (!root || !selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+  const range = selection.getRangeAt(0);
+  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
+  const beforeStart = range.cloneRange();
+  beforeStart.selectNodeContents(root);
+  beforeStart.setEnd(range.startContainer, range.startOffset);
+  const beforeEnd = range.cloneRange();
+  beforeEnd.selectNodeContents(root);
+  beforeEnd.setEnd(range.endContainer, range.endOffset);
+  const start = beforeStart.toString().length;
+  const end = beforeEnd.toString().length;
+  return { start: Math.min(start, end), end: Math.max(start, end) };
+}
+
+function restoreRichTextSelection(root, start, end) {
+  if (!root) return;
+  const walker = globalThis.document.createTreeWalker(root, globalThis.NodeFilter.SHOW_TEXT);
+  const range = globalThis.document.createRange();
+  let node = walker.nextNode();
+  let offset = 0;
+  let startPoint = null;
+  let endPoint = null;
+  while (node) {
+    const nextOffset = offset + (node.textContent?.length || 0);
+    if (!startPoint && start <= nextOffset) startPoint = [node, Math.max(0, start - offset)];
+    if (!endPoint && end <= nextOffset) { endPoint = [node, Math.max(0, end - offset)]; break; }
+    offset = nextOffset;
+    node = walker.nextNode();
+  }
+  if (!startPoint || !endPoint) return;
+  range.setStart(...startPoint);
+  range.setEnd(...endPoint);
+  const selection = globalThis.getSelection?.();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+function insertPlainTextAtSelection(root, text) {
+  const selection = globalThis.getSelection?.();
+  if (!root || !selection || selection.rangeCount === 0) return;
+  const range = selection.getRangeAt(0);
+  if (!root.contains(range.startContainer)) return;
+  range.deleteContents();
+  const node = globalThis.document.createTextNode(text);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 function writeRichTextSegments(root, content = []) {
@@ -338,7 +414,8 @@ function writeRichTextSegments(root, content = []) {
     if (segment.marks?.includes('bold')) { const strong = globalThis.document.createElement('strong'); strong.append(node); node = strong; }
     if (segment.marks?.includes('italic')) { const em = globalThis.document.createElement('em'); em.append(node); node = em; }
     if (segment.marks?.includes('underline')) { const underline = globalThis.document.createElement('u'); underline.append(node); node = underline; }
-    if (/^https:\/\//i.test(segment.href || '')) { const link = globalThis.document.createElement('a'); link.href = segment.href; link.append(node); node = link; }
+    const href = normalizeCreativePostLink(segment.href);
+    if (href) { const link = globalThis.document.createElement('a'); link.href = href; link.append(node); node = link; }
     fragment.append(node);
   }
   root.replaceChildren(fragment);
@@ -365,7 +442,7 @@ function readRichTextSegments(root) {
     if (isBold && !nextMarks.includes('bold')) nextMarks.push('bold');
     if (isItalic && !nextMarks.includes('italic')) nextMarks.push('italic');
     if (isUnderline && !nextMarks.includes('underline')) nextMarks.push('underline');
-    const nextHref = tag === 'a' && /^https:\/\//i.test(node.getAttribute('href') || '') ? node.getAttribute('href') : href;
+    const nextHref = tag === 'a' ? normalizeCreativePostLink(node.getAttribute('href')) : href;
     node.childNodes.forEach((child) => visit(child, nextMarks, nextHref));
   };
   root?.childNodes.forEach((node) => visit(node));

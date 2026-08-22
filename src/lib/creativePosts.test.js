@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyCreativePostInlineStyle, CREATIVE_POST_BLOCK_TYPES, CREATIVE_POST_MAX_IMAGES, creativePostExcerpt, creativePostHasContent, creativePostPlainText, emptyCreativePostDocument, moveCreativePostBlock, normalizeCreativePostDocument } from './creativePosts.js';
+import { applyCreativePostInlineStyle, CREATIVE_POST_BLOCK_TYPES, CREATIVE_POST_MAX_IMAGES, creativePostExcerpt, creativePostHasContent, creativePostPlainText, emptyCreativePostDocument, moveCreativePostBlock, normalizeCreativePostDocument, normalizeCreativePostLink } from './creativePosts.js';
 
 test('Creative posts use a bounded structured document instead of HTML', () => {
   assert.deepEqual(CREATIVE_POST_BLOCK_TYPES, ['paragraph', 'heading', 'quote', 'bullet_list', 'numbered_list', 'divider', 'image_group', 'external_embed']);
@@ -52,4 +52,14 @@ test('inline styles are stored as structured segments, never HTML', () => {
   const linked = applyCreativePostInlineStyle(bold, 5, 9, { href: 'https://example.com/work' });
   assert.match(linked[1].href, /^https:\/\/example\.com\/work/);
   assert.equal(JSON.stringify(linked).includes('<strong>'), false);
+});
+
+test('editor links are normalized before autosave validation', () => {
+  assert.equal(normalizeCreativePostLink('example.com/work'), 'https://example.com/work');
+  assert.equal(normalizeCreativePostLink('javascript:alert(1)'), '');
+  assert.equal(normalizeCreativePostLink("https://example.com/creator's-work"), 'https://example.com/creator%27s-work');
+  const linked = applyCreativePostInlineStyle([{ text: 'Open this work', marks: [] }], 5, 9, { href: 'example.com/work' });
+  assert.equal(linked[1].href, 'https://example.com/work');
+  const unlinked = applyCreativePostInlineStyle(linked, 5, 9, { href: '' });
+  assert.equal(unlinked.some((segment) => segment.href), false);
 });

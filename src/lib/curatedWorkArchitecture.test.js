@@ -24,12 +24,14 @@ test('Discover native dropdown options remain readable in both themes', () => {
   assert.match(styles, /:root\[data-theme="light"\] \.ll-discover-filters select option,[\s\S]*?background-color: #fff; color: #050505;/);
 });
 
-test('Home uses one Creative directory strip and gives the work feed the full content width', () => {
+test('Home uses one Creative directory strip and keeps work in a readable centered column', () => {
   const home = read('src/pages/Home.jsx');
   const styles = read('src/index.css');
   assert.match(home, /className="ll-creative-strip"/);
   assert.doesNotMatch(home, /CreativeCard|ll-discovery-panel|Meet the Creatives/);
   assert.match(styles, /\.ll-home-layout \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+  assert.match(styles, /--ll-work-reading-width: 48rem/);
+  assert.match(styles, /\.ll-network-home \.ll-feed-shell \{[^}]*width: min\(100%, var\(--ll-work-reading-width\)\);[^}]*margin-inline: auto;/);
 });
 
 test('primary public pages use the wide viewport canvas instead of a narrow fixed container', () => {

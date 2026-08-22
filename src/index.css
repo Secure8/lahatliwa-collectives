@@ -3873,3 +3873,17 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
     width: 100%;
   }
 }
+
+/* Keep discovery surfaces wide while posts retain a comfortable reading size. */
+:root {
+  --ll-work-reading-width: 48rem;
+}
+
+.ll-network-home .ll-feed-shell {
+  width: min(100%, var(--ll-work-reading-width));
+  margin-inline: auto;
+}
+
+.ll-profile-section .ll-feed-list {
+  width: min(100%, var(--ll-work-reading-width));
+}

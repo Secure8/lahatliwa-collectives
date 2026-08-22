@@ -23,6 +23,15 @@ test('authenticated Creative post writes can execute the document validator with
   assert.doesNotMatch(sql, /to public|to anon|service_role/);
 });
 
+test('Creative post links use structural HTTPS validation', () => {
+  const sql = source('supabase/migrations/20260822220000_creative_post_link_validation.sql');
+  assert.match(sql, /valid_creative_post_https_url/);
+  assert.match(sql, /left\(lower\(value\), 8\) = 'https:\/\/'/);
+  assert.match(sql, /document->'blocks'/);
+  assert.doesNotMatch(sql, /document->'sections'/);
+  assert.match(sql, /private\.valid_creative_post_https_url\(segment->>'href'\)/);
+});
+
 test('application separates Creative publishing and Super Admin maintenance', () => {
   const app = source('src/App.jsx');
   const access = source('src/lib/adminAccess.jsx');

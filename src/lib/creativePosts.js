@@ -212,6 +212,7 @@ export async function saveCreativePost(post, document) {
 export async function saveCreativePostEditor(post, document, metadata = {}, termIds = []) {
   const normalizedDocument = normalizeCreativePostDocument(document);
   const uniqueTermIds = [...new Set((termIds || []).filter(Boolean))];
+  const externalUrl = normalizeCreativePostLink(metadata.external_url);
   const { data, error } = await supabase.rpc('save_creative_post_editor', {
     p_post_id: post.id,
     p_document: normalizedDocument,
@@ -219,7 +220,7 @@ export async function saveCreativePostEditor(post, document, metadata = {}, term
     p_title: metadata.title || null,
     p_summary: metadata.summary || null,
     p_work_year: metadata.work_year || null,
-    p_external_url: metadata.external_url || null,
+    p_external_url: externalUrl || null,
     p_tags: metadata.tags || [],
     p_term_ids: uniqueTermIds,
   });

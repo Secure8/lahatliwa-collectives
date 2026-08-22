@@ -63,3 +63,15 @@ test('editor links are normalized before autosave validation', () => {
   const unlinked = applyCreativePostInlineStyle(linked, 5, 9, { href: '' });
   assert.equal(unlinked.some((segment) => segment.href), false);
 });
+
+test('linked post documents stay in the database-safe structured shape', () => {
+  const document = normalizeCreativePostDocument({ version: 1, blocks: [{
+    id: 'linked-copy', type: 'paragraph', content: [
+      { text: 'Read ', marks: [] },
+      { text: 'the full story', marks: ['bold'], href: 'example.com/story?from=liwa&view=full' },
+    ],
+  }] });
+  assert.deepEqual(document.blocks[0].content[1], {
+    text: 'the full story', marks: ['bold'], href: 'https://example.com/story?from=liwa&view=full',
+  });
+});

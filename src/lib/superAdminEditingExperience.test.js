@@ -86,6 +86,7 @@ test('public page covers share one responsive header and publish independently i
   assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.ll-page-hero\.has-background \.ll-page-hero__media \{[^}]*position: relative/);
   assert.match(styles, /\.ll-page-hero\.has-background \.ll-page-hero__media img \{[^}]*height: auto;[^}]*object-fit: contain/);
   assert.match(styles, /\.public-page-header\.ll-page-hero \{[^}]*padding-bottom: 0/);
+  assert.match(styles, /\.public-app-content--surface > \.page-shell:has\(> \.ll-page-hero\) \{\s*padding-top: 0 !important;/);
   assert.match(styles, /\.ll-page-hero\.is-cover-wide h1/);
   assert.match(styles, /\.ll-page-hero h1 \{[^}]*font-size: clamp\(1\.85rem, 8\.3vw, 2\.65rem\)/);
 });

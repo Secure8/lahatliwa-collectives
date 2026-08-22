@@ -4026,6 +4026,10 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 }
 
 @media (max-width: 639px) {
+  .public-app-content--surface > .page-shell:has(> .ll-page-hero) {
+    padding-top: 0 !important;
+  }
+
   .public-page-header.ll-page-hero { width: calc(100% - 1rem); min-height: 20rem; padding-bottom: 0; }
   .page-shell > .ll-page-hero { width: 100%; }
   .ll-page-hero.has-background { min-height: 0; }

@@ -45,7 +45,8 @@ test('desktop work details use a sticky rail without making the post wider', () 
   assert.match(details, /ll-work-detail-featured/);
   assert.match(details, /FeaturedWorkRequestControl/);
   assert.match(details, /loadFeaturedWorkGallery\(\)\.catch\(\(\) => \[\]\)/);
-  assert.match(styles, /\.ll-featured-work--rail \{[\s\S]*position: sticky;/);
+  assert.match(styles, /@media \(min-width: 1180px\)[\s\S]*\.ll-work-detail-featured \{[^}]*position: sticky;[^}]*top: 1\.25rem;/);
+  assert.doesNotMatch(styles, /\.ll-featured-work--rail \{[^}]*position: sticky;/);
   assert.match(styles, /grid-template-columns: minmax\(0, 960px\) minmax\(15rem, 19rem\)/);
   assert.match(styles, /\.ll-featured-work--mobile \{ display: none;/);
   assert.match(styles, /@media \(max-width: 639px\)[\s\S]*\.ll-featured-work--mobile \{ display: block;/);

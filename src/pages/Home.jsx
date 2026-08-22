@@ -44,41 +44,34 @@ export default function Home() {
 
   return <div data-creative-network-home className="ll-network-home">
     <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-    <div className={`ll-featured-split-page${state.featured.length ? ' has-featured' : ''}`}>
-      <div className="ll-featured-split-page__main">
-        <PublicPageHeader
-          eyebrow={page.heroEyebrow || 'Curated Creative work from Aklan'}
-          title={page.heroTitle || 'Work worth discovering.'}
-          description={page.heroDescription || 'Explore selected photography, film, design, writing, and digital work—then connect directly with the Creative behind it.'}
-          backgroundImage={page.heroBackgroundImageUrl}
-          backgroundPosition={page.heroBackgroundPosition || 'center'}
-          backgroundCredit={page.heroBackgroundCredit || ''}
-          edit={{ section: 'page.home', eyebrowField: 'heroEyebrow', titleField: 'heroTitle', descriptionField: 'heroDescription', backgroundField: 'heroBackgroundImageUrl', creditField: 'heroBackgroundCredit' }}
-          aside={<div className="ll-feed-intro__actions">
-            {isCreative ? <Link to="/create" className="ll-primary-action ll-mobile-redundant-create"><PenLine size={17} /> Add work</Link> : <Link to="/creatives" className="ll-primary-action"><UsersRound size={17} /> Explore Creatives</Link>}
-            <Link to="/inquiry" className="ll-text-action">Work with us <ArrowRight size={16} /></Link>
-          </div>}
-        />
+    <PublicPageHeader
+      eyebrow={page.heroEyebrow || 'Curated Creative work from Aklan'}
+      title={page.heroTitle || 'Work worth discovering.'}
+      description={page.heroDescription || 'Explore selected photography, film, design, writing, and digital work—then connect directly with the Creative behind it.'}
+      backgroundImage={page.heroBackgroundImageUrl}
+      backgroundPosition={page.heroBackgroundPosition || 'center'}
+      backgroundCredit={page.heroBackgroundCredit || ''}
+      edit={{ section: 'page.home', eyebrowField: 'heroEyebrow', titleField: 'heroTitle', descriptionField: 'heroDescription', backgroundField: 'heroBackgroundImageUrl', creditField: 'heroBackgroundCredit' }}
+      aside={<div className="ll-feed-intro__actions">
+        {isCreative ? <Link to="/create" className="ll-primary-action ll-mobile-redundant-create"><PenLine size={17} /> Add work</Link> : <Link to="/creatives" className="ll-primary-action"><UsersRound size={17} /> Explore Creatives</Link>}
+        <Link to="/inquiry" className="ll-text-action">Work with us <ArrowRight size={16} /></Link>
+      </div>}
+    />
 
-        <FeaturedWorkGallery items={state.featured} variant="mobile" />
+    <FeaturedWorkGallery items={state.featured} variant="mobile" />
 
-        {!state.loading && state.creatives.length > 0 && <nav className="ll-creative-strip" aria-label="Featured Creatives">
-          {state.creatives.map((creative) => <Link key={creative.id} to={`/creatives/${creative.slug}`} title={creative.name}>
-            {creative.profile_image_url ? <img src={creative.profile_image_url} alt="" loading="lazy" /> : <span aria-hidden="true">{creative.name?.slice(0, 1) || 'C'}</span>}
-            <small>{creative.name}</small>
-          </Link>)}
-        </nav>}
+    {!state.loading && state.creatives.length > 0 && <nav className="ll-creative-strip" aria-label="Featured Creatives">
+      {state.creatives.map((creative) => <Link key={creative.id} to={`/creatives/${creative.slug}`} title={creative.name}>
+        {creative.profile_image_url ? <img src={creative.profile_image_url} alt="" loading="lazy" /> : <span aria-hidden="true">{creative.name?.slice(0, 1) || 'C'}</span>}
+        <small>{creative.name}</small>
+      </Link>)}
+    </nav>}
 
-        <div className="ll-home-layout">
-          <main className="min-w-0">
-            {state.error && <p role="alert" className="ll-feed-error">{state.error}</p>}
-            {state.loading ? <LoadingState label="Loading Creative work" /> : <CreativeFeed posts={state.posts} creativeOwner={isCreative} moderator={isModerator} onModeratePost={moderatePost} copy={page} editableSection="page.home" />}
-          </main>
-        </div>
-      </div>
-      {state.featured.length > 0 && <aside className="ll-featured-split-page__aside" aria-label="Featured work gallery">
-        <FeaturedWorkGallery items={state.featured} variant="sidebar" />
-      </aside>}
+    <div className="ll-home-layout">
+      <main className="min-w-0">
+        {state.error && <p role="alert" className="ll-feed-error">{state.error}</p>}
+        {state.loading ? <LoadingState label="Loading Creative work" /> : <CreativeFeed posts={state.posts} creativeOwner={isCreative} moderator={isModerator} onModeratePost={moderatePost} copy={page} editableSection="page.home" />}
+      </main>
     </div>
   </div>;
 }

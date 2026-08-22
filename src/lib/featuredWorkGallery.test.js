@@ -28,25 +28,15 @@ test('only approved featured placements are public while Creative requests remai
   assert.match(migration, /grant execute on function public\.request_featured_work[\s\S]*to authenticated/);
 });
 
-test('Home places featured work above posts on mobile and in a sticky desktop sidebar', () => {
+test('mobile visitors see the featured gallery before every feed item', () => {
   const home = read('src/pages/Home.jsx');
-  const mobileGallery = home.indexOf('variant="mobile"');
+  const header = home.indexOf('<PublicPageHeader');
+  const gallery = home.indexOf('<FeaturedWorkGallery');
   const creativeStrip = home.indexOf('className="ll-creative-strip"');
   const feed = home.indexOf('<CreativeFeed');
-  assert.ok(mobileGallery >= 0 && mobileGallery < creativeStrip);
-  assert.ok(mobileGallery < feed);
-  assert.match(home, /className="ll-featured-split-page__aside"[\s\S]*variant="sidebar"/);
-});
-
-test('Discover places featured work above filters on mobile and in the desktop sidebar', () => {
-  const discover = read('src/pages/Discover.jsx');
-  const gallery = discover.indexOf('variant="mobile"');
-  const filters = discover.indexOf('className="ll-discover-filters"');
-  const results = discover.indexOf('className="ll-discover-results"');
-  assert.match(discover, /loadFeaturedWorkGallery\(\)\.catch\(\(\) => \[\]\)/);
-  assert.ok(gallery >= 0 && gallery < filters);
-  assert.ok(gallery < results);
-  assert.match(discover, /className="ll-featured-split-page__aside"[\s\S]*variant="sidebar"/);
+  assert.ok(header >= 0 && gallery > header);
+  assert.ok(gallery < creativeStrip);
+  assert.ok(gallery < feed);
 });
 
 test('desktop work details use a sticky rail without making the post wider', () => {
@@ -57,8 +47,6 @@ test('desktop work details use a sticky rail without making the post wider', () 
   assert.match(details, /loadFeaturedWorkGallery\(\)\.catch\(\(\) => \[\]\)/);
   assert.match(styles, /\.ll-featured-work--rail \{[\s\S]*position: sticky;/);
   assert.match(styles, /grid-template-columns: minmax\(0, 960px\) minmax\(15rem, 19rem\)/);
-  assert.match(styles, /\.ll-featured-split-page__aside \{[\s\S]*position: fixed;/);
-  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) clamp\(17rem, 21vw, 21rem\)/);
   assert.match(styles, /\.ll-featured-work--mobile \{ display: none;/);
   assert.match(styles, /@media \(max-width: 639px\)[\s\S]*\.ll-featured-work--mobile \{ display: block;/);
 });

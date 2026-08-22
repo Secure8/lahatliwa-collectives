@@ -16,14 +16,19 @@ test('taxonomy is reusable and availability has three clear states', () => {
   assert.deepEqual(WORK_AVAILABILITY.map((item) => item.value), ['available', 'limited', 'unavailable']);
 });
 
-test('post taxonomy choices use compact responsive multi-select dropdowns', () => {
+test('post and Collab taxonomy choices share compact responsive multi-select dropdowns', () => {
   const css = readFileSync(new URL('../index.css', import.meta.url), 'utf8');
   const editor = readFileSync(new URL('../pages/CreativePostEditor.jsx', import.meta.url), 'utf8');
-  assert.match(editor, /function TaxonomyDropdown/);
-  assert.match(editor, /type="checkbox" checked=\{checked\}/);
-  assert.match(editor, /aria-expanded=\{open\}/);
-  assert.match(editor, /openTaxonomyKind/);
+  const dropdowns = readFileSync(new URL('../components/WorkTaxonomyDropdowns.jsx', import.meta.url), 'utf8');
+  const inquiry = readFileSync(new URL('../pages/StartProject.jsx', import.meta.url), 'utf8');
+  assert.match(dropdowns, /function TaxonomyDropdown/);
+  assert.match(dropdowns, /type="checkbox" checked=\{checked\}/);
+  assert.match(dropdowns, /aria-expanded=\{open\}/);
+  assert.match(dropdowns, /const \[openKind, setOpenKind\]/);
   assert.match(editor, /Select all that apply · Optional/);
+  assert.match(editor, /<WorkTaxonomyDropdowns terms=\{taxonomy\} selectedIds=\{termIds\}/);
+  assert.match(inquiry, /<WorkTaxonomyDropdowns terms=\{terms\} selectedIds=\{selected\}/);
+  assert.doesNotMatch(inquiry, /Object\.entries\(groups\)/);
   assert.match(css, /\.ll-work-taxonomy-dropdowns \{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(css, /\.ll-taxonomy-menu \{ position: absolute;[\s\S]*?max\(100%, 18rem\)/);
   assert.match(css, /\.ll-taxonomy-menu-option:focus-within \{ outline: 2px solid var\(--focus-ring\)/);

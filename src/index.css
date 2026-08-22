@@ -614,27 +614,21 @@ summary::-webkit-details-marker {
 .ll-taxonomy-menu-option.is-selected { color: var(--theme-text-primary); font-weight: 650; }
 .ll-taxonomy-check { display: grid; width: 1.05rem; height: 1.05rem; place-items: center; border: 1px solid var(--theme-border-strong); border-radius: .3rem; color: var(--site-accent-contrast); }
 .ll-taxonomy-menu-option.is-selected .ll-taxonomy-check { border-color: var(--site-accent); background: var(--site-accent); }
-.ll-profile-taxonomy > div > div,
-.ll-inquiry-taxonomy > div > span { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.2rem; min-width: 0; }
-.ll-profile-taxonomy button,
-.ll-inquiry-taxonomy button { position: relative; min-height: 2.25rem; flex: 0 0 auto; border: 0; border-radius: 0; background: transparent; padding: .35rem 0; color: var(--theme-text-secondary); font-size: .8rem; white-space: nowrap; transition: color 140ms ease; }
-.ll-profile-taxonomy button:hover,
-.ll-inquiry-taxonomy button:hover { background: transparent; color: var(--theme-text-primary); }
-.ll-profile-taxonomy button[aria-pressed="true"],
-.ll-inquiry-taxonomy button[aria-pressed="true"] { background: transparent; color: var(--site-accent); font-weight: 750; }
-.ll-profile-taxonomy button[aria-pressed="true"]::after,
-.ll-inquiry-taxonomy button[aria-pressed="true"]::after { position: absolute; right: 0; bottom: .15rem; left: 0; height: 2px; background: var(--site-accent); content: ""; }
-.ll-profile-taxonomy, .ll-inquiry-taxonomy { display: grid; gap: .85rem; border: 0; padding: .25rem 0; }
-.ll-profile-taxonomy legend, .ll-inquiry-taxonomy legend { color: var(--theme-text-primary); font-size: .88rem; font-weight: 750; }
+.ll-profile-taxonomy > div > div { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.2rem; min-width: 0; }
+.ll-profile-taxonomy button { position: relative; min-height: 2.25rem; flex: 0 0 auto; border: 0; border-radius: 0; background: transparent; padding: .35rem 0; color: var(--theme-text-secondary); font-size: .8rem; white-space: nowrap; transition: color 140ms ease; }
+.ll-profile-taxonomy button:hover { background: transparent; color: var(--theme-text-primary); }
+.ll-profile-taxonomy button[aria-pressed="true"] { background: transparent; color: var(--site-accent); font-weight: 750; }
+.ll-profile-taxonomy button[aria-pressed="true"]::after { position: absolute; right: 0; bottom: .15rem; left: 0; height: 2px; background: var(--site-accent); content: ""; }
+.ll-profile-taxonomy { display: grid; gap: .85rem; border: 0; padding: .25rem 0; }
+.ll-profile-taxonomy legend { color: var(--theme-text-primary); font-size: .88rem; font-weight: 750; }
 .ll-profile-taxonomy > small { color: var(--theme-text-muted); font-size: .72rem; }
-.ll-profile-taxonomy > div, .ll-inquiry-taxonomy > div { display: grid; grid-template-columns: minmax(7rem, .22fr) minmax(0, 1fr); align-items: center; gap: 1rem; }
-.ll-profile-taxonomy > div > strong, .ll-inquiry-taxonomy > div > strong { color: var(--theme-text-muted); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; }
+.ll-profile-taxonomy > div { display: grid; grid-template-columns: minmax(7rem, .22fr) minmax(0, 1fr); align-items: center; gap: 1rem; }
+.ll-profile-taxonomy > div > strong { color: var(--theme-text-muted); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; }
 .ll-inquiry-taxonomy { border-block: 1px solid var(--theme-border); padding-block: 1rem; }
 .ll-inquiry-taxonomy legend small { margin-left: .35rem; color: var(--theme-text-muted); font-weight: 500; }
 
 @media (max-width: 640px) {
-  .ll-profile-taxonomy > div,
-  .ll-inquiry-taxonomy > div { grid-template-columns: minmax(0, 1fr); gap: .45rem; }
+  .ll-profile-taxonomy > div { grid-template-columns: minmax(0, 1fr); gap: .45rem; }
 }
 
 @media (max-width: 760px) {

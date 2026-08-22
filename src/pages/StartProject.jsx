@@ -4,10 +4,11 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ActionFeedback, FieldError } from '../components/FieldFeedback';
 import PublicPageHeader from '../components/PublicPageHeader';
+import WorkTaxonomyDropdowns from '../components/WorkTaxonomyDropdowns';
 import { usePublicContent } from '../lib/contentApi';
 import { inquiryContextFromSearchParams } from '../lib/inquiryContext';
 import { supabase } from '../lib/supabaseClient';
-import { groupWorkTaxonomy, loadWorkTaxonomy } from '../lib/workTaxonomy';
+import { loadWorkTaxonomy } from '../lib/workTaxonomy';
 
 const DRAFT_KEY = 'lahat-liwa-open-inquiry-v1';
 const contactMethods = ['Email', 'Phone', 'Facebook / Messenger', 'WhatsApp', 'Other'];
@@ -143,7 +144,5 @@ function TextArea({ fieldKey, label, value, onChange, error, maxLength, placehol
 function Select({ label, value, onChange, options }) { return <label className="grid gap-2 text-sm text-zinc-300"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="dark-select min-h-12 border border-white/[0.11] bg-black/20 px-3.5 text-white outline-none focus:border-orange-300/60">{options.map((option) => <option key={option}>{option}</option>)}</select></label>; }
 function CheckField({ fieldKey, label, checked, onChange, error }) { return <label data-inquiry-field={fieldKey} className="flex min-h-12 items-start gap-3 border-y border-white/[0.08] py-3 text-sm text-zinc-300"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-0.5 h-4 w-4 accent-orange-300" /><span>{label}<FieldError className="mt-1">{error}</FieldError></span></label>; }
 function InquiryTaxonomy({ terms, selected, onChange }) {
-  const groups = groupWorkTaxonomy(terms);
-  const toggle = (id) => onChange(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
-  return <fieldset className="ll-inquiry-taxonomy"><legend>What kind of work is this about? <small>Optional</small></legend>{Object.entries(groups).map(([kind, items]) => <div key={kind}><strong>{kind}</strong><span>{items.map((term) => <button key={term.id} type="button" aria-pressed={selected.includes(term.id)} onClick={() => toggle(term.id)}>{term.name}</button>)}</span></div>)}</fieldset>;
+  return <fieldset className="ll-inquiry-taxonomy ll-work-taxonomy"><legend>What kind of work is this about? <small>Select all that apply · Optional</small></legend><WorkTaxonomyDropdowns terms={terms} selectedIds={selected} onChange={onChange} /></fieldset>;
 }

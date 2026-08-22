@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowDown, Bold, Check, Eye, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, MoreHorizontal, Plus, Quote, Send, Trash2, Underline, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Bold, Check, ChevronDown, Eye, Heading2, ImagePlus, Italic, Link2, List, ListOrdered, Minus, MoreHorizontal, Plus, Quote, Send, Trash2, Underline, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import CreativePostDocument from '../components/CreativePostDocument';
@@ -27,6 +27,49 @@ const insertChoices = [
   ['numbered_list', 'Numbered list', ListOrdered], ['image', 'Image or gallery', ImagePlus], ['divider', 'Divider', Minus], ['external_embed', 'External link', Link2],
 ];
 
+const taxonomyKinds = ['discipline', 'specialty', 'industry'];
+
+function TaxonomyDropdown({ kind, terms, selectedIds, open, onOpen, onToggle, onClear }) {
+  const label = `${kind.slice(0, 1).toUpperCase()}${kind.slice(1)}`;
+  const selected = terms.filter((term) => selectedIds.includes(term.id));
+  const summary = selected.length === 0
+    ? `Choose ${kind}`
+    : selected.length === 1
+      ? selected[0].name
+      : `${selected.length} selected`;
+  const menuId = `work-taxonomy-${kind}-menu`;
+
+  return <div className={`ll-taxonomy-dropdown${open ? ' is-open' : ''}`}>
+    <button
+      type="button"
+      className="ll-taxonomy-trigger"
+      aria-expanded={open}
+      aria-controls={menuId}
+      onClick={onOpen}
+    >
+      <span className="ll-taxonomy-trigger-copy"><small>{label}</small><strong>{summary}</strong></span>
+      <span className="ll-taxonomy-trigger-meta">
+        {selected.length > 0 && <span className="ll-taxonomy-count" aria-label={`${selected.length} selected`}>{selected.length}</span>}
+        <ChevronDown size={18} aria-hidden="true" />
+      </span>
+    </button>
+    {open && <div id={menuId} className="ll-taxonomy-menu" role="group" aria-label={`${label} options`}>
+      <header><strong>{label}</strong>{selected.length > 0 && <button type="button" onClick={onClear}>Clear</button>}</header>
+      <div className="ll-taxonomy-menu-options">
+        {terms.map((term) => {
+          const checked = selectedIds.includes(term.id);
+          const inputId = `work-taxonomy-${kind}-${term.id}`;
+          return <label className={`ll-taxonomy-menu-option${checked ? ' is-selected' : ''}`} key={term.id} htmlFor={inputId}>
+            <input id={inputId} className="sr-only" type="checkbox" checked={checked} onChange={() => onToggle(term.id)} />
+            <span className="ll-taxonomy-check" aria-hidden="true">{checked && <Check size={14} />}</span>
+            <span>{term.name}</span>
+          </label>;
+        })}
+      </div>
+    </div>}
+  </div>;
+}
+
 export default function CreativePostEditor({ create = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,6 +88,7 @@ export default function CreativePostEditor({ create = false }) {
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(false);
   const [insertOpen, setInsertOpen] = useState(false);
+  const [openTaxonomyKind, setOpenTaxonomyKind] = useState('');
   const [selectedMediaId, setSelectedMediaId] = useState(null);
   const fileRef = useRef(null);
   const uploadAfterIndexRef = useRef(null);
@@ -56,6 +100,7 @@ export default function CreativePostEditor({ create = false }) {
   const documentRef = useRef(null);
   const metadataRef = useRef(metadata);
   const termIdsRef = useRef(termIds);
+  const taxonomyDropdownsRef = useRef(null);
   const { requestConfirmation, confirmationDialog } = useAdminConfirmation();
 
   useEffect(() => {
@@ -93,6 +138,23 @@ export default function CreativePostEditor({ create = false }) {
 
   useEffect(() => { let active = true; loadWorkTaxonomy().then((items) => { if (active) setTaxonomy(items); }).catch(() => null); return () => { active = false; }; }, []);
 
+  useEffect(() => {
+    if (!openTaxonomyKind) return undefined;
+    const closeDropdown = (event) => {
+      if (event.type === 'keydown') {
+        if (event.key === 'Escape') setOpenTaxonomyKind('');
+        return;
+      }
+      if (!taxonomyDropdownsRef.current?.contains(event.target)) setOpenTaxonomyKind('');
+    };
+    globalThis.document.addEventListener('pointerdown', closeDropdown);
+    globalThis.document.addEventListener('keydown', closeDropdown);
+    return () => {
+      globalThis.document.removeEventListener('pointerdown', closeDropdown);
+      globalThis.document.removeEventListener('keydown', closeDropdown);
+    };
+  }, [openTaxonomyKind]);
+
   const markDirty = useCallback((updater) => {
     setDocument((current) => {
       const next = typeof updater === 'function' ? updater(current) : updater;
@@ -109,6 +171,12 @@ export default function CreativePostEditor({ create = false }) {
   };
   const toggleTerm = (termId) => {
     const next = termIdsRef.current.includes(termId) ? termIdsRef.current.filter((idValue) => idValue !== termId) : [...termIdsRef.current, termId];
+    termIdsRef.current = next; setTermIds(next); revisionRef.current += 1; setStatus('unsaved');
+  };
+  const clearTerms = (terms) => {
+    const removedIds = new Set(terms.map((term) => term.id));
+    const next = termIdsRef.current.filter((termId) => !removedIds.has(termId));
+    if (next.length === termIdsRef.current.length) return;
     termIdsRef.current = next; setTermIds(next); revisionRef.current += 1; setStatus('unsaved');
   };
 
@@ -261,7 +329,7 @@ export default function CreativePostEditor({ create = false }) {
 
       <div className="ll-composer-modal-body"><div className="ll-composer-shell">
       <header className="ll-composer-author">{creative?.profile_image_url ? <img src={creative.profile_image_url} alt="" /> : <span>{creative?.name?.slice(0, 1) || 'C'}</span>}<div><strong>{creative?.name || 'Your Creative profile'}</strong><small>{post.status === 'published' ? 'Editing published work' : 'New work'}</small></div></header>
-      <section className="ll-work-details-editor" aria-labelledby="work-details-heading"><div><p className="ll-kicker">Portfolio details</p><h2 id="work-details-heading">Describe this work</h2></div><label className="is-wide"><span>Title</span><input value={metadata.title} maxLength={140} onChange={(event) => updateMetadata('title', event.target.value)} placeholder="Give the work a clear title"/></label><label className="is-wide"><span>Short summary</span><textarea rows={2} value={metadata.summary} maxLength={320} onChange={(event) => updateMetadata('summary', event.target.value)} placeholder="What should a visitor understand first?"/></label><label><span>Year</span><input type="number" min="1900" max="2200" value={metadata.work_year || ''} onChange={(event) => updateMetadata('work_year', event.target.value)}/></label><label><span>Tags</span><input value={metadata.tags} onChange={(event) => updateMetadata('tags', event.target.value)} placeholder="Aklan, portrait, festival"/></label><label className="is-wide"><span>External link</span><input type="url" value={metadata.external_url} onChange={(event) => updateMetadata('external_url', event.target.value)} placeholder="https://…"/></label><fieldset className="ll-work-taxonomy is-wide"><legend>What kind of work is this about? <small>Select all that apply · Optional</small></legend>{['discipline','specialty','industry'].map((kind) => <fieldset className="ll-work-taxonomy-group" key={kind}><legend>{kind}</legend><div className="ll-work-taxonomy-options">{(groupedTaxonomy[kind] || []).map((term) => { const inputId = `work-taxonomy-${kind}-${term.id}`; return <label className="ll-work-taxonomy-option" key={term.id} htmlFor={inputId}><input id={inputId} type="checkbox" checked={termIds.includes(term.id)} onChange={() => toggleTerm(term.id)} /><span>{term.name}</span></label>; })}</div></fieldset>)}</fieldset></section>
+      <section className="ll-work-details-editor" aria-labelledby="work-details-heading"><div><p className="ll-kicker">Portfolio details</p><h2 id="work-details-heading">Describe this work</h2></div><label className="is-wide"><span>Title</span><input value={metadata.title} maxLength={140} onChange={(event) => updateMetadata('title', event.target.value)} placeholder="Give the work a clear title"/></label><label className="is-wide"><span>Short summary</span><textarea rows={2} value={metadata.summary} maxLength={320} onChange={(event) => updateMetadata('summary', event.target.value)} placeholder="What should a visitor understand first?"/></label><label><span>Year</span><input type="number" min="1900" max="2200" value={metadata.work_year || ''} onChange={(event) => updateMetadata('work_year', event.target.value)}/></label><label><span>Tags</span><input value={metadata.tags} onChange={(event) => updateMetadata('tags', event.target.value)} placeholder="Aklan, portrait, festival"/></label><label className="is-wide"><span>External link</span><input type="url" value={metadata.external_url} onChange={(event) => updateMetadata('external_url', event.target.value)} placeholder="https://…"/></label><fieldset className="ll-work-taxonomy is-wide"><legend>What kind of work is this about? <small>Select all that apply · Optional</small></legend><div className="ll-work-taxonomy-dropdowns" ref={taxonomyDropdownsRef}>{taxonomyKinds.map((kind) => <TaxonomyDropdown key={kind} kind={kind} terms={groupedTaxonomy[kind] || []} selectedIds={termIds} open={openTaxonomyKind === kind} onOpen={() => setOpenTaxonomyKind((current) => current === kind ? '' : kind)} onToggle={toggleTerm} onClear={() => clearTerms(groupedTaxonomy[kind] || [])} />)}</div></fieldset></section>
       {error && <p className="ll-composer-error" role="alert">{error}</p>}
       {preview ? <section className="ll-composer-preview"><CreativePostDocument document={previewDocument} media={media} /></section> : <section className="ll-natural-canvas" aria-label="Post composition canvas">
         {(document?.blocks || []).map((block, index) => <NaturalBlock key={block.id} block={block} index={index} count={document.blocks.length} media={media} onChange={(patch) => updateBlock(index, patch)} onTransform={(type, level) => transformBlock(index, type, level)} onEnter={() => addParagraphAfter(index)} onInsert={(type) => insertBlock(type, index)} onMove={(delta) => moveBlock(block.id, delta)} onRemove={() => removeBlock(index)} onSelectMedia={setSelectedMediaId} />)}

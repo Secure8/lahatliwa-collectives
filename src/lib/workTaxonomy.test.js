@@ -16,15 +16,17 @@ test('taxonomy is reusable and availability has three clear states', () => {
   assert.deepEqual(WORK_AVAILABILITY.map((item) => item.value), ['available', 'limited', 'unavailable']);
 });
 
-test('post taxonomy choices use editorial checkbox rows instead of capsules', () => {
+test('post taxonomy choices use compact responsive multi-select dropdowns', () => {
   const css = readFileSync(new URL('../index.css', import.meta.url), 'utf8');
   const editor = readFileSync(new URL('../pages/CreativePostEditor.jsx', import.meta.url), 'utf8');
-  assert.match(editor, /type="checkbox" checked=\{termIds\.includes\(term\.id\)\}/);
+  assert.match(editor, /function TaxonomyDropdown/);
+  assert.match(editor, /type="checkbox" checked=\{checked\}/);
+  assert.match(editor, /aria-expanded=\{open\}/);
+  assert.match(editor, /openTaxonomyKind/);
   assert.match(editor, /Select all that apply · Optional/);
-  assert.match(css, /\.ll-work-taxonomy-options \{ display: grid; grid-template-columns: repeat\(auto-fit, minmax\(12rem, 1fr\)\)/);
-  assert.match(css, /\.ll-work-taxonomy-option \{ display: flex;[\s\S]*?border: 0; border-radius: 0; background: transparent/);
-  assert.match(css, /\.ll-work-taxonomy-option input \{[\s\S]*?accent-color: var\(--site-accent\)/);
-  assert.match(css, /\.ll-work-taxonomy-option:focus-within \{[\s\S]*?outline: 2px solid var\(--focus-ring\)/);
-  assert.doesNotMatch(css, /overflow-x: auto; border: 1px solid var\(--theme-border\); border-radius: \.75rem/);
-  assert.match(css, /@media \(max-width: 380px\)[\s\S]*?\.ll-work-taxonomy-options \{ grid-template-columns: 1fr; \}/);
+  assert.match(css, /\.ll-work-taxonomy-dropdowns \{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.ll-taxonomy-menu \{ position: absolute;[\s\S]*?max\(100%, 18rem\)/);
+  assert.match(css, /\.ll-taxonomy-menu-option:focus-within \{ outline: 2px solid var\(--focus-ring\)/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.ll-work-taxonomy-dropdowns \{ grid-template-columns: minmax\(0, 1fr\); \}[\s\S]*?\.ll-taxonomy-menu,[\s\S]*?position: static; width: 100%/);
+  assert.doesNotMatch(css, /\.ll-work-taxonomy-options/);
 });

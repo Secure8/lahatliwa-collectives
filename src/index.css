@@ -4117,7 +4117,7 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 
 @media (min-width: 1180px) {
   .ll-work-detail-layout { display: grid; grid-template-columns: minmax(0, 960px) minmax(15rem, 19rem); justify-content: center; align-items: start; gap: 2.25rem; }
-  .ll-work-detail-featured { position: sticky; top: 1.25rem; display: block; min-width: 0; align-self: start; padding-top: 4.25rem; }
+  .ll-work-detail-featured { position: fixed; top: 0.5; right: 1.5rem; width: 19rem; display: block; min-width: 0; padding-top: 4.25rem; z-index: 10; }
 }
 
 @media (max-width: 800px) {

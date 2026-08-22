@@ -27,7 +27,7 @@ export default function CreativePostDocument({ document, media = [], compact = f
       if (block.type === 'numbered_list') return <ol key={block.id} className="grid list-decimal gap-2 pl-6 leading-7">{block.items.map((item, i) => <li key={`${block.id}-${i}`}>{item}</li>)}</ol>;
       if (block.type === 'divider') return <hr key={block.id} className="my-2 border-white/10" />;
       if (block.type === 'image_group') return <CreativePostGallery key={block.id} items={block.mediaIds.map((id) => mediaMap.get(id)).filter(Boolean)} />;
-      if (block.type === 'external_embed') return <a key={block.id} href={block.url} target="_blank" rel="noopener noreferrer" className="group rounded-xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-orange-300/35"><span className="block text-xs uppercase tracking-[0.16em] text-orange-300">External showcase</span><span className="mt-2 block break-words font-medium text-white group-hover:text-orange-100">{block.label || block.url}</span></a>;
+      if (block.type === 'external_embed') return <a key={block.id} href={block.url} target="_blank" rel="noopener noreferrer" className="group rounded-xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-orange-300/35"><span className="block text-xs uppercase tracking-[0.16em] text-orange-300">External gallery</span><span className="mt-2 block break-words font-medium text-white group-hover:text-orange-100">{block.label || block.url}</span></a>;
       return null;
     })}
     {compact && normalized.blocks.length > blocks.length && <p className="ll-post-continue">Open the post to continue reading.</p>}

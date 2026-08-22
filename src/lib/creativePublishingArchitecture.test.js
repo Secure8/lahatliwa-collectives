@@ -145,3 +145,12 @@ test('underline remains structured and is accepted by the database validator', (
   assert.match(migration, /not in \('bold','italic','underline'\)/);
   assert.match(migration, /Raw HTML remains forbidden/);
 });
+
+test('post editor exposes one clearly named external gallery block', () => {
+  const editor = source('src/pages/CreativePostEditor.jsx');
+  const document = source('src/components/CreativePostDocument.jsx');
+  assert.doesNotMatch(editor, /<span>External link<\/span>/);
+  assert.match(editor, /\['external_embed', 'External gallery', Link2\]/);
+  assert.match(editor, /Give this gallery a title/);
+  assert.match(document, />External gallery<\/span>/);
+});

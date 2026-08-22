@@ -6,7 +6,7 @@ export default function PlatformTools() {
     <section className="ll-platform-tools-intro">
       <p className="ll-kicker">Platform tools</p>
       <h2>Choose what you need.</h2>
-      <p>Review projects, private inquiries, moderation, taxonomy, or Creative access from the tools above.</p>
+      <p>Review projects, featured placements, private inquiries, moderation, taxonomy, or Creative access from the tools above.</p>
       <span><ArrowUpRight size={17}/> Your public website remains the main editing view.</span>
     </section>
   </AdminLayout>;

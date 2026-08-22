@@ -1,4 +1,4 @@
-import { Bell, FolderKanban, ShieldCheck, Tags, UsersRound, X } from 'lucide-react';
+import { Bell, FolderKanban, Images, ShieldCheck, Tags, UsersRound, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAccess } from '../../lib/adminAccess';
@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabaseClient';
 
 const operations = [
   ['Projects', '/admin/projects', FolderKanban],
+  ['Featured', '/admin/featured', Images],
   ['Inquiries', '/admin/inquiries', Bell],
   ['Moderation', '/admin/moderation', ShieldCheck],
   ['Taxonomy', '/admin/taxonomy', Tags],

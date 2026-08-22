@@ -28,6 +28,7 @@ const StartProject = lazy(loadStartProject);
 const InquiryConfirmation = lazy(loadInquiryConfirmation);
 const Privacy = lazy(loadPrivacy);
 const AdminProjects = lazy(() => import('./pages/admin/AdminProjects'));
+const AdminFeaturedWork = lazy(() => import('./pages/admin/AdminFeaturedWork'));
 const NewProject = lazy(() => import('./pages/admin/NewProject'));
 const EditProject = lazy(() => import('./pages/admin/EditProject'));
 const AdminInquiries = lazy(() => import('./pages/admin/AdminInquiries'));
@@ -161,6 +162,7 @@ export default function App() {
         <Route path="/admin/my-profile" element={<Navigate to="/account" replace />} />
         <Route path="/admin/directory" element={<Navigate to="/creatives" replace />} />
         <Route path="/admin/projects" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><AdminProjects /></AdminRouteGuard></AdminSuspense>} />
+        <Route path="/admin/featured" element={<AdminSuspense><AdminRouteGuard allow={['super_admin']}><AdminFeaturedWork /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/projects/new" element={<AdminSuspense><AdminRouteGuard allow={['creative']}><NewProject /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/projects/:id/edit" element={<AdminSuspense><AdminRouteGuard allow={['creative']}><EditProject /></AdminRouteGuard></AdminSuspense>} />
         <Route path="/admin/creatives" element={<Navigate to="/creatives" replace />} />

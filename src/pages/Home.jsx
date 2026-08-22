@@ -8,11 +8,13 @@ import { loadPublicCreativeFeed, moderateCreativePost } from '../lib/creativePos
 import { supabase } from '../lib/supabaseClient';
 import usePublicAccount from '../lib/usePublicAccount';
 import PublicPageHeader from '../components/PublicPageHeader';
+import FeaturedWorkGallery from '../components/FeaturedWorkGallery';
+import { loadFeaturedWorkGallery } from '../lib/featuredWork';
 
 export default function Home() {
   const { content } = usePublicContent(['home']);
   const { account } = usePublicAccount();
-  const [state, setState] = useState({ loading: true, posts: [], creatives: [], error: '' });
+  const [state, setState] = useState({ loading: true, posts: [], creatives: [], featured: [], error: '' });
   const page = content.websitePages?.home || {};
 
   useEffect(() => {
@@ -20,9 +22,10 @@ export default function Home() {
     Promise.all([
       loadPublicCreativeFeed({ limit: 36 }),
       supabase.from('creative_members').select('id,name,slug,role,short_bio,profile_image_url,skills,is_featured').eq('is_published', true).order('is_featured', { ascending: false }).order('display_order', { ascending: true, nullsFirst: false }).limit(10),
-    ]).then(([posts, creativeResult]) => {
+      loadFeaturedWorkGallery().catch(() => []),
+    ]).then(([posts, creativeResult, featured]) => {
       if (!active) return;
-      setState({ loading: false, posts, creatives: creativeResult.data || [], error: '' });
+      setState({ loading: false, posts, creatives: creativeResult.data || [], featured, error: '' });
     }).catch((error) => { if (active) setState((current) => ({ ...current, loading: false, error: error.message || 'The feed could not be refreshed.' })); });
     return () => { active = false; };
   }, []);
@@ -54,6 +57,8 @@ export default function Home() {
         <Link to="/inquiry" className="ll-text-action">Work with us <ArrowRight size={16} /></Link>
       </div>}
     />
+
+    <FeaturedWorkGallery items={state.featured} variant="mobile" />
 
     {!state.loading && state.creatives.length > 0 && <nav className="ll-creative-strip" aria-label="Featured Creatives">
       {state.creatives.map((creative) => <Link key={creative.id} to={`/creatives/${creative.slug}`} title={creative.name}>

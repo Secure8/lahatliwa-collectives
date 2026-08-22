@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
+    // Keep the production bundle compatible with older Android/desktop Chrome
+    // releases while preserving native dynamic imports for route splitting.
+    target: ['es2019', 'chrome87'],
     rollupOptions: {
       output: {
         manualChunks: {

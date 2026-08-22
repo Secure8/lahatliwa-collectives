@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import CreativePostCard from '../components/CreativePostCard';
 import EmptyState from '../components/EmptyState';
@@ -37,7 +37,7 @@ export default function Discover() {
     <PublicPageHeader eyebrow={page.eyebrow || 'Discover'} title={page.title || 'Find Creative work from Aklan.'} description={page.description || 'Browse selected work by discipline, specialty, industry, or the idea you have in mind.'} backgroundImage={page.heroBackgroundImageUrl} backgroundPosition={page.heroBackgroundPosition || 'center'} backgroundCredit={page.heroBackgroundCredit || ''} edit={{ section: 'page.discover', eyebrowField: 'eyebrow', titleField: 'title', descriptionField: 'description', backgroundField: 'heroBackgroundImageUrl', creditField: 'heroBackgroundCredit' }} />
     <section className="ll-discover-filters" aria-label="Filter Creative work">
       <label className="ll-discover-search"><Search size={17}/><span className="sr-only">Search work</span><input type="search" value={filters.keyword} onChange={(event) => update('keyword', event.target.value)} placeholder="Search work, skills, or Creatives"/></label>
-      <div><SlidersHorizontal size={16}/>{['discipline','specialty','industry'].map((kind) => <label key={kind}><span className="sr-only">{kind}</span><select value={filters[kind]} onChange={(event) => update(kind, event.target.value)}><option value="">All {kind === 'industry' ? 'industries' : `${kind}s`}</option>{(grouped[kind] || []).map((term) => <option key={term.id} value={term.slug}>{term.name}</option>)}</select></label>)}</div>
+      <div>{['discipline','specialty','industry'].map((kind) => <label key={kind}><span className="sr-only">{kind}</span><select value={filters[kind]} onChange={(event) => update(kind, event.target.value)}><option value="">All {kind === 'industry' ? 'industries' : `${kind}s`}</option>{(grouped[kind] || []).map((term) => <option key={term.id} value={term.slug}>{term.name}</option>)}</select></label>)}</div>
     </section>
     {state.loading ? <LoadingState label="Loading Creative work"/> : state.error ? <p className="ll-feed-error" role="alert">{state.error}</p> : visible.length ? <section className="ll-discover-results" aria-label="Creative work results">{visible.map((work) => <CreativePostCard key={work.id} post={work} creative={work.creative_members} feed/>)}</section> : <EmptyState title="No work matches these filters" message="Try a broader keyword or remove one of the filters."/>}
   </div>;

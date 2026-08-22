@@ -1,29 +1,15 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import App from './App.jsx';
-import './index.css';
-import { AuthSessionProvider } from './lib/authSession.jsx';
-import { ThemeProvider } from './lib/ThemeProvider.jsx';
-import { installReleaseRecovery } from './lib/releaseRecovery.js';
+function showStartupFailure(error) {
+  console.error('Lahat Liwa could not start.', error);
+  const root = document.getElementById('root');
+  if (!root) return;
+  root.innerHTML = `
+    <main class="boot-failure" role="alert">
+      <p>This page did not finish loading.</p>
+      <button type="button" data-boot-refresh>Refresh</button>
+    </main>
+  `;
+  const refreshButton = root.querySelector('[data-boot-refresh]');
+  if (refreshButton) refreshButton.addEventListener('click', () => window.location.reload());
+}
 
-installReleaseRecovery();
-
-const router = createBrowserRouter([
-  {
-    path: '*',
-    element: <App />,
-  },
-], {
-  future: { v7_startTransition: true, v7_relativeSplatPath: true },
-});
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <AuthSessionProvider>
-        <RouterProvider router={router} />
-      </AuthSessionProvider>
-    </ThemeProvider>
-  </React.StrictMode>,
-);
+import('./bootstrap.jsx').catch(showStartupFailure);

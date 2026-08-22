@@ -225,7 +225,7 @@ test('inquiry copy requires a prominent detailed request and avoids instant-book
     readFile(new URL('../../supabase/functions/submit-service-request/index.ts', import.meta.url), 'utf8'),
   ]);
   assert.match(form, /label="Your message"/);
-  assert.match(form, /What happens next/);
+  assert.doesNotMatch(form, /What happens next|CheckCircle2/);
   assert.match(confirmation, /Message received/);
   assert.match(email, /Service category.*inquiry\.project_type/s);
   assert.match(email, /Request details.*inquiry\.details/s);

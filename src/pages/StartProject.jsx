@@ -1,5 +1,5 @@
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
-import { ArrowRight, CheckCircle2, Send, UserRound } from 'lucide-react';
+import { Send, UserRound } from 'lucide-react';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ActionFeedback, FieldError } from '../components/FieldFeedback';
@@ -120,7 +120,7 @@ export default function StartProject() {
   const page = content.websitePages?.inquiries || content.contactPage || {};
   return <div className="page-shell">
     <PublicPageHeader eyebrow={page.landingEyebrow || (platformInquiry ? 'Contact Lahat Liwa' : 'Connect with a Creative')} title={page.landingHeading || (platformInquiry ? 'Message the people behind the platform.' : 'Start a private creative conversation.')} description={page.landingDescription || (platformInquiry ? 'Use this for questions about Lahat Liwa, the website, profiles, credits, or the network itself.' : 'Choose who you want to work with, then describe the project, opportunity, or collaboration directly.')} backgroundImage={page.heroBackgroundImageUrl} backgroundPosition={page.heroBackgroundPosition || 'center'} backgroundCredit={page.heroBackgroundCredit || ''} edit={{ section: 'page.inquiries', eyebrowField: 'landingEyebrow', titleField: 'landingHeading', descriptionField: 'landingDescription', backgroundField: 'heroBackgroundImageUrl', creditField: 'heroBackgroundCredit' }} />
-    <form onSubmit={submit} aria-label={platformInquiry ? 'Platform contact form' : 'Creative inquiry form'} className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
+    <form onSubmit={submit} aria-label={platformInquiry ? 'Platform contact form' : 'Creative inquiry form'} className="mt-10">
       <section className="grid gap-6">
         {!platformInquiry && <fieldset data-inquiry-field="creativeSlug" className="ll-creative-recipient-picker"><legend>Who would you like to contact?</legend><p>Your message will be private to the selected Creative and the Super Admin.</p><div>{creatives.map((creative) => <label key={creative.id} className={draft.creativeSlug === creative.slug ? 'is-selected' : ''}><input type="radio" name="creative" value={creative.slug} checked={draft.creativeSlug === creative.slug} onChange={() => update('creativeSlug', creative.slug)} /><span className="ll-creative-recipient-avatar">{creative.profile_image_url ? <img src={creative.profile_image_url} alt=""/> : <UserRound size={20}/>}</span><span><strong>{creative.name}</strong><small>{creative.role || creative.short_bio || 'Lahat Liwa Creative'}</small></span></label>)}</div><FieldError>{errors.creativeSlug}</FieldError></fieldset>}
         {!platformInquiry && <InquiryTaxonomy terms={taxonomy} selected={draft.taxonomyTermIds || []} onChange={(value) => update('taxonomyTermIds', value)}/>}
@@ -134,7 +134,6 @@ export default function StartProject() {
         <ActionFeedback error={submitError || (Object.keys(errors).length ? 'Please check the highlighted information.' : '')} />
         <button type="submit" disabled={submitting} className="ll-primary-action ll-inquiry-submit"><Send size={16} />{submitting ? 'Sending securely…' : 'Send message'}</button>
       </section>
-      <aside className="h-fit border-t border-white/[0.1] pt-6 lg:sticky lg:top-24"><p className="text-xs uppercase tracking-[0.18em] text-orange-200">What happens next</p><div className="mt-5 grid gap-4 text-sm leading-6 text-zinc-400"><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />{platformInquiry ? 'Your message goes to the platform owner.' : 'Your message goes directly to the Creative you selected.'}</p><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />It is not placed in a public or shared inquiry pool.</p><p className="flex gap-3"><CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />A reply is sent using your preferred contact method.</p></div><p className="mt-7 text-xs leading-6 text-zinc-600">{page.disclaimer || 'Sending a message does not confirm availability, schedule, scope, or pricing.'}</p>{platformInquiry && <a href={`mailto:${content.email}`} className="fine-link mt-5 inline-flex min-h-11 items-center gap-2 text-sm text-zinc-300">Or email directly <ArrowRight size={15} /></a>}</aside>
     </form>
   </div>;
 }

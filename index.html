@@ -12,6 +12,49 @@
 
 <meta name="theme-color" content="#09090b" />
 
+<style>
+  .boot-loader {
+    min-height: 100dvh;
+    display: grid;
+    place-content: center;
+    grid-auto-flow: column;
+    gap: 0.45rem;
+    background: #09090b;
+  }
+  .boot-loader span {
+    width: 0.48rem;
+    height: 0.48rem;
+    border-radius: 999px;
+    background: #f3a257;
+    animation: liwa-boot-bounce 0.9s ease-in-out infinite alternate;
+  }
+  .boot-loader span:nth-child(2) { animation-delay: 0.16s; }
+  .boot-loader span:nth-child(3) { animation-delay: 0.32s; }
+  .boot-failure {
+    min-height: 100dvh;
+    display: grid;
+    place-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    text-align: center;
+    color: #f4f4f5;
+    background: #09090b;
+    font: 500 1rem/1.5 system-ui, sans-serif;
+  }
+  .boot-failure button {
+    min-height: 2.75rem;
+    padding: 0 1.25rem;
+    border: 1px solid #f3a257;
+    border-radius: 0.75rem;
+    color: #09090b;
+    background: #f3a257;
+    font: inherit;
+    font-weight: 700;
+  }
+  @keyframes liwa-boot-bounce { to { transform: translateY(-0.55rem); opacity: 0.45; } }
+  @media (prefers-reduced-motion: reduce) { .boot-loader span { animation: none; } }
+</style>
+
 <script>
   (() => {
     const key = 'lahat-liwa-theme';
@@ -26,7 +69,8 @@
       : preference;
     document.documentElement.dataset.theme = resolved;
     document.documentElement.style.colorScheme = resolved;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolved === 'light' ? '#f5f1e8' : '#09090b');
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', resolved === 'light' ? '#f5f1e8' : '#09090b');
   })();
 </script>
 
@@ -104,7 +148,7 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot-loader" role="status" aria-label="Loading"><span></span><span></span><span></span></div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

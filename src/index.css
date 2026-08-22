@@ -3936,6 +3936,7 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   margin-inline: auto;
   overflow: hidden;
   border-bottom: 1px solid var(--theme-border);
+  padding-bottom: 0;
 }
 
 .ll-discover-page:has(> .ll-page-hero),
@@ -4025,7 +4026,7 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
 }
 
 @media (max-width: 639px) {
-  .ll-page-hero { width: calc(100% - 1rem); min-height: 20rem; }
+  .public-page-header.ll-page-hero { width: calc(100% - 1rem); min-height: 20rem; padding-bottom: 0; }
   .page-shell > .ll-page-hero { width: 100%; }
   .ll-page-hero.has-background { min-height: 0; }
   .ll-page-hero.has-background .ll-page-hero__media { position: relative; inset: auto; z-index: 0; width: 100%; }
@@ -4038,4 +4039,9 @@ html.admin-mode .skip-link:focus-visible { transform: translateY(0) !important; 
   .ll-page-hero h1 + p { max-width: 38rem; margin-top: .75rem; font-size: clamp(.78rem, 3.4vw, .9rem); line-height: 1.45; }
   .ll-page-hero__credit { bottom: .75rem; left: 1rem; max-width: calc(100% - 2rem); font-size: .62rem; }
   .ll-page-hero__overlay { background: linear-gradient(180deg, rgb(10 12 11 / .38), rgb(10 12 11 / .9)); }
+  .ll-page-hero.is-cover-wide h1 { max-width: 18ch; font-size: clamp(1.65rem, 7.2vw, 2.3rem); }
+  .ll-page-hero.is-cover-wide h1 + p { font-size: clamp(.72rem, 3vw, .84rem); line-height: 1.35; }
+  .ll-page-hero.is-cover-wide .ll-page-hero__inner { padding-top: 2.75rem; }
+  .ll-page-hero.is-cover-portrait h1 { max-width: 16ch; font-size: clamp(2rem, 9vw, 2.8rem); }
+  .ll-page-hero.is-cover-portrait h1 + p { max-width: 30rem; }
 }

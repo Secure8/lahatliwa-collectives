@@ -58,7 +58,8 @@ export default function Privacy() {
         description={page.description || `How ${content.displayName} collects, uses, stores, and protects information.`}
         backgroundImage={page.heroBackgroundImageUrl}
         backgroundPosition={page.heroBackgroundPosition || 'center'}
-        edit={{ section: 'page.privacy', eyebrowField: 'eyebrow', titleField: 'title', descriptionField: 'description', backgroundField: 'heroBackgroundImageUrl' }}
+        backgroundCredit={page.heroBackgroundCredit || ''}
+        edit={{ section: 'page.privacy', eyebrowField: 'eyebrow', titleField: 'title', descriptionField: 'description', backgroundField: 'heroBackgroundImageUrl', creditField: 'heroBackgroundCredit' }}
       />
 
       <div className="grid gap-10 py-12 md:grid-cols-[0.32fr_1fr] md:py-16">

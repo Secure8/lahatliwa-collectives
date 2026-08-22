@@ -8,7 +8,7 @@ export default function About() {
 
   return (
     <div className="page-shell">
-      <PublicPageHeader eyebrow={page.eyebrow || 'About'} title={page.title || content.about.title} description={page.intro || content.about.intro} backgroundImage={page.heroBackgroundImageUrl} backgroundPosition={page.heroBackgroundPosition || 'center'} accentColor={content.about.accentColor || content.accentColor} titleColor={content.about.headingColor || content.primaryTextColor} bodyColor={content.about.bodyTextColor || content.secondaryTextColor} edit={{ section: 'page.about', eyebrowField: 'eyebrow', titleField: 'title', descriptionField: 'intro', backgroundField: 'heroBackgroundImageUrl' }} />
+      <PublicPageHeader eyebrow={page.eyebrow || 'About'} title={page.title || content.about.title} description={page.intro || content.about.intro} backgroundImage={page.heroBackgroundImageUrl} backgroundPosition={page.heroBackgroundPosition || 'center'} backgroundCredit={page.heroBackgroundCredit || ''} accentColor={content.about.accentColor || content.accentColor} titleColor={content.about.headingColor || content.primaryTextColor} bodyColor={content.about.bodyTextColor || content.secondaryTextColor} edit={{ section: 'page.about', eyebrowField: 'eyebrow', titleField: 'title', descriptionField: 'intro', backgroundField: 'heroBackgroundImageUrl', creditField: 'heroBackgroundCredit' }} />
 
       <section className="grid gap-8 py-12 md:grid-cols-[0.38fr_1fr] md:py-16">
         <div>

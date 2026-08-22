@@ -47,7 +47,8 @@ export default function Home() {
       description={page.heroDescription || 'Explore selected photography, film, design, writing, and digital work—then connect directly with the Creative behind it.'}
       backgroundImage={page.heroBackgroundImageUrl}
       backgroundPosition={page.heroBackgroundPosition || 'center'}
-      edit={{ section: 'page.home', eyebrowField: 'heroEyebrow', titleField: 'heroTitle', descriptionField: 'heroDescription', backgroundField: 'heroBackgroundImageUrl' }}
+      backgroundCredit={page.heroBackgroundCredit || ''}
+      edit={{ section: 'page.home', eyebrowField: 'heroEyebrow', titleField: 'heroTitle', descriptionField: 'heroDescription', backgroundField: 'heroBackgroundImageUrl', creditField: 'heroBackgroundCredit' }}
       aside={<div className="ll-feed-intro__actions">
         {isCreative ? <Link to="/create" className="ll-primary-action ll-mobile-redundant-create"><PenLine size={17} /> Add work</Link> : <Link to="/creatives" className="ll-primary-action"><UsersRound size={17} /> Explore Creatives</Link>}
         <Link to="/inquiry" className="ll-text-action">Work with us <ArrowRight size={16} /></Link>

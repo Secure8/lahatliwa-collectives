@@ -35,7 +35,7 @@ export default function Creatives() {
 
   return (
     <div className="page-shell">
-      <PublicPageHeader eyebrow={page.directoryEyebrow || 'Aklan Creatives'} title={page.directoryTitle || 'Meet the people behind the work.'} description={page.directoryDescription || `Browse distinct portfolios, disciplines, availability, and direct inquiry paths across ${content.displayName}.`} backgroundImage={page.heroBackgroundImageUrl} backgroundPosition={page.heroBackgroundPosition || 'center'} edit={{ section: 'page.creatives', eyebrowField: 'directoryEyebrow', titleField: 'directoryTitle', descriptionField: 'directoryDescription', backgroundField: 'heroBackgroundImageUrl' }} />
+      <PublicPageHeader eyebrow={page.directoryEyebrow || 'Aklan Creatives'} title={page.directoryTitle || 'Meet the people behind the work.'} description={page.directoryDescription || `Browse distinct portfolios, disciplines, availability, and direct inquiry paths across ${content.displayName}.`} backgroundImage={page.heroBackgroundImageUrl} backgroundPosition={page.heroBackgroundPosition || 'center'} backgroundCredit={page.heroBackgroundCredit || ''} edit={{ section: 'page.creatives', eyebrowField: 'directoryEyebrow', titleField: 'directoryTitle', descriptionField: 'directoryDescription', backgroundField: 'heroBackgroundImageUrl', creditField: 'heroBackgroundCredit' }} />
       <div className="pt-12">
       {loading && <LoadingState label="Loading creatives" />}
       {error && <div className="border-y border-red-400/30 py-5 text-red-100">{error}</div>}

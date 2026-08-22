@@ -70,11 +70,16 @@ test('public page covers share one responsive header and publish independently i
     assert.match(studio, new RegExp(section.replace('.', '\\.')));
   }
   assert.match(studio, /heroBackgroundImageUrl/);
+  assert.match(studio, /heroBackgroundCredit/);
   assert.match(header, /ll-page-hero/);
   assert.match(header, /InlineWebsiteImage/);
+  assert.match(header, /ll-page-hero__credit/);
+  assert.match(header, /creditField/);
   assert.match(imageEditor, /page-covers/);
   assert.match(imageEditor, /saveWebsiteDraft/);
   assert.match(imageEditor, /publishWebsiteEntry/);
   assert.match(styles, /\.ll-page-hero/);
   assert.match(styles, /min-height: clamp\(22rem, 35vw, 30rem\)/);
+  assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.ll-page-hero__media \{[^}]*background-size: 100% auto/);
+  assert.match(styles, /\.ll-page-hero h1 \{[^}]*font-size: clamp\(1\.85rem, 8\.3vw, 2\.65rem\)/);
 });

@@ -30,7 +30,8 @@ test('post and Collab taxonomy choices share compact responsive multi-select dro
   assert.match(inquiry, /<WorkTaxonomyDropdowns terms=\{terms\} selectedIds=\{selected\}/);
   assert.doesNotMatch(inquiry, /Object\.entries\(groups\)/);
   assert.match(css, /\.ll-work-taxonomy-dropdowns \{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(css, /\.ll-taxonomy-menu \{ position: absolute;[\s\S]*?max\(100%, 18rem\)/);
+  assert.match(css, /\.ll-taxonomy-menu \{[^}]*position: absolute;[^}]*max\(100%, 18rem\)/);
+  assert.match(css, /\.ll-taxonomy-menu \{[^}]*background: var\(--theme-dropdown-surface\)[^}]*opacity: 1/);
   assert.match(css, /\.ll-taxonomy-menu-option:focus-within \{ outline: 2px solid var\(--focus-ring\)/);
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.ll-work-taxonomy-dropdowns \{ grid-template-columns: minmax\(0, 1fr\); \}[\s\S]*?\.ll-taxonomy-menu,[\s\S]*?position: static; width: 100%/);
   assert.doesNotMatch(css, /\.ll-work-taxonomy-options/);

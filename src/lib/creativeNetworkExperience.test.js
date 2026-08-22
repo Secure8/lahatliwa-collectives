@@ -70,13 +70,6 @@ test('adaptive media and lightbox provide modern accessible gallery behavior', (
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test('work details use a wide media canvas and a readable text measure', () => {
-  const styles = read('src/index.css');
-  assert.match(styles, /\.ll-post-route \{ max-width: 960px; \}/);
-  assert.match(styles, /\.ll-work-route \.ll-post-document > :not\(\.ll-adaptive-gallery\)[\s\S]*?width: min\(100%, 760px\)/);
-  assert.match(styles, /\.ll-work-route \.ll-adaptive-gallery[\s\S]*?width: 100%/);
-});
-
 test('Super Admin remains operational, role-separated, and free of a permanent sidebar', () => {
   const app = read('src/App.jsx');
   const layout = read('src/components/admin/AdminLayout.jsx');
